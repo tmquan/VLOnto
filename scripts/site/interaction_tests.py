@@ -444,8 +444,14 @@ def t_network(c: Ctx):
         if c.mobile:
             pg.click("#btn-side-m")
         before = pg.inner_text("#status")
+        # the status line ("N documents · M links shown · F fps") changes once the filtered scene is rebuilt,
+        # about one frame later; at ~1 fps on SwiftShader that can take longer than a fixed pause
+        counts_differ = "b => document.getElementById('status').innerText.split('\\u00b7')[0].trim() !== b.split('\\u00b7')[0].trim()"
         pg.evaluate("() => { const e = document.getElementById('y-from'); e.value = 2015; e.dispatchEvent(new Event('input', {bubbles: true})); }")
-        pg.wait_for_timeout(600)
+        try:
+            pg.wait_for_function(counts_differ, arg=before, timeout=T_(15000))
+        except Exception:
+            pass
         after = pg.inner_text("#status")
         pg.click("[data-color=type]")
         pg.wait_for_timeout(500)
@@ -454,8 +460,11 @@ def t_network(c: Ctx):
             pg.click("#btn-side-m")
         shot = c.shot(pg, "network3d_filtered")
         pg.evaluate("() => { const e = document.getElementById('y-from'); e.value = e.min; e.dispatchEvent(new Event('input', {bubbles: true})); }")
-        pg.wait_for_timeout(400)
-        if before == after:
+        try:
+            pg.wait_for_function("b => !(" + counts_differ + ")(b)", arg=before, timeout=T_(15000))
+        except Exception:
+            pass
+        if before.split("\u00b7")[0].strip() == after.split("\u00b7")[0].strip():
             raise RuntimeError("year filter did not change the status line")
         return {"before": before, "after": after, "legend": legend[:120], "shot": shot}
     check("issue-year filter and colour by type", filters)
