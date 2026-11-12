@@ -496,8 +496,13 @@ def gather_reports_external(data_report, guide):
 
 
 def gather_pipeline_log():
-    """Console lines of the last full 'vlonto.cli all' run, if its job log is still on disk."""
-    jobs = V.parent / ".claude-science" / "jobs"
+    """Console lines of the last full 'vlonto.cli all' run, if its job log is still on disk.
+
+    VLONTO_JOB_LOGS names a directory of <job>/stdout.log files; without it there is no pipeline log.
+    """
+    if not os.environ.get("VLONTO_JOB_LOGS"):
+        return None
+    jobs = Path(os.environ["VLONTO_JOB_LOGS"])
     best = None
     for log in sorted(glob.glob(str(jobs / "*" / "stdout.log"))):
         try:

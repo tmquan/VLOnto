@@ -179,7 +179,7 @@ def make_checks(B, V, E, O, S, M, R):
         bad = L.get("files_with_forbidden_paths")
         add(name, L.get("pass_paths"),
             f"{n(L.get('n_files'))} files scanned; build-node home paths {t.get('node_home_path')}, build-node host names "
-            f"{t.get('node_host_name')}, macOS home paths {t.get('mac_home_path')}" + (f" in {bad}" if bad else ""))
+            f"{t.get('node_host_name', 'not checked (VLONTO_PRIVATE_HOSTS unset)')}, macOS home paths {t.get('mac_home_path')}" + (f" in {bad}" if bad else ""))
     else:
         add(name, None, "link_check.json missing or without path patterns")
     return ch

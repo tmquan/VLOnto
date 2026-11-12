@@ -29,11 +29,15 @@ FORBIDDEN = {
     "spaces_path": r"(?i)(^|[^\w])spaces/",
     "dataset_card_wording": r"(?i)dataset card",
 }
+# build-machine host names come from VLONTO_PRIVATE_HOSTS (comma-separated, kept out of the repository);
+# without it host names are not checked and the report says so
+_HOSTS = [h.strip() for h in os.environ.get("VLONTO_PRIVATE_HOSTS", "").split(",") if h.strip()]
 FORBIDDEN_PATHS = {
     "node_home_path": r"/localhom[e]",
-    "node_host_name": r"(?i)umb-b30[0]",
     "mac_home_path": r"/User[s]/[A-Za-z0-9._-]+/",
 }
+if _HOSTS:
+    FORBIDDEN_PATHS["node_host_name"] = "(?i)" + "|".join(re.escape(h) for h in _HOSTS)
 FORBIDDEN_LINKS = dict(FORBIDDEN)
 FORBIDDEN = {**FORBIDDEN_LINKS, **FORBIDDEN_PATHS}
 # information only
@@ -44,8 +48,8 @@ EXPECTED = {
 }
 ALL = {**FORBIDDEN, **EXPECTED}
 _RX = {k: re.compile(v) for k, v in ALL.items()}
-_PREFILTER = ("huggingface", "hf.co", "spaces/", "card", "github.com", "arxiv.org", "localhom", "umb-b30", "/users/")
-_PREFILTER_RX = r"(?i)huggingface|hf\.co|spaces/|card|github\.com|arxiv\.org|localhom|umb-b30|/users/"
+_PREFILTER = ("huggingface", "hf.co", "spaces/", "card", "github.com", "arxiv.org", "localhom", "/users/") + tuple(h.lower() for h in _HOSTS)
+_PREFILTER_RX = r"(?i)huggingface|hf\.co|spaces/|card|github\.com|arxiv\.org|localhom|/users/" + "".join("|" + re.escape(h) for h in _HOSTS)
 
 
 def _scan_lines(lines):
