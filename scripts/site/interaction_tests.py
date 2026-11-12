@@ -1213,6 +1213,44 @@ JS_COUNT = """async (arg) => { const img = new Image(); img.src = arg.src; await
   return out; }"""
 
 
+# call-out placement of the 3D views (js/paper3d.js VL.Callouts -> window.__VLONTO_METRICS.callouts) and the cap of the
+# trace widths in CSS px (VL.TRACE_W)
+JS_CALLOUTS = "() => window.__VLONTO_METRICS.callouts || null"
+TRACE_CAP = {"core": 2.8, "halo": 6.4, "halo2": 9.2}
+
+
+def callout_faults(co):
+    """the paper's rule for one placement run: no two visible call-outs intersect, no visible call-out covers a projected
+    node centre (the nodes the run saw: every visible node in the playground and the CONSTRUCT view, the highlighted
+    documents in the legal network), and no selected or traced call-out was dropped"""
+    if not co:
+        return ["no call-out placement recorded"]
+    boxes = [(p["id"], p["box"]) for p in co.get("placed", [])]
+    inter = [(a[0], b[0]) for i, a in enumerate(boxes) for b in boxes[i + 1:]
+             if a[1][0] < b[1][2] and b[1][0] < a[1][2] and a[1][1] < b[1][3] and b[1][1] < a[1][3]]
+    covered = [(pid, nid) for pid, b in boxes for nid, x, y in co.get("nodes", []) if b[0] < x < b[2] and b[1] < y < b[3]]
+    faults = []
+    if inter:
+        faults.append(f"{len(inter)} pairs of intersecting call-outs, e.g. {inter[:3]}")
+    if covered:
+        faults.append(f"{len(covered)} node centres under call-outs, e.g. {covered[:3]}")
+    if co.get("mustHidden"):
+        faults.append(f"{co['mustHidden']} selected or traced call-outs hidden")
+    return faults
+
+
+def wait_callouts(pg, after_runs=0, must_id=None, timeout=15000):
+    """wait for a placement run newer than after_runs (with must_id: one that shows that call-out); returns the run"""
+    pg.wait_for_function("""(a) => { const c = window.__VLONTO_METRICS.callouts;
+        return !!c && c.runs > a.runs && (!a.id || c.placed.some(p => p.id === a.id)); }""", arg={"runs": after_runs, "id": must_id}, timeout=timeout)
+    pg.wait_for_timeout(400)
+    return pg.evaluate(JS_CALLOUTS)
+
+
+def callout_summary(co):
+    return {k: co.get(k) for k in ("runs", "shown", "hidden", "mustOffscreen", "forced", "ms", "W", "H")} if co else None
+
+
 def hex_rgb(h):
     h = h.lstrip("#")
     return [int(h[i:i + 2], 16) for i in (0, 2, 4)]
@@ -1237,9 +1275,12 @@ def trace_pixels(pg, sel, theme):
 def t_paper_style(c: Ctx):
     """The 3D views follow the paper's figures (arXiv:2611.11426, Fig. 1 / Fig. 6): per theme the scene ground, class
     colours, call-out border and trace colours come from the paper-style tokens and Libertinus Sans is loaded; selecting a
-    class in the playground and 45/2019/QH14 in the legal network draws the traced path (core and halo pixels appear,
-    the network also traces the replacement chain); a CONSTRUCT result on the SPARQL page is drawn as a trace with the
-    paper's legend row; pages outside the 3D views keep their palette. Screenshots of each view in both themes."""
+    class in the playground and 45/2019/QH14 in the legal network draws the traced path (core and halo pixels appear);
+    a selection with many links traces only its chain (the network: the replacement chain) and a hovered link, its other
+    links are thin coloured lines; a CONSTRUCT result on the SPARQL page is traced when small and traces the hovered
+    node's links when large, with the paper's legend row. In every view and state the call-outs never intersect, never
+    cover a node centre, and the selected / traced ones stay (window.__VLONTO_METRICS.callouts, js/paper3d.js
+    VL.Callouts). Pages outside the 3D views keep their palette. Screenshots of each view in both themes."""
     res = {"test": "paper style (3D views)", "checks": []}
     logs = {"console_errors": [], "page_errors": [], "failed_requests": [], "external_requests": []}
 
@@ -1284,23 +1325,72 @@ def t_paper_style(c: Ctx):
                 legend = pg.evaluate("document.getElementById('legend').textContent") if not c.mobile else ""
                 if not c.mobile and not all(x in legend for x in ("Văn bản · Work", "Điều · Article", "Đường truy vết")):
                     raise RuntimeError(f"legend row: {legend[:200]}")
+                cap = pg.evaluate("() => window.VL.TRACE_W")
+                if cap != TRACE_CAP:
+                    raise RuntimeError(f"trace width cap {cap} != {TRACE_CAP}")
+                co0 = wait_callouts(pg)
+                faults = callout_faults(co0)
+                if faults:
+                    raise RuntimeError("default view: " + "; ".join(faults))
                 before = trace_pixels(pg, "#canvas-host", theme)
+                runs = co0["runs"]
                 pg.evaluate("() => window.VLApp.select('vlo:Article')")
                 pg.wait_for_function("window.__VLONTO_METRICS.selected === 'vlo:Article' && window.__VLONTO_METRICS.traceSegments > 0", timeout=15000)
                 pg.wait_for_timeout(1800)
+                co1 = wait_callouts(pg, runs, "vlo:Article")
+                faults = callout_faults(co1)
+                if faults:
+                    raise RuntimeError("Article selected: " + "; ".join(faults))
                 after = trace_pixels(pg, "#canvas-host", theme)
                 m = pg.evaluate("window.__VLONTO_METRICS")
                 if m.get("highlightChain", 0) < 1:
                     raise RuntimeError(f"no superclass chain in the highlight: {m.get('highlightChain')}")
                 if after["core"] - before["core"] < 30 or after["halo"] - before["halo"] < 60:
                     raise RuntimeError(f"traced path not drawn: core/halo pixels {before} -> {after}")
+                shot_article = shot(pg, "playground_article", theme)
+                # a class with more than 6 links (NormativeLegalDocument: 11): only its chain up the hierarchy is traced, the
+                # other links are thin coloured lines; hovering a neighbour traces its link and keeps its call-out
+                r0 = pg.evaluate("window.__VLONTO_METRICS.callouts.runs")
+                pg.evaluate("() => window.VLApp.select('vlo:NormativeLegalDocument')")
+                pg.wait_for_function("window.__VLONTO_METRICS.selected === 'vlo:NormativeLegalDocument'", timeout=15000)
+                pg.wait_for_timeout(1800)
+                co2 = wait_callouts(pg, r0, "vlo:NormativeLegalDocument")
+                faults = callout_faults(co2)
+                if faults:
+                    raise RuntimeError("NormativeLegalDocument selected: " + "; ".join(faults))
+                m2 = pg.evaluate("window.__VLONTO_METRICS")
+                if m2.get("emphLinks", 0) < 5 or not (1 <= m2.get("traceLinks", 0) <= 2):
+                    raise RuntimeError(f"many links: expected the chain traced (1-2 links) and the rest thin, got traceLinks {m2.get('traceLinks')}, emphLinks {m2.get('emphLinks')}")
+                hover = None
+                for p in sorted(co2["placed"], key=lambda q: q["id"] == "vlo:LegalDocument"):
+                    if p["id"] == "vlo:NormativeLegalDocument":
+                        continue
+                    r1 = pg.evaluate("window.__VLONTO_METRICS.callouts.runs")
+                    n = pg.evaluate("(id) => window.VLApp.hover(id)", p["id"])
+                    if n:
+                        hover = {"node": p["id"], "links": n, "trace_links": pg.evaluate("window.__VLONTO_METRICS.traceLinks")}
+                        co3 = wait_callouts(pg, r1, p["id"])
+                        faults = callout_faults(co3)
+                        if faults:
+                            raise RuntimeError(f"hovering {p['id']}: " + "; ".join(faults))
+                        hover["shot"] = shot(pg, "playground_many_links", theme)
+                        break
+                pg.evaluate("() => window.VLApp.hover(null)")
+                if not hover:
+                    raise RuntimeError("hovering a neighbour of NormativeLegalDocument traced no link")
+                if hover["node"] != "vlo:LegalDocument" and hover["trace_links"] <= m2.get("traceLinks", 0):
+                    raise RuntimeError(f"the hovered link was not added to the trace: {m2.get('traceLinks')} -> {hover['trace_links']}")
+                if pg.evaluate("window.__VLONTO_METRICS.hoverTrace"):
+                    raise RuntimeError("the hover trace stayed after the hover ended")
                 return {"tokens": {k: got[k] for k in ("scene_bg", "core", "halo", "work")}, "libertinus": got["libertinus"], "trace_links": m.get("traceLinks"),
                         "trace_segments": m.get("traceSegments"), "chain": m.get("highlightChain"), "pixels_before": before, "pixels_after": after,
-                        "legend_entries": m.get("legendEntries"), "shot": shot(pg, "playground_article", theme)}
+                        "many_links": {"trace_links": m2.get("traceLinks"), "emphasised_links": m2.get("emphLinks"), "hover": hover},
+                        "callouts_default": callout_summary(co0), "callouts_article": callout_summary(co1), "callouts_many": callout_summary(co2),
+                        "legend_entries": m.get("legendEntries"), "shot": shot_article}
             finally:
                 merge(log)
                 ctx.close()
-        check(f"playground ({theme}): tokens, Libertinus, legend row; selecting Article draws its chain as the traced path", playground)
+        check(f"playground ({theme}): tokens, Libertinus, legend row; call-outs clear of ink and of each other; selecting Article traces its chain, a hover traces a link", playground)
 
         def network(theme=theme):
             ctx, pg, log = c.open("network-3d.html", scheme=theme, ready_timeout=240000)
@@ -1308,49 +1398,90 @@ def t_paper_style(c: Ctx):
                 got = pg.evaluate(JS_PAPER, None)
                 tokens_ok(got, theme, "network-3d.html")
                 before = trace_pixels(pg, "#canvas-host", theme)
+                runs = (pg.evaluate(JS_CALLOUTS) or {}).get("runs", 0)
                 pg.evaluate("() => window.VLApp.selectById('333670')")
                 pg.wait_for_function("window.__VLONTO_METRICS.panelLoaded === '333670' && window.__VLONTO_METRICS.chainTraceDocs >= 2", timeout=120000)
                 pg.wait_for_timeout(1800)
+                co1 = wait_callouts(pg, runs, "doc-333670", timeout=60000)
+                faults = callout_faults(co1)
+                if faults:
+                    raise RuntimeError("45/2019/QH14 selected: " + "; ".join(faults))
                 after = trace_pixels(pg, "#canvas-host", theme)
                 m = pg.evaluate("window.__VLONTO_METRICS")
-                if not m.get("traceSegments"):
-                    raise RuntimeError("the selection's links are not traced")
+                # the hub's own links are thin lines in their link-type colours; only the replacement chain is traced
+                if m.get("traceSegments"):
+                    raise RuntimeError(f"{m.get('traceSegments')} links of the selection traced without a hover (only the chain may be)")
+                if not m.get("egoLines"):
+                    raise RuntimeError("the selection's links are not drawn as thin coloured lines")
                 if after["core"] - before["core"] < 30 or after["halo"] - before["halo"] < 60:
-                    raise RuntimeError(f"traced answer not drawn: core/halo pixels {before} -> {after}")
+                    raise RuntimeError(f"replacement chain not traced: core/halo pixels {before} -> {after}")
+                # hovering the other document of the chain (10/2012/QH13, replaced by 45/2019/QH14) traces their link
+                r0 = pg.evaluate("window.__VLONTO_METRICS.callouts.runs")
+                hovered = pg.evaluate("() => window.VLApp.hoverDoc('142187')")
+                if not hovered:
+                    raise RuntimeError("hovering 10/2012/QH13 traced no link")
+                co2 = wait_callouts(pg, r0, "doc-142187", timeout=60000)
+                faults = callout_faults(co2)
+                if faults:
+                    raise RuntimeError("10/2012/QH13 hovered: " + "; ".join(faults))
+                pg.evaluate("() => window.VLApp.hoverDoc(null)")
+                if pg.evaluate("window.__VLONTO_METRICS.traceSegments"):
+                    raise RuntimeError("the hover trace stayed after the hover ended")
                 legend = pg.evaluate("document.getElementById('legend').textContent") if not c.mobile else ""
                 if not c.mobile and "Đường truy vết" not in legend:
                     raise RuntimeError(f"legend: {legend[:200]}")
-                return {"trace_segments": m.get("traceSegments"), "chain_docs": m.get("chainTraceDocs"), "ego_edges": m.get("egoEdges"),
-                        "pixels_before": before, "pixels_after": after, "shot": shot(pg, "network_45_2019", theme)}
+                return {"chain_docs": m.get("chainTraceDocs"), "ego_edges": m.get("egoEdges"), "ego_lines": m.get("egoLines"), "hover_trace_segments": hovered,
+                        "pixels_before": before, "pixels_after": after, "callouts_selected": callout_summary(co1), "callouts_hover": callout_summary(co2),
+                        "shot": shot(pg, "network_45_2019", theme)}
             finally:
                 merge(log)
                 ctx.close()
-        check(f"legal network ({theme}): tokens; 45/2019/QH14 traced with its replacement chain", network)
+        check(f"legal network ({theme}): tokens; 45/2019/QH14: only the replacement chain traced, a hovered link traced, call-outs clear", network)
 
         def construct(theme=theme):
             ctx, pg, log = c.open("sparql.html", scheme=theme)
             try:
                 pg.locator("#ex-construct button").first.click()
-                pg.wait_for_function("!!window.__VLONTO_METRICS.constructDrawn && window.__VLONTO_METRICS.constructTrace > 0", timeout=120000)
+                pg.wait_for_function("!!window.__VLONTO_METRICS.constructDrawn && !!window.__VLONTO_METRICS.callouts", timeout=120000)
                 pg.wait_for_timeout(2000)
                 got = pg.evaluate(JS_PAPER, "#graph-wrap")
                 tokens_ok(got, theme, "sparql.html #graph-wrap")
                 page_bg = pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--mod-documents').trim().toLowerCase()")
                 if page_bg != OTHER_PAGES_EXPECT[theme]["mod_documents"]:
                     raise RuntimeError(f"the SPARQL page outside the CONSTRUCT view changed its palette: --mod-documents {page_bg}")
+                m = pg.evaluate("window.__VLONTO_METRICS")
+                hover, must, runs = None, None, m["callouts"]["runs"]
+                if m.get("constructMode") == "lines":
+                    # more than 12 links: thin lines in the colours of their predicates; hovering a node traces its links
+                    if m.get("constructTrace"):
+                        raise RuntimeError("a large CONSTRUCT result is traced without a hover")
+                    if not m.get("constructLines"):
+                        raise RuntimeError("the links of a large CONSTRUCT result are not drawn as thin lines")
+                    nodes = pg.evaluate("() => window.VLApp.constructNodes()")
+                    leaf = next((n["id"] for n in sorted(nodes, key=lambda n: n["links"]) if n["links"] >= 1), None)
+                    hover = pg.evaluate("(id) => window.VLApp.constructHover(id)", leaf)
+                    if not hover:
+                        raise RuntimeError(f"hovering {leaf} traced no link")
+                    must = leaf
+                    pg.wait_for_timeout(800)
                 px = trace_pixels(pg, "#graph-view", theme)
                 if px["core"] < 30 or px["halo"] < 60:
-                    raise RuntimeError(f"CONSTRUCT result not drawn as a trace: {px}")
+                    raise RuntimeError(f"CONSTRUCT result (or the hovered node's links) not drawn as a trace: {px}")
+                co = wait_callouts(pg, runs if must else runs - 1, must)
+                faults = callout_faults(co)
+                if faults:
+                    raise RuntimeError("CONSTRUCT view: " + "; ".join(faults))
                 legend = pg.evaluate("(document.getElementById('construct-legend') || {}).textContent || ''")
                 if "Đường truy vết" not in legend:
                     raise RuntimeError(f"CONSTRUCT legend: {legend[:200]}")
                 pg.locator("#graph-view").scroll_into_view_if_needed()
-                return {"pixels": px, "legend": legend[:160], "trace": pg.evaluate("window.__VLONTO_METRICS.constructTrace"),
-                        "shot": shot(pg, "sparql_construct", theme)}
+                return {"mode": m.get("constructMode"), "pixels": px, "legend": legend[:160], "trace": pg.evaluate("window.__VLONTO_METRICS.constructTrace"),
+                        "lines": m.get("constructLines"), "hover": {"node": must, "trace_segments": hover} if must else None,
+                        "callouts": callout_summary(co), "shot": shot(pg, "sparql_construct", theme)}
             finally:
                 merge(log)
                 ctx.close()
-        check(f"SPARQL CONSTRUCT view ({theme}): scoped tokens, result traced, legend row", construct)
+        check(f"SPARQL CONSTRUCT view ({theme}): scoped tokens, result traced (large: hovered node traced), call-outs clear, legend row", construct)
 
         def others(theme=theme):
             out = {}
