@@ -669,6 +669,7 @@ def figure_data(facts, g):
              "other": m["counts"]["annotation_property"] + m["counts"]["concept_schemes"]}
             for m in facts["ontology"]["modules"]]
     # the source datasets of this build only (C.SOURCES: the court datasets are read only when the build includes them)
+    # a build without court data (release v1) writes no court keys to stats.json; a v2 build writes them again
     by_src = st.get("court_decisions_by_source") or {}
     box = {
         "thuvienphapluat-vn-vbpl": ("vbpl", "legal documents", st["documents"], "documents in scope"),
