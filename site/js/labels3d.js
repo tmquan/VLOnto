@@ -186,6 +186,9 @@
     l.dispose = function () { mat.dispose(); };
     return l;
   };
-  /* world size of one CSS pixel for sizeAttenuation=false sprites */
-  VL.spriteWpp = function (camera, heightPx) { return 2 * Math.tan(camera.fov * Math.PI / 360) / Math.max(1, heightPx); };
+  /* world size of one CSS pixel for sizeAttenuation=false sprites (an orthographic camera: world units, not per depth) */
+  VL.spriteWpp = function (camera, heightPx) {
+    if (camera.isOrthographicCamera) return (camera.top - camera.bottom) / camera.zoom / Math.max(1, heightPx);
+    return 2 * Math.tan(camera.fov * Math.PI / 360) / Math.max(1, heightPx);
+  };
 })();

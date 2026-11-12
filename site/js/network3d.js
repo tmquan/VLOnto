@@ -233,7 +233,7 @@
     scheduleCull();
   }
   function updatePointScale() {
-    if (!pointsMat) return;
+    if (!pointsMat || !camera.isPerspectiveCamera) return;   // another camera (VLApp.capture) sets uScale itself
     pointsMat.uniforms.uScale.value = renderer.domElement.height / (2 * Math.tan(camera.fov * Math.PI / 360));
   }
   function loop(t) {
@@ -1041,6 +1041,19 @@
   window.VLApp.state = function () {
     return { dataset: D && D.name, nodes: D && D.N, selected: state.sel >= 0 ? D.ids[state.sel] : null, panelOpen: !panel.classList.contains('hidden'),
       panelText: panel.textContent, egoHop1: M.egoHop1, labelsShown: M.labelsShown };
+  };
+  /* capture hook for scripts/site/teaser, which renders the paper's Fig. 1 from this view (the site never calls it):
+     the scene and its state, the link curve, a camera swap (the page then renders and places its call-outs with that
+     camera; an orthographic one sets the points' uScale itself), a selection without the camera flight, a frame */
+  window.VLApp.capture = {
+    get: function () {
+      return { THREE: THREE, renderer: renderer, scene: scene, camera: camera, controls: controls, D: D, P: P, state: state,
+        points: pointsObj, edges: edgeObjs, layers: layerGroup, labels: labelGroup, chain: chainTrace, ego: egoLines,
+        chainIdx: chainIdx.slice(), curvePts: curvePts, ZS: ZS, fog: FOG };
+    },
+    setCamera: function (cam) { camera = cam; controls.object = cam; controls.update(); needsRender = true; scheduleCull(); },
+    select: function (id) { var i = D ? D.idx[String(id)] : null; if (i == null) return false; select(i, false); return true; },
+    render: function () { needsRender = true; }
   };
 
   /* ------------------------------------------------------------------ search */
