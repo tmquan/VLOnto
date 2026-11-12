@@ -9,8 +9,15 @@ js/<name>.js          offline twins: window.VLONTO["<name>"] = <same JSON>; also
                       vlonto_ontology_ttl.js holding the Turtle files as strings (no fetch() under file://)
 manifest.json         files, sizes, sha256
 
-Release v1 has no court data: the court keys of stats.json and dashboard.json are kept (0 or empty) so that the pages
-keep working, and stats.json says which sources the build used (courts_included, sources, deferred_sources).
+Release v1 has no court data, and its site bundles carry no court fields: stats.json, dashboard.json, ontology_graph.json
+and manifest.json are written without the keys in COURT_STATS_KEYS / COURT_DASHBOARD_KEYS (court counts, court charts,
+the court citing source, courts_included, deferred_sources); the v1 site has no court sections. A build with court data
+(VLONTO_INCLUDE_COURTS=1, planned for v2) writes them as in 0.1.0, plus courts_included. stats.json lists the sources of
+the build. The ontology keeps its judiciary classes; in v1 they have no instances (their scope notes say so).
+
+`vlonto.cli site --only stats,dashboard,ontology_graph` rewrites only those bundles (and the manifest) and keeps the
+legal-network bundles as they are: those are not byte-stable between runs (citation-edge order, layout_seconds) and
+their DrL coordinates differ between macOS and Linux builds.
 """
 import hashlib
 import json
@@ -47,6 +54,26 @@ COURT_COLS = {
     "courts": {"court_id": pl.Utf8, "label": pl.Utf8, "court_level": pl.Utf8, "n_decisions": pl.Int64, "court_kind": pl.Utf8, "province": pl.Utf8},
     "precedents": {"precedent_id": pl.Utf8, "precedent_number": pl.Utf8, "n_citing_decisions": pl.Int64},
 }
+
+# Keys that only a build with court data writes (release v1 drops them: its site data has no court fields).
+COURT_STATS_KEYS = ("courts_included", "court_decisions", "court_decisions_by_source", "courts", "precedents",
+                    "applied_provision_links", "case_links", "deferred_sources")
+COURT_DASHBOARD_KEYS = ("courts_included", "decisions_by_category_year", "decisions_by_court_level", "decisions_by_instance_level",
+                        "decisions_by_kind_source", "top_courts", "courts_by_kind", "decisions_by_province",
+                        "decisions_without_court", "most_applied_precedents", "case_links_by_method")
+COURT_CITING_SOURCE = "court_decisions"      # key inside most_cited_documents / most_cited_articles
+SITE_PARTS = ("stats", "dashboard", "ontology_graph", "legal_network", "sparql_examples", "ttl")
+
+
+def drop_court_fields(stats, db):
+    """Release v1: remove the court keys from stats.json and dashboard.json (in place)."""
+    for k in COURT_STATS_KEYS:
+        stats.pop(k, None)
+    for k in COURT_DASHBOARD_KEYS:
+        db.pop(k, None)
+    for k in ("most_cited_documents", "most_cited_articles"):
+        db[k].pop(COURT_CITING_SOURCE, None)
+    db["most_cited_documents_note"] = "citing = number of distinct citing documents / Q&As"
 
 
 def dump(obj, name):
@@ -150,8 +177,7 @@ def stats_and_dashboard(build, export, core, validation):
     db["most_cited_documents"] = {"vbpl_citations": top_docs(ci.filter(pl.col("src_doc_id") != pl.col("dst_doc_id")), "src_doc_id"),
                                   "qa": top_docs(qa_docs, "qa_id"), "court_decisions": top_docs(dp, "decision_id")}
     db["most_cited_articles"] = {"vbpl_citations": top_arts(ci, "src_doc_id"), "qa": top_arts(qa_art, "qa_id"), "court_decisions": top_arts(dp, "decision_id")}
-    db["most_cited_documents_note"] = "citing = number of distinct citing documents / Q&As / court decisions" + (
-        "" if C.INCLUDE_COURTS else " (no court decisions in release v1: court data is planned for v2)")
+    db["most_cited_documents_note"] = "citing = number of distinct citing documents / Q&As / court decisions"
     dec2 = dec.with_columns(pl.col("year").fill_null(-1), pl.col("category").fill_null("unknown"), pl.col("court_level").fill_null("unknown"),
                             pl.col("instance_level").fill_null("unknown"))
     db["decisions_by_category_year"] = rows(dec2.group_by("category", "year").len().sort("category", "year").rename({"len": "n"}))
@@ -181,6 +207,8 @@ def stats_and_dashboard(build, export, core, validation):
                     "doc_types": {v[2]: {"vi": k, "en": C.DOC_TYPE_EN[k]} for k, v in C.DOC_TYPES.items()},
                     "ranks": {str(k): {"en": v[0], "vi": v[1]} for k, v in C.RANK_LABELS.items()},
                     "news_categories": {k: {"vi": v[0], "en": v[1]} for k, v in C.NEWS_CATEGORY_LABELS.items()}}
+    if not C.INCLUDE_COURTS:
+        drop_court_fields(stats, db)
     return stats, db
 
 
@@ -291,6 +319,8 @@ def ontology_graph():
                       "links": len(links)},
            "notes": "instances = number of knowledge-graph nodes of the class (including subclasses for LegalDocument, Provision, CourtDecision, JudicialDocument); examples are up to 5 instances."
                     + ("" if C.INCLUDE_COURTS else " Release v1 has no court data: the judiciary classes (and vlo:Court) have no instances; they are populated from v2 (scope_note_en).")}
+    if not C.INCLUDE_COURTS:
+        out.pop("courts_included")          # release v1: no court fields in the site data
     return out
 
 
@@ -434,24 +464,34 @@ def sparql_examples():
     return {"dataset": "vlonto-core.ttl", "triples": len(st), "queries": out}
 
 
-def build_site():
+def build_site(only=None):
+    """Write the site bundles and manifest.json. only: the SITE_PARTS to rewrite (default: all); the other bundles are
+    kept as they are, e.g. only=("stats", "dashboard", "ontology_graph") keeps the legal network and its layout."""
+    parts = set(SITE_PARTS if not only else only)
+    if parts - set(SITE_PARTS):
+        raise SystemExit(f"site --only: unknown part(s) {sorted(parts - set(SITE_PARTS))}; use {','.join(SITE_PARTS)}")
     t0 = time.time()
     rd = lambda n: json.load(open(os.path.join(C.REPORTS, n))) if os.path.exists(os.path.join(C.REPORTS, n)) else {}
     build, export, core, validation = rd("build_report.json"), rd("export_report.json"), rd("core_report.json"), rd("validation.json")
-    stats, dash = stats_and_dashboard(build, export, core, validation)
-    og = ontology_graph()
-    stats["ontology"] = {"classes": og["counts"]["classes_vlo"], "object_properties": og["counts"]["object_properties"],
-                         "datatype_properties": og["counts"]["datatype_properties"], "concept_schemes": og["counts"]["schemes"],
-                         "aligned_external_terms": og["counts"]["external"]}
-    dump(stats, "stats")
-    dump(dash, "dashboard")
-    dump(og, "ontology_graph")
-    net = layout_main([])
-    ex = sparql_examples()
-    dump(ex, "sparql_examples")
+    if parts & {"stats", "dashboard", "ontology_graph"}:
+        stats, dash = stats_and_dashboard(build, export, core, validation)
+        og = ontology_graph()
+        stats["ontology"] = {"classes": og["counts"]["classes_vlo"], "object_properties": og["counts"]["object_properties"],
+                             "datatype_properties": og["counts"]["datatype_properties"], "concept_schemes": og["counts"]["schemes"],
+                             "aligned_external_terms": og["counts"]["external"]}
+        for name, obj in (("stats", stats), ("dashboard", dash), ("ontology_graph", og)):
+            if name in parts:
+                dump(obj, name)
+    if "legal_network" in parts:
+        layout_main([])
+    ex = None
+    if "sparql_examples" in parts:
+        ex = sparql_examples()
+        dump(ex, "sparql_examples")
     jsdir = os.path.join(C.SITE, "js")
-    js_string_twin(os.path.join(C.RDF_DIR, "vlonto-core.ttl"), "vlonto_core_ttl", jsdir)
-    js_string_twin(os.path.join(C.REPO, "ontology", "vlonto.ttl"), "vlonto_ontology_ttl", jsdir)
+    if "ttl" in parts:
+        js_string_twin(os.path.join(C.RDF_DIR, "vlonto-core.ttl"), "vlonto_core_ttl", jsdir)
+        js_string_twin(os.path.join(C.REPO, "ontology", "vlonto.ttl"), "vlonto_ontology_ttl", jsdir)
     man = []
     for root in (C.SITE, jsdir):
         for fn in sorted(os.listdir(root)):
@@ -459,11 +499,14 @@ def build_site():
             if os.path.isfile(p) and fn != "manifest.json":
                 b = open(p, "rb").read()
                 man.append({"file": os.path.relpath(p, C.SITE), "bytes": len(b), "sha256": hashlib.sha256(b).hexdigest(), "within_20MB": len(b) <= MAX_BYTES})
+    head = {"version": C.VERSION, "release": C.RELEASE, "build_date": C.BUILD_DATE}
+    if C.INCLUDE_COURTS:
+        head["courts_included"] = True       # release v1 writes no court fields
     with open(os.path.join(C.SITE, "manifest.json"), "w") as f:
-        json.dump({"version": C.VERSION, "release": C.RELEASE, "build_date": C.BUILD_DATE, "courts_included": C.INCLUDE_COURTS,
-                   "files": man, "note": "js/<name>.js twins assign window.VLONTO[name] for file:// use; "
+        json.dump({**head, "files": man, "note": "js/<name>.js twins assign window.VLONTO[name] for file:// use; "
                    "js/manifest.js is written after this list"}, f, indent=1)
     write_js_twin(os.path.join(C.SITE, "manifest.json"), "manifest")
-    print(json.dumps({"files": [(m["file"], m["bytes"]) for m in man], "all_within_20MB": all(m["within_20MB"] for m in man),
-                      "sparql": [(q["title_en"], q.get("rows_on_core"), q.get("error")) for q in ex["queries"]],
+    print(json.dumps({"rewritten": sorted(parts), "files": [(m["file"], m["bytes"]) for m in man],
+                      "all_within_20MB": all(m["within_20MB"] for m in man),
+                      "sparql": [(q["title_en"], q.get("rows_on_core"), q.get("error")) for q in ex["queries"]] if ex else "kept",
                       "wall_s": round(time.time() - t0, 1)}, ensure_ascii=False, indent=1), flush=True)
