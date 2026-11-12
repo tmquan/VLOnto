@@ -1,8 +1,10 @@
 # VLOnto knowledge-graph data dictionary
 
-Version 0.1.0, built 2026-11-11. Tables are parquet (zstd) files in `build/kg`; `build/kg_local` holds local-only tables that are not for publication (licence policy). Paths are relative to the VLOnto root.
+Version 1.0.0 (release v1), built 2026-11-12, document validity as of 2026-11-08. Tables are parquet (zstd) files in `build/kg`; `build/kg_local` holds local-only tables that are not for publication (licence policy). Paths are relative to the VLOnto root.
 
-IRIs: documents `id/document/<doc_id>`, articles `id/document/<doc_id>/dieu-<n>`, clauses `.../khoan-<k>`, points `.../diem-<p>`, decisions `id/decision/<source>/<doc_name>`, courts `id/court/<slug>`, Q&As `id/qa/<id>` (answer `id/qa/<id>/answer`), terms `id/term/<id>`, news `id/news/<id>`, under https://tmquan.github.io/VLOnto/.
+Release v1 sources: `thuvienphapluat-vn-vbpl`, `thuvienphapluat-vn-hdpl`, `thuvienphapluat-vn-tnpl`, `thuvienphapluat-vn-htpl`. Court data (`anle-toaan-gov-vn`, `cbba-toaan-gov-vn`) is planned for v2: the ontology keeps the judiciary classes, but this build has no court, decision or precedent tables.
+
+IRIs: documents `id/document/<doc_id>`, articles `id/document/<doc_id>/dieu-<n>`, clauses `.../khoan-<k>`, points `.../diem-<p>`, Q&As `id/qa/<id>` (answer `id/qa/<id>/answer`), terms `id/term/<id>`, news `id/news/<id>`, under https://tmquan.github.io/VLOnto/.
 
 ## `documents` (40,816 rows)
 
@@ -82,21 +84,21 @@ Appendices, parts, chapters and sections of documents.
 | `position` | Int64 | 73,925 | order among nodes of this kind in the document |
 | `iri` | String | 73,925 | VLOnto IRI |
 
-## `provisions_ref` (60,960 rows)
+## `provisions_ref` (48,031 rows)
 
 Clauses (khoản) and points (điểm) created because an edge refers to them.
 
 | Column | Type | Non-null | Description |
 |---|---|---|---|
-| `prov_id` | String | 60,960 | <article_id>::khoan-<k>[::diem-<p>] or <article_id>::diem-<p> |
-| `iri` | String | 60,960 | VLOnto IRI |
-| `kind` | String | 60,960 | Clause or Point |
-| `article_id` | String | 60,960 | article |
-| `doc_id` | String | 60,960 | document |
-| `clause` | String | 60,662 | clause number |
-| `point` | String | 17,153 | point letter |
-| `parent_id` | String | 60,960 | article or clause |
-| `n_refs` | Int64 | 60,960 | edges that reference this provision |
+| `prov_id` | String | 48,031 | <article_id>::khoan-<k>[::diem-<p>] or <article_id>::diem-<p> |
+| `iri` | String | 48,031 | VLOnto IRI |
+| `kind` | String | 48,031 | Clause or Point |
+| `article_id` | String | 48,031 | article |
+| `doc_id` | String | 48,031 | document |
+| `clause` | String | 47,957 | clause number |
+| `point` | String | 12,555 | point letter |
+| `parent_id` | String | 48,031 | article or clause |
+| `n_refs` | Int64 | 48,031 | edges that reference this provision |
 
 ## `issuers` (57 rows)
 
@@ -219,109 +221,6 @@ vbpl citations (external, external_mention, parent_law, parent_law_mention) reso
 | `raw` | String | 268,563 | citation as written (<=200 chars) |
 | `method` | String | 268,563 | docnum-key or law-name-year |
 
-## `courts` (1,345 rows)
-
-Canonical courts named in decisions (source field or judgment header; anonymised and unparsable names dropped).
-
-| Column | Type | Non-null | Description |
-|---|---|---|---|
-| `court_id` | String | 1,345 | slug of the canonical name |
-| `iri` | String | 1,345 | VLOnto IRI |
-| `label` | String | 1,345 | canonical court name |
-| `court_kind` | String | 1,345 | supreme, high, military, provincial, district (huyện/quận/thị xã/thành phố thuộc tỉnh) or regional (khu vực, from 2025) |
-| `court_level` | String | 1,345 | Supreme/High/Provincial/District/Military (regional courts: District) |
-| `province` | String | 1,241 | province or centrally run city (null when never stated) |
-| `head` | String | 1,345 | upper-case name phrase used to match case citations (province added for district names used in several provinces) |
-| `n_decisions` | Int64 | 1,345 | decisions |
-| `n_from_header` | Int64 | 1,345 | decisions whose court came from the header |
-| `n_province_from_name` | Int64 | 1,345 | decisions whose province was inferred from the same name elsewhere |
-
-## `decisions` (1,544,091 rows)
-
-Court decisions from anle (1,844) and cbba (16 shards).
-
-| Column | Type | Non-null | Description |
-|---|---|---|---|
-| `decision_id` | String | 1,544,091 | <source>:<doc_name> |
-| `source` | String | 1,544,091 | anle or cbba |
-| `doc_name` | String | 1,544,091 | source id |
-| `decision_number` | String | 1,437,318 | e.g. 38/2021/DS-PT |
-| `decision_code` | String | 1,437,318 | symbol, e.g. DS-PT |
-| `number` | Int64 | 1,437,318 | number part |
-| `year_in_number` | Int64 | 1,437,318 | year part |
-| `decision_kind` | String | 1,544,091 | Judgment / CourtRuling / CourtDecision |
-| `category` | String | 1,350,567 | case category |
-| `instance_level` | String | 1,308,754 | procedural stage |
-| `court_level` | String | 1,464,978 | court level (source, else inferred from the court name) |
-| `court_method` | String | 1,245,823 | court-name:field or court-name:header (+province-from-name) |
-| `court_note` | String | 307,038 | why court_id is null: masked, unparsed, ambiguous-without-province, regional-without-province |
-| `issued_date` | String | 1,452,339 | decision date (null when the source date fails the checks) |
-| `issued_date_check` | String | 1,544,091 | ok, missing, malformed, out_of_range, year_mismatch (vs year in the number), before_cited_document (earlier than the year of a cited law or decision), number_is_legislative (the source number is that of a cited law; number, code and date dropped) |
-| `url` | String | 1,544,091 | source URL |
-| `is_precedent_source` | Boolean | 1,544,091 | selected as a precedent |
-| `precedent_number` | String | 9 | precedent number if any |
-| `n_law_citations` | Int64 | 1,544,091 | law citation records in source |
-| `n_case_citations` | Int64 | 1,544,091 | case citation records in source |
-| `iri` | String | 1,544,091 | VLOnto IRI |
-| `year` | Int32 | 1,452,339 | decision year |
-| `court_id` | String | 1,237,053 | canonical court (null when masked/unparsable/ambiguous) |
-| `n_law_edges` | UInt32 | 1,544,091 | applied-provision edges after resolution |
-| `n_case_edges` | UInt32 | 1,544,091 | case edges after resolution |
-
-## `precedents` (28 rows)
-
-Precedents (án lệ) by national number.
-
-| Column | Type | Non-null | Description |
-|---|---|---|---|
-| `precedent_id` | String | 28 | NN-YYYY-al |
-| `precedent_number` | String | 28 | NN/YYYY/AL |
-| `source_decision_ids` | List(String) | 28 | decisions selected as the precedent |
-| `n_citing_decisions` | UInt32 | 28 | decisions citing it |
-| `iri` | String | 28 | VLOnto IRI |
-
-## `edges_decision_provision` (7,060,655 rows)
-
-Applied provisions: decision -> document / article (+clause, point).
-
-| Column | Type | Non-null | Description |
-|---|---|---|---|
-| `decision_id` | String | 7,060,655 | decision |
-| `dst_doc_id` | String | 7,060,655 | document |
-| `dst_article_id` | String | 6,017,617 | article when present |
-| `clause` | String | 1,980,698 | clause |
-| `point` | String | 669,717 | point |
-| `n_mentions` | UInt32 | 7,060,655 | records merged |
-| `article_cited` | String | 6,022,747 | article written |
-| `cit_kind` | String | 7,060,655 | provision or document |
-| `law_type` | String | 7,060,655 | law type written |
-| `ref` | String | 7,060,655 | reference as written (<=160) |
-| `sentence_id` | String | 6,577,586 | source sentence id (pointer, no text) |
-| `method` | String | 7,060,655 | docnum-key or law-name-year |
-
-## `edges_decision_case` (14,650 rows)
-
-Case-to-case edges: decision -> decision or precedent.
-
-| Column | Type | Non-null | Description |
-|---|---|---|---|
-| `src_id` | String | 14,650 | citing decision |
-| `dst_id` | String | 14,650 | cited decision or precedent |
-| `dst_kind` | String | 14,650 | decision or precedent |
-| `cited_id` | String | 14,650 | number as written |
-| `role` | String | 4,700 | role in source (first-instance, appellate, ...) |
-| `method` | String | 14,650 | case-number-date, case-number-court or precedent-number |
-
-## `edges_precedent_source` (9 rows)
-
-Precedent -> source decision (selected from).
-
-| Column | Type | Non-null | Description |
-|---|---|---|---|
-| `src_id` | String | 9 | precedent |
-| `dst_id` | String | 9 | decision |
-| `method` | String | 9 | source-metadata |
-
 ## `qas` (109,543 rows)
 
 Legal Q&As from hdpl: metadata only (no question or answer text).
@@ -436,20 +335,20 @@ News categories.
 | `label_en` | String | 7 |  |
 | `n_articles` | Int64 | 7 |  |
 
-## `sources` (6 rows)
+## `sources` (4 rows)
 
-Source datasets with revision, licence and policy.
+Source datasets of this build with revision, licence and policy (release v1: the four thuvienphapluat.vn datasets).
 
 | Column | Type | Non-null | Description |
 |---|---|---|---|
-| `dataset` | String | 6 |  |
-| `iri` | String | 6 |  |
-| `revision` | String | 6 |  |
-| `licence` | String | 6 |  |
-| `publisher` | String | 6 |  |
-| `content` | String | 6 |  |
-| `repository` | String | 6 |  |
-| `card_sha256` | String | 6 |  |
+| `dataset` | String | 4 |  |
+| `iri` | String | 4 |  |
+| `revision` | String | 4 |  |
+| `licence` | String | 4 |  |
+| `publisher` | String | 4 |  |
+| `content` | String | 4 |  |
+| `repository` | String | 4 |  |
+| `card_sha256` | String | 4 |  |
 
 ## `article_text` (436,309 rows, local only)
 

@@ -5,6 +5,7 @@
     python -m vlonto.cli core             # step 4a: core Turtle subset    -> $V/build/rdf/vlonto-core.ttl
     python -m vlonto.cli validate         # step 4b: checks + kg_report.md -> $V/build/reports
     python -m vlonto.cli site             # step 5: stats, dashboard, ontology graph, legal network (+ .js twins)
+    python -m vlonto.cli site --only stats,dashboard,ontology_graph   # rewrite these bundles + manifest, keep the rest
     python -m vlonto.cli layout           # step 5: 3D legal-network layout only (re-runnable by the website track)
     python -m vlonto.cli check-ontology   # ontology checks (SHACL/OWL-RL fixtures) + pyLODE HTML + JSON-LD context
     python -m vlonto.cli report           # kg_report.md + checks.json from the JSON reports
@@ -39,7 +40,11 @@ def main(argv=None):
     ap.add_argument("--with-courts", action="store_true", help="include the court datasets (anle, cbba; planned for v2); "
                                                                 "same as VLONTO_INCLUDE_COURTS=1")
     ap.add_argument("--core-max-rank", type=int, default=None)
+    ap.add_argument("--only", default=None, help="site: comma-separated bundles to rewrite (stats, dashboard, ontology_graph, "
+                                                 "legal_network, sparql_examples, ttl); the others are kept. Default: all")
     a = ap.parse_args(argv)
+    if a.only and a.command != "site":
+        raise SystemExit("--only applies to the site command")
     t0 = time.time()
     if a.with_courts:
         os.environ["VLONTO_INCLUDE_COURTS"] = "1"   # read by config at import
@@ -74,7 +79,7 @@ def main(argv=None):
             validate_all()
         elif cmd == "site":
             from .site_data import build_site
-            build_site()
+            build_site(only=[p.strip() for p in a.only.split(",") if p.strip()] if a.only else None)
         elif cmd == "layout":
             from .layout3d import main as layout_main
             layout_main([])

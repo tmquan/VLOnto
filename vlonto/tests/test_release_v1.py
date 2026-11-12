@@ -133,6 +133,20 @@ def test_fixtures_still_exercise_the_judiciary_schema():
         assert term in txt, term
 
 
+COURT_KEY = re.compile(r"court|decision|precedent|case_link|applied_provision|anle|cbba|toaan|deferred_source", re.I)
+
+
+def _json_keys(obj, path=""):
+    """(path, key) for every object key in a JSON value."""
+    if isinstance(obj, dict):
+        for k, v in obj.items():
+            yield f"{path}.{k}", k
+            yield from _json_keys(v, f"{path}.{k}")
+    elif isinstance(obj, list):
+        for v in obj:
+            yield from _json_keys(v, path + "[]")
+
+
 def _built_root():
     from vlonto import config as C
     return C if os.path.exists(os.path.join(C.KG, "documents.parquet")) else None
@@ -149,8 +163,13 @@ def test_build_outputs_have_no_court_data():
     st = os.path.join(C.SITE, "stats.json")
     if os.path.exists(st):
         stats = json.load(open(st, encoding="utf-8"))
-        assert stats["version"] == "1.0.0" and stats["release"] == "v1" and stats["courts_included"] is False
-        assert stats["court_decisions"] == 0 and sorted(stats["sources"]) == sorted(THUVIEN)
+        assert stats["version"] == "1.0.0" and stats["release"] == "v1" and sorted(stats["sources"]) == sorted(THUVIEN)
+    # the site bundles of release v1 carry no court fields at all (no zero counts, no empty court charts, no flags)
+    for name in ("stats", "dashboard", "manifest", "ontology_graph"):
+        p = os.path.join(C.SITE, name + ".json")
+        if os.path.exists(p):
+            bad = sorted({path for path, key in _json_keys(json.load(open(p, encoding="utf-8"))) if COURT_KEY.search(key)})
+            assert not bad, (name, bad[:10])
     val = os.path.join(C.REPORTS, "validation.json")
     if os.path.exists(val):
         assert json.load(open(val, encoding="utf-8"))["release_scope"]["pass"] is True
