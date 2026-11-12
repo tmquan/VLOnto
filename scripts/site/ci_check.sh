@@ -11,7 +11,7 @@
 # Pages added to site_check_pages.json reach every check: site_check reads the file, and the interaction tests and the
 # contrast check run through ci_pages.py, which appends new pages to their page lists.
 # Usage:  VLONTO_ROOT=<ROOT of ci_setup.sh> VLONTO_PYTHON=<ROOT>/envs/web/bin/python bash scripts/site/ci_check.sh [OUT]
-# Env:    CI_PARALLEL       browser processes at the same time (default 3; check.sh starts all six at once)
+# Env:    CI_PARALLEL       browser processes at the same time (default 3 here; the preview workflow passes 1 on GitHub's 4-CPU runners)
 #         CI_CHECK_TIMEOUT  time limit per check, coreutils syntax (default 120m; the check then exits 124)
 #         TESTS_CORE, TESTS_THEME  as in check.sh;  SITE_BUILD_REPORT  site_build_report.json, if the site was built
 # Output: OUT/{site_check_light,site_check_dark,site_tests/{core,theme,gallery},site_contrast} as $V/build/... on the

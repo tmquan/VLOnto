@@ -22,8 +22,8 @@ on:
       parallel:
         description: Checks (browser processes) run at the same time; the node ran all 6, 1 rules out load-related timeouts
         type: choice
-        options: ['3', '1', '2', '4', '6']
-        default: '3'
+        options: ['1', '2', '3', '4', '6']
+        default: '1'
 
 permissions:
   contents: read
@@ -37,7 +37,9 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 300
     env:
-      CI_PARALLEL: ${{ inputs.parallel || '3' }}
+      # GitHub-hosted runners have 4 CPUs and draw WebGL with SwiftShader: with 3 checks at a time the 3D legal network
+      # renders at 0-0.9 fps and screenshots time out (runs 43183759017, 43194801771), so push runs take one at a time.
+      CI_PARALLEL: ${{ inputs.parallel || '1' }}
       CI_CHECK_TIMEOUT: 120m
       PYTHONUNBUFFERED: '1'
       TZ: UTC
