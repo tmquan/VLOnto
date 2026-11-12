@@ -27,6 +27,12 @@
  },
  "captures": [
   {
+   "name": "teaser_debug_pr1",
+   "pixelRatio": 1,
+   "labels": "none",
+   "colorBy": "class"
+  },
+  {
    "name": "teaser_class_pr3",
    "pixelRatio": 3,
    "labels": "none",
@@ -51,6 +57,10 @@
    "colorBy": "validity"
   }
  ],
+ "checks": {
+  "about": "capture.py fails the run when a capture or page.png has fewer than this fraction of pixels differing from the page background (here and in teaser.js, by gl.readPixels)",
+  "min_ink_fraction": 0.01
+ },
  "camera": {
   "projection": "orthographic",
   "azimuth_deg": 32,

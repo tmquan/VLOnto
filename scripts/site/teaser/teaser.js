@@ -2,18 +2,25 @@
    by make_page.py with a <base> into site/ - after js/network3d.js, teaser_data.js (config + trace) and teaser-core.js.
    1. wait for the page (window.__VLONTO_READY: full network built, frame rate measured), note the links' opacities;
    2. select the Labor Code without the camera flight (VLApp.capture.select) and wait for its replacement chain;
-   3. swap in the orthographic camera of teaser_config.json (fixed pose, no damping), the paper's trace weights;
+   3. swap in the orthographic camera of teaser_config.json (fixed pose, no damping), the paper's trace weights; the
+      page's orbit controls keep the camera within maxDistance (30000) on every frame, so their limits are lifted first
+      (the figure's camera stands farther away); near/far and the page's depth fade are fitted to the scene's depth
+      range in camera space before every capture;
    4. fade the context outside the selection's neighbourhood; hang the trace subtree from the Labor Code: the traced
       hops as one path on the links' curve (navy core, gold halo), thin branches to Art. 3(1) and the terms, beads on top;
-   5. expose window.__TEASER: ready, capture(name) -> {url: PNG data URL of the WebGL canvas, width, height} rendered at
-      that capture's pixel ratio and colouring, and json (camera, selection, anchors in CSS px and figure pt, metrics).
+   5. expose window.__TEASER: ready, capture(name) -> {url: PNG data URL of the WebGL canvas, width, height, ink, blank,
+      diag} rendered at that capture's pixel ratio and colouring, and json (camera, selection, anchors in CSS px and
+      figure pt, metrics). Every capture counts the pixels that differ from the background with gl.readPixels right after
+      the render (same task) and records the camera, the clipping planes, the depth fade, the scene's depth range, the
+      renderer's draw counts and the canvas; WebGL context loss is recorded and logged.
    No sleeps: every wait is on a page metric or a frame. */
 (function () {
   'use strict';
   var VL = window.VL, M = window.__VLONTO_METRICS, TZ = window.TZ, DATA = window.VLONTO_TEASER;
-  var T = window.__TEASER = { ready: false, error: null, steps: [], json: null };
+  var T = window.__TEASER = { ready: false, error: null, steps: [], json: null, events: [] };
   if (!DATA || !TZ) { T.error = 'teaser_data.js or teaser-core.js missing'; return; }
   var cfg = DATA.config, tr = DATA.trace, vw = cfg.viewport.width, vh = cfg.viewport.height;
+  var MIN_INK = (cfg.checks && cfg.checks.min_ink_fraction) || 0.01;    // a capture with less ink than this is blank
   var t0 = performance.now();
   function step(s, extra) { var r = { step: s, ms: Math.round(performance.now() - t0) }; if (extra) r.info = extra; T.steps.push(r); }
   function until(test, what, ms) {
@@ -143,6 +150,12 @@
     ctl.autoRotate = false;
     ctl.enableDamping = false;
     ctl.update(); ctl.update();                     // spend any damping left from the page's frame-rate spin
+    /* the page's OrbitControls clamp the camera's distance to [minDistance, maxDistance] (40, 30000) on every update(),
+       for whichever camera they hold; VLApp.capture.setCamera hands them this one and calls update(), and the page's
+       frame loop calls it again on every frame. The figure's camera stands cfg.camera.distance away, so lift the limits
+       first: a camera pulled in to 30000 put the whole scene in front of near (52000) and every capture came out white */
+    ctl.minDistance = 0;
+    ctl.maxDistance = Infinity;
     var fr = TZ.frustum(cfg.camera, vw, vh), pose = TZ.cameraPose(cfg.camera);
     cam = new THREE.OrthographicCamera(fr.left, fr.right, fr.top, fr.bottom, fr.near, fr.far);
     cam.up.set(0, 1, 0);
@@ -153,6 +166,132 @@
     cam.updateMatrixWorld(true);                    // the anchors are projected before the first frame with this camera
     C.setCamera(cam);
     ctl.enabled = false;                            // a stray pointer must not move the figure
+    checkCamera('camera swap');
+  }
+
+  /* the camera must still look along the configured direction at the configured target: the anchors depend on both.
+     Its distance only moves the clipping planes, the depth fade and the points' scale, which fitDepth() takes from the
+     camera as it is; a distance other than the configured one is noted (step 'camera distance') */
+  var distanceNoted = false;
+  function checkCamera(where) {
+    var pose = TZ.cameraPose(cfg.camera), ctl = X.controls;
+    var want = new THREE.Vector3(pose.position.x - pose.target.x, pose.position.y - pose.target.y, pose.position.z - pose.target.z);
+    var got = cam.position.clone().sub(ctl.target), d = got.length();
+    var moved = ctl.target.distanceTo(new THREE.Vector3(pose.target.x, pose.target.y, pose.target.z));
+    var turn = want.normalize().angleTo(got.clone().normalize());
+    if (turn > 1e-6 || moved > 1e-6 * cfg.camera.distance)
+      throw new Error(where + ': the camera turned by ' + turn.toExponential(2) + ' rad or its target moved by ' + moved.toFixed(3));
+    if (Math.abs(d - cfg.camera.distance) > 1e-6 * cfg.camera.distance && !distanceNoted) {
+      distanceNoted = true;
+      step('camera distance', { where: where, distance: d, configured: cfg.camera.distance });
+      console.warn('teaser: the camera stands ' + d.toFixed(1) + ' from the target, configured ' + cfg.camera.distance);
+    }
+    return d;
+  }
+
+  /* the page's curve lift above a link's ends (network3d.js: LAYER_GAP = 150 ZS, LIFT_MAX = 0.4 LAYER_GAP) and the
+     layer planes' height (as the page draws them, 2 below the layer) */
+  function liftMax() { return 0.4 * 150 * X.ZS; }
+  function layerY(r) { return (X.D.layerZ[r] != null ? X.D.layerZ[r] : (5 - r) * 150) * X.ZS - 2; }
+  /* the scene's depth range in camera space (+ = in front of the camera): the network's points and the links' lift
+     above them, the layer planes and the subtree */
+  function sceneDepth() {
+    cam.updateMatrixWorld(true);
+    var e = cam.matrixWorldInverse.elements, D = X.D, d0 = Infinity, d1 = -Infinity, L = liftMax();
+    function add(x, y, z) { var d = -(e[2] * x + e[6] * y + e[10] * z + e[14]); if (d < d0) d0 = d; if (d > d1) d1 = d; }
+    for (var i = 0; i < D.N; i++) {
+      var x = D.pos[3 * i], y = D.pos[3 * i + 1], z = D.pos[3 * i + 2];
+      add(x, y, z); add(x, y + L, z);
+    }
+    var E = D.extent * 1.06;
+    for (var r = 0; r <= 5; r++) { var ly = layerY(r); add(-E, ly, -E); add(E, ly, -E); add(E, ly, E); add(-E, ly, E); }
+    Object.keys(SP).forEach(function (id) { var p = SP[id]; add(p.x, p.y, p.z); });
+    return [d0, d1];
+  }
+  /* near/far around the scene's depth range and the page's depth fade for this camera (the page's own frames compute
+     the same fade in updateFog: it depends only on the camera's distance from the target) */
+  function fitDepth() {
+    var dist = checkCamera('capture'), dr = sceneDepth(), cp = TZ.clipPlanes(dr[0], dr[1]);
+    if (!(dr[0] > 1)) throw new Error('the scene reaches behind the camera: depth ' + dr[0].toFixed(1) + ' to ' + dr[1].toFixed(1));
+    cam.near = cp.near; cam.far = cp.far;
+    cam.updateProjectionMatrix();
+    var amount = X.fog.value.z > 0 ? X.fog.value.z : (X.P.dark ? 0.55 : 0.6);
+    var f = TZ.fog(dist, X.D.extent, amount);
+    X.fog.value.set(f.near, f.far, f.amount);
+    return { distance: dist, depth: dr, clip: cp, fog: f };
+  }
+
+  /* WebGL context loss and restore (a large drawing buffer under SwiftShader can lose the context): recorded in
+     __TEASER.events and logged as warnings, so that they reach console.log */
+  function watchContext(cv) {
+    if (!cv || !cv.addEventListener) return;
+    ['webglcontextlost', 'webglcontextrestored', 'webglcontextcreationerror'].forEach(function (type) {
+      cv.addEventListener(type, function (ev) {
+        var e = { type: type, ms: Math.round(performance.now() - t0) };
+        if (ev && ev.statusMessage) e.message = ev.statusMessage;
+        T.events.push(e);
+        console.warn('teaser: ' + type + (e.message ? ' (' + e.message + ')' : ''));
+      });
+    });
+  }
+
+  /* pixels of the drawing buffer that differ from the background (any channel by more than 2 of 255), read with
+     gl.readPixels right after the render in the same task, before the browser may clear the buffer */
+  function inkOf(gl) {
+    var w = gl.drawingBufferWidth, h = gl.drawingBufferHeight, t = performance.now(), buf = new Uint8Array(w * h * 4);
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    var bg = new THREE.Color();
+    X.renderer.getClearColor(bg);
+    var hex = bg.getHex(), br = hex >> 16 & 255, bgr = hex >> 8 & 255, bb = hex & 255, n = 0, x0 = w, y0 = h, x1 = -1, y1 = -1;
+    for (var y = 0, i = 0; y < h; y++) {
+      for (var x = 0; x < w; x++, i += 4) {
+        if (Math.abs(buf[i] - br) > 2 || Math.abs(buf[i + 1] - bgr) > 2 || Math.abs(buf[i + 2] - bb) > 2) {
+          n++;
+          if (x < x0) x0 = x;
+          if (x > x1) x1 = x;
+          if (y < y0) y0 = y;
+          if (y > y1) y1 = y;
+        }
+      }
+    }
+    return { nonbg: n, total: w * h, fraction: n / (w * h), background: '#' + bg.getHexString(), size: [w, h],
+      bbox_px: n ? [x0, h - 1 - y1, x1, h - 1 - y0] : null, gl_error: gl.getError(), ms: Math.round(performance.now() - t) };
+  }
+
+  /* what a blank capture needs to be explained: camera and clipping, the depth fade, the scene's depth range, the
+     renderer's draw counts, the canvas (size, CSS, visibility, what lies over its centre), limits, context state */
+  function diagnostics(gl, fit, rinfo, ink) {
+    var cv = X.renderer.domElement, rect = null, cs = {}, top = null, sf = X.scene.fog, fv = X.fog.value;
+    try { rect = cv.getBoundingClientRect(); cs = window.getComputedStyle(cv); } catch (e) { rect = rect || null; }
+    try {
+      var el = rect && document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+      if (el) top = el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') +
+        (typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\s+/).join('.') : '');
+    } catch (e) { top = null; }
+    function gp(p) { try { var v = gl.getParameter(p); return v && v.length != null ? Array.prototype.slice.call(v) : v; } catch (e) { return null; } }
+    var f = { near: fv.x, far: fv.y, amount: fv.z };
+    return {
+      camera: { type: cam.type, position: cam.position.toArray(), target: X.controls.target.toArray(), distance: fit.distance,
+        near: cam.near, far: cam.far, zoom: cam.zoom, frustum: { left: cam.left, right: cam.right, top: cam.top, bottom: cam.bottom },
+        controls: { enabled: X.controls.enabled, minDistance: X.controls.minDistance, maxDistance: String(X.controls.maxDistance) } },
+      scene_depth: { min: fit.depth[0], max: fit.depth[1], inside_clip: fit.depth[0] > cam.near && fit.depth[1] < cam.far },
+      fog: {
+        scene_fog: sf ? { type: sf.isFogExp2 ? 'FogExp2' : 'Fog', colour: '#' + sf.color.getHexString(), near: sf.near, far: sf.far,
+          density: sf.density } : null,
+        depth_fade: { type: 'linear toward the background (shader uniform uFog)', colour: ink.background, near: f.near, far: f.far,
+          amount: f.amount, at_scene_front: TZ.fogFactor(f, fit.depth[0]), at_target: TZ.fogFactor(f, fit.distance),
+          at_scene_back: TZ.fogFactor(f, fit.depth[1]) } },
+      render: rinfo,
+      canvas: { pixels: [cv.width, cv.height], css: [cv.clientWidth, cv.clientHeight],
+        rect: rect ? [rect.left, rect.top, rect.width, rect.height] : null, visibility: cs.visibility || null,
+        display: cs.display || null, opacity: cs.opacity || null, device_pixel_ratio: window.devicePixelRatio || null,
+        drawing_buffer: [gl.drawingBufferWidth, gl.drawingBufferHeight], max_renderbuffer_size: gp(gl.MAX_RENDERBUFFER_SIZE),
+        max_viewport_dims: gp(gl.MAX_VIEWPORT_DIMS), max_texture_size: gp(gl.MAX_TEXTURE_SIZE),
+        context_lost: gl.isContextLost(), element_at_centre: top },
+      pixels: ink,
+      points_uScale: X.points.material.uniforms.uScale.value,
+      context_events: T.events.slice()
+    };
   }
 
   function screen(p) {
@@ -172,7 +311,7 @@
     beadIds.forEach(function (id, i) { out[id] = rec(SP[id], { r_pt: +(bs[i] / wpp / 2 * k).toFixed(2) }); });
     var E = D.extent * 1.06, layers = {};
     for (var r = 0; r <= 5; r++) {
-      var y = (D.layerZ[r] != null ? D.layerZ[r] : (5 - r) * 150) * X.ZS - 2;
+      var y = layerY(r);
       var cs = [[-E, -E], [E, -E], [E, E], [-E, E]].map(function (q) { return rec({ x: q[0], y: y, z: q[1] }); });
       layers[r] = cs;
     }
@@ -192,15 +331,17 @@
   T.capture = function (name) {
     var cap = cfg.captures.filter(function (c) { return c.name === name; })[0];
     if (!cap) return Promise.reject(new Error('no capture named ' + name));
-    var r = X.renderer;
+    var r = X.renderer, u = X.points.material.uniforms.uScale;
     return Promise.resolve().then(function () {
+      /* the page's own frames run at 1x (cheap under SwiftShader): they upload the colours and, for the site's labels,
+         place the call-outs; only the capture itself is rendered at its pixel ratio */
+      r.setPixelRatio(1);
+      r.setSize(vw, vh);
+      u.value = TZ.pointScale(cfg, 1, fitDepth().distance);
       setColors(cap.colorBy || cfg.page.colorBy);
       X.labels.visible = cap.labels === 'site';
-      r.setPixelRatio(cap.pixelRatio);
-      r.setSize(vw, vh);
-      X.points.material.uniforms.uScale.value = TZ.pointScale(cfg, cap.pixelRatio);
       C.render();
-      return frames(3);                           // the page renders a frame and sets the depth fade for this camera
+      return frames(3);
     }).then(function () {
       if (cap.labels !== 'site') return null;
       var last = -1, same = 0;
@@ -210,19 +351,32 @@
         return M.labelsShown != null && same >= 5;
       }, 'call-outs settled').then(function () { return frames(2); });
     }).then(function () {
+      r.setPixelRatio(cap.pixelRatio);
+      r.setSize(vw, vh);
+      var fit = fitDepth();
+      u.value = TZ.pointScale(cfg, cap.pixelRatio, fit.distance);
+      var gl = r.getContext(), t1 = performance.now();
       r.render(X.scene, cam);
+      var ri = r.info.render, rinfo = { calls: ri.calls, triangles: ri.triangles, points: ri.points, lines: ri.lines,
+        frame: ri.frame, ms: Math.round(performance.now() - t1) };
+      var ink = inkOf(gl);                          // same task as the render: the drawing buffer is still there
       var url = r.domElement.toDataURL('image/png');
       var info = { name: name, pixelRatio: cap.pixelRatio, width: r.domElement.width, height: r.domElement.height,
-        colorBy: T.colorBy, labels: cap.labels, labelsShown: cap.labels === 'site' ? M.labelsShown : 0 };
+        colorBy: T.colorBy, labels: cap.labels, labelsShown: cap.labels === 'site' ? M.labelsShown : 0,
+        ink: +ink.fraction.toFixed(6), blank: ink.fraction < MIN_INK, diag: diagnostics(gl, fit, rinfo, ink) };
       T.json.captures.push(info);
-      step('captured ' + name, info);
-      return { url: url, width: info.width, height: info.height };
+      step('captured ' + name, { name: name, pixelRatio: info.pixelRatio, width: info.width, height: info.height,
+        colorBy: info.colorBy, labels: info.labels, labelsShown: info.labelsShown, ink: info.ink, blank: info.blank,
+        calls: rinfo.calls, render_ms: rinfo.ms, near: cam.near, far: cam.far, depth: fit.depth });
+      if (info.blank) console.warn('teaser: ' + name + ' is blank: ' + ink.nonbg + ' of ' + ink.total + ' pixels differ from ' + ink.background);
+      return { url: url, width: info.width, height: info.height, ink: info.ink, blank: info.blank, diag: info.diag };
     });
   };
 
   until(function () { return window.__VLONTO_READY === true && window.VLApp && window.VLApp.capture; }, 'the network page').then(function () {
     step('page ready', { fps: M.fps, webgl: M.webglRenderer, nodes: M.nodes });
     C = window.VLApp.capture; X = C.get(); THREE = X.THREE;
+    watchContext(X.renderer.domElement);
     if (!X.D || X.D.name !== cfg.page.dataset) throw new Error('dataset ' + (X.D && X.D.name) + ', expected ' + cfg.page.dataset);
     Object.keys(X.edges).forEach(function (k) {
       var o = X.edges[k] && X.edges[k].obj, u = o && o.material && o.material.uniforms && o.material.uniforms.uOpacity;
@@ -243,12 +397,15 @@
     useCamera();
     buildSubtree();
     fade();
+    var fit = fitDepth();                            // near/far around the scene with its subtree, the depth fade
     X = C.get();
     T.json = {
       about: 'Fig. 1 capture of the 3D legal network (scripts/site/teaser); figure points have their origin at the top left',
       config: cfg, figure_pt: [cfg.figure.width_pt, cfg.figure.height_pt], viewport_css: [vw, vh],
+      checks: { min_ink_fraction: MIN_INK },
       camera: { projection: 'orthographic', position: cam.position.toArray(), target: X.controls.target.toArray(), up: cam.up.toArray(),
         left: cam.left, right: cam.right, top: cam.top, bottom: cam.bottom, near: cam.near, far: cam.far, zoom: cam.zoom,
+        distance: fit.distance, scene_depth: fit.depth, depth_fade: fit.fog,
         projectionMatrix: cam.projectionMatrix.toArray(), matrixWorldInverse: cam.matrixWorldInverse.toArray() },
       selection: { doc: cfg.selection.doc, chain: X.chainIdx.map(function (i) { return X.D.ids[i]; }), egoHop1: M.egoHop1,
         egoEdges: M.egoEdges, qa: tr.qa },
@@ -259,7 +416,8 @@
     };
     var a = anchorsJson();
     Object.keys(a).forEach(function (key) { T.json[key] = a[key]; });
-    step('scene ready', { projection_check_px: a.projection_check_px });
+    step('scene ready', { projection_check_px: a.projection_check_px, distance: fit.distance, near: cam.near, far: cam.far,
+      scene_depth: fit.depth, depth_fade: fit.fog });
     T.ready = true;
   }).catch(function (e) {
     T.error = String(e && e.message || e);

@@ -35,9 +35,27 @@
   TZ.cssPerPt = function (cfg) { return cfg.viewport.width / cfg.figure.width_pt; };
   /* world size of a bead of diameter pt (the points' aSize, drawn at aSize * uScale / depth device px) */
   TZ.beadSize = function (cfg, pt) { return pt * TZ.cssPerPt(cfg) * 2 * cfg.camera.half_height / cfg.viewport.height; };
-  /* uScale that gives an orthographic camera the points' world sizes (the shader divides by the depth, about distance) */
-  TZ.pointScale = function (cfg, pixelRatio) {
-    return cfg.viewport.height * pixelRatio / (2 * cfg.camera.half_height) * cfg.camera.distance;
+  /* uScale that gives an orthographic camera the points' world sizes (the shader divides by the depth, about the
+     camera's distance from the target: the configured one, or the one measured in the page) */
+  TZ.pointScale = function (cfg, pixelRatio, distance) {
+    return cfg.viewport.height * pixelRatio / (2 * cfg.camera.half_height) * (distance || cfg.camera.distance);
+  };
+  /* near and far planes around the scene's depth range [d0, d1] (camera space, + = in front of the camera): a quarter of
+     the range and at least 200 world units of margin on either side, never at or behind the camera */
+  TZ.clipPlanes = function (d0, d1) {
+    var m = Math.max(200, 0.25 * (d1 - d0));
+    return { near: Math.max(1, d0 - m), far: d1 + m };
+  };
+  /* the page's depth fade toward the background (network3d.js updateFog, uniform uFog = near, far, amount): from 0.4 R in
+     front of the target to 1.9 R behind it, R = 1.1 x the layout's extent, d = the target's depth from the camera; for an
+     orthographic camera d is its distance from the target, so the fade spans the same part of the scene as in the page */
+  TZ.fog = function (d, extent, amount) {
+    var R = 1.1 * extent;
+    return { near: Math.max(1, d - 0.4 * R), far: d + 1.9 * R, amount: amount };
+  };
+  /* the fade at a depth, as the shaders compute it (vFog): 0 = full colour, amount = the most it fades */
+  TZ.fogFactor = function (f, depth) {
+    return Math.min(1, Math.max(0, (depth - f.near) / Math.max(1, f.far - f.near))) * f.amount;
   };
   /* screen position (CSS px, origin top left) of a world point, without three.js: the same basis as the camera */
   TZ.basis = function (cam) {
