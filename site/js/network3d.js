@@ -51,7 +51,7 @@
   };
 
   var renderer, scene, camera, controls, pointsObj = null, pointsMat = null, edgeObjs = {}, hlObj = null, layerGroup = null, labelGroup = null;
-  var trace = null, chainTrace = null;
+  var trace = null, chainTrace = null, egoLines = null, egoInc = [], chainIdx = [], hoverIdx = -1, hoverLabel = null;
   var D = null, DL = null, shards = {}, frames = 0, needsRender = true, tween = null;
 
   /* ------------------------------------------------------------------ three setup */
@@ -122,10 +122,12 @@
     controls.addEventListener('start', hideHint);
     labelGroup = new THREE.Group();
     scene.add(labelGroup);
-    /* the traced answer: the selection's links (thinner when many) and, over them, its replacement chain; drawn on top
-       of the point cloud like the paper's trace */
-    trace = VL.TraceLines({ depthTest: false, renderOrder: 6 });
-    chainTrace = VL.TraceLines({ depthTest: false, renderOrder: 9 });
+    /* the selection's links: thin lines in their link-type colours (egoLines); the traced path, on top of the point cloud
+       like the paper's trace, only along the replacement chain (chainTrace) and to a hovered neighbour (trace) */
+    egoLines = VL.ColorLines({ depthTest: false, renderOrder: 5, width: 1.6, opacity: 0.95 });
+    trace = VL.TraceLines({ depthTest: false, renderOrder: 7 });
+    chainTrace = VL.TraceLines({ depthTest: false, renderOrder: 10 });
+    scene.add(egoLines.object);
     scene.add(trace.object);
     scene.add(chainTrace.object);
     try {
@@ -347,11 +349,13 @@
     o.lines = lines;
     o.px = opts.px || 22;
     o.weight = opts.weight || '400';
-    if (opts.leader) o.leader = opts.leader;
-    else { o.cx = opts.cx != null ? opts.cx : 0.5; o.cy = opts.cy != null ? opts.cy : -0.35; }
     var s = VL.TextSprite(lines[0].map(function (p) { return p.text; }).join(''), o);
     s.__pri = opts.pri || 0;
     s.__layer = !!opts.layer;
+    s.__id = opts.id || ('label-' + labels.length);
+    s.__must = !!opts.must;
+    s.__sel = !!opts.sel;
+    s.layers.set(1);                  // hidden until VL.Callouts places it
     s.fit(worldPerPx());
     return s;
   }
@@ -384,14 +388,51 @@
     var E = D.extent * 1.06;
     for (var r = 0; r <= 5; r++) {
       var y = (D.layerZ[r] != null ? D.layerZ[r] : (5 - r) * 150) * ZS;
-      addLabel(makeLabel(rankLabel(r), { px: 21, cx: 0, cy: 0.5, pri: 10 - r, layer: true }), -E, y, E);
+      addLabel(makeLabel(rankLabel(r), { px: 21, pri: 10 - r, layer: true, id: 'rank-' + r }), -E, y, E);
     }
   }
-  var cullTimer = null;
-  function scheduleCull() { if (cullTimer) return; cullTimer = setTimeout(function () { cullTimer = null; cullLabels(); }, 80); }
+  /* screen-space declutter shared with the playground and the CONSTRUCT view (js/paper3d.js VL.Callouts): call-outs on
+     thin leaders in clear space, never over each other or over the highlighted ink (the selection, its neighbours,
+     the chain and their links; the faded cloud behind them is background). The selection, the documents of the
+     replacement chain and a hovered neighbour always keep their call-outs; layer names sit at the layer corner. */
+  var callouts = null;
+  function layerOffset(w) { return [w / 2 + 2, 0]; }
+  function calloutItems() {
+    return labels.map(function (s) {
+      return { id: s.__id, sprite: s, pri: s.__pri, must: !!s.__must, sel: !!s.__sel, r: s.__r || 0, fixed: s.__layer ? layerOffset : null, off: s.__layer && !state.layers };
+    });
+  }
+  function ptOf(i) { return { x: D.pos[3 * i], y: D.pos[3 * i + 1], z: D.pos[3 * i + 2] }; }
+  function calloutInk() {
+    var discs = [], paths = [];
+    if (!D || state.sel < 0 || !pointsObj) return { discs: discs, paths: paths };
+    var sz = pointsObj.geometry.attributes.aSize.array;
+    function disc(i) { discs.push({ id: 'doc-' + D.ids[i], x: D.pos[3 * i], y: D.pos[3 * i + 1], z: D.pos[3 * i + 2], r: sz[i] / 2 }); }
+    disc(state.sel);
+    chainIdx.forEach(function (i) { if (i !== state.sel) disc(i); });
+    for (var i = 0; i < D.N && discs.length < 5000; i++) if (D.ego[i] && i !== state.sel && chainIdx.indexOf(i) < 0) disc(i);
+    for (var e = 0; e < egoInc.length && e < 6000; e++) paths.push([ptOf(egoInc[e][0]), ptOf(egoInc[e][1])]);
+    if (chainIdx.length > 1) paths.push(chainIdx.map(ptOf));
+    return { discs: discs, paths: paths };
+  }
+  function scheduleCull() {
+    if (!camera) return;
+    if (!callouts) {
+      callouts = VL.Callouts({
+        camera: function () { return camera; },
+        size: function () { return { w: host.clientWidth, h: host.clientHeight }; },
+        items: calloutItems, ink: calloutInk, ui: obstacles,
+        leaderColor: function () { return P.leader; },
+        discMaxPx: 28 / Math.min(window.devicePixelRatio || 1, 2),
+        metrics: M, key: 'callouts',
+        onDone: function (st) { M.labelsShown = st.shown; M.labelsTotal = labels.length; needsRender = true; }
+      });
+    }
+    callouts.schedule();
+  }
   function obstacles() {
     var hr = host.getBoundingClientRect(), out = [];
-    ['#legend', '#hint', '.stage-tools', '#status'].forEach(function (sel) {
+    ['#legend', '#hint', '.stage-tools', '#status', '#panel'].forEach(function (sel) {
       var e = VL.$(sel, stage);
       if (!e || e.classList.contains('hidden') || e.offsetParent === null) return;
       var r = e.getBoundingClientRect();
@@ -399,36 +440,6 @@
       out.push({ x0: r.left - hr.left - 4, x1: r.right - hr.left + 4, y0: r.top - hr.top - 4, y1: r.bottom - hr.top + 4 });
     });
     return out;
-  }
-  var _v = null;
-  function cullLabels() {
-    if (!camera || !labels.length) return;
-    if (!_v) _v = new THREE.Vector3();
-    camera.updateMatrixWorld();
-    var W = host.clientWidth, H = host.clientHeight, k = H / (2 * Math.tan(camera.fov * Math.PI / 360));
-    var items = [];
-    labels.forEach(function (s) {
-      if (s.__layer && !state.layers) { s.layers.set(1); return; }
-      s.getWorldPosition(_v);
-      _v.project(camera);
-      if (_v.z > 1 || _v.z < -1) { s.layers.set(1); return; }
-      var sx = (_v.x + 1) / 2 * W, sy = (1 - _v.y) / 2 * H, w = s.scale.x * k, h = s.scale.y * k;
-      var x0 = sx - s.center.x * w, y1 = sy + s.center.y * h;
-      items.push({ s: s, x0: x0, x1: x0 + w, y0: y1 - h, y1: y1, p: s.__pri });
-    });
-    items.sort(function (a, b) { return b.p - a.p; });
-    var placed = obstacles(), shown = 0;
-    items.forEach(function (it) {
-      var inside = it.x0 >= 3 && it.x1 <= W - 3 && it.y0 >= 3 && it.y1 <= H - 3, hit = false;
-      for (var i = 0; i < placed.length && !hit; i++) {
-        var p = placed[i];
-        hit = !(it.x1 + 3 < p.x0 || it.x0 - 3 > p.x1 || it.y1 + 2 < p.y0 || it.y0 - 2 > p.y1);
-      }
-      if (inside && !hit) { it.s.layers.set(0); placed.push(it); shown++; } else it.s.layers.set(1);
-    });
-    M.labelsShown = shown;
-    M.labelsTotal = labels.length;
-    needsRender = true;
   }
 
   /* ------------------------------------------------------------------ filters, ego highlight */
@@ -485,17 +496,18 @@
       frontier = next;
       if (next.length > 6000) break;
     }
-    /* highlighted edges inside the neighbourhood: the selection's own links are the traced answer (navy core over the
-       gold halo, thinner when there are many); with 2 hops the links of its neighbours stay pastel lines */
-    var paths = [], pos = [], col = [];
-    function pt(i) { return { x: D.pos[3 * i], y: D.pos[3 * i + 1], z: D.pos[3 * i + 2] }; }
+    /* highlighted edges inside the neighbourhood: the selection's own links are thin lines in their link-type colours
+       (only the replacement chain and a hovered link are traced, as in the paper, where only the traced path is dark);
+       with 2 hops the links of its neighbours stay fainter pastel lines */
+    var paths = [], pcol = [], pos = [], col = [];
+    egoInc = [];
     kinds.forEach(function (k) {
-      var pairs = D.edges[k], c = rgb(edgeColor(k));
+      var pairs = D.edges[k], c = rgb(edgeColor(k)), hex = TH.dark ? edgeColor(k) : VL.shade(edgeColor(k), 0.9);
       for (var e = 0; e < pairs.length; e += 2) {
         var s = pairs[e], t = pairs[e + 1];
         if (!ego[s] || !ego[t]) continue;
         if (ego[s] === 3 || ego[t] === 3) {
-          if (paths.length < 30000) paths.push([pt(s), pt(t)]);
+          if (paths.length < 30000) { paths.push([ptOf(s), ptOf(t)]); pcol.push(hex); egoInc.push([s, t, k]); }
         } else if (state.hops > 1 && (ego[s] === 1 || ego[t] === 1) && pos.length < 6 * 30000) {
           pos.push(D.pos[3 * s], D.pos[3 * s + 1], D.pos[3 * s + 2], D.pos[3 * t], D.pos[3 * t + 1], D.pos[3 * t + 2]);
           col.push(c[0], c[1], c[2], c[0], c[1], c[2]);
@@ -503,8 +515,11 @@
       }
     });
     var n = paths.length;
-    trace.setStyle(VL.traceStyle(P, n > 400 ? 0.34 : (n > 120 ? 0.45 : (n > 40 ? 0.6 : 0.75))));
-    trace.setPaths(paths);
+    egoLines.setStyle({ width: n > 400 ? 1.1 : (n > 120 ? 1.3 : 1.6) });
+    egoLines.setPaths(paths, pcol);
+    hoverIdx = -1;
+    trace.setPaths([]);
+    M.hoverDoc = null;
     if (hlObj) { scene.remove(hlObj); hlObj.geometry.dispose(); hlObj.material.dispose(); hlObj = null; }
     if (pos.length) {
       var g = new THREE.BufferGeometry();
@@ -519,6 +534,7 @@
     var cnt = [0, 0, 0];
     for (var i = 0; i < D.N; i++) if (ego[i] === 1) cnt[1]++; else if (ego[i] === 2) cnt[2]++;
     M.egoHop1 = cnt[1]; M.egoHop2 = cnt[2]; M.egoEdges = n + pos.length / 6;
+    M.egoLines = egoLines.count();
     M.traceSegments = trace.count();
     applyAlpha();
     egoLabels();
@@ -538,31 +554,70 @@
   /* the chain in 3D: one traced path through the documents of the chain present in this dataset */
   function drawChain(fi) {
     var ch = DL && fi != null ? replacementChain(fi) : null, pts = [];
+    chainIdx = [];
     (ch || []).forEach(function (x) {
       var i = D.idx[String(DL.ids[x])];
-      if (i != null) pts.push({ x: D.pos[3 * i], y: D.pos[3 * i + 1], z: D.pos[3 * i + 2] });
+      if (i != null) { pts.push(ptOf(i)); chainIdx.push(i); }
     });
+    if (pts.length < 2) chainIdx = [];
     chainTrace.setStyle(VL.traceStyle(P, 1));
     chainTrace.setPaths(pts.length > 1 ? [pts] : []);
     M.chainTraceDocs = pts.length > 1 ? pts.length : 0;
+    if (state.sel >= 0) egoLabels();
     needsRender = true;
+  }
+  /* hovering a neighbour of the selection traces the link(s) between them and keeps the neighbour's call-out */
+  function setHover(i) {
+    if (!D || state.sel < 0 || i === state.sel || (i >= 0 && D.ego[i] !== 1)) i = -1;
+    if (i === hoverIdx) return;
+    hoverIdx = i;
+    var paths = [];
+    if (i >= 0) egoInc.forEach(function (e) { if ((e[0] === i && e[1] === state.sel) || (e[1] === i && e[0] === state.sel)) paths.push([ptOf(e[0]), ptOf(e[1])]); });
+    trace.setStyle(VL.traceStyle(P, 0.85));
+    trace.setPaths(paths);
+    M.traceSegments = trace.count();
+    M.hoverDoc = i >= 0 ? D.ids[i] : null;
+    labels.forEach(function (s) { if (s.__hoverMust) { s.__must = false; s.__hoverMust = false; } });
+    if (hoverLabel) {
+      labels = labels.filter(function (x) { return x !== hoverLabel; });
+      labelGroup.remove(hoverLabel);
+      hoverLabel.dispose();
+      hoverLabel = null;
+    }
+    if (i >= 0) {
+      var ex = labels.filter(function (x) { return x.__idx === i; })[0];
+      if (ex) { if (!ex.__must) { ex.__must = true; ex.__hoverMust = true; } }
+      else hoverLabel = docLabel(i, docLines(i), { px: 21, pri: 800, must: true });
+    }
+    scheduleCull();
+    needsRender = true;
+  }
+  function docLines(j) {
+    return D.num[j] ? [[{ text: D.num[j], color: P.ink }].concat(D.year[j] > 0 ? [{ text: ' · ' + D.year[j], color: P.ink2 }] : [])] :
+      [[{ text: VL.short(D.title[j], 30), color: P.ink }]];
+  }
+  function docLabel(i, lines, o) {
+    o.id = 'doc-' + D.ids[i];
+    var s = addLabel(makeLabel(lines, o), D.pos[3 * i], D.pos[3 * i + 1], D.pos[3 * i + 2]);
+    s.__idx = i;
+    s.__r = pointsObj.geometry.attributes.aSize.array[i] / 2;
+    return s;
   }
   function egoLabels() {
     clearLabels(true);
+    hoverLabel = null;
     var i0 = state.sel;
     if (i0 < 0) { scheduleCull(); return; }
     /* the selected document: its title over its number and year, like the paper's call-outs (pale gold = selected) */
     var meta = (D.num[i0] || 'no number') + (D.year[i0] > 0 ? ' · ' + D.year[i0] : '');
     var main = D.title[i0] ? [[{ text: VL.short(D.title[i0], 46), color: P.ink }], [{ text: meta, color: P.ink2 }]] : [[{ text: meta, color: P.ink }]];
-    addLabel(makeLabel(main, { px: 25, pri: 1000, sel: true, leader: 10 }), D.pos[3 * i0], D.pos[3 * i0 + 1], D.pos[3 * i0 + 2]);
+    docLabel(i0, main, { px: 25, pri: 1000, sel: true, must: true });
+    chainIdx.forEach(function (j) { if (j !== i0) docLabel(j, docLines(j), { px: 21, pri: 900, must: true }); });
     var nb = [];
-    for (var i = 0; i < D.N; i++) if (D.ego[i] === 1 || D.ego[i] === 2) nb.push(i);
+    for (var i = 0; i < D.N; i++) if ((D.ego[i] === 1 || D.ego[i] === 2) && chainIdx.indexOf(i) < 0) nb.push(i);
     nb.sort(function (a, b) { return (D.ego[a] - D.ego[b]) || (D.degree[b] - D.degree[a]); });
-    nb.slice(0, 40).forEach(function (j, r) {
-      var lines = D.num[j] ? [[{ text: D.num[j], color: P.ink }].concat(D.year[j] > 0 ? [{ text: ' · ' + D.year[j], color: P.ink2 }] : [])] :
-        [[{ text: VL.short(D.title[j], 30), color: P.ink }]];
-      addLabel(makeLabel(lines, { px: 21, pri: 500 - r - (D.ego[j] === 2 ? 100 : 0), leader: 8 }), D.pos[3 * j], D.pos[3 * j + 1], D.pos[3 * j + 2]);
-    });
+    nb.slice(0, 40).forEach(function (j, r) { docLabel(j, docLines(j), { px: 21, pri: 500 - r - (D.ego[j] === 2 ? 100 : 0) }); });
+    if (hoverIdx >= 0) { var h = hoverIdx; hoverIdx = -1; setHover(h); }
     scheduleCull();
   }
 
@@ -665,6 +720,7 @@
         hoverRaf = 0;
         var i = pick(x, y);
         cv.style.cursor = i >= 0 ? 'pointer' : '';
+        setHover(i);
         if (i < 0) { tip.classList.add('hidden'); return; }
         var t = D.net.types[D.type[i]] || {}, v = VL.VALIDITY[D.net.validity[D.validity[i]]] || VL.VALIDITY.unknown;
         tip.innerHTML = '<b>' + VL.esc(D.num[i] || '–') + '</b> ' + VL.esc(VL.short(D.title[i], 60)) +
@@ -677,7 +733,7 @@
         tip.style.top = Math.max(8, ly) + 'px';
       });
     });
-    cv.addEventListener('pointerleave', function () { tip.classList.add('hidden'); });
+    cv.addEventListener('pointerleave', function () { tip.classList.add('hidden'); setHover(-1); });
   }
 
   /* ------------------------------------------------------------------ details (lazy data) */
@@ -812,6 +868,7 @@
   function select(i, fly) {
     if (i < 0 || !D) return;
     state.sel = i;
+    chainIdx = [];
     if (chainTrace) { chainTrace.setPaths([]); M.chainTraceDocs = 0; }
     computeEgo();
     var r = 0, n = 0;
@@ -839,7 +896,12 @@
     state.sel = -1;
     if (D) { D.ego.fill(0); applyAlpha(); }
     if (hlObj) { scene.remove(hlObj); hlObj.geometry.dispose(); hlObj.material.dispose(); hlObj = null; }
-    if (trace) { trace.setPaths([]); chainTrace.setPaths([]); M.traceSegments = 0; M.chainTraceDocs = 0; }
+    if (trace) { trace.setPaths([]); chainTrace.setPaths([]); egoLines.setPaths([]); M.traceSegments = 0; M.chainTraceDocs = 0; M.egoLines = 0; }
+    chainIdx = [];
+    egoInc = [];
+    hoverIdx = -1;
+    hoverLabel = null;
+    M.hoverDoc = null;
     clearLabels(true);
     closePanel();
     scheduleCull();
@@ -879,6 +941,8 @@
     return Promise.resolve(false);
   }
   window.VLApp.selectById = selectById;
+  /* tests: hover a document (id, or null to end the hover) as the pointer would; returns the traced segments */
+  window.VLApp.hoverDoc = function (id) { var i = id == null || !D ? -1 : D.idx[String(id)]; setHover(i == null ? -1 : i); return M.traceSegments; };
   window.VLApp.state = function () {
     return { dataset: D && D.name, nodes: D && D.N, selected: state.sel >= 0 ? D.ids[state.sel] : null, panelOpen: !panel.classList.contains('hidden'),
       panelText: panel.textContent, egoHop1: M.egoHop1, labelsShown: M.labelsShown };
@@ -1057,7 +1121,7 @@
     h += '<div class="legend-sub"><ul>' + ek.map(function (k) {
       var lab = k === 'basis' ? VL.EDGE.basis : k === 'citation' ? VL.EDGE.citation : VL.CHANGE[k];
       return '<li><span class="swatch line" style="background:' + edgeColor(k) + '"></span>' + bi(lab.vi, lab.en) + '</li>';
-    }).join('') + '<li><span class="swatch trace" aria-hidden="true"></span>' + bi('đường truy vết', 'traced answer (selection)') + '</li></ul></div>';
+    }).join('') + '<li><span class="swatch trace" aria-hidden="true"></span>' + bi('đường truy vết', 'traced chain, hovered link') + '</li></ul></div>';
     legendEl.innerHTML = h;
     M.legendEntries = VL.$$('li', legendEl).length;
   }

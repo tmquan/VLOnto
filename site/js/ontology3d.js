@@ -122,9 +122,63 @@
   function nodeOf(x) { return typeof x === 'object' ? x : current.byId[x]; }
 
   /* ------------------------------------------------------------------ highlight state */
-  var hl = { nodes: null, links: null };
+  /* hl.nodes / hl.links: the selection's neighbourhood and chain, or the CONSTRUCT result (everything else fades).
+     hl.trace: the links drawn as the traced path (navy core over the gold halo) - all of them when there are few
+     (hl.max), else only the chain up the hierarchy and the links to a hovered node, as in the paper, where only the
+     traced path is dark; the other highlighted links stay thin lines in their own pastel colours. */
+  var TRACE_ALL_MAX = 6, RESULT_TRACE_MAX = 12;
+  var hl = { nodes: null, links: null, chain: null, max: TRACE_ALL_MAX, trace: null, traceNodes: null, hoverNode: null, hoverLinks: null };
   function hlActive() { return !!hl.nodes; }
-  function setHighlight(nodeSet, linkSet) { hl.nodes = nodeSet; hl.links = linkSet; applyHighlight(); }
+  function inHl(l) { return !!hl.links && hl.links.has(l); }
+  function setHighlight(nodeSet, linkSet, o) {
+    o = o || {};
+    hl.nodes = nodeSet;
+    hl.links = linkSet;
+    hl.chain = o.chain || null;
+    hl.max = o.max || TRACE_ALL_MAX;
+    hl.hoverNode = null;
+    hl.hoverLinks = null;
+    M.hoverTrace = 0;
+    computeTrace();
+    applyHighlight();
+  }
+  function computeTrace() {
+    hl.trace = null;
+    hl.traceNodes = new Set();
+    if (!hl.links) return;
+    if (hl.links.size <= hl.max) hl.trace = hl.links;
+    else {
+      hl.trace = new Set();
+      if (hl.chain) hl.chain.forEach(function (l) { if (hl.links.has(l)) hl.trace.add(l); });
+      if (hl.hoverLinks) hl.hoverLinks.forEach(function (l) { hl.trace.add(l); });
+    }
+    hl.trace.forEach(function (l) { hl.traceNodes.add(nodeOf(l.source)); hl.traceNodes.add(nodeOf(l.target)); });
+    M.emphLinks = hl.links.size - hl.trace.size;
+  }
+  /* call-outs that always stay: the selected node, the nodes of the traced path and the hovered node */
+  function isMust(n) { return state.selected === n || hl.hoverNode === n || (!!hl.traceNodes && hl.traceNodes.has(n)); }
+  /* hovering a node of the highlight traces its links to the selection (for a CONSTRUCT result: its own links, when at
+     most RESULT_TRACE_MAX) */
+  function setHover(n) {
+    var links = null;
+    if (n && hl.links && hl.nodes && hl.nodes.has(n) && n !== state.selected) {
+      var ls = [];
+      hl.links.forEach(function (l) {
+        var a = nodeOf(l.source), b = nodeOf(l.target);
+        if (state.selected ? ((a === n && b === state.selected) || (b === n && a === state.selected)) : (a === n || b === n)) ls.push(l);
+      });
+      if (ls.length && ls.length <= RESULT_TRACE_MAX) links = new Set(ls);
+    }
+    var node = links ? n : null;
+    if (node === hl.hoverNode) return;
+    hl.hoverNode = node;
+    hl.hoverLinks = links;
+    M.hoverTrace = links ? links.size : 0;
+    computeTrace();
+    refreshLinkStyles();
+    updateTrace();
+    scheduleCull();
+  }
   /* soft pastel sphere (lit from the upper left, js/paper3d.js), a rim 16 % darker drawn by a slightly larger back-face
      hull, and a pale-gold halo around the selected node; context outside the highlight fades towards the ground */
   function rimHex(hex, f) {
@@ -157,23 +211,26 @@
       if (!n.__mesh) return;
       styleNode(n, !hl.nodes || hl.nodes.has(n), state.selected === n);
     });
-    if (graph) {
-      graph.linkColor(graph.linkColor());
-      graph.linkDirectionalParticles(graph.linkDirectionalParticles());
-      graph.linkDirectionalParticleColor(graph.linkDirectionalParticleColor());
-      graph.linkWidth(graph.linkWidth());
-    }
+    refreshLinkStyles();
     updateTrace();
     scheduleCull();
   }
-  /* the traced path: every highlighted link (the selection's chain and neighbourhood, or the CONSTRUCT result) as a
-     navy core over a pale-gold halo, at constant pixel width and following curved links; thinner for large results */
+  function refreshLinkStyles() {
+    if (!graph) return;
+    graph.linkColor(graph.linkColor());
+    graph.linkDirectionalParticles(graph.linkDirectionalParticles());
+    graph.linkDirectionalParticleColor(graph.linkDirectionalParticleColor());
+    graph.linkWidth(graph.linkWidth());
+    graph.linkDirectionalArrowColor(graph.linkDirectionalArrowColor());
+  }
+  /* the traced path (hl.trace) as a navy core over a pale-gold halo, at constant pixel width and following curved links;
+     thinner for large small-result traces, never wider than VL.TRACE_W */
   var trace = null;
   function updateTrace() {
     if (!graph) return;
     if (!trace) { trace = VL.TraceLines({ depthTest: true, renderOrder: 8 }); graph.scene().add(trace.object); }
     var paths = [];
-    if (hl.links) hl.links.forEach(function (l) {
+    if (hl.trace) hl.trace.forEach(function (l) {
       if (!linkVisible(l)) return;
       var pts = VL.linkPoints(l, 16);
       if (pts) paths.push(pts);
@@ -187,7 +244,7 @@
   /* ------------------------------------------------------------------ labels: constant pixel size + screen-space culling */
   /* call-out heights in CSS px for one line (the text itself is about px / 1.68) */
   var labelPx = { 'class': 23, scheme: 22, external: 21, instance: 21 };
-  var SELECTED_PX = 26, LEADER = 9;
+  var SELECTED_PX = 26;
   function worldPerPx() { return VL.spriteWpp(graph.camera(), host.clientHeight); }
   /* scene colours of the current theme (css/site.css: the paper style tokens, --scene-bg, --o3d-link-*) */
   var TH = {}, P = {};
@@ -209,7 +266,6 @@
     var o = VL.paperCallout(P, state.selected === n);
     o.lines = labelLines(n);
     o.weight = '400';
-    o.leader = LEADER;
     return o;
   }
   function makeLabel(n) {
@@ -218,7 +274,8 @@
     var s = VL.TextSprite(labelText(n), o);
     n.__labSel = state.selected === n;
     s.__basePx = s.__px;
-    s.position.set(0, n.__r * 1.02, 0);
+    s.position.set(0, 0, 0);          // anchored at the node; VL.Callouts sets the box offset and the leader
+    s.layers.set(1);                  // hidden until placed
     s.fit(worldPerPx());
     return s;
   }
@@ -245,14 +302,51 @@
     else p += 1e5;
     return p;
   }
-  var cullTimer = null, cullStats = { shown: 0, hidden: 0 };
-  function scheduleCull() {
-    if (cullTimer) return;
-    cullTimer = setTimeout(function () { cullTimer = null; cullLabels(); }, 90);
+  /* screen-space declutter shared with the legal network and the CONSTRUCT view (js/paper3d.js VL.Callouts): call-outs
+     sit in clear space on thin leaders, never over a node or a link and never over each other; the selected node and
+     the nodes of the traced path always keep theirs. Ink = every visible node disc and every link that is not faded. */
+  var callouts = null;
+  function nodeR(n) { return n.__r * (state.selected === n ? 1.3 * 1.34 : 1.07); }
+  function calloutItems() {
+    var out = [];
+    current.nodes.forEach(function (n) {
+      var s = n.__label;
+      if (!s) return;
+      var off = !nodeVisible(n) || !n.__obj || !isFinite(n.x) || (hlActive() && !hl.nodes.has(n));
+      out.push({ id: n.id, sprite: s, pri: priority(n), must: !off && isMust(n), sel: !off && state.selected === n, r: nodeR(n), off: off });
+    });
+    return out;
   }
+  function calloutInk() {
+    var discs = [], paths = [];
+    current.nodes.forEach(function (n) {
+      if (nodeVisible(n) && n.__obj && isFinite(n.x)) discs.push({ id: n.id, x: n.x, y: n.y, z: n.z, r: nodeR(n) });
+    });
+    graph.graphData().links.forEach(function (l) {
+      if (!linkVisible(l) || (hlActive() && !inHl(l))) return;
+      var pts = VL.linkPoints(l, 6);
+      if (pts) paths.push(pts);
+    });
+    return { discs: discs, paths: paths };
+  }
+  function scheduleCull() {
+    if (!graph) return;
+    if (!callouts) {
+      callouts = VL.Callouts({
+        camera: function () { return graph.camera(); },
+        size: function () { return { w: host.clientWidth, h: host.clientHeight }; },
+        items: calloutItems, ink: calloutInk, ui: obstacles,
+        leaderColor: function () { return P.leader; },
+        metrics: M, key: 'callouts',
+        onDone: function (st) { M.labelsShown = st.shown; M.labelsHidden = st.hidden; updateFog(); }
+      });
+    }
+    callouts.schedule();
+  }
+  function cullLabels() { if (graph) { scheduleCull(); callouts.run(); } }
   function obstacles() {
     var hr = host.getBoundingClientRect(), out = [];
-    ['#legend', '#hint', '.stage-tools', '#status'].forEach(function (sel) {
+    ['#legend', '#hint', '.stage-tools', '#status', '#panel'].forEach(function (sel) {
       var e = VL.$(sel, stage);
       if (!e || e.classList.contains('hidden') || e.offsetParent === null) return;
       var r = e.getBoundingClientRect();
@@ -260,64 +354,6 @@
       out.push({ x0: r.left - hr.left - 4, x1: r.right - hr.left + 4, y0: r.top - hr.top - 4, y1: r.bottom - hr.top + 4 });
     });
     return out;
-  }
-  var _v = null;
-  function cullLabels() {
-    if (!graph) return;
-    if (!_v) _v = new THREE.Vector3();
-    var cam = graph.camera(), W = host.clientWidth, H = host.clientHeight;
-    cam.updateMatrixWorld();
-    var k = H / (2 * Math.tan(cam.fov * Math.PI / 360));
-    var items = [];
-    function anchor(s, y) {
-      s.position.set(0, y, 0);
-      s.updateMatrixWorld();
-      s.getWorldPosition(_v);
-      _v.project(cam);
-      return { x: (_v.x + 1) / 2 * W, y: (1 - _v.y) / 2 * H, ok: _v.z <= 1 && _v.z >= -1 };
-    }
-    current.nodes.forEach(function (n) {
-      var s = n.__label;
-      if (!s) return;
-      if (!nodeVisible(n) || !n.__obj || (hl.nodes && !hl.nodes.has(n) && !n.inst && state.selected)) { s.layers.set(1); return; }
-      var r = n.__r * 1.02 * (state.selected === n ? 1.3 : 1), w = s.scale.x * k, h = s.scale.y * k;
-      var up = anchor(s, r), dn = anchor(s, -r);
-      if (!up.ok) { s.layers.set(1); return; }
-      /* candidate slots: the call-out above the node with its leader down to it (preferred), then below it; the
-         rectangle covers box and leader, so leaders never cross another call-out */
-      items.push({ n: n, s: s, p: priority(n), slots: [
-        { x0: up.x - w / 2, x1: up.x + w / 2, y0: up.y - h, y1: up.y, py: r, side: 'above' },
-        { x0: dn.x - w / 2, x1: dn.x + w / 2, y0: dn.y, y1: dn.y + h, py: -r, side: 'below' }
-      ] });
-    });
-    items.sort(function (a, b) { return b.p - a.p; });
-    var placed = obstacles(), shown = 0, hidden = 0;
-    function free(b) {
-      if (!(b.x0 >= 3 && b.x1 <= W - 3 && b.y0 >= 3 && b.y1 <= H - 3)) return false;
-      for (var i = 0; i < placed.length; i++) {
-        var p = placed[i];
-        if (!(b.x1 + 3 < p.x0 || b.x0 - 3 > p.x1 || b.y1 + 2 < p.y0 || b.y0 - 2 > p.y1)) return false;
-      }
-      return true;
-    }
-    items.forEach(function (it) {
-      var slot = free(it.slots[0]) ? it.slots[0] : (free(it.slots[1]) ? it.slots[1] : null);
-      if (slot) {
-        it.s.position.set(0, slot.py, 0);
-        it.s.setSide(slot.side);
-        it.s.layers.set(0);
-        placed.push(slot);
-        shown++;
-      } else {
-        it.s.position.set(0, it.slots[0].py, 0);
-        it.s.layers.set(1);
-        hidden++;
-      }
-    });
-    cullStats = { shown: shown, hidden: hidden };
-    M.labelsShown = shown;
-    M.labelsHidden = hidden;
-    updateFog();
   }
 
   /* ------------------------------------------------------------------ node objects */
@@ -354,14 +390,22 @@
     if (l.type === 'subClassOf') { var s = nodeOf(l.source); return s ? rimHex(nodeColor(s), P.dark ? 1 : 0.9) : TH.link.subClassOf; }
     return TH.link[l.type] || TH.linkDefault;
   }
-  function inTrace(l) { return hlActive() && !!hl.links && hl.links.has(l); }
+  function inTrace(l) { return hlActive() && !!hl.trace && hl.trace.has(l); }
+  /* a highlighted link that is not traced: its own pastel (a CONSTRUCT result link: the colour of its predicate), a
+     little deeper on the white ground so the thin line reads */
+  function emphColor(l) {
+    var c = l.type === 'result' ? VL.predColor(l.pred) : linkBaseColor(l);
+    return P.dark ? c : rimHex(c, 0.9);
+  }
   function linkColor(l) {
     if (inTrace(l)) return P.core;
+    if (inHl(l)) return emphColor(l);
     if (hlActive()) return TH.linkDim;
     return linkBaseColor(l);
   }
   function linkWidth(l) {
     if (inTrace(l)) return 0;
+    if (inHl(l)) return l.type === 'subClassOf' ? 1 : 0.8;
     if (l.type === 'subClassOf') return 0.6;
     if (l.type === 'property' || l.type === 'result') return 0.42;
     return 0;
@@ -450,9 +494,9 @@
       .onNodeClick(function (n) { select(n, true); })
       .onLinkClick(function (l) { selectLink(l); })
       .onBackgroundClick(function () { clearSelection(); })
-      .onNodeHover(function (n) { host.style.cursor = n ? 'pointer' : ''; M.hover = n ? n.id : null; })
+      .onNodeHover(function (n) { host.style.cursor = n ? 'pointer' : ''; M.hover = n ? n.id : null; setHover(n); })
       .onLinkHover(function (l) { host.style.cursor = l ? 'pointer' : ''; })
-      .onEngineTick(function () { if (hl.links && hl.links.size) updateTrace(); scheduleCull(); })
+      .onEngineTick(function () { if (hl.trace && hl.trace.size) updateTrace(); scheduleCull(); })
       .onEngineStop(onEngineStop)
       .warmupTicks(160)
       .cooldownTicks(60)
@@ -559,12 +603,12 @@
   /* the selection's neighbourhood (incident links) plus its chain: the subclass links up to the top of its hierarchy,
      like the paper's trace from a point up to the law */
   function neighbourhood(n) {
-    var ns = new Set([n]), ls = new Set(), up = {}, frontier = [n], seen = new Set([n]);
+    var ns = new Set([n]), ls = new Set(), up = {}, frontier = [n], seen = new Set([n]), chain = new Set();
     graph.graphData().links.forEach(function (l) {
       if (!linkVisible(l)) return;
       var s = nodeOf(l.source), t = nodeOf(l.target);
       if (s === n || t === n) { ls.add(l); ns.add(s); ns.add(t); }
-      if (l.type === 'subClassOf' && s) (up[s.id] = up[s.id] || []).push(l);
+      if ((l.type === 'subClassOf' || l.type === 'instance') && s) (up[s.id] = up[s.id] || []).push(l);
     });
     while (frontier.length) {
       var next = [];
@@ -572,13 +616,14 @@
         (up[x.id] || []).forEach(function (l) {
           var t = nodeOf(l.target);
           ls.add(l);
+          chain.add(l);
           if (t && !seen.has(t)) { seen.add(t); ns.add(t); next.push(t); }
         });
       });
       frontier = next;
     }
     M.highlightChain = seen.size - 1;
-    return { nodes: ns, links: ls };
+    return { nodes: ns, links: ls, chain: chain };
   }
   function select(n, fly) {
     if (!n) return;
@@ -591,7 +636,7 @@
     state.selected = n;
     state.selectedLink = null;
     var nb = neighbourhood(n);
-    setHighlight(nb.nodes, nb.links);
+    setHighlight(nb.nodes, nb.links, { chain: nb.chain, max: TRACE_ALL_MAX });
     resizeLabels();
     openPanel(n.inst ? instancePanel(n) : nodePanel(n));
     if (fly !== false) flyTo(n);
@@ -602,7 +647,7 @@
     state.selected = null;
     state.selectedLink = l;
     var s = nodeOf(l.source), t = nodeOf(l.target);
-    setHighlight(new Set([s, t]), new Set([l]));
+    setHighlight(new Set([s, t]), new Set([l]), { max: TRACE_ALL_MAX });
     resizeLabels();
     openPanel(linkPanel(l));
     M.selectedLink = l.id || l.key;
@@ -610,7 +655,7 @@
   function clearSelection() {
     state.selected = null;
     state.selectedLink = null;
-    setHighlight(view.resultSet ? view.resultSet.nodes : null, view.resultSet ? view.resultSet.links : null);
+    setHighlight(view.resultSet ? view.resultSet.nodes : null, view.resultSet ? view.resultSet.links : null, { max: RESULT_TRACE_MAX });
     resizeLabels();
     closePanel();
   }
@@ -837,6 +882,8 @@
   VL.combobox({ input: VL.$('#onto-search-m'), list: VL.$('#onto-suggest-m'), source: searchSource, onPick: onPick });
   window.VLApp.search = function (q) { var r = searchSource(q); if (r.length) onPick(r[0]); return r.map(function (x) { return x.main; }); };
   window.VLApp.select = function (id) { var n = current.byId[id] || byId[id]; if (n) select(n, true); return !!n; };
+  /* tests: hover a node (id, or null to end the hover) as the pointer would; returns the number of traced hover links */
+  window.VLApp.hover = function (id) { setHover(id ? (current.byId[id] || byId[id] || null) : null); return M.hoverTrace || 0; };
   window.VLApp.screenPos = function (id) {
     var n = current.byId[id] || byId[id];
     if (!n || !graph) return null;
@@ -1162,7 +1209,7 @@
     closePanel();
     graph.warmupTicks(mode === 'overlay' ? 60 : 140);
     graph.graphData(data);
-    setHighlight(resultNodes, resultLinks);     // the result is the traced path (overlay: the rest of the ontology fades)
+    setHighlight(resultNodes, resultLinks, { max: RESULT_TRACE_MAX });   // the result: traced when small, else thin lines + hover
     VL.$('#qd-back').classList.remove('hidden');
     renderLegend();
     setTimeout(function () { fitView(700, mode === 'overlay' ? Array.from(resultNodes) : null); }, 60);

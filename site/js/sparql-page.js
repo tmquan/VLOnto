@@ -119,9 +119,12 @@
   /* ------------------------------------------------------------------ CONSTRUCT -> 3D
      Drawn like the figures of the paper (arXiv:2611.11426; js/paper3d.js), with the tokens of #graph-wrap
      (data-style="paper"): white figure ground, pastel spheres in the paper's class colours (records of the documents,
-     articles, terms, ...) or else their module's colour, the result's links as the traced answer (navy core over a
-     pale-gold halo), call-outs in Libertinus Sans with leader lines, depth fade, and the paper's legend row. */
-  var G = null, P = null, trace = null, fog = null, lights = null, legend = null, sceneR = 100;
+     articles, terms, ...) or else their module's colour, call-outs in Libertinus Sans on leader lines placed by the
+     shared declutter (VL.Callouts), depth fade, and the paper's legend row. A small result (at most RESULT_TRACE_MAX
+     links) is the traced answer (navy core over a pale-gold halo); a larger one keeps its links as thin lines in the
+     colours of their predicates and traces the links of the hovered node, as the paper draws only the traced path dark. */
+  var G = null, P = null, trace = null, fog = null, lights = null, legend = null, sceneR = 100, callouts = null;
+  var RESULT_TRACE_MAX = 12, NODE_R = Math.cbrt(1.6) * 3 * 1.08, many = false, hoverNode = null, traceSet = new Set(), deg = {};
   var scope = VL.$('#graph-wrap');
   function readTheme() { P = VL.paperTheme(scope); }
   function load3d() {
@@ -160,23 +163,70 @@
     var o = VL.paperCallout(P, false);
     o.lines = [[{ text: n.label, color: P.ink }].concat(n.cls ? [{ text: ' · ' + n.cls, color: P.ink2 }] : [])];
     o.weight = '400';
-    o.leader = 11;
     return o;
   }
   function styleNode(n) {
     if (!n.__rim) return;
     n.__rim.material.color.set(rimHex(nodeColor(n), P.dark ? 0.72 : 0.84));
   }
+  /* the traced links: every link of a small result, else those of the hovered node (when it has at most
+     RESULT_TRACE_MAX); the other links are thin lines in the colour of their predicate */
+  function computeTraceSet() {
+    var links = G ? G.graphData().links : [];
+    traceSet = new Set();
+    if (!many) links.forEach(function (l) { traceSet.add(l); });
+    else if (hoverNode) {
+      var ls = links.filter(function (l) { return l.source === hoverNode || l.target === hoverNode; });
+      if (ls.length <= RESULT_TRACE_MAX) ls.forEach(function (l) { traceSet.add(l); });
+    }
+    M.constructLines = links.length - traceSet.size;
+    M.constructMode = many ? 'lines' : 'trace';
+  }
+  function linkColor(l) {
+    if (traceSet.has(l)) return P.core;
+    var c = VL.predColor(l.pred, scope);
+    return P.dark ? c : VL.shade(c, 0.9);
+  }
+  function linkWidth(l) { return traceSet.has(l) ? 0 : 0.55; }
+  function refreshLinks() {
+    if (!G) return;
+    G.linkColor(G.linkColor());
+    G.linkWidth(G.linkWidth());
+    G.linkDirectionalArrowColor(G.linkDirectionalArrowColor());
+  }
   function updateTrace() {
     if (!G || !trace) return;
     var paths = [];
-    G.graphData().links.forEach(function (l) { var pts = VL.linkPoints(l, 12); if (pts) paths.push(pts); });
-    trace.setStyle(VL.traceStyle(P, paths.length > 150 ? 0.55 : (paths.length > 60 ? 0.72 : 0.9)));
+    traceSet.forEach(function (l) { var pts = VL.linkPoints(l, 12); if (pts) paths.push(pts); });
+    trace.setStyle(VL.traceStyle(P, paths.length > 60 ? 0.72 : 0.9));
     trace.setPaths(paths);
     M.constructTrace = trace.count();
   }
+  function setHover(n) {
+    if (n === hoverNode) return;
+    hoverNode = n || null;
+    M.constructHover = hoverNode ? hoverNode.id : null;
+    if (many) { computeTraceSet(); refreshLinks(); updateTrace(); }
+    if (callouts) callouts.schedule();
+  }
+  /* the nodes whose call-out always stays: the ends of the traced links and the hovered node */
+  function isMust(n) {
+    if (n === hoverNode) return true;
+    var hit = false;
+    traceSet.forEach(function (l) { if (l.source === n || l.target === n) hit = true; });
+    return hit;
+  }
   function updateFog() { if (G && fog) VL.fitFog(fog, G.camera().position.distanceTo(G.controls().target), sceneR); }
   function bi(vi, en) { return '<span lang="vi">' + VL.esc(VL.cap(vi)) + '</span> · ' + VL.esc(VL.cap(en)); }
+  /* Vietnamese and English names of a predicate (the change, basis and citation names of the legal network) */
+  function predName(k) {
+    var ch = { replaces: 'replaced', amends: 'amended', repeals: 'repealed', partiallyRepeals: 'partially_repealed', partiallyExpires: 'partially_expired' }[k];
+    if (ch && VL.CHANGE[ch]) return [VL.CHANGE[ch].vi, VL.CHANGE[ch].active];
+    if (k === 'legalBasis') return [VL.EDGE.basis.vi, VL.EDGE.basis.en];
+    if (k === 'cites') return [VL.EDGE.citation.vi, VL.EDGE.citation.en];
+    if (k === 'subClassOf') return ['lớp con của', 'subclass of'];
+    return null;
+  }
   function renderLegend(nodes) {
     if (!legend) return;
     var keys = {}, mods = {};
@@ -185,7 +235,15 @@
       return '<li><span class="swatch" style="background:' + c.v + '"></span>' + bi(c.vi, c.en) + '</li>';
     }).join('') + VL.MODULES.filter(function (m) { return mods[m.id]; }).map(function (m) {
       return '<li><span class="swatch" style="background:' + m.v + '"></span>' + bi(m.vi, m.en) + '</li>';
-    }).join('') + '<li><span class="swatch trace" aria-hidden="true"></span>' + bi('đường truy vết', 'query result') + '</li></ul>';
+    }).join('') + '<li><span class="swatch trace" aria-hidden="true"></span>' + bi('đường truy vết', many ? 'links of the hovered node' : 'query result') + '</li></ul>';
+    if (many) {
+      var preds = {};
+      (G ? G.graphData().links : []).forEach(function (l) { preds[VL.predKind(l.pred)] = l.pred; });
+      h += '<div class="legend-sub"><ul>' + Object.keys(preds).sort().map(function (k) {
+        var c = VL.predColor(preds[k], scope), name = predName(k);
+        return '<li><span class="swatch line" style="background:' + (P.dark ? c : VL.shade(c, 0.9)) + '"></span>' + (name ? bi(name[0], name[1]) : VL.esc(preds[k])) + '</li>';
+      }).join('') + '</ul></div>';
+    }
     legend.innerHTML = h;
   }
   /* theme switch: background, fog, light, node colours, call-outs, the traced result and the legend of the CONSTRUCT view */
@@ -201,9 +259,10 @@
       if (n.__label) n.__label.setStyle(labelOpts(n));
     });
     G.nodeColor(G.nodeColor());
-    G.linkColor(G.linkColor());
-    G.linkDirectionalArrowColor(G.linkDirectionalArrowColor());
+    refreshLinks();
     updateTrace();
+    renderLegend(G.graphData().nodes);
+    if (callouts) callouts.schedule();
     M.constructThemed = (M.constructThemed || 0) + 1;
   });
   function drawGraph(ctx, res) {
@@ -241,19 +300,21 @@
             styleNode(n);
             grp.add(rim);
             var s = VL.TextSprite(n.label, Object.assign({ px: 21 }, labelOpts(n)));
+            s.layers.set(1);              // hidden until VL.Callouts places it
             s.fit(VL.spriteWpp(G.camera(), el.clientHeight));
             n.__label = s;
             grp.add(s);
             return grp;
           })
-          .linkColor(function () { return P.core; })
-          .linkOpacity(0.5).linkWidth(0)
+          .linkColor(linkColor)
+          .linkOpacity(0.5).linkWidth(linkWidth)
           .linkDirectionalArrowLength(3.5).linkDirectionalArrowRelPos(1)
-          .linkDirectionalArrowColor(function () { return P.core; })
+          .linkDirectionalArrowColor(linkColor)
+          .onNodeHover(function (n) { setHover(n); })
           .linkLabel(function (l) { return VL.esc(l.pred); })
           .onNodeClick(function (n) { var d = VL.docIdFromIri(n.iri); if (d) location.href = VL.href('network-3d.html#doc=' + encodeURIComponent(d)); })
           .warmupTicks(100).cooldownTicks(80)
-          .onEngineTick(updateTrace)
+          .onEngineTick(function () { updateTrace(); cull(); })
           .onEngineStop(function () { updateTrace(); fit(); });
         lights = VL.paperLights(P.dark);
         G.lights([lights.ambient]);
@@ -263,6 +324,28 @@
         G.scene().add(trace.object);
         legend = VL.el('div', { 'class': 'legend', id: 'construct-legend', 'aria-label': 'Legend of the CONSTRUCT view' });
         el.appendChild(legend);
+        callouts = VL.Callouts({
+          camera: function () { return G.camera(); },
+          size: function () { return { w: el.clientWidth, h: el.clientHeight }; },
+          items: function () {
+            return G.graphData().nodes.map(function (n) { return { id: n.id, sprite: n.__label, pri: (deg[n.id] || 0) + (n.pk ? 0.5 : 0), must: isMust(n), r: NODE_R }; });
+          },
+          ink: function () {
+            var gd = G.graphData();
+            return {
+              discs: gd.nodes.filter(function (n) { return isFinite(n.x); }).map(function (n) { return { id: n.id, x: n.x, y: n.y, z: n.z, r: NODE_R }; }),
+              paths: gd.links.map(function (l) { return VL.linkPoints(l, 6); }).filter(Boolean)
+            };
+          },
+          ui: function () {
+            if (!legend || legend.offsetParent === null) return [];
+            var hr = el.getBoundingClientRect(), lr = legend.getBoundingClientRect();
+            return [{ x0: lr.left - hr.left - 4, x1: lr.right - hr.left + 4, y0: lr.top - hr.top - 4, y1: lr.bottom - hr.top + 4 }];
+          },
+          leaderColor: function () { return P.leader; },
+          metrics: M, key: 'callouts',
+          onDone: function (st) { M.constructLabels = st.shown; updateFog(); }
+        });
         G.controls().addEventListener('change', cull);
         window.addEventListener('resize', function () {
           G.width(el.clientWidth).height(el.clientHeight);
@@ -272,8 +355,18 @@
         });
       }
       G.width(el.clientWidth).height(el.clientHeight);
+      many = links.length > RESULT_TRACE_MAX;
+      hoverNode = null;
+      M.constructHover = null;
+      deg = {};
+      links.forEach(function (l) { deg[l.source] = (deg[l.source] || 0) + 1; deg[l.target] = (deg[l.target] || 0) + 1; });
+      G.linkOpacity(many ? 0.92 : 0.5);
       G.graphData({ nodes: nodes, links: links });
+      computeTraceSet();
+      refreshLinks();
+      updateTrace();
       renderLegend(nodes);
+      if (callouts) callouts.forget();
       setTimeout(fit, 300);
     });
   }
@@ -284,29 +377,8 @@
     if (bb) sceneR = Math.max(20, 0.5 * Math.sqrt(Math.pow(bb.x[1] - bb.x[0], 2) + Math.pow(bb.y[1] - bb.y[0], 2) + Math.pow(bb.z[1] - bb.z[0], 2)));
     setTimeout(cull, 450);
   }
-  /* hide call-outs that would overlap another call-out or the legend, or be cut by the canvas edge; the call-out stands
-     on its leader above the node (sprite centre at the node) */
-  function cull() {
-    if (!G) return;
-    var el = VL.$('#graph-view'), W = el.clientWidth, H = el.clientHeight, cam = G.camera(), v = new THREE.Vector3();
-    var k = H / (2 * Math.tan(cam.fov * Math.PI / 360)), placed = [];
-    if (legend && legend.offsetParent !== null) {
-      var hr = el.getBoundingClientRect(), lr = legend.getBoundingClientRect();
-      placed.push({ x0: lr.left - hr.left - 4, x1: lr.right - hr.left + 4, y0: lr.top - hr.top - 4, y1: lr.bottom - hr.top + 4 });
-    }
-    G.graphData().nodes.forEach(function (n) {
-      var s = n.__label;
-      if (!s) return;
-      s.getWorldPosition(v);
-      v.project(cam);
-      var sx = (v.x + 1) / 2 * W, sy = (1 - v.y) / 2 * H, w = s.scale.x * k, h = s.scale.y * k;
-      var b = { x0: sx - w / 2, x1: sx + w / 2, y0: sy - h, y1: sy };
-      var ok = v.z < 1 && b.x0 > 3 && b.x1 < W - 3 && b.y0 > 3 && b.y1 < H - 3 && !placed.some(function (p) { return !(b.x1 + 3 < p.x0 || b.x0 - 3 > p.x1 || b.y1 + 2 < p.y0 || b.y0 - 2 > p.y1); });
-      s.layers.set(ok ? 0 : 1);
-      if (ok) placed.push(b);
-    });
-    updateFog();
-  }
+  /* call-out placement (js/paper3d.js VL.Callouts): throttled while the camera moves or the layout ticks */
+  function cull() { if (G && callouts) callouts.schedule(); }
 
   /* ------------------------------------------------------------------ self-test over the 10 examples */
   function selfTest() {
@@ -335,6 +407,13 @@
   }
   VL.$('#btn-all').addEventListener('click', function () { dsEl.value = 'core'; selfTest(); });
   window.VLApp.selfTest = selfTest;
+  /* tests: hover a node of the CONSTRUCT view (id, or null to end the hover); its nodes and their link counts */
+  window.VLApp.constructHover = function (id) {
+    if (!G) return 0;
+    setHover(id ? G.graphData().nodes.filter(function (n) { return n.id === id; })[0] || null : null);
+    return M.constructTrace || 0;
+  };
+  window.VLApp.constructNodes = function () { return G ? G.graphData().nodes.map(function (n) { return { id: n.id, links: deg[n.id] || 0 }; }) : []; };
   window.VLApp.run = function (q, ds) { if (ds) dsEl.value = ds; if (q != null) qEl.value = q; return run().then(function () { return M.lastQuery; }); };
   window.VLApp.runExample = function (key) { qEl.value = exampleQuery(key); markExample(key); return run().then(function () { return M.lastQuery; }); };
 
