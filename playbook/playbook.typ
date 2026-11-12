@@ -18,13 +18,14 @@
 knowledge graph],
   kicker: [Vietnamese legal ontology and knowledge graph],
   author: "tmquan",
-  version: "0.1.0",
-  date: "2026-11-11",
+  version: "1.0.0",
+  release: "v1",
+  date: "2026-11-12",
   keywords: ("VLOnto", "Vietnamese law", "legal ontology", "knowledge
 graph", "OWL", "SKOS", "ELI", "RDF", "SPARQL", "legal informatics", ),
   key-figures: (([40,816], [legal documents]), ([436,309], [articles
-(Điều)]), ([1,544,091], [court decisions]), ([109,543], [legal Q&As
-(metadata)]), ([31,516,606], [RDF triples]), ([18 / 18], [build checks
+(Điều)]), ([15,035], [dated change events]), ([109,543], [legal Q&As
+(metadata)]), ([6,963,753], [RDF triples]), ([20 / 20], [build checks
 passed]), ),
   licence: [Ontology and documentation: CC BY 4.0, creator tmquan.
 Knowledge-graph data: see the licence and attribution appendix.],
@@ -36,25 +37,32 @@ documents.],
 = 1. Scope, audience and disclaimer
 <scope-audience-and-disclaimer>
 VLOnto is an OWL ontology of Vietnamese law and a knowledge graph built
-with it from six public datasets of Vietnamese legal material. In VLOnto
-0.1.0 (this release), the graph connects 40,816 legal documents and
-their 436,309 articles (#emph[Điều]) with the 15,035 dated events that
-replaced, amended or repealed them, with 99,038 legal-basis links and
-268,563 citation links between documents, with 1,544,091 court decisions
-and their 7,060,655 links to the provisions they apply, and with 109,543
+with it from four public datasets of Vietnamese legal material. In
+VLOnto v1 (version 1.0.0, this release), the graph connects 40,816 legal
+documents and their 436,309 articles (#emph[Điều]) with the 15,035 dated
+events that replaced, amended or repealed them, with 99,038 legal-basis
+links and 268,563 citation links between documents, and with 109,543
 published legal Q&As, 16,701 legal terms and 681 legal news items. The
-build writes 27 parquet tables, a full RDF dump of 31,516,606 triples
-and a browser-sized RDF subset of 49,923 triples. VLOnto is published as
+build writes 21 parquet tables, a full RDF dump of 6,963,753 triples and
+a browser-sized RDF subset of 49,846 triples. VLOnto is published as
 code and a website: the GitHub repository holds the build code, the
 ontology with SHACL shapes and documentation, a website with 3D
 playgrounds and a SPARQL playground, and this playbook. The data stays
-in the six source datasets, and the knowledge graph is built from them
+in the four source datasets, and the knowledge graph is built from them
 on your own machine (section~2.2).
+
+#strong[Court decisions join in v2.] VLOnto v1 is built from the four
+thuvienphapluat.vn datasets only. The court datasets `anle-toaan-gov-vn`
+and `cbba-toaan-gov-vn` (court decisions and precedents, with the
+provisions they apply) are planned for VLOnto v2 (version 2.0.0); the
+judiciary classes and properties stay in the ontology with a scope note
+that says so (section~4.2). #emph[Bản án, quyết định của Tòa án và án lệ
+sẽ được bổ sung trong VLOnto v2.]
 
 #strong[Who this is for.] Engineers who build legal search, question
 answering or agents over Vietnamese law and need structured validity,
-citation and court-usage data; legal-technology practitioners who want
-to query that data without building it; and maintainers who rebuild and
+citation and Q&A-usage data; legal-technology practitioners who want to
+query that data without building it; and maintainers who rebuild and
 release VLOnto. The playbook assumes working knowledge of Python and
 SQL; SPARQL and OWL are introduced where they are used.
 
@@ -70,21 +78,22 @@ the references follow section~12. The appendices are generated from the
 ontology file, the data dictionary and the licence policy.
 
 #strong[Where the numbers come from.] Every number in this playbook is
-read from the build reports of 2026-11-11 by
+read from the build reports of 2026-11-12 by
 `playbook/tools/gather_facts.py`, which also runs every query recipe and
 code example against that build and stores their output;
 `playbook/tools/render_md.py` then fills this text. No number is typed
 by hand, so a rebuild of the graph followed by a rebuild of the playbook
-updates all of them. All of them describe VLOnto 0.1.0 (this release).
+updates all of them. All of them describe VLOnto v1 (1.0.0), this
+release.
 
 #quote(block: true)[
 #strong[Not legal advice.] VLOnto is a research and engineering
 resource. It is not an official legal text and not legal advice. Its
 relations are extracted automatically from public sources and can be
 wrong; the validity of 28,660 of the 40,816 documents (70.2%) is
-unknown. Read the source document (every document, Q&A, decision and
-term keeps its source URL) and ask a qualified Vietnamese lawyer before
-relying on any legal conclusion.
+unknown. Read the source document (every document, Q&A and term keeps
+its source URL) and ask a qualified Vietnamese lawyer before relying on
+any legal conclusion.
 ]
 
 == 1.1 How to cite
@@ -94,9 +103,9 @@ The approach is described in the paper #emph[Vietnamese Legal Ontology:
 Every legal answer, traced to the article that grounds it] (Bui and Tran
 Minh, 2026,
 #link("https://arxiv.org/abs/2611.11426")[arXiv:2611.11426]\; see
-References). Numbers in this playbook are computed from the VLOnto 0.1.0
-release and can differ from the paper's. Cite the paper with this BibTeX
-entry; the repository also has a `CITATION.cff` file:
+References). Numbers in this playbook are computed from the VLOnto v1
+(1.0.0) release and can differ from the paper's. Cite the paper with
+this BibTeX entry; the repository also has a `CITATION.cff` file:
 
 ]
 ```bibtex
@@ -128,8 +137,9 @@ access:
   3D ontology playground as a `file://` URL. The overview of VLOnto,
   with the key counts of the build, is `site/about.html`.
 + The other pages are the legal-network playground, the SPARQL
-  playground, the dashboard, the ontology documentation, this playbook
-  and the downloads page; section~9 lists every page with its file name.
+  playground, the dashboard, the question traces, the ontology
+  documentation, this playbook and the downloads page; section~9 lists
+  every page with its file name.
 
 All scripts, fonts and data are inside the folder; the pages load no
 external resources. The site is checked with headless Chrome over
@@ -145,13 +155,14 @@ GitHub repository #link("https://github.com/tmquan/VLOnto") holds the
 build code (`vlonto/`), the corpus pipeline (`pipeline/`), the ontology
 (`ontology/`), this playbook (`playbook/`) and the website (`site/`),
 which GitHub Pages serves at #link("https://tmquan.github.io/VLOnto/").
-The data comes from the six source datasets on Hugging Face (section~3):
-`python -m vlonto.cli all` builds the knowledge graph from them on your
-machine (section~5) and writes the parquet tables to `build/kg/` and the
-RDF dumps to `build/rdf/`. The build reads the processed corpus of the
-vn-legal project (section~5.1), which `pipeline/` produces from the
-source datasets (see `pipeline/README.md`). The ontology and the browser
-subset need no build: the website's downloads page offers them.
+The data comes from the four source datasets on Hugging Face
+(section~3): `python -m vlonto.cli all` builds the knowledge graph from
+them on your machine (section~5) and writes the parquet tables to
+`build/kg/` and the RDF dumps to `build/rdf/`. The build reads the
+processed corpus of the vn-legal project (section~5.1), which
+`pipeline/` produces from the source datasets (see
+`pipeline/README.md`). The ontology and the browser subset need no
+build: the website's downloads page offers them.
 
 ]
 #block(breakable: false, width: 100%)[
@@ -161,27 +172,26 @@ subset need no build: the website's downloads page offers them.
     align: (left,right,left,),
     table.header([File], [Size], [Where to get it],),
     table.hline(),
-    [`kg/*.parquet` (27 tables)], [127.9 MB], [local build,
-    `build/kg/`],
-    [`kg/data_dictionary.md`, `.json`], [59 kB], [local build,
+    [`kg/*.parquet` (21 tables)], [27.9 MB], [local build, `build/kg/`],
+    [`kg/data_dictionary.md`, `.json`], [44 kB], [local build,
     `build/kg/`\; the `.md` file also from the downloads page],
-    [`rdf/vlonto-kg.nt.gz`], [172.1 MB], [local build, `build/rdf/`],
+    [`rdf/vlonto-kg.nt.gz`], [48.2 MB], [local build, `build/rdf/`],
     [`rdf/vlonto-core.ttl`], [2.6 MB], [local build, `build/rdf/`\;
     downloads page],
-    [`ontology/vlonto.ttl`], [110 kB], [repository, `ontology/`\;
+    [`ontology/vlonto.ttl`], [122 kB], [repository, `ontology/`\;
     downloads page],
-    [`ontology/vlonto-shapes.ttl`], [12 kB], [repository, `ontology/`\;
+    [`ontology/vlonto-shapes.ttl`], [13 kB], [repository, `ontology/`\;
     downloads page],
     [`ontology/vlonto-context.jsonld`], [7 kB], [repository,
     `ontology/`\; downloads page],
-    [`ontology/vlonto.html`], [662 kB], [repository, `ontology/`\; the
+    [`ontology/vlonto.html`], [680 kB], [repository, `ontology/`\; the
     website's ontology page],
   )]
   , kind: table
   )
 
 ]
-Sizes are those of the reference build of 2026-11-11 (section~10.4).
+Sizes are those of the reference build of 2026-11-12 (section~10.4).
 `rdf/vlonto-kg.nt.gz` is the whole graph as gzip-compressed N-Triples;
 `rdf/vlonto-core.ttl` is the subset the browser loads (section~9);
 `ontology/` holds the OWL ontology, its SHACL shapes, a JSON-LD context
@@ -195,7 +205,7 @@ article text) is written for local use only and is never shared
 == 2.3 Install the query libraries
 <install-the-query-libraries>
 #block(sticky: true, width: 100%)[
-The examples use the versions of the build environment (Python 3.12.16):
+The examples use the versions of the build environment (Python 3.11.18):
 
 ]
 ```bash
@@ -318,7 +328,7 @@ Output:
 
 ]
 ```text
-49,923 triples
+49,846 triples
 100/2015/QH13 Bộ luật Hình sự
 101/2015/QH13 Bộ luật Tố tụng hình sự
 45/2019/QH14 Bộ luật Lao động
@@ -333,9 +343,9 @@ The subset holds the ontology and the 1,781 documents of the highest
 legal-force ranks (constitution; codes, laws and national assembly
 resolutions; ordinances and standing committee resolutions) with the 612
 change events, 4,997 legal-basis edges and 6,198 document-level
-citations among them. Questions about decrees, circulars, court
-decisions, Q&As or terms need the full dump, which is bulk-loaded into
-an on-disk store once (`playbook/examples/load_full_dump.py`):
+citations among them. Questions about decrees, circulars, Q&As or terms
+need the full dump, which is bulk-loaded into an on-disk store once
+(`playbook/examples/load_full_dump.py`):
 
 ```python
 """Bulk-load the full N-Triples dump into an on-disk pyoxigraph store."""
@@ -355,10 +365,10 @@ Output:
 
 ]
 ```text
-31,516,606 triples in vlonto-store/
+6,963,753 triples in vlonto-store/
 ```
 
-The build loaded the same dump into Oxigraph in 114.8 s (31,516,606
+The build loaded the same dump into Oxigraph in 7.8 s (6,963,753
 triples). Afterwards open the store with `Store("vlonto-store")` and
 query it as above; section~7 runs every SPARQL recipe against this
 store.
@@ -367,15 +377,15 @@ store.
 <architecture>
 #figure([#vlo-figure("architecture")],
   caption: [
-    Data flow: six source datasets, the processed corpus of the vn-legal
-    project, the knowledge-graph build, the tables and RDF dumps it
-    writes, and their uses.
+    Data flow: the four source datasets, the processed corpus of the
+    vn-legal project, the knowledge-graph build, the tables and RDF
+    dumps it writes, and their uses.
   ]
 )
 
 #block(sticky: true, width: 100%)[
-#strong[Source datasets.] Six datasets published on Hugging Face by
-`tmquan` are the data home of VLOnto; each is at
+#strong[Source datasets.] Four datasets published on Hugging Face by
+`tmquan` are the data home of VLOnto v1; each is at
 `https://huggingface.co/datasets/tmquan/<dataset>` (the names in the
 table are links), pinned to a fixed revision:
 
@@ -387,12 +397,6 @@ table are links), pinned to a fixed revision:
     align: (left,left,left,left,left,),
     table.header([Dataset], [Content], [Source], [Revision], [Licence],),
     table.hline(),
-    [#link("https://huggingface.co/datasets/tmquan/anle-toaan-gov-vn")[`anle-toaan-gov-vn`]], [court
-    documents and
-    precedents], [anle.toaan.gov.vn], [`d6124923ddcb`], [cc-by-4.0],
-    [#link("https://huggingface.co/datasets/tmquan/cbba-toaan-gov-vn")[`cbba-toaan-gov-vn`]], [court
-    judgments and
-    rulings], [congbobanan.toaan.gov.vn], [`8ace3afc9c97`], [cc-by-4.0],
     [#link("https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-hdpl")[`thuvienphapluat-vn-hdpl`]], [legal
     Q&A], [thuvienphapluat.vn], [`e814ecbfa1a1`], [other],
     [#link("https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-htpl")[`thuvienphapluat-vn-htpl`]], [legal
@@ -406,6 +410,12 @@ table are links), pinned to a fixed revision:
   )
 
 ]
+The court datasets
+#link("https://huggingface.co/datasets/tmquan/anle-toaan-gov-vn")[`anle-toaan-gov-vn`]
+and
+#link("https://huggingface.co/datasets/tmquan/cbba-toaan-gov-vn")[`cbba-toaan-gov-vn`]
+are not read by VLOnto v1; they join in VLOnto v2.
+
 #block(sticky: true, width: 100%)[
 #strong[Processed corpus.] The vn-legal project (the data pipeline of
 the Vietnamese legal assistant, section~8) downloads the pinned
@@ -433,9 +443,8 @@ rules v7). VLOnto reads its outputs instead of re-parsing the sources:
 
 ]
 From the vbpl snapshot, 40,816 documents are in scope (the normative
-documents kept by the cleaning step of vn-legal); the court decisions
-(1,542,247 from `cbba`, 1,844 from `anle`), Q&As, terms and news are
-read from the source snapshots directly.
+documents kept by the cleaning step of vn-legal); the Q&As, terms and
+news are read from the source snapshots directly.
 
 #figure([#vlo-figure("doc-types")],
   caption: [
@@ -445,14 +454,14 @@ read from the source snapshots directly.
 )
 
 #strong[Knowledge-graph build.] `python -m vlonto.cli all` (section~5)
-resolves every reference to a document, article, clause, decision or
-court, writes the node and edge tables with the method and evidence of
-each edge, exports RDF, validates, and writes the website data.
-2,409,098 nodes and 7,631,601 edges are stored in the parquet tables.
+resolves every reference to a document, article, clause or point, writes
+the node and edge tables with the method and evidence of each edge,
+exports RDF, validates, and writes the website data. 850,703 nodes and
+556,287 edges are stored in the parquet tables.
 
 #strong[Outputs.] The parquet tables are the primary form (fast,
 columnar, with provenance columns); the RDF dump states the same facts
-with the ontology's IRIs (31,516,606 triples); the core Turtle subset
+with the ontology's IRIs (6,963,753 triples); the core Turtle subset
 serves the browser; the website and this playbook are generated from the
 build reports. There is no separate data release: the tables and the
 full dump are rebuilt from the source datasets, while the GitHub
@@ -460,14 +469,17 @@ repository and the website carry the code, the ontology, the core subset
 and this playbook (section~2.2).
 
 #strong[What is deliberately left out.] No article or document bodies,
-no Q&A, news or judgment text, no glossary definitions and no person
-names are published; titles, article headings (up to 200 characters) and
+no Q&A or news text, no glossary definitions and no person names are
+published; titles, article headings (up to 200 characters) and
 one-sentence evidence quotes (up to 300 characters) are kept as labels.
-Text stays at the source URL that every record carries (Appendix~D).
+Text stays at the source URL that every record carries (Appendix~D). The
+website's question traces page (section~9) is the one exception: it
+shows the published title of each question it traces, with a short
+English gloss, but not the full question and no answer text.
 
 = 4. The ontology
 <the-ontology>
-VLOnto is an OWL 2 ontology in Turtle (`ontology/vlonto.ttl`, 2,008
+VLOnto is an OWL 2 ontology in Turtle (`ontology/vlonto.ttl`, 2,061
 triples) with 47 classes, 46 object properties, 35 datatype properties,
 3 annotation properties and 13 SKOS concept schemes. Every VLOnto term
 has an English and a Vietnamese label and an English definition (the
@@ -509,7 +521,8 @@ Each term belongs to one of 11 thematic modules (annotation
     links between legal resources and from other works to legal
     resources.], [0], [5], [0],
     [`judiciary`], [tư pháp], [Court decisions, judgments, precedents
-    and their classification.], [8], [9], [4],
+    and their classification. No data in VLOnto v1; populated from v2
+    (section~4.2).], [8], [9], [4],
     [`qa`], [hỏi đáp pháp luật], [Published legal questions and their
     answers.], [2], [3], [1],
     [`terminology`], [thuật ngữ], [Legal terms organised as SKOS
@@ -527,6 +540,7 @@ Each term belongs to one of 11 thematic modules (annotation
 ]
 == 4.2 Key classes
 <key-classes>
+#block(breakable: false, width: 100%)[
 #figure(
   align(center)[#table(
     columns: (26.72%, 16.38%, 56.9%),
@@ -568,21 +582,6 @@ Each term belongs to one of 11 thematic modules (annotation
     source status with text-extracted change relations (validity rules
     v7). It refines the ELI in-force concept with eight values. Subclass
     of `eli:InForce`, `skos:Concept`.],
-    [`vlo:JudicialDocument`], [Văn bản của Tòa án], [A document produced
-    in the judicial system: a court decision in a case or a published
-    case-law precedent. Subclass of `schema:CreativeWork`.],
-    [`vlo:CourtDecision`], [Bản án, quyết định của Tòa án], [A judgment
-    or ruling issued by a court in a specific case, identified by its
-    decision number (for example 38/2021/DS-PT), court and date.
-    Subclass of `vlo:JudicialDocument`.],
-    [`vlo:Court`], [Tòa án], [A people's court or military court that
-    decides cases; identified by its official name, for example Tòa án
-    nhân dân tỉnh Cà Mau. Subclass of `vlo:PublicAuthority`.],
-    [`vlo:Precedent`], [Án lệ], [Reasoning or a ruling in a court
-    decision that the Council of Judges of the Supreme People's Court
-    has selected and the Chief Justice has published as a precedent for
-    courts to follow; identified by its number, for example 04/2016/AL.
-    Subclass of `vlo:JudicialDocument`.],
     [`vlo:LegalQuestion`], [Câu hỏi pháp luật], [A published legal
     question from a legal Q&A service. The knowledge graph keeps its
     identifier, link, date and legal area, not its text. Subclass of
@@ -612,6 +611,7 @@ Each term belongs to one of 11 thematic modules (annotation
   , kind: table
   )
 
+]
 Documents are typed by 10 subclasses of `vlo:NormativeLegalDocument`,
 one per document type, each linked to its concept in the document-type
 scheme: `vlo:Constitution` (#emph[Hiến pháp]), `vlo:Code` (#emph[Bộ
@@ -619,12 +619,22 @@ luật]), `vlo:Law` (#emph[Luật]), `vlo:Ordinance` (#emph[Pháp lệnh]),
 `vlo:Resolution` (#emph[Nghị quyết]), `vlo:JointResolution` (#emph[Nghị
 quyết liên tịch]), `vlo:Decree` (#emph[Nghị định]), `vlo:Decision`
 (#emph[Quyết định]), `vlo:Circular` (#emph[Thông tư]),
-`vlo:JointCircular` (#emph[Thông tư liên tịch]). Court documents:
-`vlo:CourtDecision` (#emph[Bản án, quyết định của Tòa án], subclass of
-vlo:JudicialDocument); `vlo:Judgment` (#emph[Bản án], subclass of
-vlo:CourtDecision); `vlo:CourtRuling` (#emph[Quyết định của Tòa án],
-subclass of vlo:CourtDecision). Structural units: `vlo:Part`,
-`vlo:Chapter`, `vlo:Section` and `vlo:Appendix`.
+`vlo:JointCircular` (#emph[Thông tư liên tịch]). Structural units:
+`vlo:Part`, `vlo:Chapter`, `vlo:Section` and `vlo:Appendix`.
+
+#strong[Judiciary terms (v2).] The judiciary module keeps its 21 terms
+in the ontology, among them `vlo:CourtDecision`, `vlo:Judgment`,
+`vlo:CourtRuling`, `vlo:Precedent`, and the properties `vlo:decidedBy`,
+`vlo:appliesProvision` and `vlo:citesCase` (Appendix~B.6). They, the
+module's concept schemes and the class `vlo:Court` carry a scope note in
+English and Vietnamese (26 terms, schemes and modules), which says that
+they are populated from VLOnto v2; the module's note reads: #emph[The
+terms of this module are populated from VLOnto 2.0 (court datasets
+anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge
+graph has no court data.] (#emph[Các khái niệm của mô-đun này có dữ liệu
+từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và
+cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu tòa
+án.])
 
 == 4.3 Key properties
 <key-properties>
@@ -654,11 +664,6 @@ subclass of vlo:CourtDecision). Structural units: `vlo:Part`,
     [`vlo:isPartOf`], [`vlo:Provision`], [`eli:LegalResource`], [`eli:is_part_of`],
     [`vlo:inDocument`], [`vlo:Provision`], [`vlo:LegalDocument`], [`eli:is_part_of`],
     [`vlo:issuedBy`], [`vlo:LegalDocument`], [`vlo:IssuingBody`], [`eli:passed_by`],
-    [`vlo:decidedBy`], [`vlo:CourtDecision`], [`vlo:Court`], [`dcterms:creator`],
-    [`vlo:appliesProvision`], [`vlo:JudicialDocument`], [`vlo:Provision`], [`vlo:refersTo`],
-    [`vlo:appliesDocument`], [`vlo:JudicialDocument`], [`vlo:LegalDocument`], [`vlo:refersTo`],
-    [`vlo:citesCase`], [`vlo:JudicialDocument`], [`vlo:JudicialDocument`], [`vlo:refersTo`],
-    [`vlo:appliesPrecedent`], [`vlo:JudicialDocument`], [`vlo:Precedent`], [`vlo:citesCase`],
     [`vlo:answerCitesProvision`], [`vlo:LegalAnswer`], [`vlo:Provision`], [`schema:citation`,
     `vlo:refersTo`],
     [`vlo:answerCitesDocument`], [`vlo:LegalAnswer`], [`vlo:LegalDocument`], [`schema:citation`,
@@ -686,7 +691,7 @@ VLOnto reuses established vocabularies through sub-class and
 sub-property axioms rather than redefining them: 62 alignment axioms to
 42 external terms in 6 vocabularies. A tool that knows ELI, SKOS,
 PROV-O, schema.org, ORG or DCTERMS can therefore read VLOnto data after
-reasoning (the OWL-RL closure of the validation sample infers 5,063
+reasoning (the OWL-RL closure of the validation sample infers 4,752
 `eli:LegalResource` instances, section~6).
 
 ]
@@ -698,8 +703,8 @@ reasoning (the OWL-RL closure of the validation sample infers 5,063
     table.header([Vocabulary], [Axioms], [Examples (VLOnto term → term
       it specialises)],),
     table.hline(),
-    [DCMI Terms], [12], [`vlo:decidedBy` → `dcterms:creator`,
-    `vlo:decisionDate` → `dcterms:date`, `vlo:decisionNumber` →
+    [DCMI Terms], [12], [`vlo:heading` → `dcterms:title`,
+    `vlo:legalArea` → `dcterms:subject`, `vlo:provisionNumber` →
     `dcterms:identifier`, …],
     [ELI - European Legislation Identifier], [20], [`vlo:DocumentType` →
     `eli:ResourceType`, `vlo:LegalDocument` → `eli:LegalResource`,
@@ -708,11 +713,11 @@ reasoning (the OWL-RL closure of the validation sample infers 5,063
     `org:Organization`],
     [PROV-O], [6], [`vlo:BuildActivity` → `prov:Activity`, `vlo:EdgeSet`
     → `prov:Entity`, `vlo:ExtractionMethod` → `prov:Plan`, …],
-    [schema.org], [10], [`vlo:JudicialDocument` → `schema:CreativeWork`,
-    `vlo:LegalAnswer` → `schema:Answer`, `vlo:LegalDocument` →
-    `schema:Legislation`, …],
-    [SKOS], [13], [`vlo:CaseCategory` → `skos:Concept`, `vlo:ChangeKind`
-    → `skos:Concept`, `vlo:CourtLevel` → `skos:Concept`, …],
+    [schema.org], [10], [`vlo:LegalAnswer` → `schema:Answer`,
+    `vlo:LegalDocument` → `schema:Legislation`, `vlo:LegalNewsArticle` →
+    `schema:NewsArticle`, …],
+    [SKOS], [13], [`vlo:ChangeKind` → `skos:Concept`, `vlo:DocumentType`
+    → `skos:Concept`, `vlo:ExtractionMethod` → `skos:Concept`, …],
   )]
   , kind: table
   )
@@ -746,9 +751,6 @@ across rebuilds of the same source revisions:
     path],
     [change event], [`vlid:change/<acting>-<kind>-<affected>`], [one per
     relation],
-    [court decision], [`vlid:decision/<source>/<doc_name>`], [source
-    anle or cbba],
-    [court], [`vlid:court/<slug>`], [slug of the canonical name],
     [Q&A, answer], [`vlid:qa/<id>`, `vlid:qa/<id>/answer`], [hdpl id],
     [term, news item], [`vlid:term/<id>`, `vlid:news/<id>`], [tnpl and
     htpl ids],
@@ -769,31 +771,34 @@ of dereferencing IRIs.
 
 == 4.6 Versioning
 <versioning>
-The ontology header carries `owl:versionInfo "0.1.0"`,
-`owl:versionIRI <https://tmquan.github.io/VLOnto/ontology/0.1.0>`,
+The ontology header carries `owl:versionInfo "1.0.0"`,
+`owl:versionIRI <https://tmquan.github.io/VLOnto/ontology/1.0.0>`,
+`owl:priorVersion <https://tmquan.github.io/VLOnto/ontology/0.1.0>`,
 `dcterms:created` and `dcterms:modified` (2026-11-12) and the licence
-`<https://creativecommons.org/licenses/by/4.0/>`. Every knowledge-graph
-build records the same version and its validity date
-(`vlo:softwareVersion` and `vlo:validityAsOf` on the build activity
-node). Proposed release policy for the repository, semantic versioning:
-a patch release changes labels, definitions or data only; a minor
-release adds classes or properties; a major release renames or removes
-terms or changes the IRI scheme. Each release keeps its version IRI, so
-data can state which version it conforms to.
+`<https://creativecommons.org/licenses/by/4.0/>`. Release v1 is version
+1.0.0 of the ontology and of the build. Every knowledge-graph build
+records the same version and its validity date (`vlo:softwareVersion`
+and `vlo:validityAsOf` on the build activity node). Proposed release
+policy for the repository, semantic versioning: a patch release changes
+labels, definitions or data only; a minor release adds classes or
+properties; a major release renames or removes terms or changes the IRI
+scheme. Each release keeps its version IRI, so data can state which
+version it conforms to.
 
 = 5. Building the knowledge graph
 <building-the-knowledge-graph>
 == 5.1 Prerequisites
 <prerequisites>
-The build runs on one Linux node with the processed corpus of the
-vn-legal project (root `R`) and the pinned source snapshots in its
-Hugging Face cache. It uses its own Python 3.12.16 environment
-(`$V/envs/kg`: duckdb 2.0.0, huggingface-hub 2.4.0, igraph 1.0.0, owlrl
-7.6.2, polars 2.1.0, pyarrow 26.0.1, pylode 3.6.1, pyoxigraph 0.5.13,
-pyshacl 0.40.2, rdflib 7.6.0). Paths default to the values in
-`vlonto/vlonto/config.py` and can be overridden with the environment
-variables `R` (vn-legal root), `V` (VLOnto root), `VLONTO_REPO` and
-`VLONTO_BUILD`.
+The build runs on one machine with the processed corpus of the vn-legal
+project (root `R`) and the pinned source snapshots in its Hugging Face
+cache. It needs a Python environment with duckdb 2.0.0, igraph 1.0.0,
+owlrl 7.6.2, polars 2.1.0, pyarrow 26.0.1, pylode 3.6.1, pyoxigraph
+0.5.13, pyshacl 0.40.2, rdflib 7.6.0; these are the versions of the
+reference build of VLOnto v1, which ran with Python 3.11.18 on macOS,
+arm64 (`scripts/build_pdf.sh` looks for the environment at
+`$V/envs/kg`). Paths default to the values in `vlonto/vlonto/config.py`
+and can be overridden with the environment variables `R` (vn-legal
+root), `V` (VLOnto root), `VLONTO_REPO` and `VLONTO_BUILD`.
 
 == 5.2 Commands
 <commands>
@@ -805,12 +810,14 @@ $V/envs/kg/bin/python -m vlonto.cli build          # or one step at a time
 $V/envs/kg/bin/python -m vlonto.cli report         # regenerate kg_report.md only
 ```
 
-Options: `--workers N` (parallel court-name workers),
+Options: `--workers N` (worker processes of the RDF export),
 `--core-max-rank N` (legal-force ranks in the browser subset),
 `--no-article-text` (skip the local-only article text table) and
 `--with-article-text` (copy article text into the articles table; a
 licence decision before the tables are shared, Appendix~D). `layout`
-recomputes only the 3D layout of the legal network.
+recomputes only the 3D layout of the legal network. `--with-courts` (or
+`VLONTO_INCLUDE_COURTS=1`) also reads the court datasets; it is for the
+work on v2 and is not part of VLOnto v1.
 
 == 5.3 Steps and expected output
 <steps-and-expected-output>
@@ -822,33 +829,33 @@ recomputes only the 3D layout of the legal network.
     table.header([Step], [Writes], [Expected result], [Wall time],),
     table.hline(),
     [`build`], [`build/kg/*.parquet`, `build/kg_local/`], [40,816
-    documents, 436,309 articles, 1,544,091 decisions, 7,631,601
-    edges], [604 s],
-    [`export`], [`build/rdf/vlonto-kg.nt.gz`], [31,516,606 triples,
-    172.1 MB], [43 s],
-    [`core`], [`build/rdf/vlonto-core.ttl`], [49,923 triples, 1,781
-    documents], [1.9 s],
+    documents, 436,309 articles, 15,035 change events, 556,287
+    edges], [33 s],
+    [`export`], [`build/rdf/vlonto-kg.nt.gz`], [6,963,753 triples, 48.2
+    MB], [7 s],
+    [`core`], [`build/rdf/vlonto-core.ttl`], [49,846 triples, 1,781
+    documents], [1.0 s],
     [`validate`], [`build/reports/validation.json`,
-    `build/oxigraph/`], [41 integrity checks, 31,516,606 triples
-    loaded], [237 s],
+    `build/oxigraph/`], [32 integrity checks, 6,963,753 triples
+    loaded], [36 s],
     [`site`], [`build/site_data/*.json`, `js/*.js`], [15 bundles and
     twins, all within 20 MB], [-],
     [`check-ontology`], [`build/reports/ontology_check.json`,
     `ontology/vlonto.html`], [131 terms checked, 971 documentation
     links], [-],
-    [`report`], [`build/reports/kg_report.md`, `checks.json`], [18 of 18
+    [`report`], [`build/reports/kg_report.md`, `checks.json`], [20 of 20
     checks pass], [-],
   )]
   , kind: table
   )
 
 ]
-Wall times are those of the reference build on the build node
-(2026-11-11); `-` means the step reports no time. The step reports are
-JSON files in `build/reports/`\; `kg_report.md` collects them. A rebuild
-from the same source revisions must reproduce every count in this
-playbook; the reconciliation check (section~6.2) compares the main
-counts with the data report of the vn-legal project automatically.
+Wall times are those of the reference build (macOS, arm64, 2026-11-12);
+`-` means the step reports no time. The step reports are JSON files in
+`build/reports/`\; `kg_report.md` collects them. A rebuild from the same
+source revisions must reproduce every count in this playbook; the
+reconciliation check (section~6.2) compares the main counts with the
+data report of the vn-legal project automatically.
 
 == 5.4 Node and edge tables
 <node-and-edge-tables>
@@ -865,7 +872,7 @@ counts with the data report of the vn-legal project automatically.
     (licence).],
     [`structure`], [73,925], [Appendices, parts, chapters and sections
     of documents.],
-    [`provisions_ref`], [60,960], [Clauses (khoản) and points (điểm)
+    [`provisions_ref`], [48,031], [Clauses (khoản) and points (điểm)
     created because an edge refers to them.],
     [`issuers`], [57], [Issuing bodies identified by the symbol of the
     document number (curated table; unknown symbols get no node).],
@@ -883,18 +890,6 @@ counts with the data report of the vn-legal project automatically.
     [`edges_citation`], [268,563], [vbpl citations (external,
     external\_mention, parent\_law, parent\_law\_mention) resolved to
     documents/articles.],
-    [`courts`], [1,345], [Canonical courts named in decisions (source
-    field or judgment header; anonymised and unparsable names
-    dropped).],
-    [`decisions`], [1,544,091], [Court decisions from anle (1,844) and
-    cbba (16 shards).],
-    [`precedents`], [28], [Precedents (án lệ) by national number.],
-    [`edges_decision_provision`], [7,060,655], [Applied provisions:
-    decision -\> document / article (+clause, point).],
-    [`edges_decision_case`], [14,650], [Case-to-case edges: decision -\>
-    decision or precedent.],
-    [`edges_precedent_source`], [9], [Precedent -\> source decision
-    (selected from).],
     [`qas`], [109,543], [Legal Q&As from hdpl: metadata only (no
     question or answer text).],
     [`edges_qa_article`], [34,869], [Q&A answer -\> article (+clause,
@@ -909,25 +904,26 @@ counts with the data report of the vn-legal project automatically.
     [`edges_news_document`], [1,484], [News article -\> mentioned
     document.],
     [`news_categories`], [7], [News categories.],
-    [`sources`], [6], [Source datasets with revision, licence and
-    policy.],
+    [`sources`], [4], [Source datasets of this build with revision,
+    licence and policy (release v1: the four thuvienphapluat.vn
+    datasets).],
   )]
   , kind: table
   )
 
 Every edge table keeps a `method` column (how the edge was found:
-`docnum-key`, `law-name-year`, `preamble-citation`, `case-number-date`
+`docnum-key`, `law-name-year`, `preamble-citation`, `answer-text-name`
 and so on) and, where the source has one, the raw reference as written,
 so that any edge can be traced and re-judged. The columns of every table
 are listed in Appendix~C.
 
 = 6. Validation
 <validation>
-== 6.1 The 18 build checks
-<the-18-build-checks>
+== 6.1 The 20 build checks
+<the-20-build-checks>
 #block(sticky: true, width: 100%)[
-`vlonto.cli validate`, `check-ontology` and `report` run 18 checks; 18
-pass in the build of 2026-11-11.
+`vlonto.cli validate`, `check-ontology` and `report` run 20 checks; 20
+pass in the build of 2026-11-12.
 
 ]
 #figure(
@@ -941,43 +937,51 @@ pass in the build of 2026-11-11.
     every VLOnto
     term)], [pass], [`0 problems; terms by kind {'class': 47, 'object_property': 46, 'datatype_property': 35, 'annotation_property': 3}`],
     [2], [Ontology has no dangling references], [pass], [`dangling=[]`],
-    [3], [ELI terms used by VLOnto exist in the ELI
+    [3], [Ontology release metadata (owl:versionInfo 1.0.0,
+    owl:versionIRI https:/\/tmquan.github.io/VLOnto/ontology/1.0.0,
+    dcterms:modified = build date
+    2026-11-12)], [pass], [`versionInfo 1.0.0, versionIRI https://tmquan.github.io/VLOnto/ontology/1.0.0, priorVersion https://tmquan.github.io/VLOnto/ontology/0.1.0, modified 2026-11-12; dcterms:source 4 datasets (match: True); judiciary terms with a v2 scope note 26/26`],
+    [4], [ELI terms used by VLOnto exist in the ELI
     ontology], [pass], [`124 ELI terms defined; missing []`],
-    [4], [OWL-RL on fixtures (expected inferences present, planted
+    [5], [OWL-RL on fixtures (expected inferences present, planted
     disjointness and functional clash
     detected)], [pass], [`27 expected inferences, missing []; negative: 2 inconsistencies`],
-    [5], [SHACL on fixtures (positive conforms, all planted errors
+    [6], [SHACL on fixtures (positive conforms, all planted errors
     reported)], [pass], [`positive results 0; planted found ['bad-article:inDocument', 'bad-article:provisionNumber', 'bad-change:actingDocument', 'bad-change:evidenceText', 'bad-doc:documentType', 'bad-term:definition'], missed []`],
-    [6], [pyLODE documentation renders with no broken internal
-    links], [pass], [`662173 bytes, 971 internal links, broken 0`],
-    [7], [Referential integrity of every parquet edge and foreign
-    key], [pass], [`41 checks, orphans 0`],
-    [8], [Reconciliation with the processed-corpus data
-    report], [pass], [`23/23 items match`],
-    [9], [Full RDF dump parses strictly and loads into
-    Oxigraph], [pass], [`31,516,606 N-Triples lines written, 31,516,606 distinct triples loaded`],
-    [10], [Per-class instance counts identical in parquet and
+    [7], [pyLODE documentation renders with no broken internal
+    links], [pass], [`680473 bytes, 971 internal links, broken 0`],
+    [8], [Referential integrity of every parquet edge and foreign
+    key], [pass], [`32 checks, orphans 0`],
+    [9], [Reconciliation with the processed-corpus data
+    report], [pass], [`21/21 items match`],
+    [10], [Full RDF dump parses strictly and loads into
+    Oxigraph], [pass], [`6,963,753 N-Triples lines written, 6,963,753 distinct triples loaded`],
+    [11], [Per-class instance counts identical in parquet and
     RDF], [pass], [`20/20 classes match`],
-    [11], [Every VLOnto instance IRI used as an object is typed in the
-    dump], [pass], [`343,310 object IRIs, 0 untyped`],
-    [12], [SHACL on a stratified sample of the KG (up to 150 nodes per
+    [12], [Every VLOnto instance IRI used as an object is typed in the
+    dump], [pass], [`312,524 object IRIs, 0 untyped`],
+    [13], [SHACL on a stratified sample of the KG (up to 150 nodes per
     class or
-    kind)], [pass], [`3,876 nodes / 56,939 triples; violations 0`],
-    [13], [OWL-RL closure of the KG sample is
-    consistent], [pass], [`36,168 -> 125,301 triples; inconsistencies 0, sameAs between distinct nodes 0`],
-    [14], [Spot checks: 10 random edges per edge type read and judged
+    kind)], [pass], [`3,066 nodes / 42,857 triples; violations 0`],
+    [14], [OWL-RL closure of the KG sample is
+    consistent], [pass], [`25,681 -> 91,886 triples; inconsistencies 0, sameAs between distinct nodes 0`],
+    [15], [Release v1 scope: no court data (no court table, no
+    court/decision/precedent node, no court-source statement); sources =
+    the 4 thuvienphapluat
+    datasets], [pass], [`court tables present []; typed court nodes in RDF {'Court': 0, 'CourtDecision': 0, 'Judgment': 0, 'CourtRuling': 0, 'Precedent': 0, 'JudicialDocument': 0}; dump lines mentioning court IRIs or court sources 0; source datasets ['thuvienphapluat-vn-vbpl', 'thuvienphapluat-vn-hdpl', 'thuvienphapluat-vn-tnpl', 'thuvienphapluat-vn-htpl']`],
+    [16], [Spot checks: 10 random edges per edge type read and judged
     (criterion: at least 8 correct per 10 for every edge
-    type)], [pass], [`193/199 judged correct, 1 judged wrong, 5 not verifiable from the record; edge types below the criterion: []`],
-    [15], [Site bundles within 20 MB, each with a file:/\/ .js
+    type)], [pass], [`127/130 judged correct, 1 judged wrong, 2 not verifiable from the record; edge types below the criterion: []`],
+    [17], [Site bundles within 20 MB, each with a file:/\/ .js
     twin], [pass], [`15 files, 9 js twins, over 20 MB: []`],
-    [16], [0 non-NFC strings in every published output (Unicode
-    NFC)], [pass], [`0 non-NFC strings in 53 files {'kg': 27, 'rdf': 2, 'site_data': 16, 'ontology': 4, 'docs': 4}; kg_report.md and checks.json are written in NFC by the report step`],
-    [17], [No link to a VLOnto Hugging Face dataset or Space in any
+    [18], [0 non-NFC strings in every published output (Unicode
+    NFC)], [pass], [`0 non-NFC strings in 47 files {'kg': 21, 'rdf': 2, 'site_data': 16, 'ontology': 4, 'docs': 4}; kg_report.md and checks.json are written in NFC by the report step`],
+    [19], [No link to a VLOnto Hugging Face dataset or Space in any
     published output (release = GitHub repository +
-    website)], [pass], [`55 files scanned; forbidden hits: links to a Hugging Face VLOnto dataset 0, links to a Space 0, Space path segments 0, wording that calls a VLOnto document a card 0; kept: 66 links to the six source datasets, 7 to the GitHub repository, 7 to the paper (arXiv:2611.11426)`],
-    [18], [No absolute build-machine path or host name in any published
+    website)], [pass], [`49 files scanned; forbidden hits: links to a Hugging Face VLOnto dataset 0, links to a Space 0, Space path segments 0, wording that calls a VLOnto document a card 0; kept: 44 links to the tmquan source datasets on Hugging Face (4 sources of this build, 2 planned for v2), 7 to the GitHub repository, 7 to the paper (arXiv:2611.11426)`],
+    [20], [No absolute build-machine path or host name in any published
     output (paths relative to the VLOnto
-    root)], [pass], [`55 files scanned; build-node home paths 0, build-node host names 0, macOS home paths 0`],
+    root)], [pass], [`49 files scanned; build-node home paths 0, build-node host names 0, macOS home paths 0`],
   )]
   , kind: table
   )
@@ -986,7 +990,7 @@ pass in the build of 2026-11-11.
 <reconciliation-with-the-processed-corpus>
 #block(sticky: true, width: 100%)[
 The build counts are compared item by item with the data report of the
-vn-legal project; all 23 of 23 items match:
+vn-legal project; all 21 of 21 items match:
 
 ]
 #figure(
@@ -1017,29 +1021,26 @@ vn-legal project; all 23 of 23 items match:
     [tnpl terms (rows minus not\_found
     placeholders)], [16,701], [16,701], [yes],
     [htpl news], [681], [681], [yes],
-    [anle decisions], [1,844], [1,844], [yes],
-    [cbba decisions (card: released
-    rows)], [1,542,247], [1,542,247], [yes],
   )]
   , kind: table
   )
 
 == 6.3 Integrity, RDF and SHACL/OWL-RL
 <integrity-rdf-and-shaclowl-rl>
-- #strong[Referential integrity.] 41 foreign-key checks over every edge
+- #strong[Referential integrity.] 32 foreign-key checks over every edge
   table; 0 orphans.
 - #strong[RDF.] The full dump parses strictly and loads into Oxigraph
-  (31,516,606 distinct triples); per-class instance counts are identical
-  in parquet and RDF for 20 classes; all 343,310 instance IRIs used as
+  (6,963,753 distinct triples); per-class instance counts are identical
+  in parquet and RDF for 20 classes; all 312,524 instance IRIs used as
   objects are typed (0 untyped).
 - #strong[SHACL.] `ontology/vlonto-shapes.ttl` has 18 node shapes with
   90 property shapes. On fixtures, the positive file conforms and all 6
   planted errors are reported. On a sample of the graph stratified by
-  class and kind (3,876 nodes, 56,939 triples) there are 0 violations.
+  class and kind (3,066 nodes, 42,857 triples) there are 0 violations.
 - #strong[OWL-RL.] On fixtures, 27 expected inferences are all present
   and the planted disjointness and functional-property clashes are
   detected (2 inconsistencies). The closure of the graph sample grows
-  from 36,168 to 125,301 triples with 0 inconsistencies and 0
+  from 25,681 to 91,886 triples with 0 inconsistencies and 0
   `owl:sameAs` links between distinct nodes.
 - #strong[Ontology hygiene.] No dangling references; all 18 ELI terms
   used exist in the ELI ontology; the pyLODE documentation has 971
@@ -1049,12 +1050,16 @@ vn-legal project; all 23 of 23 items match:
 <spot-checks-of-extracted-edges>
 #block(sticky: true, width: 100%)[
 For each edge type and resolution method, edges were drawn at random
-from the final build and judged by reading the numbers, titles, dates,
-court names and the raw reference stored with the edge: 193 of 199
-judged correct, 1 wrong and 5 not verifiable from the record; every edge
-type met the criterion of the spot-check entry in section~6.1.
+from the final build and judged by reading the numbers, titles, dates
+and the raw reference stored with the edge: 127 of 130 judged correct, 1
+wrong and 2 not verifiable from the record; every edge type met the
+criterion of the spot-check entry in section~6.1. For VLOnto v1 the
+samples are the edges judged for the previous release, except the change
+events, which were drawn and judged again
+(`docs/spot_check_review.json`).
 
 ]
+#block(breakable: false, width: 100%)[
 #figure(
   align(center)[#table(
     columns: (44.35%, 13.91%, 13.91%, 13.04%, 14.78%),
@@ -1062,7 +1067,7 @@ type met the criterion of the spot-check entry in section~6.1.
     table.header([Edge type], [Checked], [Correct], [Wrong], [Not
       verifiable],),
     table.hline(),
-    [`changes`], [10], [8], [0], [2],
+    [`changes`], [10], [10], [0], [0],
     [`legal_basis:parent-acts`], [10], [9], [1], [0],
     [`legal_basis:preamble-citation`], [10], [9], [0], [1],
     [`legal_basis:constitution-preamble`], [10], [10], [0], [0],
@@ -1070,14 +1075,7 @@ type met the criterion of the spot-check entry in section~6.1.
     [`citation:external_mention`], [10], [10], [0], [0],
     [`citation:parent_law`], [10], [10], [0], [0],
     [`citation:parent_law_mention`], [10], [10], [0], [0],
-    [`decision_provision:docnum-key`], [10], [10], [0], [0],
-    [`decision_provision:law-name-year`], [10], [10], [0], [0],
-    [`decision_case:case-number-court`], [10], [9], [0], [1],
-    [`decision_case:case-number-date`], [10], [10], [0], [0],
-    [`decision_case:precedent-number`], [10], [10], [0], [0],
-    [`decision_court`], [10], [10], [0], [0],
     [`document_issuer`], [10], [10], [0], [0],
-    [`precedent_source`], [9], [9], [0], [0],
     [`qa_article`], [10], [9], [0], [1],
     [`qa_document`], [10], [10], [0], [0],
     [`term_related`], [10], [10], [0], [0],
@@ -1086,15 +1084,11 @@ type met the criterion of the spot-check entry in section~6.1.
   , kind: table
   )
 
+]
 #block(sticky: true, width: 100%)[
 The notes on the edges that were not judged correct:
 
 ]
-- `changes`: \#7 (22/2020/TT-BYT partially ends 08/2018/TT-BYT): the
-  stored evidence excerpt stops before the operative verb; \#8
-  (04/2022/NĐ-CP amends 84/2017/NĐ-CP): the amended provision is Art.
-  19a of Decree 173/2013 as inserted by 84/2017, so the target is
-  arguable.
 - `legal_basis:parent-acts`: \#7: the decree on administrative penalties
   for cybersecurity and personal data lists the Customs Law 54/2014/QH13
   among its basis acts in the source metadata (source error carried
@@ -1102,11 +1096,6 @@ The notes on the edges that were not judged correct:
 - `legal_basis:preamble-citation`: \#9: Circular 18/2000/TT-BLĐTBXH
   mentions Circular 13/2000/TT-BLĐTBXH in its preamble; whether it is a
   legal basis or a cross-reference cannot be told from the record.
-- `decision_case:case-number-court`: \#4: the citing record
-  13/2022/QĐ-TA (no date) cites 1/2023/QĐ-TA of the same court; one of
-  the two source numbers is wrong, so the link cannot be checked.
-  Earlier build: 1 of 10 wrong (a provincial appellate judgment linked
-  to a first-instance judgment of its own court; now excluded).
 - `qa_article`: \#1: 'Điều~45 Khoản 3 Luật Đầu tư' is linked to the PPP
   Investment Law 64/2020/QH14 (gold label of the evaluation set; the
   truncated reference string cannot settle it).
@@ -1165,9 +1154,6 @@ sentences, not by a lawyer.
   status for them and no relation names them. Unknown is not "in force".
 - Precision figures rest on small samples; recall is not measured for
   most edge types.
-- Case-to-case links are the least certain edges: 2,562,161
-  case-citation records gave 14,650 links, and 2,104,370 records cite
-  decisions that are not in the corpus.
 - SHACL and OWL-RL run on samples and fixtures; the full graph is
   validated by the integrity and RDF checks.
 
@@ -1177,7 +1163,7 @@ The complete list of limitations is in section~12.
 <recipes>
 Each recipe answers one question twice: in SQL over the parquet tables
 (DuckDB) and in SPARQL over the RDF. Every query below was run against
-the build of 2026-11-11; the outputs are printed as they were returned
+the build of 2026-11-12; the outputs are printed as they were returned
 (long results are cut to their first rows). The SQL runs in the folder
 that contains `kg/`\; the SPARQL runs on the full dump loaded as in
 section~2.6, and the row count on the browser subset is given where the
@@ -1477,29 +1463,30 @@ The browser subset returns no row here because a circular is outside it
 (section~2.6). Amending resolutions of the Constitution appear because
 the laws in the chain cite them as their basis.
 
-== 7.4 Articles most applied by courts
-<articles-most-applied-by-courts>
+== 7.4 Articles most cited in Q&A answers
+<articles-most-cited-in-qa-answers>
 #block(sticky: true, width: 100%)[
-Applied-provision edges link a court decision to the document, article,
-clause or point it cites. Counting decisions per article:
+Q&A article edges link a published legal Q&A to the article, clause or
+point that its answer cites (the evaluation labels of the vn-legal
+project, section~7.5). Counting Q&As per article:
 
 ]
 #block(sticky: true, width: 100%)[
-SQL (`playbook/recipes/r4_court_articles.sql`):
+SQL (`playbook/recipes/r4_qa_articles.sql`):
 
 ]
 ```sql
--- Articles applied by the largest number of court decisions
--- (a decision that cites several clauses of one article counts once).
+-- Articles cited by the largest number of published Q&A answers
+-- (a Q&A whose answer cites several clauses of one article counts once).
 SELECT d.doc_number,
        a.article_no,
        a.heading,
-       count(DISTINCT e.decision_id) AS decisions
-FROM 'kg/edges_decision_provision.parquet' AS e
+       count(DISTINCT e.qa_id) AS qas
+FROM 'kg/edges_qa_article.parquet' AS e
 JOIN 'kg/articles.parquet'  AS a ON a.article_id = e.dst_article_id
-JOIN 'kg/documents.parquet' AS d ON d.doc_id = e.dst_doc_id
-GROUP BY d.doc_number, a.article_no, a.heading
-ORDER BY decisions DESC, d.doc_number, a.article_no
+JOIN 'kg/documents.parquet' AS d ON d.doc_id = a.doc_id
+GROUP BY a.article_id, d.doc_number, a.article_no, a.heading
+ORDER BY qas DESC, d.doc_number, a.article_no
 LIMIT 10;
 ```
 
@@ -1512,44 +1499,44 @@ Output (10 rows):
   align(center)[#table(
     columns: (17.09%, 11.11%, 53.85%, 17.95%),
     align: (left,left,left,right,),
-    table.header([doc\_number], [article\_no], [heading], [decisions],),
+    table.header([doc\_number], [article\_no], [heading], [qas],),
     table.hline(),
-    [26/2008/QH12], [30], [Thời hiệu yêu cầu thi hành án], [418,528],
-    [26/2008/QH12], [2], [Bản án, quyết định được thi hành Những bản án,
-    quyết định được thi hành theo Luật này bao gồm:], [406,218],
-    [92/2015/QH13], [212], [Ra quyết định công nhận sự thỏa thuận của
-    các đương sự], [385,644],
-    [26/2008/QH12], [6], [Thoả thuận thi hành án], [360,471],
-    [52/2014/QH13], [55], [Thuận tình ly hôn], [347,698],
-    [100/2015/QH13], [51], [Các tình tiết giảm nhẹ trách nhiệm hình
-    sự], [197,032],
-    [92/2015/QH13], [217], [Đình chỉ giải quyết vụ án dân
-    sự], [139,005],
-    [92/2015/QH13], [147], [Nghĩa vụ chịu án phí sơ thẩm], [128,308],
-    [101/2015/QH13], [106], [Xử lý vật chứng], [125,511],
-    [91/2015/QH13], [468], [Lãi suất], [119,145],
+    [45/2019/QH14], [111], [Nghỉ hằng tuần], [166],
+    [12/2022/NĐ-CP], [46], [Vi phạm của người lao động Việt Nam đi làm
+    việc ở nước ngoài và một số đối tượng liên quan khác], [165],
+    [45/2019/QH14], [112], [Nghỉ lễ, tết], [161],
+    [45/2019/QH14], [169], [Tuổi nghỉ hưu], [155],
+    [04/2007/QH12], [19], [-], [139],
+    [65/2013/NĐ-CP], [3], [Thu nhập chịu thuế], [130],
+    [38/2019/QH14], [44], [Thời hạn nộp hồ sơ khai thuế], [114],
+    [67/2025/QH15], [9], [Các khoản chi được trừ và không được trừ khi
+    xác định thu nhập chịu thuế], [113],
+    [48/2024/QH15], [14], [Khấu trừ thuế giá trị gia tăng đầu
+    vào], [109],
+    [22/2021/TT-BGDĐT], [14], [-], [92],
   )]
   , kind: table
   )
 
 ]
 #block(sticky: true, width: 100%)[
-SPARQL (`playbook/recipes/r4_court_articles.rq`):
+SPARQL (`playbook/recipes/r4_qa_articles.rq`):
 
 ]
 ```sparql
 PREFIX vlo:  <https://tmquan.github.io/VLOnto/ontology#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-# Articles applied by the most decisions; a clause or point target is
+# Articles cited by the most Q&A answers; a clause or point target is
 # rolled up to its article with vlo:isPartOf*.
-SELECT ?label (COUNT(DISTINCT ?decision) AS ?decisions) WHERE {
-  ?decision vlo:appliesProvision ?target .
+SELECT ?label (COUNT(DISTINCT ?question) AS ?qas) WHERE {
+  ?question vlo:hasAnswer ?answer .
+  ?answer vlo:answerCitesProvision ?target .
   ?target vlo:isPartOf* ?article .
   ?article a vlo:Article ;
            rdfs:label ?label .
 }
-GROUP BY ?label
-ORDER BY DESC(?decisions) ?label
+GROUP BY ?article ?label
+ORDER BY DESC(?qas) ?label
 LIMIT 10
 ```
 
@@ -1562,33 +1549,30 @@ Output on the full dump (10 rows):
   align(center)[#table(
     columns: (69.83%, 30.17%),
     align: (left,right,),
-    table.header([label], [decisions],),
+    table.header([label], [qas],),
     table.hline(),
-    [Điều~30, 26/2008/QH12], [418,528],
-    [Điều~2, 26/2008/QH12], [406,218],
-    [Điều~212, 92/2015/QH13], [385,644],
-    [Điều~6, 26/2008/QH12], [360,471],
-    [Điều~55, 52/2014/QH13], [347,698],
-    [Điều~51, 100/2015/QH13], [197,032],
-    [Điều~217, 92/2015/QH13], [139,005],
-    [Điều~147, 92/2015/QH13], [128,308],
-    [Điều~106, 101/2015/QH13], [125,511],
-    [Điều~468, 91/2015/QH13], [119,145],
+    [Điều~111, 45/2019/QH14], [166],
+    [Điều~46, 12/2022/NĐ-CP], [165],
+    [Điều~112, 45/2019/QH14], [161],
+    [Điều~169, 45/2019/QH14], [155],
+    [Điều~19, 04/2007/QH12], [139],
+    [Điều~3, 65/2013/NĐ-CP], [130],
+    [Điều~44, 38/2019/QH14], [114],
+    [Điều~9, 67/2025/QH15], [113],
+    [Điều~14, 48/2024/QH15], [109],
+    [Điều~14, 22/2021/TT-BGDĐT], [92],
   )]
   , kind: table
   )
 
 ]
-Most of the top articles are procedural (enforcement of civil judgments,
-recognition of a settlement, termination of a civil case, court fees,
-handling of exhibits); the substantive ones concern consensual divorce,
-mitigating circumstances in criminal law and interest rates under the
-Civil Code. A decision cites the act that applied when it was decided,
-so the most applied act, 26/2008/QH12 (Luật Thi hành án dân sự), has the
-validity class `expired` in the graph today. The SQL aggregates all
-7,060,655 applied-provision edges; the SPARQL query rolls clause and
-point targets up to their article with `vlo:isPartOf*`, and both give
-the same ranking.
+The most cited article is Article~111 of 45/2019/QH14 (Bộ luật Lao
+động), #emph[Nghỉ hằng tuần]. The SQL aggregates all 34,869 Q&A article
+edges; the SPARQL query rolls clause and point targets up to their
+article with `vlo:isPartOf*`, and both give the same ranking. These are
+counts over the whole corpus of Q&As; the dashboard shows the same
+ranking, and the question traces page (section~9) ranks the articles
+within each legal area.
 
 == 7.5 Q&As that cite an article
 <qas-that-cite-an-article>
@@ -1792,7 +1776,7 @@ Output on the full dump (first 6 of 246 rows):
 <the-playground-examples>
 #block(sticky: true, width: 100%)[
 The SPARQL playground of the website offers 10 bilingual example
-queries, all run on the browser subset (49,923 triples) during the
+queries, all run on the browser subset (49,846 triples) during the
 build:
 
 ]
@@ -1818,7 +1802,7 @@ build:
     [Documents issued by the Standing Committee of the National
     Assembly], [2], [PL · 145],
     [Superclasses of a Law (ontology)], [4], [vlo:LegalDocument],
-    [Source datasets and licences], [6], [tmquan/thuvienphapluat-vn-vbpl
+    [Source datasets and licences], [4], [tmquan/thuvienphapluat-vn-vbpl
     · 705ade585384108ded5fc30f40a06fe110bdff22 · cc-by-4.0],
   )]
   , kind: table
@@ -1854,9 +1838,8 @@ agent can use:
   GPU service is needed.
 + #strong[The citation network around an article.] What an article
   cites, which documents cite it, and the legal basis of its act.
-+ #strong[Usage signals.] How many court decisions apply an article and
-  how many published Q&As cite it, and which other articles are used
-  together with it.
++ #strong[Usage signals.] How many published Q&As cite an article, and
+  which other articles they cite together with it.
 
 == 8.2 Three knowledge-graph tools
 <three-knowledge-graph-tools>
@@ -1872,24 +1855,25 @@ Three read-only functions over the VLOnto parquet tables (DuckDB, in process):
   check_validity(doc_number)                  validity, replacing acts and
                                               amendments with their evidence
   expand_citations(doc_number, article_no)    what an article cites, what cites
-                                              it, how often courts and Q&As use it
-  related_provisions(doc_number, article_no)  articles used together with it in
-                                              Q&A answers and court decisions
+                                              it, how many Q&A answers cite it
+  related_provisions(doc_number, article_no)  articles cited together with
+                                              it in Q&A answers
 
 Each function returns a plain dict; to_text() turns it into the short text an
 agent tool returns to the model. Co-citation is a usage signal, not a statement
-that two provisions are legally related.
+that two provisions are legally related. VLOnto v1 has no court decisions (they
+join in v2), so the usage signals come from the published Q&As.
 """
 import textwrap
 
 import duckdb
 
 TABLES = ("documents", "articles", "changes", "edges_citation",
-          "edges_qa_article", "edges_decision_provision")
+          "edges_qa_article")
 SUPERSEDING = ("replaced", "repealed")
 
-# co-citation: articles used in the same Q&A answers (or decisions) as article ?,
-# scored by shared * ln(N / df) so that articles cited almost everywhere rank low
+# co-citation: articles cited in the same Q&A answers as article ?, scored by
+# shared * ln(N / df) so that articles cited almost everywhere rank low
 RELATED_SQL = """
 WITH s AS (SELECT DISTINCT {unit} FROM {table} WHERE dst_article_id = ?),
 co AS (SELECT e.dst_article_id AS aid, count(DISTINCT e.{unit}) AS shared
@@ -1993,25 +1977,19 @@ class VLOntoTools:
             "cites": self._rows(CITES_SQL, [aid, limit]),
             "cited_by_count": len(cited_by),
             "cited_by": cited_by[:limit],
-            "court_decisions": self._count(
-                "edges_decision_provision", "decision_id", aid),
             "qas": self._count("edges_qa_article", "qa_id", aid),
         }
 
     def related_provisions(self, doc_number, article_no, limit=3,
                            min_shared=2):
-        """Articles cited in the same Q&A answers / applied in the same
-        decisions, ranked by shared * ln(N / df): the number of shared Q&As
-        (decisions) weighted by how rare the other article is, so that
-        boilerplate articles (court fees, enforcement) do not dominate."""
+        """Articles cited in the same Q&A answers, ranked by
+        shared * ln(N / df): the number of shared Q&As weighted by how rare
+        the other article is, so that articles cited in almost every answer
+        do not dominate."""
         aid = self._article(doc_number, article_no)["article_id"]
-        out = {"article": f"{doc_number} Điều {article_no}"}
-        sources = (("in_qas", "edges_qa_article", "qa_id"),
-                   ("in_decisions", "edges_decision_provision", "decision_id"))
-        for key, table, unit in sources:
-            sql = RELATED_SQL.format(table=table, unit=unit)
-            out[key] = self._rows(sql, [aid, aid, min_shared, limit])
-        return out
+        sql = RELATED_SQL.format(table="edges_qa_article", unit="qa_id")
+        return {"article": f"{doc_number} Điều {article_no}",
+                "in_qas": self._rows(sql, [aid, aid, min_shared, limit])}
 
 
 def _wrap(text, indent="    ", width=78):
@@ -2049,19 +2027,17 @@ def to_text(result):
         for c in result["cited_by"]:
             lines.append(f"    {c['doc_number']}{_art(c['article_no'])} "
                          f"(issued {c['issue_date']})")
-        lines.append(f"  applied in {result['court_decisions']:,} court "
-                     f"decisions; cited in {result['qas']:,} Q&A answers")
+        lines.append(f"  cited in {result['qas']:,} Q&A answers")
     else:
-        lines.append(f"{result['article']}: provisions used together with it")
-        for key, unit in (("in_qas", "Q&As"), ("in_decisions", "decisions")):
-            lines.append(f"  in {unit} (shared / all citing it / score):")
-            for r in result[key]:
-                head = textwrap.shorten(r["heading"] or "-", width=52,
-                                        placeholder=" …")
-                lines.append(f"    {r['doc_number']}{_art(r['article_no'])}: "
-                             f"{head}")
-                lines.append(f"      {r['shared']:,} / {r['df']:,} / "
-                             f"{r['score']}")
+        lines.append(f"{result['article']}: provisions cited together with it")
+        lines.append("  in Q&As (shared / all citing it / score):")
+        for r in result["in_qas"]:
+            head = textwrap.shorten(r["heading"] or "-", width=52,
+                                    placeholder=" …")
+            lines.append(f"    {r['doc_number']}{_art(r['article_no'])}: "
+                         f"{head}")
+            lines.append(f"      {r['shared']:,} / {r['df']:,} / "
+                         f"{r['score']}")
     return "\n".join(lines)
 ```
 
@@ -2097,9 +2073,9 @@ Output:
   cited by 2 documents or articles, newest first:
     374/2025/NĐ-CP Điều 25 (issued 2025-12-31)
     22/2022/TT-BCA (issued 2022-05-10)
-  applied in 43 court decisions; cited in 12 Q&A answers
+  cited in 12 Q&A answers
 
-45/2019/QH14 Điều 169: provisions used together with it
+45/2019/QH14 Điều 169: provisions cited together with it
   in Q&As (shared / all citing it / score):
     135/2020/NĐ-CP Điều 4: Tuổi nghỉ hưu trong điều kiện lao động bình thường
       20 / 20 / 140.5
@@ -2107,22 +2083,15 @@ Output:
       5 / 22 / 34.7
     41/2024/QH15 Điều 2: Đối tượng tham gia bảo hiểm xã hội bắt buộc và bảo …
       5 / 29 / 33.3
-  in decisions (shared / all citing it / score):
-    45/2019/QH14 Điều 173: Ban lãnh đạo và thành viên tổ chức của người lao …
-      3 / 3 / 39.3
-    45/2019/QH14 Điều 42: Nghĩa vụ của người sử dụng lao động trong trường …
-      3 / 161 / 27.3
-    45/2019/QH14 Điều 219: Sửa đổi, bổ sung một số điều của các luật có liên …
-      2 / 8 / 24.2
 ```
 
 The first result is what the agent needs to answer a question asked
 under the 2012 code: the act is no longer in force, the replacing act
 and its effective date, and the sentence that says so. The second shows
 how widely an article is used. The third ranks articles by the number of
-Q&As (or decisions) that use both, weighted by how rare the other
-article is; it is a usage signal, not a legal relation, and Q&A article
-links are evaluation labels whose spot check found 9 of 10 correct.
+Q&As that cite both, weighted by how rare the other article is; it is a
+usage signal, not a legal relation, and Q&A article links are evaluation
+labels whose spot check found 9 of 10 correct.
 
 == 8.3 Plugging the tools into the agent
 <plugging-the-tools-into-the-agent>
@@ -2152,13 +2121,13 @@ def kg_check_validity(doc_number: str) -> str:
 
 @mcp.tool()
 def kg_expand_citations(doc_number: str, article_no: str) -> str:
-    """What an article cites, what cites it, and its use by courts and Q&As."""
+    """What an article cites, what cites it, and how many Q&As cite it."""
     return to_text(kg.expand_citations(doc_number, article_no))
 
 
 @mcp.tool()
 def kg_related_provisions(doc_number: str, article_no: str) -> str:
-    """Articles used together with this one in Q&A answers and court decisions."""
+    """Articles cited together with this one in Q&A answers."""
     return to_text(kg.related_provisions(doc_number, article_no))
 
 
@@ -2187,8 +2156,8 @@ if __name__ == "__main__":
 - The change events are extracted from text with a precision of 29/30 on
   a sample (section~6.5); show the evidence sentence and the source URL
   with every validity claim.
-- Citation and usage counts reflect the corpus (its coverage of court
-  decisions and Q&As), not legal importance.
+- Citation and usage counts reflect the corpus (its coverage of
+  documents and Q&As), not legal importance.
 
 = 9. The website and the 3D playgrounds
 <the-website-and-the-3d-playgrounds>
@@ -2221,14 +2190,19 @@ which opens the 3D ontology playground, and it also opens from disk
     Phones load a lighter bundle of 6,000
     documents.], [`legal_network.json`, `legal_network_lite.json`],
     [`sparql.html`], [A SPARQL editor that runs Oxigraph, compiled to
-    WebAssembly, inside the page over the browser subset (49,923
+    WebAssembly, inside the page over the browser subset (49,846
     triples), with the 10 examples of
     section~7.7.], [`vlonto_core_ttl.js`, `sparql_examples.json`],
     [`dashboard.html`], [Charts of documents by type, year, issuer, area
     and validity; change events by kind and year; legal-basis methods
-    and citation kinds; the most cited documents and articles; court
-    decisions by kind, level, category and province; Q&As, terms and
-    news.], [`dashboard.json`],
+    and citation kinds; the most cited documents and articles; Q&As,
+    terms and news.], [`dashboard.json`],
+    [`traces.html`], [Question traces: for each of the 27 legal areas of
+    the Q&As, the 20 articles that the most answers in the area cite,
+    each traced from one question and its answer through the cited
+    point, clause and article to the chapter and the law, highlighted
+    like Figure~6 of the paper (540 traces). It shows question titles,
+    never answer text.], [`data/traces/`],
     [`ontology.html`], [The ontology documentation generated by pyLODE
     from the Turtle file, with every class, property and concept
     scheme.], [`vlonto.html`],
@@ -2255,8 +2229,8 @@ files listed in `manifest.json` with size and sha256).
 text labels drawn as sprites. The legal-network positions are
 precomputed in the build (`vlonto.cli layout`), so the page does not run
 a force simulation on 40,816 nodes. Rendering speed depends on the
-graphics hardware; the build node renders with a software WebGL
-implementation, so its frame rates say nothing about a real GPU.
+graphics hardware; the automated website checks render with a software
+WebGL implementation, so their frame rates say nothing about a real GPU.
 
 = 10. Reproducibility
 <reproducibility>
@@ -2270,7 +2244,10 @@ implementation, so its frame rates say nothing about a real GPU.
     table.hline(),
     [Typst], [0.15.1 (9dfd3a08)], [PDF of this playbook],
     [pandoc], [3.9], [Markdown to Typst and HTML],
-    [Python], [3.12.16], [build, checks, playbook tools],
+    [Python (pinned toolchain)], [3.12.16], [website build and checks
+    (tools/setup\_tools.sh)],
+    [Python (reference build)], [3.11.18], [knowledge-graph build and
+    playbook tools of VLOnto v1 (macOS, arm64)],
     [uv], [0.13.7], [Python environments],
     [Node.js / npm], [24.19.0 / 11.17.0], [vendored JavaScript build],
     [esbuild], [0.28.2], [browser bundles],
@@ -2282,7 +2259,6 @@ implementation, so its frame rates say nothing about a real GPU.
     [Oxigraph (npm)], [0.5.13], [SPARQL in the browser],
     [JetBrains Mono], [2.304], [code font (NL variant)],
     [duckdb], [2.0.0], [knowledge-graph build],
-    [huggingface-hub], [2.4.0], [knowledge-graph build],
     [igraph], [1.0.0], [knowledge-graph build],
     [owlrl], [7.6.2], [knowledge-graph build],
     [polars], [2.1.0], [knowledge-graph build],
@@ -2307,7 +2283,7 @@ files in `typst/fonts`).
 - `tools/requirements-web.lock`: hash-checked Python packages of the web
   and PDF environment.
 - `tools/vendor.lock.json`: package, version, file, sha256 and licence
-  of every vendored website file (93 files).
+  of every vendored website file (98 files).
 - `tools/versions.lock`: versions, download URLs and sha256 of the
   downloaded tools and fonts.
 
@@ -2349,15 +2325,19 @@ blank, and rebuilds the PDF twice to compare the bytes; it then runs
 `playbook/tools/text_collisions.py`, which finds glyphs that run into
 other text on the same baseline, such as a word wider than its table
 cell. The generated `playbook.typ`, the figure data and the SVG figures
-are kept in the repository, so the PDF can be rebuilt with Typst alone.
-The figures are drawn by Typst from `data/figures.json` (`charts.typ`):
+are kept in the repository, so the PDF can be rebuilt with Typst alone:
+the GitHub Pages workflow (job `reproduce-pdf`) rebuilds it on Linux
+with the pinned Typst release (`tools/fetch_typst.sh`, sha256-checked)
+and compares it byte for byte with `site/downloads/VLOnto-playbook.pdf`,
+and the preview workflow runs the same job on preview branches. The
+figures are drawn by Typst from `data/figures.json` (`charts.typ`):
 natively in the PDF and as SVG for the Markdown and the website.
 
 == 10.4 Checksums of the reference build
 <checksums-of-the-reference-build>
 #block(sticky: true, width: 100%)[
 `playbook/data/SHA256SUMS` records the sha256 of the outputs of the
-reference build of 2026-11-11 that this playbook describes: the tables
+reference build of 2026-11-12 that this playbook describes: the tables
 and RDF dumps (paths relative to the build folder) and the ontology
 files (relative to the repository). The first 16 hexadecimal digits are:
 
@@ -2370,21 +2350,15 @@ files (relative to the repository). The first 16 hexadecimal digits are:
     table.hline(),
     [`kg/areas.parquet`], [7 kB], [`d2991b4c9328458f`],
     [`kg/articles.parquet`], [9.3 MB], [`1b4f587a82a88dc6`],
-    [`kg/changes.parquet`], [1.4 MB], [`8e9f0a1171aef239`],
-    [`kg/courts.parquet`], [56 kB], [`0e1d6f4eea27a794`],
-    [`kg/data_dictionary.json`], [38 kB], [`0a201f24add24b98`],
-    [`kg/data_dictionary.md`], [20 kB], [`016c0fdc5db84595`],
-    [`kg/decisions.parquet`], [28.0 MB], [`e3283c835ce55a46`],
+    [`kg/changes.parquet`], [1.3 MB], [`8ac8c354d628c083`],
+    [`kg/data_dictionary.json`], [29 kB], [`a1cebf64f35c5dbd`],
+    [`kg/data_dictionary.md`], [15 kB], [`1694da8bdfdd485d`],
     [`kg/doc_types.parquet`], [3 kB], [`4492320fcc76b562`],
     [`kg/documents.parquet`], [4.9 MB], [`9fa21cf00c273965`],
-    [`kg/edges_change.parquet`], [253 kB], [`7367a1f24b6f96f2`],
+    [`kg/edges_change.parquet`], [230 kB], [`6c020502418fe78e`],
     [`kg/edges_citation.parquet`], [3.1 MB], [`680a38acc145bbd4`],
-    [`kg/edges_decision_case.parquet`], [187 kB], [`a2e30cbdda66b2f1`],
-    [`kg/edges_decision_provision.parquet`], [71.3
-    MB], [`20a4079dcad9e7c8`],
     [`kg/edges_legal_basis.parquet`], [667 kB], [`f243d3f950ca9e75`],
     [`kg/edges_news_document.parquet`], [12 kB], [`e8fc672c8674e61d`],
-    [`kg/edges_precedent_source.parquet`], [2 kB], [`8105256aabeb06ec`],
     [`kg/edges_qa_article.parquet`], [461 kB], [`12afaab65c4a4640`],
     [`kg/edges_qa_document.parquet`], [806 kB], [`8844ff35b0e289f3`],
     [`kg/edges_term_related.parquet`], [75 kB], [`b8d838592da46701`],
@@ -2392,18 +2366,17 @@ files (relative to the repository). The first 16 hexadecimal digits are:
     [`kg/legal_force_ranks.parquet`], [3 kB], [`ffe962e40c5851c9`],
     [`kg/news.parquet`], [31 kB], [`6696aed7dc3fe639`],
     [`kg/news_categories.parquet`], [3 kB], [`0fa3a472c5b03aa1`],
-    [`kg/precedents.parquet`], [3 kB], [`59bf26ffc368e26e`],
-    [`kg/provisions_ref.parquet`], [1.3 MB], [`1b08b7514f78fbbe`],
-    [`kg/qas.parquet`], [3.9 MB], [`9ee94486c7582ea5`],
-    [`kg/sources.parquet`], [6 kB], [`19a710918f0f0b02`],
+    [`kg/provisions_ref.parquet`], [1.0 MB], [`4f310ecb270f06de`],
+    [`kg/qas.parquet`], [3.9 MB], [`c412cf700967d0e4`],
+    [`kg/sources.parquet`], [5 kB], [`04bd4d6ee590815c`],
     [`kg/structure.parquet`], [1.6 MB], [`392381bc225cfbf8`],
     [`kg/terms.parquet`], [481 kB], [`9a4a119e87567e5e`],
     [`ontology/vlonto-context.jsonld`], [7 kB], [`a7d3f1b413e398a9`],
-    [`ontology/vlonto-shapes.ttl`], [12 kB], [`1c4b28ce0e6f408b`],
-    [`ontology/vlonto.html`], [662 kB], [`e72fb797a7a2b16a`],
-    [`ontology/vlonto.ttl`], [110 kB], [`c865a9a15061e98b`],
-    [`rdf/vlonto-core.ttl`], [2.6 MB], [`b7555f919baf4975`],
-    [`rdf/vlonto-kg.nt.gz`], [172.1 MB], [`95a8cc76cb90fdb5`],
+    [`ontology/vlonto-shapes.ttl`], [13 kB], [`8aec3dc3d0462985`],
+    [`ontology/vlonto.html`], [680 kB], [`efc8c549794dd5fd`],
+    [`ontology/vlonto.ttl`], [122 kB], [`5c376a367adcb77e`],
+    [`rdf/vlonto-core.ttl`], [2.6 MB], [`c422b80209ecbcb9`],
+    [`rdf/vlonto-kg.nt.gz`], [48.2 MB], [`4bae225735434342`],
   )]
   , kind: table
   )
@@ -2466,9 +2439,12 @@ date:
 
 == 11.3 Releasing
 <releasing>
-+ Set `VERSION` and `BUILD_DATE` in `vlonto/vlonto/config.py`\; update
-  `owl:versionInfo`, `owl:versionIRI` and `dcterms:modified` in
-  `ontology/vlonto.ttl` following the policy of section~4.6.
++ Set the version (`__version__`) and the release name (`RELEASE`, for
+  example `v1`) in `vlonto/vlonto/__init__.py` and `BUILD_DATE` in
+  `vlonto/vlonto/config.py` (or `VLONTO_BUILD_DATE`); update
+  `owl:versionInfo`, `owl:versionIRI`, `owl:priorVersion` and
+  `dcterms:modified` in `ontology/vlonto.ttl` following the policy of
+  section~4.6.
 + Rebuild the graph, the website data and the playbook; all checks must
   pass.
 + Regenerate `playbook/data/SHA256SUMS`
@@ -2478,9 +2454,9 @@ date:
   `bash scripts/build_pdf.sh --check-files`, push the repository to
   #link("https://github.com/tmquan/VLOnto") so that GitHub Pages
   publishes the website at #link("https://tmquan.github.io/VLOnto/"),
-  and tag the repository with the version. No data is uploaded: the
-  source datasets stay the data home, and users build the knowledge
-  graph locally.
+  and tag the repository with the release name (`v1`). No data is
+  uploaded: the source datasets stay the data home, and users build the
+  knowledge graph locally.
 + Keep the ontology file of the previous version available; its version
   IRI must keep resolving.
 
@@ -2489,46 +2465,9 @@ date:
 == 12.1 Limitations of the knowledge graph
 <limitations-of-the-knowledge-graph>
 #block(sticky: true, width: 100%)[
-From the build report of 2026-11-11:
+From the build report of 2026-11-12:
 
 ]
-- Courts: 1,237,053 of 1,544,091 decisions (80.1%) are linked to one of
-  1,345 courts. Not linked: court name anonymised in the source 218,922,
-  court field and header unparsable 79,346, district name used in
-  several provinces without a province 3,885, regional court without
-  province 4,319, rare unparsed names 566.
-- Court names, residual errors (measured on the final table): about 30
-  court nodes carry garbage suffixes or typos from PDF-split or
-  mis-encoded headers (for example 'huyện Ti Ên Lãng Thàn' for Tiên
-  Lãng, 394 decisions; 'Vũ Quang Tĩnh', 'Đăk Hà Tinh', 'Ba Vì Thẩm
-  Phán'); 100 district courts have fewer than 10 decisions (461
-  decisions in all) and are mostly such variants; 80 district courts
-  (1,232 decisions) have no province. Partially anonymised names ('HUYỆN
-  BÌNH Đ', 'HUYỆN TY') are treated as masked and not linked; one-word
-  names are accepted only for a short list of real ones (Vinh, Huế,
-  Pleiku, Kbang, Lắk, Đakrông, Cư M'gar, M'Đrắk).
-- Case-to-case links: 14,600 decision-to-decision edges from 2,562,161
-  case-citation records; 2,104,370 records cite a decision that is not
-  in the corpus, 46,711 match several decisions with the same date.
-  Date-only matches are kept only when both courts are known and are the
-  same court, in the same province, or the citing court is the Supreme
-  Court or the High Court of the region; 24,602 cross-province, 11,984
-  unknown-court and 1,336 out-of-region date matches were dropped, after
-  a sample of an earlier build found about 6 of 10 cross-province date
-  matches to be coincidences (numbers restart at every court each year).
-  Final samples: case-number-date 10/10, case-number-court 9/10 with 1
-  not verifiable; with 10 items the 95% lower confidence bound on
-  precision is about 69%. Known failure patterns: a decision of another
-  court in the same province with the same number and date; wrong
-  decision numbers in the source (a 2022 decision citing a 2023 one);
-  the citing court's own name in the text window counted as the cited
-  court.
-- Decision metadata in the source: 16,796 decisions carried the number
-  of a cited law (for example 326/2016/UBTVQH14), so number, symbol and
-  date were dropped; 54,645 dates earlier than a document or decision
-  they cite, 9,981 dates more than a year from the year in the number
-  and 117 out-of-range dates were set to null; 10,213 decisions have no
-  date in the source.
 - Citation resolution to an in-scope document: external citations 83.1%,
   external mentions 68.7%, parent law 97.0%, parent-law mentions 99.0%;
   the rest cite documents outside the corpus or are too vague. When the
@@ -2556,8 +2495,6 @@ From the build report of 2026-11-11:
   headings of public legal documents can name officials or award
   recipients (a pattern scan finds such names in 206 article headings
   and 6 document titles); they are kept as published by the source.
-- About 26.6% of the court-judgment records were still awaiting OCR in
-  the source release and carry no citations.
 - Spot checks are small samples (10 per edge type); they catch
   systematic errors but give only coarse precision estimates.
 
@@ -2579,8 +2516,11 @@ From the build report of 2026-11-11:
 + Close the validity gap: add official validity sources and consolidated
   texts as evidence, and measure recall of the change events.
 + Measure precision with larger, stratified samples and with legal
-  review, starting with case-to-case links and Q&A article labels.
-+ Repair the residual court names and resolve joint issuers.
+  review, starting with Q&A article labels and legal-basis links.
++ VLOnto v2: add the court datasets `anle-toaan-gov-vn` and
+  `cbba-toaan-gov-vn` (court decisions, precedents and the provisions
+  they apply).
++ Resolve joint issuers that have no curated code.
 + Publish the agent tools as an MCP server package and evaluate them in
   the agent's test set.
 + Serve the RDF with content negotiation and a public SPARQL endpoint.
@@ -2621,9 +2561,10 @@ From the build report of 2026-11-11:
 ]
 = Appendix B. Ontology reference
 <appendix-b.-ontology-reference>
-Generated from `ontology/vlonto.ttl` (version 0.1.0, 2,008 triples):
+Generated from `ontology/vlonto.ttl` (version 1.0.0, 2,061 triples):
 every class, property and concept scheme of VLOnto by module, with its
-English and Vietnamese labels, its axioms and its English definition.
+English and Vietnamese labels, its axioms, its English definition and,
+where it has one, its English scope note.
 
 == B.1 Module documents (#emph[văn bản])
 <b.1-module-documents-văn-bản>
@@ -2800,7 +2741,9 @@ Public authorities that issue documents or decide cases.
 - #strong[`vlo:Court`] · Court · #emph[Tòa án]. Subclass of
   `vlo:PublicAuthority`. A people's court or military court that decides
   cases; identified by its official name, for example Tòa án nhân dân
-  tỉnh Cà Mau.
+  tỉnh Cà Mau. #emph[Scope: Populated from VLOnto 2.0 (court datasets
+  anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge
+  graph has no data for this term.]
 - #strong[`vlo:IssuingBody`] · Issuing body · #emph[Cơ quan ban hành].
   Subclass of `vlo:PublicAuthority`. A public authority that issues
   legal documents, identified in the knowledge graph by the issuer code
@@ -3033,6 +2976,12 @@ works to legal resources.
 == B.6 Module judiciary (#emph[tư pháp])
 <b.6-module-judiciary-tư-pháp>
 Court decisions, judgments, precedents and their classification.
+#emph[The terms of this module are populated from VLOnto 2.0 (court
+datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0
+knowledge graph has no court data.] (#emph[Các khái niệm của mô-đun này
+có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và
+cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu tòa
+án.])
 
 #block(sticky: true, width: 100%)[
 #strong[Classes]
@@ -3041,35 +2990,57 @@ Court decisions, judgments, precedents and their classification.
 - #strong[`vlo:CaseCategory`] · Case category · #emph[Loại vụ việc].
   Subclass of `skos:Concept`. The legal domain of a case: civil,
   criminal, administrative, commercial, labour, marriage and family,
-  bankruptcy or economic.
+  bankruptcy or economic. #emph[Scope: Its concepts are defined in the
+  ontology; they classify court decisions, which are populated from
+  VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn).
+  VLOnto 1.0.0 has no court decisions.]
 - #strong[`vlo:CourtDecision`] · Court decision · #emph[Bản án, quyết
   định của Tòa án]. Subclass of `vlo:JudicialDocument`\; disjoint with
   `vlo:Precedent`. A judgment or ruling issued by a court in a specific
   case, identified by its decision number (for example 38/2021/DS-PT),
-  court and date.
+  court and date. #emph[Scope: Populated from VLOnto 2.0 (court datasets
+  anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge
+  graph has no data for this term.]
 - #strong[`vlo:CourtLevel`] · Court level · #emph[Cấp Tòa án]. Subclass
   of `skos:Concept`. The level of a court in the court system: supreme,
-  high, provincial, district or military.
+  high, provincial, district or military. #emph[Scope: Its concepts are
+  defined in the ontology; they classify court decisions, which are
+  populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and
+  cbba-toaan-gov-vn). VLOnto 1.0.0 has no court decisions.]
 - #strong[`vlo:CourtRuling`] · Court ruling · #emph[Quyết định của Tòa
   án]. Subclass of `vlo:CourtDecision`. A decision of a court other than
   a judgment, for example recognising the parties' agreement or
-  suspending a case.
+  suspending a case. #emph[Scope: Populated from VLOnto 2.0 (court
+  datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0
+  knowledge graph has no data for this term.]
 - #strong[`vlo:InstanceLevel`] · Instance level · #emph[Cấp xét xử].
   Subclass of `skos:Concept`. The procedural stage at which a decision
   is made: first instance, appeal, cassation review or retrial review.
+  #emph[Scope: Its concepts are defined in the ontology; they classify
+  court decisions, which are populated from VLOnto 2.0 (court datasets
+  anle-toaan-gov-vn and cbba-toaan-gov-vn). VLOnto 1.0.0 has no court
+  decisions.]
 - #strong[`vlo:Judgment`] · Judgment · #emph[Bản án]. Subclass of
   `vlo:CourtDecision`\; disjoint with `vlo:CourtRuling`. A court
   decision that settles a case on its merits after a hearing (first
-  instance, appeal, cassation or retrial).
+  instance, appeal, cassation or retrial). #emph[Scope: Populated from
+  VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn);
+  the VLOnto 1.0.0 knowledge graph has no data for this term.]
 - #strong[`vlo:JudicialDocument`] · Judicial document · #emph[Văn bản
   của Tòa án]. Subclass of `schema:CreativeWork`\; disjoint with
   `vlo:LegalDocument`. A document produced in the judicial system: a
   court decision in a case or a published case-law precedent.
+  #emph[Scope: Populated from VLOnto 2.0 (court datasets
+  anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge
+  graph has no data for this term.]
 - #strong[`vlo:Precedent`] · Precedent · #emph[Án lệ]. Subclass of
   `vlo:JudicialDocument`. Reasoning or a ruling in a court decision that
   the Council of Judges of the Supreme People's Court has selected and
   the Chief Justice has published as a precedent for courts to follow;
-  identified by its number, for example 04/2016/AL.
+  identified by its number, for example 04/2016/AL. #emph[Scope:
+  Populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and
+  cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for
+  this term.]
 
 #block(sticky: true, width: 100%)[
 #strong[Object properties]
@@ -3079,37 +3050,57 @@ Court decisions, judgments, precedents and their classification.
   bản]. Sub-property of `vlo:refersTo`\; domain `vlo:JudicialDocument`\;
   range `vlo:LegalDocument`. A court decision cites a legal document as
   a whole, or a provision of it that is not available as an article
-  node.
+  node. #emph[Scope: Populated from VLOnto 2.0 (court datasets
+  anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge
+  graph has no data for this term.]
 - #strong[`vlo:appliesPrecedent`] · applies precedent · #emph[áp dụng án
   lệ]. Sub-property of `vlo:citesCase`\; domain `vlo:JudicialDocument`\;
   range `vlo:Precedent`. A court decision cites a precedent by its
-  number.
+  number. #emph[Scope: Populated from VLOnto 2.0 (court datasets
+  anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge
+  graph has no data for this term.]
 - #strong[`vlo:appliesProvision`] · applies provision · #emph[áp dụng
   điều khoản]. Sub-property of `vlo:refersTo`\; domain
   `vlo:JudicialDocument`\; range `vlo:Provision`. A court decision cites
   an article, clause or point of a legal document as applied or relied
-  on.
+  on. #emph[Scope: Populated from VLOnto 2.0 (court datasets
+  anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge
+  graph has no data for this term.]
 - #strong[`vlo:caseCategory`] · case category · #emph[loại vụ việc].
   domain `vlo:JudicialDocument`\; range `vlo:CaseCategory`. The legal
-  domain of the case decided or of the precedent.
+  domain of the case decided or of the precedent. #emph[Scope: Populated
+  from VLOnto 2.0 (court datasets anle-toaan-gov-vn and
+  cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for
+  this term.]
 - #strong[`vlo:citesCase`] · cites case · #emph[viện dẫn bản án].
   Sub-property of `vlo:refersTo`\; domain `vlo:JudicialDocument`\; range
   `vlo:JudicialDocument`. A court decision refers to another court
   decision (for example the first-instance judgment under appeal) or to
-  a precedent.
+  a precedent. #emph[Scope: Populated from VLOnto 2.0 (court datasets
+  anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge
+  graph has no data for this term.]
 - #strong[`vlo:courtLevel`] · court level · #emph[cấp Tòa án]. range
   `vlo:CourtLevel`. The level of the court that issued a decision, or of
-  a court.
+  a court. #emph[Scope: Populated from VLOnto 2.0 (court datasets
+  anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge
+  graph has no data for this term.]
 - #strong[`vlo:decidedBy`] · decided by · #emph[Tòa án ban hành].
   Sub-property of `dcterms:creator`\; domain `vlo:CourtDecision`\; range
-  `vlo:Court`. The court that issued a court decision.
+  `vlo:Court`. The court that issued a court decision. #emph[Scope:
+  Populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and
+  cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for
+  this term.]
 - #strong[`vlo:instanceLevel`] · instance level · #emph[cấp xét xử].
   domain `vlo:CourtDecision`\; range `vlo:InstanceLevel`. The procedural
-  stage at which a court decision was made.
+  stage at which a court decision was made. #emph[Scope: Populated from
+  VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn);
+  the VLOnto 1.0.0 knowledge graph has no data for this term.]
 - #strong[`vlo:selectedFrom`] · selected from · #emph[được lựa chọn từ].
   Sub-property of `prov:wasDerivedFrom`\; domain `vlo:Precedent`\; range
   `vlo:CourtDecision`. The court decision whose reasoning or ruling was
-  selected as the precedent.
+  selected as the precedent. #emph[Scope: Populated from VLOnto 2.0
+  (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto
+  1.0.0 knowledge graph has no data for this term.]
 
 #block(sticky: true, width: 100%)[
 #strong[Datatype properties]
@@ -3119,20 +3110,28 @@ Court decisions, judgments, precedents and their classification.
   quyết định]. domain `vlo:CourtDecision`\; range `xsd:string`. The
   symbol part of a decision number that encodes case domain and stage,
   for example DS-PT (civil, appeal) or QĐST-HNGĐ (first-instance ruling,
-  marriage and family).
+  marriage and family). #emph[Scope: Populated from VLOnto 2.0 (court
+  datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0
+  knowledge graph has no data for this term.]
 - #strong[`vlo:decisionDate`] · decision date · #emph[ngày tuyên án, ra
   quyết định]. Sub-property of `dcterms:date`\; domain
   `vlo:CourtDecision`\; range `xsd:date`. The date on which a court
-  decision was issued.
+  decision was issued. #emph[Scope: Populated from VLOnto 2.0 (court
+  datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0
+  knowledge graph has no data for this term.]
 - #strong[`vlo:decisionNumber`] · decision number · #emph[số bản án,
   quyết định]. Sub-property of `dcterms:identifier`\; domain
   `vlo:CourtDecision`\; range `xsd:string`. The number of a court
   decision as issued, for example 38/2021/DS-PT. Numbers are unique only
-  within one court.
+  within one court. #emph[Scope: Populated from VLOnto 2.0 (court
+  datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0
+  knowledge graph has no data for this term.]
 - #strong[`vlo:precedentNumber`] · precedent number · #emph[số án lệ].
   Sub-property of `dcterms:identifier`\; domain `vlo:Precedent`\; range
   `xsd:string`. The national number of a precedent, for example
-  04/2016/AL.
+  04/2016/AL. #emph[Scope: Populated from VLOnto 2.0 (court datasets
+  anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge
+  graph has no data for this term.]
 
 #block(sticky: true, width: 100%)[
 #strong[Concept schemes]
@@ -3142,13 +3141,25 @@ Court decisions, judgments, precedents and their classification.
   việc]. Legal domains of cases as recorded by the court-decision
   datasets. Concepts: administrative; bankruptcy; civil; business and
   commercial; criminal; economic; labour; marriage and family.
+  #emph[Scope: Its concepts are defined in the ontology; they classify
+  court decisions, which are populated from VLOnto 2.0 (court datasets
+  anle-toaan-gov-vn and cbba-toaan-gov-vn). VLOnto 1.0.0 has no court
+  decisions.]
 - #strong[`vlo:CourtLevelScheme`] · Court levels · #emph[Cấp Tòa án].
   Levels of the Vietnamese court system as recorded by the
   court-decision datasets. Concepts: district court; High People's
   Court; military court; provincial court; Supreme People's Court.
+  #emph[Scope: Its concepts are defined in the ontology; they classify
+  court decisions, which are populated from VLOnto 2.0 (court datasets
+  anle-toaan-gov-vn and cbba-toaan-gov-vn). VLOnto 1.0.0 has no court
+  decisions.]
 - #strong[`vlo:InstanceLevelScheme`] · Instance levels · #emph[Cấp xét
   xử]. Procedural stages at which court decisions are made. Concepts:
-  appeal; cassation review; first instance; retrial review.
+  appeal; cassation review; first instance; retrial review. #emph[Scope:
+  Its concepts are defined in the ontology; they classify court
+  decisions, which are populated from VLOnto 2.0 (court datasets
+  anle-toaan-gov-vn and cbba-toaan-gov-vn). VLOnto 1.0.0 has no court
+  decisions.]
 
 == B.7 Module legal Q&A (#emph[hỏi đáp pháp luật])
 <b.7-module-legal-qa-hỏi-đáp-pháp-luật>
@@ -3600,8 +3611,8 @@ Appendices, parts, chapters and sections of documents.
   )
 
 ]
-== C.4 `provisions_ref` (60,960 rows)
-<c.4-provisions_ref-60960-rows>
+== C.4 `provisions_ref` (48,031 rows)
+<c.4-provisions_ref-48031-rows>
 #block(sticky: true, width: 100%)[
 Clauses (khoản) and points (điểm) created because an edge refers to
 them.
@@ -3614,16 +3625,16 @@ them.
     align: (left,left,right,left,),
     table.header([Column], [Type], [Non-null], [Description],),
     table.hline(),
-    [`prov_id`], [String], [60,960], [\<article\_id\>::khoan-\<k\>\[::diem-\<p\>\]
+    [`prov_id`], [String], [48,031], [\<article\_id\>::khoan-\<k\>\[::diem-\<p\>\]
     or \<article\_id\>::diem-\<p\>],
-    [`iri`], [String], [60,960], [VLOnto IRI],
-    [`kind`], [String], [60,960], [Clause or Point],
-    [`article_id`], [String], [60,960], [article],
-    [`doc_id`], [String], [60,960], [document],
-    [`clause`], [String], [60,662], [clause number],
-    [`point`], [String], [17,153], [point letter],
-    [`parent_id`], [String], [60,960], [article or clause],
-    [`n_refs`], [Int64], [60,960], [edges that reference this
+    [`iri`], [String], [48,031], [VLOnto IRI],
+    [`kind`], [String], [48,031], [Clause or Point],
+    [`article_id`], [String], [48,031], [article],
+    [`doc_id`], [String], [48,031], [document],
+    [`clause`], [String], [47,957], [clause number],
+    [`point`], [String], [12,555], [point letter],
+    [`parent_id`], [String], [48,031], [article or clause],
+    [`n_refs`], [Int64], [48,031], [edges that reference this
     provision],
   )]
   , kind: table
@@ -3859,203 +3870,8 @@ parent\_law\_mention) resolved to documents/articles.
   )
 
 ]
-== C.13 `courts` (1,345 rows)
-<c.13-courts-1345-rows>
-#block(sticky: true, width: 100%)[
-Canonical courts named in decisions (source field or judgment header;
-anonymised and unparsable names dropped).
-
-]
-#block(breakable: false, width: 100%)[
-#figure(
-  align(center)[#table(
-    columns: (26.72%, 13.79%, 12.07%, 47.41%),
-    align: (left,left,right,left,),
-    table.header([Column], [Type], [Non-null], [Description],),
-    table.hline(),
-    [`court_id`], [String], [1,345], [slug of the canonical name],
-    [`iri`], [String], [1,345], [VLOnto IRI],
-    [`label`], [String], [1,345], [canonical court name],
-    [`court_kind`], [String], [1,345], [supreme, high, military,
-    provincial, district (huyện/quận/thị xã/thành phố thuộc tỉnh) or
-    regional (khu vực, from 2025)],
-    [`court_level`], [String], [1,345], [Supreme/High/Provincial/District/Military
-    (regional courts: District)],
-    [`province`], [String], [1,241], [province or centrally run city
-    (null when never stated)],
-    [`head`], [String], [1,345], [upper-case name phrase used to match
-    case citations (province added for district names used in several
-    provinces)],
-    [`n_decisions`], [Int64], [1,345], [decisions],
-    [`n_from_header`], [Int64], [1,345], [decisions whose court came
-    from the header],
-    [`n_province_from_name`], [Int64], [1,345], [decisions whose
-    province was inferred from the same name elsewhere],
-  )]
-  , kind: table
-  )
-
-]
-== C.14 `decisions` (1,544,091 rows)
-<c.14-decisions-1544091-rows>
-#block(sticky: true, width: 100%)[
-Court decisions from anle (1,844) and cbba (16 shards).
-
-]
-#figure(
-  align(center)[#table(
-    columns: (26.72%, 13.79%, 12.07%, 47.41%),
-    align: (left,left,right,left,),
-    table.header([Column], [Type], [Non-null], [Description],),
-    table.hline(),
-    [`decision_id`], [String], [1,544,091], [\<source\>:\<doc\_name\>],
-    [`source`], [String], [1,544,091], [anle or cbba],
-    [`doc_name`], [String], [1,544,091], [source id],
-    [`decision_number`], [String], [1,437,318], [e.g.~38/2021/DS-PT],
-    [`decision_code`], [String], [1,437,318], [symbol, e.g.~DS-PT],
-    [`number`], [Int64], [1,437,318], [number part],
-    [`year_in_number`], [Int64], [1,437,318], [year part],
-    [`decision_kind`], [String], [1,544,091], [Judgment / CourtRuling /
-    CourtDecision],
-    [`category`], [String], [1,350,567], [case category],
-    [`instance_level`], [String], [1,308,754], [procedural stage],
-    [`court_level`], [String], [1,464,978], [court level (source, else
-    inferred from the court name)],
-    [`court_method`], [String], [1,245,823], [court-name:field or
-    court-name:header (+province-from-name)],
-    [`court_note`], [String], [307,038], [why court\_id is null: masked,
-    unparsed, ambiguous-without-province, regional-without-province],
-    [`issued_date`], [String], [1,452,339], [decision date (null when
-    the source date fails the checks)],
-    [`issued_date_check`], [String], [1,544,091], [ok, missing,
-    malformed, out\_of\_range, year\_mismatch (vs year in the number),
-    before\_cited\_document (earlier than the year of a cited law or
-    decision), number\_is\_legislative (the source number is that of a
-    cited law; number, code and date dropped)],
-    [`url`], [String], [1,544,091], [source URL],
-    [`is_precedent_source`], [Boolean], [1,544,091], [selected as a
-    precedent],
-    [`precedent_number`], [String], [9], [precedent number if any],
-    [`n_law_citations`], [Int64], [1,544,091], [law citation records in
-    source],
-    [`n_case_citations`], [Int64], [1,544,091], [case citation records
-    in source],
-    [`iri`], [String], [1,544,091], [VLOnto IRI],
-    [`year`], [Int32], [1,452,339], [decision year],
-    [`court_id`], [String], [1,237,053], [canonical court (null when
-    masked/unparsable/ambiguous)],
-    [`n_law_edges`], [UInt32], [1,544,091], [applied-provision edges
-    after resolution],
-    [`n_case_edges`], [UInt32], [1,544,091], [case edges after
-    resolution],
-  )]
-  , kind: table
-  )
-
-== C.15 `precedents` (28 rows)
-<c.15-precedents-28-rows>
-#block(sticky: true, width: 100%)[
-Precedents (án lệ) by national number.
-
-]
-#block(breakable: false, width: 100%)[
-#figure(
-  align(center)[#table(
-    columns: (26.72%, 13.79%, 12.07%, 47.41%),
-    align: (left,left,right,left,),
-    table.header([Column], [Type], [Non-null], [Description],),
-    table.hline(),
-    [`precedent_id`], [String], [28], [NN-YYYY-al],
-    [`precedent_number`], [String], [28], [NN/YYYY/AL],
-    [`source_decision_ids`], [List(String)], [28], [decisions selected
-    as the precedent],
-    [`n_citing_decisions`], [UInt32], [28], [decisions citing it],
-    [`iri`], [String], [28], [VLOnto IRI],
-  )]
-  , kind: table
-  )
-
-]
-== C.16 `edges_decision_provision` (7,060,655 rows)
-<c.16-edges_decision_provision-7060655-rows>
-#block(sticky: true, width: 100%)[
-Applied provisions: decision -\> document / article (+clause, point).
-
-]
-#block(breakable: false, width: 100%)[
-#figure(
-  align(center)[#table(
-    columns: (26.72%, 13.79%, 12.07%, 47.41%),
-    align: (left,left,right,left,),
-    table.header([Column], [Type], [Non-null], [Description],),
-    table.hline(),
-    [`decision_id`], [String], [7,060,655], [decision],
-    [`dst_doc_id`], [String], [7,060,655], [document],
-    [`dst_article_id`], [String], [6,017,617], [article when present],
-    [`clause`], [String], [1,980,698], [clause],
-    [`point`], [String], [669,717], [point],
-    [`n_mentions`], [UInt32], [7,060,655], [records merged],
-    [`article_cited`], [String], [6,022,747], [article written],
-    [`cit_kind`], [String], [7,060,655], [provision or document],
-    [`law_type`], [String], [7,060,655], [law type written],
-    [`ref`], [String], [7,060,655], [reference as written (\<=160)],
-    [`sentence_id`], [String], [6,577,586], [source sentence id
-    (pointer, no text)],
-    [`method`], [String], [7,060,655], [docnum-key or law-name-year],
-  )]
-  , kind: table
-  )
-
-]
-== C.17 `edges_decision_case` (14,650 rows)
-<c.17-edges_decision_case-14650-rows>
-#block(sticky: true, width: 100%)[
-Case-to-case edges: decision -\> decision or precedent.
-
-]
-#block(breakable: false, width: 100%)[
-#figure(
-  align(center)[#table(
-    columns: (26.72%, 13.79%, 12.07%, 47.41%),
-    align: (left,left,right,left,),
-    table.header([Column], [Type], [Non-null], [Description],),
-    table.hline(),
-    [`src_id`], [String], [14,650], [citing decision],
-    [`dst_id`], [String], [14,650], [cited decision or precedent],
-    [`dst_kind`], [String], [14,650], [decision or precedent],
-    [`cited_id`], [String], [14,650], [number as written],
-    [`role`], [String], [4,700], [role in source (first-instance,
-    appellate, …)],
-    [`method`], [String], [14,650], [case-number-date, case-number-court
-    or precedent-number],
-  )]
-  , kind: table
-  )
-
-]
-== C.18 `edges_precedent_source` (9 rows)
-<c.18-edges_precedent_source-9-rows>
-#block(sticky: true, width: 100%)[
-Precedent -\> source decision (selected from).
-
-]
-#block(breakable: false, width: 100%)[
-#figure(
-  align(center)[#table(
-    columns: (26.72%, 13.79%, 12.07%, 47.41%),
-    align: (left,left,right,left,),
-    table.header([Column], [Type], [Non-null], [Description],),
-    table.hline(),
-    [`src_id`], [String], [9], [precedent],
-    [`dst_id`], [String], [9], [decision],
-    [`method`], [String], [9], [source-metadata],
-  )]
-  , kind: table
-  )
-
-]
-== C.19 `qas` (109,543 rows)
-<c.19-qas-109543-rows>
+== C.13 `qas` (109,543 rows)
+<c.13-qas-109543-rows>
 #block(sticky: true, width: 100%)[
 Legal Q&As from hdpl: metadata only (no question or answer text).
 
@@ -4090,8 +3906,8 @@ Legal Q&As from hdpl: metadata only (no question or answer text).
   )
 
 ]
-== C.20 `edges_qa_article` (34,869 rows)
-<c.20-edges_qa_article-34869-rows>
+== C.14 `edges_qa_article` (34,869 rows)
+<c.14-edges_qa_article-34869-rows>
 #block(sticky: true, width: 100%)[
 Q&A answer -\> article (+clause, point) from the gold resolver
 (gold\_all.parquet).
@@ -4118,8 +3934,8 @@ Q&A answer -\> article (+clause, point) from the gold resolver
   )
 
 ]
-== C.21 `edges_qa_document` (119,683 rows)
-<c.21-edges_qa_document-119683-rows>
+== C.15 `edges_qa_document` (119,683 rows)
+<c.15-edges_qa_document-119683-rows>
 #block(sticky: true, width: 100%)[
 Q&A answer -\> document cited by number.
 
@@ -4141,8 +3957,8 @@ Q&A answer -\> document cited by number.
   )
 
 ]
-== C.22 `terms` (16,701 rows)
-<c.22-terms-16701-rows>
+== C.16 `terms` (16,701 rows)
+<c.16-terms-16701-rows>
 #block(sticky: true, width: 100%)[
 Legal terms from tnpl (names only, no definitions).
 
@@ -4170,8 +3986,8 @@ Legal terms from tnpl (names only, no definitions).
   )
 
 ]
-== C.23 `edges_term_related` (17,615 rows)
-<c.23-edges_term_related-17615-rows>
+== C.17 `edges_term_related` (17,615 rows)
+<c.17-edges_term_related-17615-rows>
 #block(sticky: true, width: 100%)[
 Related terms.
 
@@ -4191,8 +4007,8 @@ Related terms.
   )
 
 ]
-== C.24 `news` (681 rows)
-<c.24-news-681-rows>
+== C.18 `news` (681 rows)
+<c.18-news-681-rows>
 #block(sticky: true, width: 100%)[
 Legal news articles from htpl (no title or text).
 
@@ -4217,8 +4033,8 @@ Legal news articles from htpl (no title or text).
   )
 
 ]
-== C.25 `edges_news_document` (1,484 rows)
-<c.25-edges_news_document-1484-rows>
+== C.19 `edges_news_document` (1,484 rows)
+<c.19-edges_news_document-1484-rows>
 #block(sticky: true, width: 100%)[
 News article -\> mentioned document.
 
@@ -4239,8 +4055,8 @@ News article -\> mentioned document.
   )
 
 ]
-== C.26 `news_categories` (7 rows)
-<c.26-news_categories-7-rows>
+== C.20 `news_categories` (7 rows)
+<c.20-news_categories-7-rows>
 #block(sticky: true, width: 100%)[
 News categories.
 
@@ -4262,10 +4078,11 @@ News categories.
   )
 
 ]
-== C.27 `sources` (6 rows)
-<c.27-sources-6-rows>
+== C.21 `sources` (4 rows)
+<c.21-sources-4-rows>
 #block(sticky: true, width: 100%)[
-Source datasets with revision, licence and policy.
+Source datasets of this build with revision, licence and policy (release
+v1: the four thuvienphapluat.vn datasets).
 
 ]
 #block(breakable: false, width: 100%)[
@@ -4275,21 +4092,21 @@ Source datasets with revision, licence and policy.
     align: (left,left,right,left,),
     table.header([Column], [Type], [Non-null], [Description],),
     table.hline(),
-    [`dataset`], [String], [6], [-],
-    [`iri`], [String], [6], [-],
-    [`revision`], [String], [6], [-],
-    [`licence`], [String], [6], [-],
-    [`publisher`], [String], [6], [-],
-    [`content`], [String], [6], [-],
-    [`repository`], [String], [6], [-],
-    [`card_sha256`], [String], [6], [-],
+    [`dataset`], [String], [4], [-],
+    [`iri`], [String], [4], [-],
+    [`revision`], [String], [4], [-],
+    [`licence`], [String], [4], [-],
+    [`publisher`], [String], [4], [-],
+    [`content`], [String], [4], [-],
+    [`repository`], [String], [4], [-],
+    [`card_sha256`], [String], [4], [-],
   )]
   , kind: table
   )
 
 ]
-== C.28 `article_text` (436,309 rows, local-only)
-<c.28-article_text-436309-rows-local-only>
+== C.22 `article_text` (436,309 rows, local-only)
+<c.22-article_text-436309-rows-local-only>
 #block(breakable: false, width: 100%)[
 #figure(
   align(center)[#table(
@@ -4307,10 +4124,15 @@ Source datasets with revision, licence and policy.
 = Appendix D. Licences and attribution
 <appendix-d.-licences-and-attribution>
 #block(sticky: true, width: 100%)[
-#strong[Sources.] Licence policy version 0.1.0, decided 2026-11-11 from
-the cards (`README.md`) of the six source datasets, downloaded at the
-pinned revisions below. The policy is `docs/licence_policy.md`\; it is a
-reading of the dataset cards by the build, not legal advice.
+#strong[Sources.] Licence policy version 1.0.0 (release v1). Decided
+2026-11-11 for 0.1.0 from the cards (`README.md`) of the source
+datasets, downloaded at the pinned revisions below; revised 2026-11-12
+for release v1, which is built from the four thuvienphapluat.vn datasets
+only. The two court datasets (`anle-toaan-gov-vn`, `cbba-toaan-gov-vn`)
+are planned for v2: v1 reads nothing from them, and their rules (policy
+section~2.5) apply again when they are added (build switch
+`VLONTO_INCLUDE_COURTS=1`). The policy is `docs/licence_policy.md`\; it
+is a reading of the dataset cards by the build, not legal advice.
 
 ]
 #block(breakable: false, width: 100%)[
@@ -4320,8 +4142,6 @@ reading of the dataset cards by the build, not legal advice.
     align: (left,left,left,),
     table.header([Dataset], [Card licence], [Original source],),
     table.hline(),
-    [#link("https://huggingface.co/datasets/tmquan/anle-toaan-gov-vn")[`tmquan/anle-toaan-gov-vn`]], [cc-by-4.0], [anle.toaan.gov.vn],
-    [#link("https://huggingface.co/datasets/tmquan/cbba-toaan-gov-vn")[`tmquan/cbba-toaan-gov-vn`]], [cc-by-4.0], [congbobanan.toaan.gov.vn],
     [#link("https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-hdpl")[`tmquan/thuvienphapluat-vn-hdpl`]], [other], [thuvienphapluat.vn],
     [#link("https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-htpl")[`tmquan/thuvienphapluat-vn-htpl`]], [other], [thuvienphapluat.vn],
     [#link("https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-tnpl")[`tmquan/thuvienphapluat-vn-tnpl`]], [other], [thuvienphapluat.vn/tnpl],
@@ -4336,10 +4156,12 @@ website data hold metadata, titles, article and chapter headings (up to
 200 characters), evidence sentences of change events (up to 300
 characters), identifiers, URLs, dates, categories, term names and the
 edges derived by VLOnto. They hold no article or document bodies, Q&A or
-news text, judgment text, glossary definitions or person names. The
-article text is kept in a local-only table (`article_text`, 436,309
-rows) that the build adds to the articles table (`--with-article-text`)
-only if the owner decides that sharing it is acceptable.
+news text, glossary definitions or person names. The one exception is
+the website's question traces page, which shows the published titles of
+the questions it traces (section~9). The article text is kept in a
+local-only table (`article_text`, 436,309 rows) that the build adds to
+the articles table (`--with-article-text`) only if the owner decides
+that sharing it is acceptable.
 
 #block(sticky: true, width: 100%)[
 #strong[Licence of the VLOnto outputs.]
@@ -4347,15 +4169,20 @@ only if the owner decides that sharing it is acceptable.
 ]
 - Ontology (`vlonto.ttl`, `vlonto-shapes.ttl`, documentation):
   #strong[CC BY 4.0], creator tmquan.
+- Website Traces page data (`site/data/traces/`): VLOnto's traces,
+  scores and drawings under #strong[CC BY 4.0]\; the titles of the 538
+  traced questions it holds remain subject to the source terms of
+  thuvienphapluat.vn (see policy section~2.2).
 - Knowledge-graph tables and RDF dumps: VLOnto's own contributions
   (resolution, structure, derived edges, validity) are released under
   #strong[CC BY 4.0]\; records derived from the `other`-licensed sources
   (`hdpl`, `tnpl`, `htpl`) contain only identifiers, links, dates,
   categories, short labels and derived edges, and remain subject to the
   source terms of thuvienphapluat.vn.
-- Every source dataset is described in the graph as a
+- Every source dataset of the build is described in the graph as a
   `vlo:SourceDataset` with revision, licence IRI and attribution text,
-  and every node carries `vlo:sourceDataset`.
+  and every node carries `vlo:sourceDataset`. Release v1 describes the
+  four thuvienphapluat.vn datasets; the court datasets appear from v2.
 
 #block(sticky: true, width: 100%)[
 #strong[Attribution] (use on the website, in the repository and in
@@ -4363,32 +4190,26 @@ derived work):
 
 ]
 #quote(block: true)[
-VLOnto is derived from six datasets published on Hugging Face by TMQuan:
-`thuvienphapluat-vn-vbpl` (metadata CC BY 4.0; source
+VLOnto is derived from four datasets published on Hugging Face by
+TMQuan: `thuvienphapluat-vn-vbpl` (metadata CC BY 4.0; source
 thuvienphapluat.vn), `thuvienphapluat-vn-hdpl`,
 `thuvienphapluat-vn-tnpl` and `thuvienphapluat-vn-htpl` (source
 thuvienphapluat.vn and thuvienphapluat.vn/tnpl/; only identifiers,
-links, dates, categories, term names and derived links are used),
-`anle-toaan-gov-vn` (CC BY 4.0; source anle.toaan.gov.vn, Supreme
-People's Court of Viet Nam) and `cbba-toaan-gov-vn` (CC BY 4.0; source
-congbobanan.toaan.gov.vn, Supreme People's Court of Viet Nam). English
-term labels from `tnpl` are machine translations. Extracted relations
-are produced automatically and may be wrong. VLOnto is not an official
-legal text and is not legal advice.
+links, dates, categories, term names and derived links are used).
+English term labels from `tnpl` are machine translations. Extracted
+relations are produced automatically and may be wrong. VLOnto is not an
+official legal text and is not legal advice.
 ]
 
 #quote(block: true)[
-VLOnto được xây dựng từ sáu bộ dữ liệu do TMQuan công bố trên Hugging
+VLOnto được xây dựng từ bốn bộ dữ liệu do TMQuan công bố trên Hugging
 Face: `thuvienphapluat-vn-vbpl` (siêu dữ liệu theo CC BY 4.0; nguồn
 thuvienphapluat.vn), `thuvienphapluat-vn-hdpl`,
-`thuvienphapluat-vn-tnpl`, `thuvienphapluat-vn-htpl` (nguồn
+`thuvienphapluat-vn-tnpl` và `thuvienphapluat-vn-htpl` (nguồn
 thuvienphapluat.vn; chỉ dùng mã định danh, liên kết, ngày, lĩnh vực, tên
-thuật ngữ và các liên kết suy ra), `anle-toaan-gov-vn` (CC BY 4.0; nguồn
-anle.toaan.gov.vn, Tòa án nhân dân tối cao) và `cbba-toaan-gov-vn` (CC
-BY 4.0; nguồn congbobanan.toaan.gov.vn, Tòa án nhân dân tối cao). Tên
-tiếng Anh của thuật ngữ là bản dịch máy. Các quan hệ được trích xuất tự
-động và có thể sai. VLOnto không phải văn bản pháp luật chính thức và
-không phải tư vấn pháp lý.
+thuật ngữ và các liên kết suy ra). Tên tiếng Anh của thuật ngữ là bản
+dịch máy. Các quan hệ được trích xuất tự động và có thể sai. VLOnto
+không phải văn bản pháp luật chính thức và không phải tư vấn pháp lý.
 ]
 
 #strong[Fonts and libraries.] The fonts of the PDF and the website are

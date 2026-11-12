@@ -126,6 +126,22 @@ def code(text, lang=""):
     return f"{fence}{lang}\n{text}\n{fence}"
 
 
+POLICY_REF = re.compile(r"\((see )?(?:section )?(\d+(?:\.\d+)+)\)")
+
+
+def policy_refs(s):
+    """Text quoted from docs/licence_policy.md: its '(section 2.5)' and '(see 2.2)' point to sections of the
+    policy, not of the playbook."""
+    return POLICY_REF.sub(lambda m: f"({m.group(1) or ''}policy section {m.group(2)})", str(s))
+
+
+def require(ok, message):
+    """Stop the rendering when a consistency check of the template fails (prints nothing otherwise)."""
+    if not ok:
+        raise ValueError(f"playbook.md.j2: {message}")
+    return ""
+
+
 def short(s, n):
     """Cut at the last space before n characters and mark the cut with an ellipsis."""
     s = str(s)
@@ -189,10 +205,10 @@ def main():
     env = jinja2.Environment(loader=jinja2.FileSystemLoader(str(PB)), undefined=jinja2.StrictUndefined,
                              keep_trailing_newline=True, trim_blocks=True, lstrip_blocks=True,
                              autoescape=False)
-    env.filters.update(num=num, esc=esc, short=short)
+    env.filters.update(num=num, esc=esc, short=short, policy_refs=policy_refs)
     env.tests["match"] = lambda value, pattern: re.search(pattern, str(value)) is not None
     env.globals.update(num=num, pct=pct, table=table, result_table=result_table, code=code, Md=Md,
-                       esc=esc, short=short, codecell=codecell)
+                       esc=esc, short=short, codecell=codecell, require=require)
     src = (PB / "playbook.md.j2").read_text(encoding="utf-8")
     text = env.from_string(src).render(f=facts, fig=figures, cite=cite)
     text = tidy(unicodedata.normalize("NFC", text))
@@ -220,6 +236,7 @@ def main():
         "kicker": "Vietnamese legal ontology and knowledge graph",
         "author": "tmquan",
         "version": ver["version"],
+        "release": ver.get("release", ver["version"]),
         "date": ver["build_date"],
         "lang": "en",
         "keywords": ["VLOnto", "Vietnamese law", "legal ontology", "knowledge graph", "OWL", "SKOS",
@@ -227,7 +244,7 @@ def main():
         "keyfigures": [
             {"value": num(st["documents"]), "label": "legal documents"},
             {"value": num(st["articles"]), "label": "articles (Điều)"},
-            {"value": num(st["court_decisions"]), "label": "court decisions"},
+            {"value": num(st["change_events"]), "label": "dated change events"},
             {"value": num(st["legal_questions"]), "label": "legal Q&As (metadata)"},
             {"value": num(st["rdf_triples"]), "label": "RDF triples"},
             {"value": f"{sum(1 for c in checks if c['result'] == 'pass')} / {len(checks)}",

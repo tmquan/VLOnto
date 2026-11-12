@@ -21,7 +21,7 @@
   datetime(year: p.at(0), month: p.at(1), day: p.at(2))
 }
 
-#let title-page(title, subtitle, kicker, version, date, author, key-figures, licence, disclaimer) = {
+#let title-page(title, subtitle, kicker, release, version, date, author, key-figures, licence, disclaimer) = {
   set text(font: sans)
   v(14mm)
   text(size: 9.5pt, weight: "semibold", fill: accent, tracking: 0.06em, upper(kicker))
@@ -41,13 +41,13 @@
   v(8mm)
   grid(
     columns: (28mm, 1fr), row-gutter: 6pt,
-    text(fill: muted)[Version], version,
+    text(fill: muted)[Release], release + " (version " + version + ")",
     text(fill: muted)[Build date], date,
     text(fill: muted)[Author], author,
   )
   v(1fr)
   text(size: 8pt, fill: muted,
-       "Key figures of VLOnto " + version + " (this release), knowledge-graph build of " + date)
+       "Key figures of VLOnto " + release + " (" + version + ", this release), knowledge-graph build of " + date)
   v(2.5mm)
   grid(
     columns: (1fr, 1fr, 1fr), column-gutter: 5mm, row-gutter: 5mm,
@@ -68,7 +68,7 @@
 }
 
 #let playbook(
-  title: [], subtitle: [], kicker: [], author: "", version: "", date: "", keywords: (),
+  title: [], subtitle: [], kicker: [], author: "", release: "", version: "", date: "", keywords: (),
   key-figures: (), licence: [], disclaimer: [], body,
 ) = {
   // pandoc line-wraps the template output, which can put a newline inside a keyword string
@@ -83,7 +83,7 @@
       if p > 1 and chapters.len() > 0 {
         set text(font: sans, size: 7.6pt, fill: muted)
         grid(columns: (auto, 1fr), column-gutter: 8mm, align: (left + bottom, right + bottom),
-             [VLOnto playbook #version], chapters.last().body)
+             [VLOnto playbook #release], chapters.last().body)
         v(-3pt)
         line(length: 100%, stroke: 0.4pt + rule-color)
       }
@@ -145,7 +145,7 @@
     width: 100%, above: 1.1em, below: 1.1em, inset: (left: 9pt, top: 3pt, bottom: 3pt),
     stroke: (left: 2pt + accent.lighten(45%)), it.body)
 
-  title-page(title, subtitle, kicker, version, date, author, key-figures, licence, disclaimer)
+  title-page(title, subtitle, kicker, release, version, date, author, key-figures, licence, disclaimer)
 
   show outline.entry.where(level: 1): set text(font: sans, weight: "semibold")
   show outline.entry.where(level: 1): set block(above: 0.85em)
