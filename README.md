@@ -48,7 +48,7 @@ embedded, so nothing is fetched from the internet.
 | `site/dashboard.html` | dashboard with linked filters |
 | `site/ontology.html` | ontology modules and reference documentation |
 | `site/playbook.html` | the playbook; PDF in `site/downloads/VLOnto-playbook.pdf` |
-| `site/downloads.html` | ontology, RDF subset, reports and playbook files with sizes and SHA-256 |
+| `site/downloads.html` | ontology files, the RDF core subset, the site data (JSON), documentation and playbook files, with sizes and SHA-256 |
 
 ![3D legal network: documents layered by legal force, with change and legal-basis links](docs/img/network-3d.png)
 
@@ -94,10 +94,10 @@ The playbook (sections 5, 6 and 10) gives every command with its expected output
 - Ontology, documentation and VLOnto's derived data: CC BY 4.0 (`LICENSE-CC-BY-4.0.txt`). Records derived from the
   `thuvienphapluat-vn-hdpl`, `-tnpl` and `-htpl` datasets contain only identifiers, links, dates, categories, term names
   and derived links, and remain subject to the terms of thuvienphapluat.vn.
-- No document bodies, article texts, Q&A or news texts, glossary definitions, judgment texts or person names are
-  redistributed; every document and provision keeps its source URL. One exception: the Traces page shows the titles of
-  the 538 questions it traces, as published on thuvienphapluat.vn, with machine-assisted English glosses, and no answer
-  text. Details: `docs/licence_policy.md`.
+- Release v1 uses the four thuvienphapluat.vn datasets only (no court data). No document bodies or article texts, no
+  Q&A or news texts, no glossary definitions and no person names are redistributed; every document and provision keeps
+  its source URL. One exception: the Traces page shows the titles of the 538 questions it traces, as published on
+  thuvienphapluat.vn, with machine-assisted English glosses, and no answer text. Details: `docs/licence_policy.md`.
 - Fonts: SIL Open Font License 1.1 (licence files next to the fonts). JavaScript libraries: MIT or Apache-2.0
   (`site/vendor/THIRD_PARTY_LICENSES.md`).
 
