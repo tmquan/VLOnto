@@ -44,7 +44,7 @@ embedded, so nothing is fetched from the internet.
 | `site/about.html` | overview of VLOnto, release numbers, paper and citation, licences |
 | `site/network-3d.html` | 3D legal network: every document layered by legal force, with change, legal-basis and citation links and validity colours |
 | `site/sparql.html` | SPARQL playground over the ontology and the browser subset of the graph, with bilingual example queries |
-| `site/traces.html` | question traces: for each of the 27 legal areas of the Q&A dataset, the 20 articles its answers cite most, each with one published question traced from the answer through the cited provision up to the law, drawn like the paper's figures, with a focus view and the provenance of every hop |
+| `site/traces.html` | question traces: for each of the 27 legal areas of the Q&A dataset, the 20 articles its answers cite most, each with one published question traced from the answer through the cited provision up to the law; all 540 traces in one 3D graph drawn like the paper's figures, where picking a question lights its trace, with the provenance of every hop |
 | `site/dashboard.html` | dashboard with linked filters |
 | `site/ontology.html` | ontology modules and reference documentation |
 | `site/playbook.html` | the playbook; PDF in `site/downloads/VLOnto-playbook.pdf` |

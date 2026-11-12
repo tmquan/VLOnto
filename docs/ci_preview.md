@@ -55,8 +55,10 @@ the contrast check run through `scripts/site/ci_pages.py`, which appends the con
 (pages with a `ready` condition outside `ontology/`) and contrast `PAGES`, leaving the scripts unchanged. With today's
 config nothing is added, so the checks are exactly the node's. Page-specific behaviour still lives in
 `interaction_tests.py`: `traces.html` is in the header navigation, so the about test expects 9 internal navigation links
-(`len(internal) == 9`), and the Traces page has its own test (`traces`: tabs, lazy loading, keyboard, render time, card
-geometry, focus view and deep links), which `check.sh` and `ci_check.sh` run by default.
+(`len(internal) == 9`), and the Traces page has its own test (`traces`: one WebGL scene of all traces; tabs, lazy loading,
+keyboard, a question selected in three areas with its trace pixels, call-outs and hop panel, node details, deep links and
+the theme switch), which `check.sh` and `ci_check.sh` run by default; it is also one of the WebGL `SCENES` of the theme,
+gallery and contrast checks.
 
 ## Runtime
 
