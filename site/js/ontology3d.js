@@ -436,14 +436,27 @@
       '<br><span class="t-sub">' + VL.esc(kindLabel(n)) + ' · ' + VL.esc(m.en || n.module) + (n.instances != null ? ' · ' + VL.fmt(n.instances) + ' instances' : '') + '</span>';
   }
 
-  /* ------------------------------------------------------------------ layout forces */
+  /* ------------------------------------------------------------------ layout forces
+     Spread in 3D: each module (with terms in this release) has an anchor on a Fibonacci ellipsoid (200 x 150 x 200) that
+     pulls its terms gently, external terms sit on a shell outside (r 340), classes repel strongly and links are long by
+     kind (LAYOUT). The layout is deterministic: d3-force-3d's seeded random source, the data's order, and all its ticks
+     run at load (300 warm-up ticks bring alpha below alphaMin, so the engine stops at its first frame: no ticks bound
+     to a time limit), so every browser and machine draws the same graph. */
+  var LAYOUT = {
+    charge: { 'class': -220, scheme: -100, external: -100, instance: -20 },
+    distance: { subClassOf: 42, inScheme: 48, alignment: 80, property: 112, instance: 22, result: 46 },
+    strength: { subClassOf: 0.6, inScheme: 0.45, alignment: 0.28, property: 0.07, instance: 0.9, result: 0.5 },
+    anchor: [200, 150], pull: 0.05, shell: 340, shellPull: 0.05, ticks: 300, alphaDecay: 0.0228, alphaMin: 0.001, velocityDecay: 0.4
+  };
   var anchors = {};
   (function () {
-    var ids = VL.MODULES.map(function (m) { return m.id; }).filter(function (id) { return id !== 'external' && id !== 'citation-basis'; });
-    var N = ids.length;
+    var present = {};
+    OG.nodes.forEach(function (n) { present[n.module] = true; });
+    var ids = VL.MODULES.map(function (m) { return m.id; }).filter(function (id) { return id !== 'external' && id !== 'citation-basis' && present[id]; });
+    var N = ids.length, ax = LAYOUT.anchor[0], ay = LAYOUT.anchor[1];
     ids.forEach(function (id, i) {
       var k = i + 0.5, phi = Math.acos(1 - 2 * k / N), th = Math.PI * (1 + Math.sqrt(5)) * k;
-      anchors[id] = { x: 120 * Math.cos(th) * Math.sin(phi), y: 95 * Math.cos(phi), z: 120 * Math.sin(th) * Math.sin(phi) };
+      anchors[id] = { x: ax * Math.cos(th) * Math.sin(phi), y: ay * Math.cos(phi), z: ax * Math.sin(th) * Math.sin(phi) };
     });
   })();
   function clusterForce() {
@@ -452,13 +465,13 @@
       ns.forEach(function (n) {
         if (n.fx != null || n.inst) return;
         if (n.kind === 'external') {
-          var r = Math.sqrt(n.x * n.x + n.y * n.y + n.z * n.z) || 1, kk = (215 - r) / r * 0.05 * alpha;
+          var r = Math.sqrt(n.x * n.x + n.y * n.y + n.z * n.z) || 1, kk = (LAYOUT.shell - r) / r * LAYOUT.shellPull * alpha;
           n.vx += n.x * kk; n.vy += n.y * kk; n.vz += n.z * kk;
           return;
         }
         var a = anchors[n.module];
         if (!a) return;
-        var k = 0.08 * alpha;
+        var k = LAYOUT.pull * alpha;
         n.vx += (a.x - n.x) * k; n.vy += (a.y - n.y) * k; n.vz += (a.z - n.z) * k;
       });
     }
@@ -505,14 +518,16 @@
       .onLinkHover(function (l) { host.style.cursor = l ? 'pointer' : ''; })
       .onEngineTick(function () { if (hl.trace && hl.trace.size) updateTrace(); scheduleCull(); })
       .onEngineStop(onEngineStop)
-      .warmupTicks(160)
-      .cooldownTicks(60)
-      .d3AlphaDecay(0.035)
-      .d3VelocityDecay(0.38);
-    graph.d3Force('charge').strength(function (n) { return n.kind === 'class' ? -110 : (n.inst ? -14 : -50); });
+      .warmupTicks(LAYOUT.ticks)
+      .cooldownTicks(120)                // ticks after a reheat (a dragged node); the first layout ends in the warm-up
+      .d3AlphaMin(LAYOUT.alphaMin)
+      .d3AlphaDecay(LAYOUT.alphaDecay)
+      .d3VelocityDecay(LAYOUT.velocityDecay);
+    graph.d3Force('charge').strength(function (n) { return LAYOUT.charge[n.inst ? 'instance' : n.kind] || LAYOUT.charge.scheme; });
     graph.d3Force('link')
-      .distance(function (l) { return { subClassOf: 26, inScheme: 30, alignment: 50, property: 70, instance: 16, result: 34 }[l.type] || 50; })
-      .strength(function (l) { return { subClassOf: 0.7, inScheme: 0.5, alignment: 0.35, property: 0.1, instance: 0.9, result: 0.5 }[l.type] || 0.3; });
+      .distance(function (l) { return LAYOUT.distance[l.type] || 80; })
+      .strength(function (l) { return LAYOUT.strength[l.type] || 0.3; });
+    M.layout = { ticks: LAYOUT.ticks, anchors: Object.keys(anchors).length, deterministic: true };
     graph.d3Force('cluster', clusterForce());
     /* the paper's light (upper left of the screen) and depth fade to the ground colour */
     lights = VL.paperLights(P.dark);
@@ -540,21 +555,35 @@
     } catch (e) { return null; }
   }
 
+  /* the camera frames every visible node (or the subset): looking along dir at the middle of their extents across the
+     view, from the distance at which each node, with its radius and room for a leader, projects inside 90 % of the frame
+     (80 % on a narrow stage, where call-outs need the sides) */
   function fitView(ms, subset) {
     var vis = (subset || current.nodes).filter(nodeVisible).filter(function (n) { return isFinite(n.x); });
     if (!vis.length) return;
-    var cx = 0, cy = 0, cz = 0;
-    vis.forEach(function (n) { cx += n.x; cy += n.y; cz += n.z; });
-    cx /= vis.length; cy /= vis.length; cz /= vis.length;
-    var R = 10;
-    vis.forEach(function (n) { R = Math.max(R, Math.sqrt(Math.pow(n.x - cx, 2) + Math.pow(n.y - cy, 2) + Math.pow(n.z - cz, 2)) + n.__r + 12); });
+    var cam = graph.camera(), sz = stageSize(), m = sz.w < 700 ? 0.8 : 0.9;
+    var tv = Math.tan(cam.fov * Math.PI / 360), th = tv * sz.w / sz.h;
+    var dir = new THREE.Vector3(0.32, 0.3, 1).normalize(), right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), dir).normalize();
+    var up = new THREE.Vector3().crossVectors(dir, right), c = new THREE.Vector3(), v = new THREE.Vector3();
+    vis.forEach(function (n) { c.x += n.x; c.y += n.y; c.z += n.z; });
+    c.multiplyScalar(1 / vis.length);
+    var x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+    vis.forEach(function (n) {
+      v.set(n.x - c.x, n.y - c.y, n.z - c.z);
+      var x = v.dot(right), y = v.dot(up);
+      x0 = Math.min(x0, x - n.__r); x1 = Math.max(x1, x + n.__r); y0 = Math.min(y0, y - n.__r); y1 = Math.max(y1, y + n.__r);
+    });
+    c.addScaledVector(right, (x0 + x1) / 2).addScaledVector(up, (y0 + y1) / 2);
+    var d = 10, R = 10;
+    vis.forEach(function (n) {
+      v.set(n.x - c.x, n.y - c.y, n.z - c.z);
+      var x = v.dot(right), y = v.dot(up), z = v.dot(dir), r = n.__r + 8;
+      d = Math.max(d, z + (Math.abs(x) + r) / (m * th), z + (Math.abs(y) + r) / (m * tv));
+      R = Math.max(R, v.length() + n.__r + 12);
+    });
     if (!subset) sceneR = R;
-    var cam = graph.camera(), sz = stageSize();
-    var vf = cam.fov * Math.PI / 180, aspect = sz.w / sz.h;
-    var hf = 2 * Math.atan(Math.tan(vf / 2) * aspect);
-    var d = R / Math.sin(Math.min(vf, hf) / 2) * 0.9;
-    var dir = new THREE.Vector3(0.32, 0.3, 1).normalize();
-    graph.cameraPosition({ x: cx + dir.x * d, y: cy + dir.y * d, z: cz + dir.z * d }, { x: cx, y: cy, z: cz }, ms || 0);
+    graph.cameraPosition({ x: c.x + dir.x * d, y: c.y + dir.y * d, z: c.z + dir.z * d }, { x: c.x, y: c.y, z: c.z }, ms || 0);
+    M.fit = { d: Math.round(d), R: Math.round(R), nodes: vis.length, margin: m };
     setTimeout(scheduleCull, (ms || 0) + 40);
   }
   function flyTo(n) {
@@ -1203,12 +1232,19 @@
       var lk = { key: 'R' + i, source: l.source, target: l.target, type: 'result', pred: l.pred, predIri: l.predIri, curvature: 0, rotation: 0 };
       clinks.push(lk); resultLinks.add(lk); linkByKey[lk.key] = lk;
     });
-    var all = {}, data;
+    var all = {}, data, seed = 0x2f6e2b1;
+    /* result nodes start next to their class, jittered by a seeded generator (mulberry32): a query draws the same graph */
+    function rnd() {
+      seed = (seed + 0x6D2B79F5) | 0;
+      var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    }
     if (mode === 'overlay') {
       nodes.forEach(function (n) { n.fx = n.x; n.fy = n.y; n.fz = n.z; all[n.id] = n; });
       cnodes.forEach(function (n) {
         all[n.id] = n;
-        if (n.cls && byId[n.cls]) { var c = byId[n.cls]; n.x = c.x + (Math.random() - 0.5) * 20; n.y = c.y + (Math.random() - 0.5) * 20; n.z = c.z + (Math.random() - 0.5) * 20; }
+        if (n.cls && byId[n.cls]) { var c = byId[n.cls]; n.x = c.x + (rnd() - 0.5) * 20; n.y = c.y + (rnd() - 0.5) * 20; n.z = c.z + (rnd() - 0.5) * 20; }
       });
       var inst = [];
       cnodes.forEach(function (n, i) {
@@ -1226,7 +1262,7 @@
     view.resultSet = { nodes: resultNodes, links: resultLinks };
     state.selected = null;
     closePanel();
-    graph.warmupTicks(mode === 'overlay' ? 60 : 140);
+    graph.warmupTicks(mode === 'overlay' ? 160 : LAYOUT.ticks);       // every tick at once: no time-limited cool-down
     graph.graphData(data);
     setHighlight(resultNodes, resultLinks, { max: RESULT_TRACE_MAX });   // the result: traced when small, else thin lines + hover
     VL.$('#qd-back').classList.remove('hidden');
