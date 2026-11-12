@@ -122,8 +122,33 @@
   font-display: swap;
   src: url("JetBrainsMonoNL-BoldItalic.woff2") format("woff2");
 }
+@font-face {
+  font-family: "Libertinus Sans";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("LibertinusSans-Regular.subset.woff2") format("woff2");
+  unicode-range: U+0020-007E, U+00A0-017F, U+01A0-01A1, U+01AF-01B0, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0300-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+2000-2027, U+202F-2037, U+2039-203E, U+2042, U+2044, U+2047-204B, U+204F, U+20AB-20AC, U+2122, U+2190-2193, U+2212, U+2215, U+FFFD;
+}
+@font-face {
+  font-family: "Libertinus Sans";
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url("LibertinusSans-Italic.subset.woff2") format("woff2");
+  unicode-range: U+0020-007E, U+00A0-017F, U+01A0-01A1, U+01AF-01B0, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0300-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+2000-200B, U+200D, U+2010-2027, U+202F-2037, U+2039-203E, U+2042, U+2044, U+2047-204B, U+204F, U+20AB-20AC, U+2122, U+2190-2193, U+2212, U+2215, U+FFFD;
+}
+@font-face {
+  font-family: "Libertinus Sans";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("LibertinusSans-Bold.subset.woff2") format("woff2");
+  unicode-range: U+0020-007E, U+00A0-017F, U+01A0-01A1, U+01AF-01B0, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0300-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+2000-2027, U+202F-2037, U+2039-203E, U+2042, U+2044, U+2047-204B, U+204F, U+20AB-20AC, U+2122, U+2190-2193, U+2212, U+2215, U+FFFD;
+}
 :root {
   --vlo-font-sans: "Be Vietnam Pro", "Noto Sans Symbols 2", "Noto Sans Math", sans-serif;
   --vlo-font-serif: "VLOnto Math Symbols", "Noto Serif", "Noto Sans Symbols 2", "Noto Sans Math", serif;
   --vlo-font-mono: "JetBrains Mono NL", "Noto Sans Symbols 2", "Noto Sans Math", monospace;
+  --vlo-font-paper: "Libertinus Sans", "Be Vietnam Pro", "Noto Sans Symbols 2", "Noto Sans Math", sans-serif;
 }

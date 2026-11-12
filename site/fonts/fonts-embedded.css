@@ -4,8 +4,10 @@
 @import url("embedded/noto-serif.css");
 @import url("embedded/jetbrains-mono-nl.css");
 @import url("embedded/symbols.css");
+@import url("embedded/libertinus-sans.css");
 :root {
   --vlo-font-sans: "Be Vietnam Pro", "Noto Sans Symbols 2", "Noto Sans Math", sans-serif;
   --vlo-font-serif: "VLOnto Math Symbols", "Noto Serif", "Noto Sans Symbols 2", "Noto Sans Math", serif;
   --vlo-font-mono: "JetBrains Mono NL", "Noto Sans Symbols 2", "Noto Sans Math", monospace;
+  --vlo-font-paper: "Libertinus Sans", "Be Vietnam Pro", "Noto Sans Symbols 2", "Noto Sans Math", sans-serif;
 }

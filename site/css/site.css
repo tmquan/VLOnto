@@ -452,6 +452,77 @@
   --hue-grey-2: #b6c0d6;
 }
 
+/* ------------------------------------------------------------------ paper style (the 3D views)
+   The 3D ontology playground (index.html), the 3D legal network and the CONSTRUCT view of sparql.html follow the figures
+   of the paper (arXiv:2611.11426, Fig. 1 and Fig. 6): white figure ground, the legend's pastel class colours, soft
+   spheres, thin class-tinted links that fade with depth, bilingual call-outs in Libertinus Sans (white box, 1 px light-grey
+   border, Vietnamese in dark grey then English in mid grey, thin grey leader lines) and highlighted paths drawn as the
+   traced answer: a navy core over a pale-gold halo. Scope: <html data-style="paper"> or any element with
+   data-style="paper". Class, module and network palettes are the same in both themes; the dark theme puts them on a dark
+   ground with a light trace core. Class colours, call-out greys and the trace colours were sampled from the paper's PDF;
+   the pastels added for the other modules and the network encodings keep an OKLab distance >= 0.06 from each other and
+   from the class colours (style_report.md). Placed after the theme blocks: equal specificity, later rule wins. */
+:root[data-style="paper"], [data-style="paper"] {
+  /* class palette of the paper's legend (Fig. 1): Văn bản · Work ... Lĩnh vực · Area */
+  --cls-work: #7dbe8e; --cls-record: #a3d3ae; --cls-chapter: #6fb7b4; --cls-section: #86c4bf;
+  --cls-article: #9ed2c9; --cls-clause: #bde2d9; --cls-point: #d9efe9; --cls-term: #8db8e8;
+  --cls-question: #f4b183; --cls-answer: #f8d49b; --cls-intent: #b9a3e3; --cls-area: #b9b9ce;
+  /* module palette in the same family: documents = Work, provisions = Article, legal Q&A = Question,
+     terminology = Term, classification = Area; the other modules take pastels in the gaps between them */
+  --mod-documents: #7dbe8e; --mod-provisions: #9ed2c9; --mod-qa: #f4b183;
+  --mod-terminology: #8db8e8; --mod-classification: #b9b9ce; --mod-validity-change: #e18a77;
+  --mod-citation-basis: #cac173; --mod-agents: #c586b7; --mod-judiciary: #f5b0cd;
+  --mod-news: #c6e09b; --mod-provenance: #869bc8; --mod-external: #919497;
+  /* legal network: validity, change kinds, legal basis and citation, document types and legal areas (pastel register) */
+  --val-in_force: #7dbe8e; --val-in_force_amended: #c4d488; --val-presumed_in_force_amended: #6fb7b4;
+  --val-not_yet_effective: #8db8e8; --val-superseded: #f4b183; --val-expired: #e18a77;
+  --val-not_applicable: #b9a3e3; --val-unknown: #babdc7;
+  --chg-replaced: #e99d67; --chg-amended: #d8bb6b; --chg-repealed: #db7771;
+  --chg-partially_repealed: #e297ba; --chg-partially_expired: #a890d4;
+  --edge-basis: #72a2d8; --edge-citation: #a8a9be;
+  --type-HP: #e8cf83; --type-BL: #eea471; --type-L: #df7e86; --type-PL: #f1accc; --type-NQ: #b9a3e3;
+  --type-NQLT: #8b81c5; --type-ND: #8db8e8; --type-QD: #8bd6de; --type-TT: #7dbe8e; --type-TTLT: #aede9e;
+  --area-0: #e69ba0; --area-1: #fec1a6; --area-2: #d4ab70; --area-3: #d8d597;
+  --area-4: #9ac086; --area-5: #9fe2c4; --area-6: #66c5c4; --area-7: #97ddf9;
+  --area-8: #8cb6eb; --area-9: #ccccfc; --area-10: #c8a2da; --area-11: #f8bcdd;
+  --area-none: #dcdee2; --area-other: #92959a;
+  --hue-blue: #8db8e8; --hue-pink: #f5b0cd; --hue-orange: #f4b183; --hue-teal: #6fb7b4; --hue-violet: #b9a3e3;
+  --hue-yellow: #e8cf83; --hue-green: #7dbe8e; --hue-red: #e18a77; --hue-slate: #a0a5ac; --hue-cyan: #8bd6de;
+  --hue-rose: #df7e86; --hue-lime: #aede9e; --hue-grey: #8f9297; --hue-grey-2: #c1c4c9;
+  /* the traced path: pale-gold halo (inner #ecc890 where denser, outer #f4dcac as in the legend swatch) */
+  --paper-trace-halo: #ecc890; --paper-trace-halo-2: #f4dcac;
+}
+:root[data-style="paper"]:not([data-theme="dark"]), :root:not([data-theme="dark"]) [data-style="paper"] {
+  --scene-bg: #ffffff;
+  --paper-ink: #2b3036; --paper-ink-2: #666c73;            /* call-out text: Vietnamese, then English */
+  --paper-callout-bg: #ffffff; --paper-callout-line: #d3d7dc; --paper-leader: #a2a8af;
+  --paper-trace-core: #2c3a47;
+  --paper-sel-bg: #fdf6e6; --paper-sel-line: #2c3a47;       /* call-out of the selected node */
+  --paper-fade: .2; --paper-link-opacity: .72;              /* opacity of faded context nodes; of the thin links */
+  --paper-legend-bg: rgba(255, 255, 255, .94); --paper-legend-line: #d3d7dc; --paper-legend-fg: #2f343a;
+  --label-fg: #2b3036; --label-fg-2: #666c73; --label-bg: #ffffff; --label-border: #d3d7dc;
+  --label-sel-bg: #fdf6e6; --label-sel-fg: #2b3036;
+  --layer-label-fg: #2b3036; --layer-label-bg: #ffffff;
+  --net-plane: #c9ced6; --net-plane-opacity: .14; --net-plane-line: #d3d7dc; --net-plane-line-opacity: 1;
+  --o3d-link-subclass: #9aa3ad; --o3d-link-alignment: #c4c7cf; --o3d-link-inscheme: #c6c4d8; --o3d-link-instance: #c9cdd3;
+  --o3d-link-result: #ecc890; --o3d-link-default: #b8bdc6; --o3d-link-dim: #eceef2; --o3d-icon: #6b7280;
+}
+:root[data-style="paper"][data-theme="dark"], :root[data-theme="dark"] [data-style="paper"] {
+  --scene-bg: #0f131a;
+  --paper-ink: #e8ebef; --paper-ink-2: #a3abb5;
+  --paper-callout-bg: #161b23; --paper-callout-line: #3a4350; --paper-leader: #5e6875;
+  --paper-trace-core: #f6f1e6;                               /* light core over the same gold halo */
+  --paper-sel-bg: #2a2417; --paper-sel-line: #ecc890;
+  --paper-fade: .22; --paper-link-opacity: .55;
+  --paper-legend-bg: rgba(18, 23, 31, .92); --paper-legend-line: #3a4350; --paper-legend-fg: #e2e6ea;
+  --label-fg: #e8ebef; --label-fg-2: #a3abb5; --label-bg: #161b23; --label-border: #3a4350;
+  --label-sel-bg: #2a2417; --label-sel-fg: #f6f1e6;
+  --layer-label-fg: #e8ebef; --layer-label-bg: #161b23;
+  --net-plane: #8a95a8; --net-plane-opacity: .05; --net-plane-line: #2c3440; --net-plane-line-opacity: 1;
+  --o3d-link-subclass: #5f6875; --o3d-link-alignment: #4a525e; --o3d-link-inscheme: #545a6e; --o3d-link-instance: #3d4450;
+  --o3d-link-result: #ecc890; --o3d-link-default: #56606c; --o3d-link-dim: #1b2129; --o3d-icon: #b5bcc6;
+}
+
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 body {
@@ -1110,4 +1181,35 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
     linear-gradient(to right, var(--scroll-shadow), var(--scroll-shadow-0)) left center / 12px 100% no-repeat scroll,
     linear-gradient(to left, var(--scroll-shadow), var(--scroll-shadow-0)) right center / 12px 100% no-repeat scroll,
     var(--scroll-cover);
+}
+
+/* ------------------------------------------------------------------ paper style: legends, swatches and headings of the 3D views
+   (tokens in the "paper style" block near the top). Legend = the paper's legend row: filled dots with a rim 12 % darker
+   than the fill (measured on Fig. 1), bilingual "Vietnamese · English" entries in Libertinus Sans, the traced path as a
+   short navy core on a gold bar; headings of the side and details panels in the same figure font. */
+[data-style="paper"] .legend {
+  font: 400 13px/1.3 var(--vlo-font-paper); color: var(--paper-legend-fg);
+  background: var(--paper-legend-bg); border: 1px solid var(--paper-legend-line); border-radius: 2px;
+  padding: 8px 12px 9px; backdrop-filter: none; max-width: min(720px, calc(100% - 28px));
+}
+[data-style="paper"] .legend h3 { font: 700 12.5px/1.3 var(--vlo-font-paper); letter-spacing: 0; text-transform: none; color: var(--paper-legend-fg); margin: 0 0 5px; }
+[data-style="paper"] .legend ul { display: flex; flex-wrap: wrap; gap: 3px 15px; }
+[data-style="paper"] .legend li { gap: 6px; line-height: 1.3; }
+[data-style="paper"] .legend li svg { color: var(--o3d-icon); }
+[data-style="paper"] .legend .legend-sub { margin-top: 6px; padding-top: 6px; border-top-color: var(--paper-legend-line); }
+[data-style="paper"] .swatch { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12); }
+[data-style="paper"] .legend .swatch { width: 12px; height: 12px; }
+[data-style="paper"] .swatch.line { width: 20px; height: 2px; border-radius: 1px; box-shadow: none; }
+[data-style="paper"] .swatch.trace { width: 20px; height: 8px; border-radius: 4px; background: var(--paper-trace-halo); box-shadow: none; position: relative; }
+[data-style="paper"] .swatch.trace::after { content: ""; position: absolute; left: 1px; right: 1px; top: 3px; height: 2px; border-radius: 1px; background: var(--paper-trace-core); }
+[data-style="paper"] .side-title, [data-style="paper"] .scene-panel h3 { font-family: var(--vlo-font-paper); font-size: 12.5px; letter-spacing: .05em; }
+[data-style="paper"] .side-title .links { font-family: var(--vlo-font-sans); }
+[data-style="paper"] .scene-panel h2 { font-family: var(--vlo-font-paper); font-weight: 400; font-size: 24px; line-height: 1.2; }
+[data-style="paper"] .scene-panel .vi { font-family: var(--vlo-font-paper); font-size: 16.5px; }
+/* CONSTRUCT view of sparql.html: compact legend row inside the view */
+.construct-view .legend { left: 10px; bottom: 10px; max-width: calc(100% - 20px); font-size: 12px; padding: 6px 10px 7px; }
+@media (max-width: 760px) {
+  [data-style="paper"] .legend { font-size: 12px; padding: 6px 9px 7px; }
+  [data-style="paper"] .legend ul { gap: 2px 11px; }
+  .construct-view .legend { font-size: 11.5px; }
 }

@@ -7,6 +7,7 @@
 <title>SPARQL Playground · VLOnto</title>
 <meta name="description" content="Run SPARQL queries on the VLOnto knowledge graph in the browser with Oxigraph (WebAssembly), offline.">
 <link rel="stylesheet" href="css/fonts-web.css">
+<link rel="stylesheet" href="css/fonts-paper.css">
 <link rel="stylesheet" href="css/site.css">
 </head>
 <body class="page-text page-sparql">
@@ -51,7 +52,7 @@
             <button class="btn" type="button" id="btn-csv" disabled>Export CSV</button>
           </div>
         </div>
-        <div id="graph-wrap" class="hidden">
+        <div id="graph-wrap" class="hidden" data-style="paper">
           <div class="construct-view" id="graph-view" aria-label="3D view of the CONSTRUCT result"></div>
           <p class="filter-note" id="graph-note"></p>
         </div>

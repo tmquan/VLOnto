@@ -12,6 +12,8 @@ Outputs (paths relative to the repo):
   site/vendor/licenses/*, THIRD_PARTY_LICENSES.md, README.md
   typst/fonts/*.ttf + OFL texts                        pinned upstream font files (sha256 in the lock)
   site/fonts/*.woff2, fonts.css, fonts-embedded.css, embedded/*.css, OFL texts
+                                                        (+ web-only Latin + Vietnamese subsets of Libertinus Sans from
+                                                        the Libertinus release zip, the figure font of the paper)
   tools/vendor.lock.json                               package, version, file, sha256, licence for every output
 Steps: npm ci --ignore-scripts from tools/vendor-build/package-lock.json (npm verifies every tarball's sha512);
 every lockfile integrity is compared with the npm registry metadata; top-level tarballs are downloaded again
@@ -128,14 +130,49 @@ SUBSETS = {
 # in the serif stack: Noto Serif lacks ≠ but has "=" and U+0338, and browsers (like HarfBuzz in Typst) then draw ≠
 # by decomposition with a misplaced overlay instead of falling back. Typst uses the same routing via `covers`.
 ROUTED = {"family": "VLOnto Math Symbols", "file": "NotoSansMath-Regular.ttf", "ranges": [(0x2190, 0x21FF), (0x2200, 0x22FF)]}
+# Web-only faces (no Typst copy): Libertinus Sans, the figure font of the VLOnto paper (arXiv:2611.11426), for the
+# labels, legends and panel headings of the 3D views. "libzip:" = member of the Libertinus release zip (sha256-pinned).
+LIB_ZIP = P["LIBERTINUS_URL"]
+LIB_DIR = f"Libertinus-{P['LIBERTINUS_VERSION']}"
+WEB_FONT_FILES = [
+    ("LibertinusSans-Regular.ttf", f"libzip:{LIB_DIR}/static/TTF/LibertinusSans-Regular.ttf"),
+    ("LibertinusSans-Italic.ttf", f"libzip:{LIB_DIR}/static/TTF/LibertinusSans-Italic.ttf"),
+    ("LibertinusSans-Bold.ttf", f"libzip:{LIB_DIR}/static/TTF/LibertinusSans-Bold.ttf"),
+]
+WEB_FONT_LICENSES = [("OFL-Libertinus.txt", f"libzip:{LIB_DIR}/OFL.txt")]
+# Latin + Vietnamese: the Google Fonts "latin" and "vietnamese" subsets plus Latin Extended-A and the four arrows
+LATIN_VI = [(0x0000, 0x00FF), (0x0100, 0x017F), (0x01A0, 0x01A1), (0x01AF, 0x01B0), (0x02BB, 0x02BC), (0x02C6, 0x02C6),
+            (0x02DA, 0x02DA), (0x02DC, 0x02DC), (0x0300, 0x0304), (0x0308, 0x0309), (0x0323, 0x0323), (0x0329, 0x0329),
+            (0x1EA0, 0x1EF9), (0x2000, 0x206F), (0x20AB, 0x20AC), (0x2122, 0x2122), (0x2190, 0x2193), (0x2212, 0x2212),
+            (0x2215, 0x2215), (0xFEFF, 0xFEFF), (0xFFFD, 0xFFFD)]
+SUBSETS.update({fname: LATIN_VI for fname, _ in WEB_FONT_FILES})
 STACKS = {
     "--vlo-font-sans": '"Be Vietnam Pro", "Noto Sans Symbols 2", "Noto Sans Math", sans-serif',
     "--vlo-font-serif": '"VLOnto Math Symbols", "Noto Serif", "Noto Sans Symbols 2", "Noto Sans Math", serif',
     "--vlo-font-mono": '"JetBrains Mono NL", "Noto Sans Symbols 2", "Noto Sans Math", monospace',
+    "--vlo-font-paper": '"Libertinus Sans", "Be Vietnam Pro", "Noto Sans Symbols 2", "Noto Sans Math", sans-serif',
 }
 EMBED_GROUPS = {"be-vietnam-pro": "Be Vietnam Pro", "noto-serif": "Noto Serif",
                 "jetbrains-mono-nl": "JetBrains Mono NL",
-                "symbols": ("Noto Sans Symbols 2", "Noto Sans Math", "VLOnto Math Symbols")}
+                "symbols": ("Noto Sans Symbols 2", "Noto Sans Math", "VLOnto Math Symbols"),
+                "libertinus-sans": "Libertinus Sans"}
+# font section of site/vendor/THIRD_PARTY_LICENSES.md: (families, source, licence text in site/fonts)
+FONT_NOTICES = [
+    ("Be Vietnam Pro", f"google/fonts @ {P['FONTS_GOOGLE_COMMIT'][:8]}", "OFL-BeVietnamPro.txt"),
+    ("Noto Serif, Noto Sans Symbols 2 (subset), Noto Sans Math (subset)",
+     f"notofonts/notofonts.github.io @ {P['FONTS_NOTO_COMMIT'][:8]}", "OFL-Noto.txt"),
+    ("JetBrains Mono NL", f"JetBrains Mono {P['JETBRAINS_MONO_VERSION']} release", "OFL-JetBrainsMono.txt"),
+    ("Libertinus Sans (Regular, Italic, Bold; Latin + Vietnamese subset)",
+     f"Libertinus {P['LIBERTINUS_VERSION']} release, github.com/alerque/libertinus", "OFL-Libertinus.txt"),
+]
+
+
+def font_notice_md() -> list[str]:
+    md = ["", "## Web fonts in site/fonts", "",
+          "SIL Open Font License 1.1. The woff2 files and the data-URI CSS in site/fonts/embedded are made by",
+          "tools/fetch_vendor.sh (sources and sha256 in tools/vendor.lock.json).", "",
+          "| family | source | licence text |", "|---|---|---|"]
+    return md + [f"| {fam} | {src} | ../fonts/{lic} |" for fam, src, lic in FONT_NOTICES]
 
 
 def log(*a):
@@ -278,8 +315,9 @@ def unicode_range(cps: list[int]) -> str:
     return ", ".join(out)
 
 
-def font_face(meta: dict, src: str, urange: str | None) -> str:
-    weight = "100 900" if urange else str(meta["weight"])
+def font_face(meta: dict, src: str, urange: str | None, weight: str | None = None) -> str:
+    # symbol-fallback subsets serve every weight; text-family subsets (Libertinus) pass their own weight
+    weight = weight or ("100 900" if urange else str(meta["weight"]))
     lines = [f'  font-family: "{meta["family"]}";', f'  font-style: {"italic" if meta["italic"] else "normal"};',
              f"  font-weight: {weight};", "  font-display: swap;", f'  src: url("{src}") format("woff2");']
     if urange:
@@ -295,43 +333,76 @@ def build_fonts(stage: Path, cache: Path) -> list[dict]:
     if sha256(zbytes) != P["JETBRAINS_MONO_SHA256"]:
         raise SystemExit(f"JetBrains Mono zip sha256 mismatch: {sha256(zbytes)}")
     zf = zipfile.ZipFile(io.BytesIO(zbytes))
+    lzbytes = http_get(LIB_ZIP, cache / Path(urllib.parse.urlparse(LIB_ZIP).path).name)
+    if sha256(lzbytes) != P["LIBERTINUS_SHA256"]:
+        raise SystemExit(f"Libertinus zip sha256 mismatch: {sha256(lzbytes)}")
+    lz = zipfile.ZipFile(io.BytesIO(lzbytes))
+    wdir = stage / "web-font-src"          # sources of the web-only faces (not synced into the repo)
+    wdir.mkdir(parents=True, exist_ok=True)
     entries = []
 
     def get(src: str, cache_name: str) -> bytes:
         if src.startswith("zip:"):
             return zf.read(src[4:])
+        if src.startswith("libzip:"):
+            return lz.read(src[7:])
         return http_get(src, cache / cache_name)
+
+    def src_url(src: str) -> str:
+        if src.startswith("zip:"):
+            return JB_ZIP + "!" + src[4:]
+        if src.startswith("libzip:"):
+            return LIB_ZIP + "!" + src[7:]
+        return src
 
     for fname, src in FONT_FILES:
         data = get(src, fname)
         (tdir / fname).write_bytes(data)
         m = font_meta(tdir / fname)
         entries.append({"file": f"typst/fonts/{fname}", "sha256": sha256(data), "bytes": len(data),
-                        "source": (JB_ZIP + "!" + src[4:]) if src.startswith("zip:") else src,
+                        "source": src_url(src),
                         "package": m["family"], "version": m["version"], "licence": "OFL-1.1", "font": m})
     for fname, src in FONT_LICENSES:
         data = get(src, fname)
         for d in (tdir, sdir):
             (d / fname).write_bytes(data)
         entries.append({"file": f"typst/fonts/{fname}", "sha256": sha256(data), "bytes": len(data),
-                        "source": (JB_ZIP + "!" + src[4:]) if src.startswith("zip:") else src,
+                        "source": src_url(src),
                         "package": fname.removesuffix(".txt"), "version": "", "licence": "OFL-1.1"})
         entries.append({"file": f"site/fonts/{fname}", "sha256": sha256(data), "bytes": len(data),
                         "source": "copy of typst/fonts/" + fname, "package": fname.removesuffix(".txt"),
                         "version": "", "licence": "OFL-1.1"})
-    # web fonts: woff2 (full for text families, subset for the symbol fallbacks)
+    for fname, src in WEB_FONT_LICENSES:
+        data = get(src, fname)
+        (sdir / fname).write_bytes(data)
+        entries.append({"file": f"site/fonts/{fname}", "sha256": sha256(data), "bytes": len(data),
+                        "source": src_url(src), "package": fname.removesuffix(".txt"), "version": "",
+                        "licence": "OFL-1.1"})
+    web_src = {}
+    for fname, src in WEB_FONT_FILES:
+        data = get(src, fname)
+        (wdir / fname).write_bytes(data)
+        web_src[fname] = (src_url(src), sha256(data))
+    # web fonts: woff2 (full for text families, subset for the symbol fallbacks and the web-only Libertinus Sans)
     faces_url, faces_by_family = [], {}
-    for fname, _ in FONT_FILES:
-        ttf = tdir / fname
+    for fname, _ in FONT_FILES + WEB_FONT_FILES:
+        ttf = (wdir if fname in web_src else tdir) / fname
         m = font_meta(ttf)
         ranges = SUBSETS.get(fname)
         wname = fname.replace(".ttf", ".subset.woff2" if ranges else ".woff2")
         cps = to_woff2(ttf, sdir / wname, ranges)
         ur = unicode_range(cps) if ranges else None
-        faces_url.append(font_face(m, wname, ur))
+        wt = str(m["weight"]) if fname in web_src else None
+        faces_url.append(font_face(m, wname, ur, wt))
         data = (sdir / wname).read_bytes()
         datauri = "data:font/woff2;base64," + base64.b64encode(data).decode()
-        faces_by_family.setdefault(m["family"], []).append(font_face(m, datauri, ur))
+        faces_by_family.setdefault(m["family"], []).append(font_face(m, datauri, ur, wt))
+        if fname in web_src:
+            entries.append({"file": f"site/fonts/{wname}", "sha256": sha256(data), "bytes": len(data),
+                            "source": f"fontTools subset of {web_src[fname][0]}", "source_sha256": web_src[fname][1],
+                            "package": m["family"], "version": m["version"], "licence": "OFL-1.1",
+                            "unicode_range": ur})
+            continue
         entries.append({"file": f"site/fonts/{wname}", "sha256": sha256(data), "bytes": len(data),
                         "source": f"fontTools {'subset' if ranges else 'woff2'} of typst/fonts/{fname}",
                         "package": m["family"], "version": m["version"], "licence": "OFL-1.1",
@@ -478,6 +549,7 @@ def build_all(root: Path, stage: Path, update_lock: bool, only: str | None) -> d
         md += ["", "| package | version | licence | licence text |", "|---|---|---|---|"]
         for n, ver, l, texts in rows:
             md.append(f"| {n} | {ver} | {l} | {', '.join('licenses/' + t for t in texts) or '(none shipped; see npm metadata)'} |")
+        md += font_notice_md()
         (vend / "THIRD_PARTY_LICENSES.md").write_text("\n".join(md) + "\n", encoding="utf-8")
         (vend / "README.md").write_text(VENDOR_README, encoding="utf-8")
         for p in sorted(lic.iterdir()) + [vend / "THIRD_PARTY_LICENSES.md", vend / "README.md"]:

@@ -63,3 +63,9 @@ FONTS_NOTO_COMMIT=4cf78353cd1668040ba8efa13029cd910fcdf9e2        # github.com/n
 JETBRAINS_MONO_VERSION=2.304
 JETBRAINS_MONO_URL=https://github.com/JetBrains/JetBrainsMono/releases/download/v2.304/JetBrainsMono-2.304.zip
 JETBRAINS_MONO_SHA256=6f6376c6ed2960ea8a963cd7387ec9d76e3f629125bc33d1fdcd7eb7012f7bbf
+# Libertinus 7.051 (official release asset of github.com/alerque/libertinus, SIL OFL 1.1). Web only: Latin + Vietnamese
+# subsets of Libertinus Sans Regular, Italic and Bold, the figure font of the VLOnto paper (arXiv:2611.11426), used by
+# the labels, legends and panel headings of the 3D views. Sha256 computed on download (2026-11-12).
+LIBERTINUS_VERSION=7.051
+LIBERTINUS_URL=https://github.com/alerque/libertinus/releases/download/v7.051/Libertinus-7.051.zip
+LIBERTINUS_SHA256=4d9be29b5cb380c35af8ba967abcc752ad1e07be1f738a9789c33e0dd7478c92
