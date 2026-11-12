@@ -3,9 +3,12 @@
 
    The geometry is computed at build time by scripts/site/trace_layout.py: projected node positions (graph units), links,
    traced segments, floor shadows and, per view (card = the paper's Fig. 6 panel; wide / tall = the focus view in the
-   manner of Fig. 1), a transform [a, tx, ty] and the call-outs (box, text lines, leader line). Colours are not in the
-   markup: CSS classes and custom properties (css/site.css, "question traces") give the paper's class palette and the
-   traced path (navy core over a pale-gold halo; light core on the dark theme), so a theme switch needs no redraw.
+   manner of Fig. 1), a transform [a, tx, ty] and the call-outs (box, text lines, leader line). The card has its own
+   composition: its view carries the node positions (n), floor shadows (s), drawing order (o) and link opacities (lo);
+   nodes flagged as background there, and the links that touch them, get the class "bg" (a call-out may cover them,
+   as in the paper). Colours are not in the markup: CSS classes and custom properties (css/site.css, "question traces")
+   give the paper's class palette and the traced path (navy core over a pale-gold halo; light core on the dark theme),
+   so a theme switch needs no redraw.
 
    VL.TraceDraw.svg(trace, view, opts) -> SVG string; opts: id (unique prefix), title, desc, nodeTitles (one <title>
    per node, focus view). VL.TraceDraw.defs() -> the shared gradients (once per page). */
@@ -48,20 +51,22 @@
   TD.svg = function (tr, view, opts) {
     opts = opts || {};
     var G = tr.g, V = G.views[view], A = V.t[0], TX = V.t[1], TY = V.t[2], id = opts.id || 'tr';
-    var X = [], Y = [], R = [];
-    G.nodes.forEach(function (n) { X.push(A * n[0] + TX); Y.push(A * n[1] + TY); R.push(A * n[2]); });
+    var NN = V.n || G.nodes, SH = V.s || G.shadows, ORD = V.o || G.order, LO = V.lo;
+    var X = [], Y = [], R = [], BG = [];
+    NN.forEach(function (n) { X.push(A * n[0] + TX); Y.push(A * n[1] + TY); R.push(A * n[2]); BG.push(n[4] ? 1 : 0); });
     var o = [];
     o.push('<svg xmlns="http://www.w3.org/2000/svg" class="tr-fig trv-' + view + '" viewBox="0 0 ' + V.w + ' ' + V.h + '"' +
       ' role="img" aria-labelledby="' + id + '-t ' + id + '-d" focusable="false" data-view="' + view + '">');
     o.push('<title id="' + id + '-t">' + esc(opts.title || '') + '</title><desc id="' + id + '-d">' + esc(opts.desc || '') + '</desc>');
     o.push('<g class="tr-shadows">');
-    G.shadows.forEach(function (s) {
+    SH.forEach(function (s) {
       o.push('<ellipse cx="' + n1(A * s[0] + TX) + '" cy="' + n1(A * s[1] + TY) + '" rx="' + n1(A * s[2]) + '" ry="' + n1(A * s[3]) +
         '" opacity="' + s[4] + '"/>');
     });
     o.push('</g><g class="tr-links">');
-    G.links.forEach(function (l) {
-      o.push('<path class="tl tl-' + TD.CLASSES[l[2]] + '" d="' + TD.curve(X[l[0]], Y[l[0]], X[l[1]], Y[l[1]]) + '" opacity="' + l[3] + '"/>');
+    G.links.forEach(function (l, j) {
+      o.push('<path class="tl tl-' + TD.CLASSES[l[2]] + (BG[l[0]] || BG[l[1]] ? ' bg' : '') + '" d="' +
+        TD.curve(X[l[0]], Y[l[0]], X[l[1]], Y[l[1]]) + '" opacity="' + (LO ? LO[j] : l[3]) + '"/>');
     });
     o.push('</g><g class="tr-halo">');
     var core = [];
@@ -71,9 +76,10 @@
       core.push('<path class="tc' + s + '" d="' + d + '"/>');
     });
     o.push('</g><g class="tr-nodes">');
-    G.order.forEach(function (k) {
+    ORD.forEach(function (k) {
       var n = tr.nodes[k], c = TD.CLASSES[n.c];
-      o.push('<circle class="tn tn-' + c + '" cx="' + n1(X[k]) + '" cy="' + n1(Y[k]) + '" r="' + n1(R[k]) + '" opacity="' + G.nodes[k][3] + '"' +
+      o.push('<circle class="tn tn-' + c + (BG[k] ? ' bg' : '') + '" cx="' + n1(X[k]) + '" cy="' + n1(Y[k]) + '" r="' + n1(R[k]) +
+        '" opacity="' + NN[k][3] + '"' +
         ' data-k="' + k + '"' + (opts.nodeTitles ? '><title>' + esc(TD.nodeTitle(n)) + '</title></circle>' : '/>'));
     });
     o.push('</g><g class="tr-core">' + core.join('') + '</g><g class="tr-callouts">');
