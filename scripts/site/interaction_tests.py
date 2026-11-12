@@ -35,6 +35,7 @@ import functools
 import hashlib
 import http.server
 import json
+import math
 import os
 import re
 import sys
@@ -1247,14 +1248,37 @@ JS_PAPER = """(sel) => { const el = sel ? document.querySelector(sel) : document
   return { scope: el.getAttribute('data-style'), theme: document.documentElement.getAttribute('data-theme'), scene_bg: t('--scene-bg'),
     core: t('--paper-trace-core'), halo: t('--paper-trace-halo'), work: t('--cls-work'), callout_line: t('--paper-callout-line'),
     font_paper: t('--vlo-font-paper'), libertinus: lib, paperStyle: !!M.paperStyle }; }"""
-# pixels of the canvas within a tolerance of each target colour (decoded in the page, like JS_MODE)
-JS_COUNT = """async (arg) => { const img = new Image(); img.src = arg.src; await img.decode();
-  const cv = document.createElement('canvas'); cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+# pixels of the traced path in a screenshot, decoded in the page (like JS_MODE): the raw counts of core- and halo-coloured
+# pixels (within a colour tolerance), and two counts that leave out the call-out boxes (the selected node's call-out uses
+# the core colour for its border on the light theme and the halo colour on the dark one): core pixels, and gold pixels
+# (R >= G >= B, R - B >= 40: the halo family, i.e. halo, outer halo and their blends with the ground or the core) within
+# `radius` device px of a core pixel, i.e. the halo band that flanks the core whatever the trace width, antialiasing or
+# the view behind it
+JS_TRACE_PX = """async (arg) => { const img = new Image(); img.src = arg.src; await img.decode();
+  const W = img.naturalWidth, H = img.naturalHeight, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(img, 0, 0);
-  const d = cx.getImageData(0, 0, cv.width, cv.height).data, out = arg.targets.map(() => 0);
-  for (let i = 0; i < d.length; i += 4) arg.targets.forEach((t, k) => { const dr = d[i] - t[0], dg = d[i + 1] - t[1], db = d[i + 2] - t[2];
-    if (dr * dr + dg * dg + db * db <= t[3] * t[3]) out[k]++; });
-  return out; }"""
+  const d = cx.getImageData(0, 0, W, H).data, n = W * H, skip = new Uint8Array(n), core = new Uint8Array(n), s = W / arg.cssW;
+  for (const b of arg.boxes) {
+    const x0 = Math.max(0, Math.floor((b[0] + arg.ox - 3) * s)), y0 = Math.max(0, Math.floor((b[1] + arg.oy - 3) * s));
+    const x1 = Math.min(W - 1, Math.ceil((b[2] + arg.ox + 3) * s)), y1 = Math.min(H - 1, Math.ceil((b[3] + arg.oy + 3) * s));
+    for (let y = y0; y <= y1; y++) skip.fill(1, y * W + x0, y * W + x1 + 1); }
+  const [cr, cg, cb, ct] = arg.core, [hr, hg, hb, ht] = arg.halo;
+  let rawCore = 0, rawHalo = 0, coreOut = 0, near = 0;
+  for (let p = 0, i = 0; p < n; p++, i += 4) {
+    const r = d[i], g = d[i + 1], b = d[i + 2]; let dr = r - cr, dg = g - cg, db = b - cb;
+    if (dr * dr + dg * dg + db * db <= ct * ct) { rawCore++; if (!skip[p]) { core[p] = 1; coreOut++; } }
+    dr = r - hr; dg = g - hg; db = b - hb; if (dr * dr + dg * dg + db * db <= ht * ht) rawHalo++; }
+  const R = arg.radius, row = new Uint8Array(n), ps = new Int32Array(Math.max(W, H) + 1);
+  for (let y = 0; y < H; y++) { const o = y * W; for (let x = 0; x < W; x++) ps[x + 1] = ps[x] + core[o + x];
+    for (let x = 0; x < W; x++) row[o + x] = ps[Math.min(W, x + R + 1)] - ps[Math.max(0, x - R)] > 0 ? 1 : 0; }
+  for (let x = 0; x < W; x++) { for (let y = 0; y < H; y++) ps[y + 1] = ps[y] + row[y * W + x];
+    for (let y = 0; y < H; y++) { const p = y * W + x; if (skip[p] || core[p] || ps[Math.min(H, y + R + 1)] === ps[Math.max(0, y - R)]) continue;
+      const i = 4 * p, r = d[i], g = d[i + 1], b = d[i + 2];
+      if (r >= g && g >= b && r - b >= 40 && g - b >= 0.3 * (r - b)) near++; } }
+  return [rawCore, rawHalo, coreOut, near]; }"""
+JS_TRACE_PX_GEOM = """(sel) => { const el = document.querySelector(sel), co = (window.__VLONTO_METRICS || {}).callouts || {};
+  return { cssW: el.getBoundingClientRect().width, ox: el.clientLeft, oy: el.clientTop, dpr: window.devicePixelRatio || 1,
+    boxes: (co.placed || []).map(p => p.box) }; }"""
 
 
 # call-out placement of the 3D views (js/paper3d.js VL.Callouts -> window.__VLONTO_METRICS.callouts) and the cap of the
@@ -1302,18 +1326,23 @@ def hex_rgb(h):
 
 def trace_pixels(pg, sel, theme):
     """navy (light) or off-white (dark) core pixels and gold halo pixels in the element's screenshot; the overlays (details
-    panel, hint, tooltip and the legend with its own trace swatch) are hidden while capturing, so only WebGL is counted"""
+    panel, hint, tooltip and the legend with its own trace swatch) are hidden while capturing, so only WebGL is counted.
+    core / halo: raw counts; core_out: core pixels outside the call-out boxes; halo_near_core: gold pixels next to those
+    (within the trace's half width at the cap, 3.2 CSS px, plus 2 device px), outside the call-out boxes (JS_TRACE_PX)"""
     e = PAPER_EXPECT[theme]
     hide = "#panel, #hint, #tip, .legend, .vl-footbar"
     pg.evaluate("(q) => document.querySelectorAll(q).forEach(e => { e.dataset.ccVis = e.style.visibility; e.style.visibility = 'hidden'; })", hide)
     pg.wait_for_timeout(120)
     try:
         png = pg.locator(sel).first.screenshot()
+        geo = pg.evaluate(JS_TRACE_PX_GEOM, sel)
     finally:
         pg.evaluate("(q) => document.querySelectorAll(q).forEach(e => { e.style.visibility = e.dataset.ccVis || ''; delete e.dataset.ccVis; })", hide)
-    core, halo = pg.evaluate(JS_COUNT, {"src": "data:image/png;base64," + base64.b64encode(png).decode(),
-                                        "targets": [hex_rgb(e["core"]) + [12], hex_rgb(e["halo"]) + [16]]})
-    return {"core": core, "halo": halo}
+    radius = math.ceil(TRACE_CAP["halo2"] / 2 * geo["dpr"] - TRACE_CAP["core"] / 2 * geo["dpr"]) + 2
+    core, halo, core_out, near = pg.evaluate(JS_TRACE_PX, {
+        "src": "data:image/png;base64," + base64.b64encode(png).decode(), "cssW": geo["cssW"], "ox": geo["ox"], "oy": geo["oy"],
+        "boxes": geo["boxes"], "radius": radius, "core": hex_rgb(e["core"]) + [12], "halo": hex_rgb(e["halo"]) + [16]})
+    return {"core": core, "halo": halo, "core_out": core_out, "halo_near_core": near, "callout_boxes": len(geo["boxes"])}
 
 
 def t_paper_style(c: Ctx):
@@ -1389,8 +1418,14 @@ def t_paper_style(c: Ctx):
                 m = pg.evaluate("window.__VLONTO_METRICS")
                 if m.get("highlightChain", 0) < 1:
                     raise RuntimeError(f"no superclass chain in the highlight: {m.get('highlightChain')}")
-                if after["core"] - before["core"] < 30 or after["halo"] - before["halo"] < 60:
-                    raise RuntimeError(f"traced path not drawn: core/halo pixels {before} -> {after}")
+                # the trace's own pixels: its core outside the call-out boxes, and the gold halo band flanking that core
+                # (a raw count of gold pixels also follows pastel nodes that leave the view when the camera flies in)
+                d_core = after["core_out"] - before["core_out"]
+                d_halo = after["halo_near_core"] - before["halo_near_core"]
+                need_halo = max(60, d_core // 2)
+                if d_core < 30 or d_halo < need_halo:
+                    raise RuntimeError(f"traced path not drawn: core pixels +{d_core} (need 30), halo pixels next to the core "
+                                       f"+{d_halo} (need {need_halo}); {before} -> {after}")
                 shot_article = shot(pg, "playground_article", theme)
                 # a class with more than 6 links (NormativeLegalDocument: 11): only its chain up the hierarchy is traced, the
                 # other links are thin coloured lines; hovering a neighbour traces its link and keeps its call-out
