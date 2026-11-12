@@ -1214,3 +1214,186 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
   .construct-view .legend { font-size: 11.5px; }
 }
 [data-style="paper"] .legend .lg-note { margin: 5px 0 0; font-size: 11.5px; line-height: 1.35; color: var(--paper-ink-2); white-space: normal; max-width: 60ch; }
+
+/* ------------------------------------------------------------------ question traces (traces.html)
+   One tab per legal area, 20 traced answers per tab drawn like the panels of the paper's Fig. 6, and a focus view in
+   the manner of Fig. 1 with the hop-by-hop provenance of Fig. 5. The drawings are SVG built from build-time geometry
+   (scripts/site/trace_layout.py, js/trace-draw.js); every colour comes from the paper-style tokens above (class palette
+   --cls-*, call-out greys, the traced path) plus the sphere shading below, so the theme switch needs no redraw. Light =
+   the paper's white figure ground; dark = the same palette on the paper-style dark ground with the light trace core. */
+[data-style="paper"] {
+  /* sphere shading: highlight = class colour mixed 50 % with white, rim = 0.84 x class colour (as the 3D views) */
+  --trs-work-hi: #bedec6; --trs-work-rim: #69a077; --trs-record-hi: #d1e9d6; --trs-record-rim: #89b192;
+  --trs-chapter-hi: #b7dbda; --trs-chapter-rim: #5d9a97; --trs-section-hi: #c2e2df; --trs-section-rim: #71a5a0;
+  --trs-article-hi: #cee8e4; --trs-article-rim: #85b0a9; --trs-clause-hi: #def0ec; --trs-clause-rim: #9fbeb6;
+  --trs-point-hi: #ecf7f4; --trs-point-rim: #b6c9c4; --trs-term-hi: #c6dcf4; --trs-term-rim: #769bc3;
+  --trs-question-hi: #fad8c1; --trs-question-rim: #cd956e; --trs-answer-hi: #fceacd; --trs-answer-rim: #d0b282;
+  --trs-area-hi: #dcdce6; --trs-area-rim: #9b9bad;
+  --tr-shadow: #5a606a; --tr-shadow-a: .42; --tr-link-opacity: .95;
+  --tr-card-bg: var(--scene-bg); --tr-card-line: var(--paper-callout-line);
+}
+:root[data-style="paper"][data-theme="dark"], :root[data-theme="dark"] [data-style="paper"] {
+  /* dark ground: highlight 32 % white, rim 0.7 x class colour */
+  --trs-work-hi: #a7d3b2; --trs-work-rim: #588563; --trs-record-hi: #c0e1c8; --trs-record-rim: #72947a;
+  --trs-chapter-hi: #9dcecc; --trs-chapter-rim: #4e807e; --trs-section-hi: #add7d3; --trs-section-rim: #5e8986;
+  --trs-article-hi: #bde0da; --trs-article-rim: #6f938d; --trs-clause-hi: #d2ebe5; --trs-clause-rim: #849e98;
+  --trs-point-hi: #e5f4f0; --trs-point-rim: #98a7a3; --trs-term-hi: #b1cfef; --trs-term-rim: #6381a2;
+  --trs-question-hi: #f8caab; --trs-question-rim: #ab7c5c; --trs-answer-hi: #fae2bb; --trs-answer-rim: #ae946c;
+  --trs-area-hi: #cfcfde; --trs-area-rim: #828290;
+  --tr-shadow: #000000; --tr-shadow-a: .55; --tr-link-opacity: .8;
+}
+/* --- the drawing (card = Fig. 6 panel; wide / tall = focus view) */
+.tr-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+.tr-fig { display: block; width: 100%; height: auto; font-family: var(--vlo-font-paper); }
+.tr-shadows ellipse { fill: url(#trg-shadow); }
+.tgs-shadow { stop-color: var(--tr-shadow); stop-opacity: var(--tr-shadow-a); }
+.tgs-shadow-mid { stop-color: var(--tr-shadow); stop-opacity: calc(var(--tr-shadow-a) * .45); }
+.tgs-shadow-0 { stop-color: var(--tr-shadow); stop-opacity: 0; }
+.tr-links { opacity: var(--tr-link-opacity); }
+.tr-links .tl { fill: none; stroke-width: .95px; stroke-linecap: round; }
+.trv-wide .tr-links .tl { stroke-width: 1.25px; }
+.trv-tall .tr-links .tl { stroke-width: 1.05px; }
+.tl-work { stroke: var(--cls-work); } .tl-record { stroke: var(--cls-record); } .tl-chapter { stroke: var(--cls-chapter); }
+.tl-section { stroke: var(--cls-section); } .tl-article { stroke: var(--cls-article); } .tl-clause { stroke: var(--cls-clause); }
+.tl-point { stroke: var(--cls-point); } .tl-term { stroke: var(--cls-term); } .tl-question { stroke: var(--cls-question); }
+.tl-answer { stroke: var(--cls-answer); } .tl-area { stroke: var(--cls-area); } .tl-other_question { stroke: var(--cls-question); }
+.th2, .th, .tc { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.th2 { stroke: var(--paper-trace-halo-2); stroke-width: 8px; }
+.th { stroke: var(--paper-trace-halo); stroke-width: 5.5px; }
+.tc { stroke: var(--paper-trace-core); stroke-width: 2.4px; }
+.trv-wide .th2 { stroke-width: 11px; } .trv-wide .th { stroke-width: 7.5px; } .trv-wide .tc { stroke-width: 3.2px; }
+.trv-tall .th2 { stroke-width: 9px; } .trv-tall .th { stroke-width: 6px; } .trv-tall .tc { stroke-width: 2.6px; }
+/* structural path (the primary citation's text is not in the answer): thinner dashed core over a faint halo */
+.th2.s, .th.s { opacity: .4; }
+.tc.s { stroke-width: 1.5px; stroke-dasharray: 3.4 2.6; }
+.trv-wide .tc.s { stroke-width: 2px; stroke-dasharray: 5 4; }
+.trv-tall .tc.s { stroke-width: 1.7px; stroke-dasharray: 4 3; }
+.tn { stroke-width: .6px; }
+.trv-wide .tn { stroke-width: .9px; }
+.tn-work { fill: url(#trg-work); stroke: var(--trs-work-rim); } .tn-record { fill: url(#trg-record); stroke: var(--trs-record-rim); }
+.tn-chapter { fill: url(#trg-chapter); stroke: var(--trs-chapter-rim); } .tn-section { fill: url(#trg-section); stroke: var(--trs-section-rim); }
+.tn-article { fill: url(#trg-article); stroke: var(--trs-article-rim); } .tn-clause { fill: url(#trg-clause); stroke: var(--trs-clause-rim); }
+.tn-point { fill: url(#trg-point); stroke: var(--trs-point-rim); } .tn-term { fill: url(#trg-term); stroke: var(--trs-term-rim); }
+.tn-question { fill: url(#trg-question); stroke: var(--trs-question-rim); } .tn-answer { fill: url(#trg-answer); stroke: var(--trs-answer-rim); }
+.tn-area { fill: url(#trg-area); stroke: var(--trs-area-rim); } .tn-other_question { fill: url(#trg-oq); stroke: var(--trs-question-rim); }
+.tgs-mid.tgs-work { stop-color: var(--cls-work); } .tgs-hi.tgs-work { stop-color: var(--trs-work-hi); } .tgs-rim.tgs-work { stop-color: var(--trs-work-rim); }
+.tgs-mid.tgs-record { stop-color: var(--cls-record); } .tgs-hi.tgs-record { stop-color: var(--trs-record-hi); } .tgs-rim.tgs-record { stop-color: var(--trs-record-rim); }
+.tgs-mid.tgs-chapter { stop-color: var(--cls-chapter); } .tgs-hi.tgs-chapter { stop-color: var(--trs-chapter-hi); } .tgs-rim.tgs-chapter { stop-color: var(--trs-chapter-rim); }
+.tgs-mid.tgs-section { stop-color: var(--cls-section); } .tgs-hi.tgs-section { stop-color: var(--trs-section-hi); } .tgs-rim.tgs-section { stop-color: var(--trs-section-rim); }
+.tgs-mid.tgs-article { stop-color: var(--cls-article); } .tgs-hi.tgs-article { stop-color: var(--trs-article-hi); } .tgs-rim.tgs-article { stop-color: var(--trs-article-rim); }
+.tgs-mid.tgs-clause { stop-color: var(--cls-clause); } .tgs-hi.tgs-clause { stop-color: var(--trs-clause-hi); } .tgs-rim.tgs-clause { stop-color: var(--trs-clause-rim); }
+.tgs-mid.tgs-point { stop-color: var(--cls-point); } .tgs-hi.tgs-point { stop-color: var(--trs-point-hi); } .tgs-rim.tgs-point { stop-color: var(--trs-point-rim); }
+.tgs-mid.tgs-term { stop-color: var(--cls-term); } .tgs-hi.tgs-term { stop-color: var(--trs-term-hi); } .tgs-rim.tgs-term { stop-color: var(--trs-term-rim); }
+.tgs-mid.tgs-question { stop-color: var(--cls-question); } .tgs-hi.tgs-question { stop-color: var(--trs-question-hi); } .tgs-rim.tgs-question { stop-color: var(--trs-question-rim); }
+.tgs-mid.tgs-answer { stop-color: var(--cls-answer); } .tgs-hi.tgs-answer { stop-color: var(--trs-answer-hi); } .tgs-rim.tgs-answer { stop-color: var(--trs-answer-rim); }
+.tgs-mid.tgs-area { stop-color: var(--cls-area); } .tgs-hi.tgs-area { stop-color: var(--trs-area-hi); } .tgs-rim.tgs-area { stop-color: var(--trs-area-rim); }
+/* call-outs: white box, 1 px light-grey border, Vietnamese in dark grey then English in mid grey, thin grey leader */
+.tr-box { fill: var(--paper-callout-bg); stroke: var(--paper-callout-line); stroke-width: 1px; }
+.tr-lead { stroke: var(--paper-leader); stroke-width: .8px; fill: none; }
+.trv-wide .tr-lead { stroke-width: 1px; }
+.tr-vi { fill: var(--paper-ink); } .tr-en { fill: var(--paper-ink-2); }
+.tr-fig text { font-family: var(--vlo-font-paper); font-weight: 400; font-style: normal; }
+.trv-card text { font-size: 12px; } .trv-wide text { font-size: 15px; } .trv-tall text { font-size: 12.5px; }
+/* --- the page: header notes, flat legend, area tabs (wrap on wide screens, one scrolling row on phones), card grid */
+.traces-page { max-width: 1400px; }
+.traces-page .page-head { padding-bottom: 4px; }
+.traces-page .lead .vi, .tr-notes .vi { display: block; color: var(--fg-2); }
+.tr-notes { max-width: 980px; margin: 4px 0 0; font-size: 14px; line-height: 1.5; color: var(--fg-2); }
+.tr-notes summary { cursor: pointer; font-weight: 600; color: var(--fg); padding: 4px 0; }
+.tr-notes ul { margin: 6px 0 4px; padding-left: 20px; }
+.tr-notes li { margin: 0 0 6px; }
+.tr-notes li .vi { font-size: 13.5px; }
+.tr-revs { font-size: 12.5px; color: var(--fg-2); }
+.tr-legend { font: 400 13.5px/1.35 var(--vlo-font-paper); color: var(--paper-legend-fg); margin: 14px 0 0; padding: 8px 12px 9px;
+  background: var(--tr-card-bg); border: 1px solid var(--paper-legend-line); border-radius: 2px; }
+.tr-legend ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.tr-legend li { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.tr-legend .swatch { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .14); }
+.tr-legend .swatch.small { width: 8px; height: 8px; margin: 0 2px; }
+.tr-legend .swatch.trace { width: 22px; height: 8px; border-radius: 4px; background: var(--paper-trace-halo); box-shadow: none; position: relative; }
+.tr-legend .swatch.trace::after { content: ""; position: absolute; left: 2px; right: 2px; top: 3px; height: 2px; border-radius: 1px; background: var(--paper-trace-core); }
+.tr-legend .swatch.trace.s { background: color-mix(in srgb, var(--paper-trace-halo) 45%, transparent); }
+.tr-legend .swatch.trace.s::after { height: 1.5px; top: 3.25px; background: repeating-linear-gradient(90deg, var(--paper-trace-core) 0 3.5px, transparent 3.5px 6px); }
+.tr-legend .lg-note { margin: 5px 0 0; font-size: 12.5px; color: var(--paper-ink-2); }
+.tr-tabs { display: flex; flex-wrap: wrap; gap: 5px; margin: 14px 0 0; padding: 2px; }
+.tr-tabs [role="tab"] { font: 500 13px/1.25 var(--vlo-font-sans); color: var(--fg-2); background: var(--surface); border: 1px solid var(--line-2);
+  border-radius: 7px; padding: 6px 9px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: baseline; gap: 6px; }
+.tr-tabs [role="tab"] .n { font: 400 11.5px/1 var(--vlo-font-mono); color: var(--fg-2); }
+.tr-tabs [role="tab"][aria-selected="true"] { background: var(--primary-bg); border-color: var(--primary-bg); color: var(--primary-fg); }
+.tr-tabs [role="tab"][aria-selected="true"] .n { color: var(--primary-fg); }
+.tr-tabs [role="tab"]:focus-visible { position: relative; z-index: 1; }
+.tr-panel { margin: 16px 0 8px; }
+.tr-panel:focus-visible { outline-offset: 4px; }
+.tr-area-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin: 0 0 12px; }
+.tr-area-head h2 { font: 400 24px/1.25 var(--vlo-font-paper); }
+.tr-area-head h2 .en { color: var(--fg-2); }
+.tr-area-head p { margin: 0; font-size: 14px; color: var(--fg-2); }
+.tr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 18px; }
+.tr-status { font-size: 14px; color: var(--fg-2); padding: 18px 0; }
+.tr-nodata { margin: 18px 0; }
+/* --- a card = one panel of Fig. 6 */
+.tr-card { position: relative; background: var(--tr-card-bg); border: 1px solid var(--tr-card-line); border-radius: 2px; padding: 12px 14px 10px;
+  font-family: var(--vlo-font-paper); color: var(--paper-ink); cursor: pointer; min-width: 0; }
+.tr-card:hover { border-color: var(--paper-leader); }
+.tc-head { display: flex; gap: 10px; align-items: baseline; font: 400 17px/1.3 var(--vlo-font-paper); margin: 0 0 3px; }
+.tc-rank { font-weight: 700; min-width: 16px; flex: 0 0 auto; }
+.tc-open { color: var(--paper-ink); text-decoration: none; overflow-wrap: break-word; min-width: 0; }
+.tc-open:hover { text-decoration: underline; }
+.tc-open .num { white-space: nowrap; }
+.tc-body { padding-left: 26px; }
+.tc-q { font: italic 400 15.5px/1.32 var(--vlo-font-paper); margin: 0 0 3px; color: var(--paper-ink); }
+.tc-g { font: 400 14.5px/1.32 var(--vlo-font-paper); margin: 0 0 4px; color: var(--paper-ink-2); }
+.tc-fig { margin: 4px 0 2px; }
+.tc-prov { font: 400 12.5px/1.4 var(--vlo-font-paper); color: var(--paper-ink-2); margin: 2px 0 0; overflow-wrap: break-word; }
+.tc-prov .ok { color: var(--paper-ink); }
+.tc-prov a { color: var(--paper-ink-2); }
+/* --- focus view (Fig. 1 + Fig. 5): modal dialog over the page */
+.tr-focus { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-start; justify-content: center; padding: 28px 18px; overflow-y: auto; }
+.tr-focus[hidden] { display: none; }
+.tr-focus-backdrop { position: fixed; inset: 0; background: rgba(9, 13, 22, .55); }
+.tr-focus-dialog { position: relative; width: min(1180px, 100%); background: var(--tr-card-bg); color: var(--paper-ink); border: 1px solid var(--tr-card-line);
+  border-radius: 3px; padding: 16px 20px 18px; font-family: var(--vlo-font-paper); box-shadow: 0 18px 50px rgba(0, 0, 0, .3); }
+.tr-focus-dialog:focus { outline: none; }
+.tf-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; align-items: start; }
+.tf-head h2 { font: 400 22px/1.3 var(--vlo-font-paper); color: var(--paper-ink); }
+.tf-head h2 .num, .tf-head h2 .vi { color: var(--paper-ink-2); }
+.tf-area { font-size: 13.5px; color: var(--paper-ink-2); margin: 0 0 2px; }
+.tf-q { font: italic 400 17px/1.35 var(--vlo-font-paper); margin: 6px 0 2px; }
+.tf-g { font-size: 15.5px; color: var(--paper-ink-2); margin: 0 0 6px; }
+.tf-close { font: 600 13px/1 var(--vlo-font-sans); }
+.tf-fig { margin: 8px 0 6px; }
+.tf-fig .trv-tall { max-width: 520px; margin: 0 auto; }
+.tf-links { font-size: 13.5px; color: var(--paper-ink-2); margin: 8px 0 0; }
+.tf-links a { color: var(--paper-ink); }
+/* Fig. 5: the trace hop by hop, boxes tinted with their class colour and a left accent bar */
+.tr-hops { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 26px; font-size: 13.5px; line-height: 1.42; }
+.tr-hops .col { display: flex; flex-direction: column; gap: 0; min-width: 0; position: relative; }
+.tr-hops .col + .col::before { content: "\2192"; position: absolute; left: -21px; top: 22px; color: var(--paper-ink-2); font-size: 18px; }
+.hop { border-left: 4px solid var(--hop-c); background: var(--tr-card-bg); background: color-mix(in srgb, var(--hop-c) 26%, var(--tr-card-bg));
+  padding: 9px 11px 10px; border-radius: 2px; min-width: 0; overflow-wrap: break-word; }
+:root[data-theme="dark"] .hop { background: color-mix(in srgb, var(--hop-c) 15%, var(--tr-card-bg)); }
+.hop h3 { font: 400 13.5px/1.35 var(--vlo-font-paper); color: var(--paper-ink-2); margin: 0 0 4px; }
+.hop h3 b { font-size: 16px; font-weight: 700; color: var(--paper-ink); margin-right: 4px; }
+.hop p { margin: 0 0 4px; }
+.hop .strong { font-weight: 700; }
+.hop .en { color: var(--paper-ink-2); font-style: italic; }
+.hop .pv { color: var(--paper-ink-2); font-size: 12.5px; margin-top: 5px; }
+.hop ul { margin: 2px 0 4px; padding: 0 0 0 2px; list-style: none; }
+.hop li { margin: 0 0 2px; }
+.hop a { color: var(--paper-ink); }
+.hop-q { --hop-c: var(--cls-question); } .hop-a { --hop-c: var(--cls-answer); } .hop-p { --hop-c: var(--cls-article); }
+.hop-l { --hop-c: var(--cls-work); } .hop-t { --hop-c: var(--cls-term); }
+.hop-arrow { text-align: center; color: var(--paper-ink-2); font-size: 13px; padding: 3px 0 4px; }
+@media (max-width: 900px) {
+  .tr-hops { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .tr-hops .col + .col::before { content: "\2193"; position: static; display: block; text-align: center; padding: 3px 0 4px; }
+}
+@media (max-width: 760px) {
+  .tr-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
+  .tr-focus { padding: 0; }
+  .tr-focus-dialog { min-height: 100%; border: 0; border-radius: 0; padding: 12px 12px 16px; }
+  .tf-head h2 { font-size: 19px; }
+  .tc-body { padding-left: 0; }
+  .tr-card { padding: 10px 11px 9px; }
+}
+body.tr-modal-open { overflow: hidden; }

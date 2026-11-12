@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>/* theme before first paint: ?theme=, else stored choice, else system (css/site.css, js/common.js) */(function(d,w){var t=null,m=/[?&]theme=(light|dark)(?:&|$)/.exec(w.location.search);if(m)t=m[1];else{try{t=w.localStorage.getItem('vlonto.theme')}catch(e){}if(t!=='light'&&t!=='dark'){try{t=w.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}catch(e){t='light'}}}d.setAttribute('data-theme',t);d.style.colorScheme=t})(document.documentElement,window);</script>
+<title>Truy vết câu hỏi · Question traces · VLOnto</title>
+<meta name="description" content="For each of 27 legal areas, the 20 most-asked articles with one published question each, traced from the answer to the article that grounds it, drawn like the figures of the VLOnto paper.">
+<link rel="stylesheet" href="css/fonts-web.css">
+<link rel="stylesheet" href="css/fonts-paper.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body class="page-text page-traces">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="vl-header"></div>
+<main id="main" class="page traces-page" data-style="paper">
+  <header class="page-head">
+    <p class="eyebrow"><span lang="vi">Truy vết câu hỏi</span> · Question traces</p>
+    <h1>Every answer, traced to the article that grounds it</h1>
+    <p class="lead">For each legal area, the twenty articles its answers cite most, with one published question each, traced from
+      the answer through the cited provision up to the law, drawn like the figures of the paper. Open a card for the whole
+      trace and its provenance, hop by hop.
+      <span class="vi" lang="vi">Với mỗi lĩnh vực, hai mươi điều luật được các câu trả lời trích dẫn nhiều nhất, mỗi điều một câu hỏi đã đăng,
+      truy vết từ câu trả lời qua điều khoản được trích dẫn lên đến văn bản. Mở một thẻ để xem toàn bộ đường truy vết và nguồn gốc từng bước.</span></p>
+    <details class="tr-notes" id="tr-notes">
+      <summary>How to read the traces · <span lang="vi">Cách đọc</span></summary>
+      <ul>
+        <li>Question titles are as published on thuvienphapluat.vn; English glosses and the normalised English law names are
+          machine-assisted. <span class="vi" lang="vi">Tiêu đề câu hỏi giữ nguyên như đăng trên thuvienphapluat.vn; bản dịch tiếng Anh của câu hỏi
+          và tên văn bản tiếng Anh được chuẩn hoá có sự hỗ trợ của máy.</span></li>
+        <li>“Verified” means that at least half of the cited provision's word 5-grams appear in the answer (5-gram containment ≥ 0.5),
+          as in the paper; other citations stay structural links. <span class="vi" lang="vi">“Đã kiểm chứng” nghĩa là ít nhất một nửa số cụm 5 từ
+          của điều khoản được trích dẫn có trong câu trả lời (≥ 0,5), như trong bài báo; các trích dẫn khác chỉ là liên kết cấu trúc.</span></li>
+        <li>Selection: per area, the 20 articles cited by the most answers of that area; one representative answer each, with a
+          name-free title first, then a word-for-word citation of the article, then an answer not used for a higher-ranked
+          article, then the most recent. <span class="vi" lang="vi">Cách chọn: mỗi lĩnh vực lấy 20 điều được nhiều câu trả lời trong lĩnh vực trích dẫn nhất;
+          mỗi điều một câu trả lời đại diện: ưu tiên tiêu đề không có tên người, rồi câu trả lời trích nguyên văn điều đó, rồi câu
+          trả lời chưa dùng cho điều xếp trên, rồi câu mới nhất.</span></li>
+        <li>No answer text, article, clause or point text, glossary definitions or person names are shown: each node links to
+          its source for the text. <span class="vi" lang="vi">Không hiển thị nội dung câu trả lời, nội dung điều, khoản, điểm, định nghĩa thuật ngữ
+          hay tên người: mỗi nút dẫn tới nguồn để đọc nội dung.</span></li>
+        <li class="tr-revs" id="tr-revs"></li>
+      </ul>
+    </details>
+  </header>
+  <svg class="tr-defs" id="tr-defs" width="0" height="0" aria-hidden="true" focusable="false"></svg>
+  <div class="tr-legend" data-legend>
+    <ul>
+      <li><span class="swatch" style="background:var(--cls-work)"></span><span lang="vi">Văn bản</span>&nbsp;· Work</li>
+      <li><span class="swatch" style="background:var(--cls-record)"></span><span lang="vi">Bản ghi</span>&nbsp;· Record</li>
+      <li><span class="swatch" style="background:var(--cls-chapter)"></span><span lang="vi">Chương</span>&nbsp;· Chapter</li>
+      <li><span class="swatch" style="background:var(--cls-section)"></span><span lang="vi">Mục</span>&nbsp;· Section</li>
+      <li><span class="swatch" style="background:var(--cls-article)"></span><span lang="vi">Điều</span>&nbsp;· Article</li>
+      <li><span class="swatch" style="background:var(--cls-clause)"></span><span lang="vi">Khoản</span>&nbsp;· Clause</li>
+      <li><span class="swatch" style="background:var(--cls-point)"></span><span lang="vi">Điểm</span>&nbsp;· Point</li>
+      <li><span class="swatch" style="background:var(--cls-term)"></span><span lang="vi">Thuật ngữ</span>&nbsp;· Term</li>
+      <li><span class="swatch" style="background:var(--cls-question)"></span><span lang="vi">Câu hỏi</span>&nbsp;· Question</li>
+      <li><span class="swatch" style="background:var(--cls-answer)"></span><span lang="vi">Trả lời</span>&nbsp;· Answer</li>
+      <li><span class="swatch" style="background:var(--cls-area)"></span><span lang="vi">Lĩnh vực</span>&nbsp;· Area</li>
+      <li><span class="swatch small" style="background:var(--cls-question)"></span><span lang="vi">Câu hỏi khác</span>&nbsp;· Other questions on the law</li>
+      <li><span class="swatch trace"></span><span lang="vi">Đường truy vết</span>&nbsp;· Traced answer</li>
+      <li><span class="swatch trace s"></span><span lang="vi">Chỉ khớp cấu trúc</span>&nbsp;· Structure only (match &lt; 0.5)</li>
+    </ul>
+    <p class="lg-note">Dark paths lead to the sources whose words the answer contains (word 5-gram match ≥ 0.5); a dashed path is the
+      ranked article's citation when the answer does not quote it, kept as structure and not verified.
+      <span lang="vi" class="vi">Đường đậm dẫn tới nguồn có lời văn nằm trong câu trả lời (khớp cụm 5 từ ≥ 0,5); đường nét đứt là trích dẫn điều được xếp hạng khi câu trả lời không trích nguyên văn: giữ làm cấu trúc, chưa kiểm chứng.</span></p>
+  </div>
+  <div class="tr-tabs" id="tr-tabs" role="tablist" aria-label="Lĩnh vực pháp luật · Legal areas"></div>
+  <section class="tr-panel" id="tr-panel" role="tabpanel" tabindex="0" aria-live="polite">
+    <p class="tr-status" id="tr-status">Loading the traces · <span lang="vi">Đang tải</span></p>
+  </section>
+  <div class="note tr-nodata" id="tr-nodata" hidden>
+    <p><strong>No trace data in this build.</strong> <span lang="vi">Bản dựng này không có dữ liệu truy vết.</span></p>
+    <p>The traces come from build/traces (scripts/traces/README.md); scripts/site/build_site.py turns them into data/traces/*.js.
+      <span lang="vi">Dữ liệu truy vết lấy từ build/traces (scripts/traces/README.md); scripts/site/build_site.py chuyển chúng thành data/traces/*.js.</span></p>
+  </div>
+  <div class="tr-focus" id="tr-focus" hidden>
+    <div class="tr-focus-backdrop" data-close></div>
+    <div class="tr-focus-dialog" id="tr-focus-dialog" role="dialog" aria-modal="true" aria-labelledby="tf-title" tabindex="-1"></div>
+  </div>
+</main>
+<div id="vl-footer"></div>
+<script src="data/site_meta.js"></script>
+<script src="data/stats.js"></script>
+<script src="data/traces/index.js"></script>
+<script src="js/common.js"></script>
+<script src="js/trace-draw.js"></script>
+<script src="js/traces.js"></script>
+</body>
+</html>
