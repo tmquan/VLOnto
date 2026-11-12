@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-style="paper">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,6 +7,7 @@
 <title>VLOnto · 3D Ontology Playground of Vietnamese Law</title>
 <meta name="description" content="Explore the VLOnto ontology of Vietnamese law in 3D: classes, properties, concept schemes and alignments, with SPARQL CONSTRUCT results drawn in the same scene.">
 <link rel="stylesheet" href="css/fonts-web.css">
+<link rel="stylesheet" href="css/fonts-paper.css">
 <link rel="stylesheet" href="css/site.css">
 </head>
 <body class="page-scene page-onto3d">
@@ -34,7 +35,8 @@
     <div class="side-section">
       <div class="side-title">Labels</div>
       <div class="seg" role="group" aria-label="Label language">
-        <button type="button" data-lang="en" aria-pressed="true">English</button>
+        <button type="button" data-lang="both" aria-pressed="true" title="Vietnamese and English, as in the paper's figures">VI · EN</button>
+        <button type="button" data-lang="en" aria-pressed="false">English</button>
         <button type="button" data-lang="vi" aria-pressed="false">Tiếng Việt</button>
       </div>
     </div>
@@ -68,9 +70,11 @@
     </div>
     <div class="side-section">
       <div class="side-title">About</div>
-      <p class="side-about">Node size grows with the number of knowledge-graph instances (log scale). Colours are the
-        ontology modules. External terms show how VLOnto aligns with ELI, SKOS, PROV-O, schema.org, ORG and DCTERMS.
-        Documentation: <a href="ontology.html">ontology page</a>.</p>
+      <p class="side-about">Node size grows with the number of knowledge-graph instances (log scale). Drawn like the
+        figures of the paper: a class the paper names (Văn bản · Work, Điều · Article, Thuật ngữ · Term, …) takes the
+        paper's class colour, other classes the colour of their module; the selection's chain and neighbourhood, or a
+        CONSTRUCT result, is the traced path. External terms show how VLOnto aligns with ELI, SKOS, PROV-O, schema.org, ORG
+        and DCTERMS. Documentation: <a href="ontology.html">ontology page</a>.</p>
     </div>
   </aside>
   <section class="scene-stage" id="stage" aria-label="3D ontology scene">
@@ -115,6 +119,7 @@
 <script src="js/common.js"></script>
 <script src="vendor/three/three.iife.min.js"></script>
 <script src="js/labels3d.js"></script>
+<script src="js/paper3d.js"></script>
 <script src="vendor/3d-force-graph/3d-force-graph.iife.min.js"></script>
 <script src="data/ontology_graph.js"></script>
 <script src="data/sparql_examples.js"></script>

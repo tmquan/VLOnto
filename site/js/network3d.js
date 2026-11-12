@@ -1,79 +1,103 @@
 /* VLOnto - 3D Legal Network (raw three.js: GPU points + line segments, precomputed coordinates, no live layout).
    data/legal_network_lite.js (6,000 documents) or data/legal_network.js (40,816) are loaded on demand with <script>
    tags; per-document details (dates, source status, URL, change evidence) come from data/doc_links.js and the
-   data/doc_details_NN.js shards (scripts/site/derive_site_data.py). Height = legal-force rank (Constitution on top). */
+   data/doc_details_NN.js shards (scripts/site/derive_site_data.py). Height = legal-force rank (Constitution on top).
+   Paper style (arXiv:2611.11426, Fig. 1 / Fig. 6; js/paper3d.js): white figure ground, the encodings (legal-force layers,
+   validity, document type or area, change / legal-basis / citation links) in the paper's pastel register, points shaded
+   like the paper's spheres, depth fade, bilingual call-outs with leader lines, and the selection drawn as the traced
+   answer: its links as a navy core over a pale-gold halo (thicker along its replacement chain), everything else faded. */
 (function () {
   'use strict';
   var VL = window.VL, M = window.__VLONTO_METRICS;
   VL.chrome({ scene: true });
   M.page = 'network-3d';
+  M.paperStyle = true;
 
   var ZS = 2.2;                      // vertical exaggeration of the legal-force layers
   var KINDS = ['replaced', 'amended', 'repealed', 'partially_repealed', 'partially_expired'];
   var EDGE_KEYS = KINDS.concat(['basis', 'citation']);
-  /* normal (not additive) blending: dense legal-basis bundles must stay blue, not saturate to white.
-     Per theme: thin lines need a little more opacity on the light background. */
+  /* normal (not additive) blending: dense legal-basis bundles must keep their pastel blue, not saturate.
+     Per theme: thin pastel lines need more opacity on the white ground. */
   var EDGE_OPACITY = {
-    dark: { replaced: 0.9, amended: 0.72, repealed: 0.85, partially_repealed: 0.72, partially_expired: 0.72, basis: 0.11, citation: 0.07 },
-    light: { replaced: 0.9, amended: 0.82, repealed: 0.85, partially_repealed: 0.78, partially_expired: 0.78, basis: 0.13, citation: 0.085 }
+    dark: { replaced: 0.9, amended: 0.75, repealed: 0.88, partially_repealed: 0.75, partially_expired: 0.75, basis: 0.12, citation: 0.075 },
+    light: { replaced: 0.95, amended: 0.9, repealed: 0.92, partially_repealed: 0.88, partially_expired: 0.88, basis: 0.2, citation: 0.13 }
   };
-  /* scene colours of the current theme (css/site.css: --scene-bg, --label-*, --layer-label-*, --net-plane*, --area-*) */
-  var TH = {};
+  /* scene colours of the current theme (css/site.css: paper style tokens, --scene-bg, --net-plane*, --area-*) */
+  var TH = {}, P = {};
   function readTheme() {
+    P = VL.paperTheme();
     TH = {
-      dark: VL.theme() === 'dark',
-      bg: VL.tok('--scene-bg') || '#0a0f1e',
-      labelFg: VL.tok('--label-fg') || '#ffffff', labelBg: VL.tok('--label-bg') || 'rgba(9, 14, 30, 0.82)', labelBorder: VL.tok('--label-border') || '',
-      selFg: VL.tok('--label-sel-fg') || '#ffffff', selBg: VL.tok('--label-sel-bg') || 'rgba(43, 85, 208, 0.92)',
-      layerFg: VL.tok('--layer-label-fg') || '#c9d2ea', layerBg: VL.tok('--layer-label-bg') || 'rgba(20, 30, 62, 0.85)',
-      plane: VL.tok('--net-plane') || '#223066', planeOpacity: VL.tokNum('--net-plane-opacity', 0.075),
-      planeLine: VL.tok('--net-plane-line') || '#3a4a80', planeLineOpacity: VL.tokNum('--net-plane-line-opacity', 0.55),
-      areas: VL.areaColors(), areaNone: VL.tok('--area-none') || '#56627f', areaOther: VL.tok('--area-other') || '#6b7796',
+      dark: P.dark,
+      bg: P.bg,
+      plane: VL.tok('--net-plane') || '#c9ced6', planeOpacity: VL.tokNum('--net-plane-opacity', 0.14),
+      planeLine: VL.tok('--net-plane-line') || '#d3d7dc', planeLineOpacity: VL.tokNum('--net-plane-line-opacity', 1),
+      areas: VL.areaColors(), areaNone: VL.tok('--area-none') || '#dcdee2', areaOther: VL.tok('--area-other') || '#92959a',
       typeOther: VL.hue('slate')
     };
     M.sceneBg = TH.bg;
+    M.traceCore = P.core;
   }
   readTheme();
   function edgeOpacity(k) { return EDGE_OPACITY[TH.dark ? 'dark' : 'light'][k] * ((k === 'basis' || k === 'citation') && D && D.N > 20000 ? 0.55 : 1); }
-  var FONT = '"Be Vietnam Pro", "Noto Sans Symbols 2", "Noto Sans Math", sans-serif';
   var app = VL.$('#app'), stage = VL.$('#stage'), host = VL.$('#canvas-host'), panel = VL.$('#panel');
   var tip = VL.$('#tip'), legendEl = VL.$('#legend'), statusEl = VL.$('#status');
   var params = VL.params();
+  /* lang: 'both' = the paper's "Vietnamese · English" call-outs and legend (default), or one language */
   var state = {
     ds: params.ds === 'full' || params.ds === 'lite' ? params.ds : (VL.isMobile() ? 'lite' : 'full'),
-    colorBy: 'validity', hops: 1, lang: 'en', layers: true, sel: -1, legendOpen: !VL.isMobile(),
+    colorBy: 'validity', hops: 1, lang: 'both', layers: true, sel: -1, legendOpen: !VL.isMobile(),
     edges: { replaced: true, amended: true, repealed: true, partially_repealed: true, partially_expired: true, basis: true, citation: null },
     y0: null, y1: null, yUnknown: true
   };
 
   var renderer, scene, camera, controls, pointsObj = null, pointsMat = null, edgeObjs = {}, hlObj = null, layerGroup = null, labelGroup = null;
+  var trace = null, chainTrace = null;
   var D = null, DL = null, shards = {}, frames = 0, needsRender = true, tween = null;
 
   /* ------------------------------------------------------------------ three setup */
+  /* colours go to the shaders as sRGB values and are written unchanged, so points and lines show the palette exactly */
+  function rgb(hex) { return VL.rawColor(hex, new THREE.Color()).toArray(); }
+  /* depth fade shared by points and lines: (near, far, strength), updated from the camera distance every frame */
+  var FOG = { value: new THREE.Vector3(1, 1e6, 0) };
   var PT_VS = [
     'attribute vec3 aColor; attribute float aAlpha; attribute float aSize;',
-    'uniform float uScale; varying vec3 vColor; varying float vAlpha;',
+    'uniform float uScale; varying vec3 vColor; varying float vAlpha; varying float vDepth;',
     'void main() {',
     '  vColor = aColor; vAlpha = aAlpha;',
     '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
+    '  vDepth = -mv.z;',
     '  float s = aSize * uScale / max(1.0, -mv.z);',
     '  gl_PointSize = aAlpha < 0.01 ? 0.0 : clamp(s, 2.0, 56.0);',
     '  gl_Position = projectionMatrix * mv;',
     '}'].join('\n');
+  /* a soft pastel sphere like the paper's nodes: lit from the upper left, a thin rim 16 % darker, fading to the ground
+     with depth and outside the highlight (vAlpha) */
   var PT_FS = [
-    'uniform vec3 uBg; varying vec3 vColor; varying float vAlpha;',
+    'uniform vec3 uBg; uniform vec3 uFog; uniform float uRim; varying vec3 vColor; varying float vAlpha; varying float vDepth;',
     'void main() {',
-    '  vec2 c = gl_PointCoord - vec2(0.5); float d = length(c);',
-    '  if (d > 0.5 || vAlpha < 0.01) discard;',
-    '  vec3 col = mix(vColor * 0.55, vColor, smoothstep(0.5, 0.3, d));',
-    '  gl_FragColor = vec4(mix(uBg, col, vAlpha), 1.0);',
+    '  vec2 c = gl_PointCoord - vec2(0.5); float r = length(c) * 2.0;',
+    '  if (r > 1.0 || vAlpha < 0.01) discard;',
+    '  vec3 n = vec3(c.x * 2.0, -c.y * 2.0, sqrt(max(0.0, 1.0 - r * r)));',
+    '  vec3 col = vColor * (0.86 + 0.2 * dot(n, vec3(-0.45, 0.55, 0.70)));',
+    '  col = mix(col, vColor * uRim, smoothstep(0.76, 0.96, r));',
+    '  float f = clamp((vDepth - uFog.x) / max(1.0, uFog.y - uFog.x), 0.0, 1.0) * uFog.z;',
+    '  gl_FragColor = vec4(mix(uBg, mix(col, uBg, f), vAlpha), 1.0);',
     '}'].join('\n');
   var LN_VS = [
-    'attribute vec3 aColor; attribute float aAlpha; varying vec3 vColor; varying float vAlpha;',
-    'void main() { vColor = aColor; vAlpha = aAlpha; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }'].join('\n');
+    'attribute vec3 aColor; attribute float aAlpha; varying vec3 vColor; varying float vAlpha; varying float vDepth;',
+    'void main() { vColor = aColor; vAlpha = aAlpha; vec4 mv = modelViewMatrix * vec4(position, 1.0); vDepth = -mv.z; gl_Position = projectionMatrix * mv; }'].join('\n');
   var LN_FS = [
-    'uniform float uOpacity; varying vec3 vColor; varying float vAlpha;',
-    'void main() { if (vAlpha < 0.01) discard; gl_FragColor = vec4(vColor, vAlpha * uOpacity); }'].join('\n');
+    'uniform float uOpacity; uniform vec3 uFog; varying vec3 vColor; varying float vAlpha; varying float vDepth;',
+    'void main() {',
+    '  if (vAlpha < 0.01) discard;',
+    '  float f = clamp((vDepth - uFog.x) / max(1.0, uFog.y - uFog.x), 0.0, 1.0) * uFog.z;',
+    '  gl_FragColor = vec4(vColor, vAlpha * uOpacity * (1.0 - f));',
+    '}'].join('\n');
+  function updateFog() {
+    if (!camera || !D) return;
+    var d = camera.position.distanceTo(controls.target), R = D.extent * 1.1;
+    FOG.value.set(Math.max(1, d - 0.4 * R), d + 1.9 * R, TH.dark ? 0.55 : 0.6);
+  }
 
   function stageSize() { return { w: Math.max(50, host.clientWidth), h: Math.max(50, host.clientHeight) }; }
   function initThree() {
@@ -98,6 +122,12 @@
     controls.addEventListener('start', hideHint);
     labelGroup = new THREE.Group();
     scene.add(labelGroup);
+    /* the traced answer: the selection's links (thinner when many) and, over them, its replacement chain; drawn on top
+       of the point cloud like the paper's trace */
+    trace = VL.TraceLines({ depthTest: false, renderOrder: 6 });
+    chainTrace = VL.TraceLines({ depthTest: false, renderOrder: 9 });
+    scene.add(trace.object);
+    scene.add(chainTrace.object);
     try {
       var gl = renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info');
       M.webglRenderer = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
@@ -125,6 +155,7 @@
     if (tween) stepTween(t);
     var moved = controls.update();
     if (needsRender || moved || tween || controls.autoRotate) {
+      updateFog();
       renderer.render(scene, camera);
       frames++;
       needsRender = false;
@@ -211,13 +242,11 @@
     var v = D.net.validity[D.validity[i]];
     return (VL.VALIDITY[v] || VL.VALIDITY.unknown).color;
   }
-  var _c = null;
   function applyColors() {
-    if (!_c) _c = new THREE.Color();
     var col = pointsObj.geometry.attributes.aColor.array, cache = {};
     for (var i = 0; i < D.N; i++) {
       var hex = nodeColor(i);
-      var c = cache[hex] || (cache[hex] = _c.set(hex).toArray());
+      var c = cache[hex] || (cache[hex] = rgb(hex));
       col[3 * i] = c[0]; col[3 * i + 1] = c[1]; col[3 * i + 2] = c[2];
     }
     pointsObj.geometry.attributes.aColor.needsUpdate = true;
@@ -246,7 +275,7 @@
     g.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
     g.computeBoundingSphere();
     pointsMat = new THREE.ShaderMaterial({
-      uniforms: { uScale: { value: 1 }, uBg: { value: new THREE.Color(TH.bg) } },
+      uniforms: { uScale: { value: 1 }, uBg: { value: VL.rawColor(TH.bg, new THREE.Color()) }, uFog: FOG, uRim: { value: TH.dark ? 0.7 : 0.84 } },
       vertexShader: PT_VS, fragmentShader: PT_FS, transparent: false, depthWrite: true
     });
     pointsObj = new THREE.Points(g, pointsMat);
@@ -262,7 +291,9 @@
   function buildEdges(k) {
     var pairs = D.edges[k], m = pairs.length / 2;
     var pos = new Float32Array(m * 6), col = new Float32Array(m * 6), al = new Float32Array(m * 2);
-    var c = new THREE.Color(edgeColor(k)), c2 = c.clone().multiplyScalar(0.45);
+    var c0 = rgb(edgeColor(k)), f = TH.dark ? 0.62 : 0.8;
+    var c = { r: c0[0], g: c0[1], b: c0[2] }, c2 = TH.dark ? { r: c0[0] * f, g: c0[1] * f, b: c0[2] * f } :
+      { r: 1 - (1 - c0[0]) * f, g: 1 - (1 - c0[1]) * f, b: 1 - (1 - c0[2]) * f };
     for (var e = 0; e < m; e++) {
       var s = pairs[2 * e], t = pairs[2 * e + 1];
       pos[6 * e] = D.pos[3 * s]; pos[6 * e + 1] = D.pos[3 * s + 1]; pos[6 * e + 2] = D.pos[3 * s + 2];
@@ -277,7 +308,7 @@
     g.setAttribute('aAlpha', new THREE.BufferAttribute(al, 1));
     g.computeBoundingSphere();
     var mat = new THREE.ShaderMaterial({
-      uniforms: { uOpacity: { value: edgeOpacity(k) } }, vertexShader: LN_VS, fragmentShader: LN_FS,
+      uniforms: { uOpacity: { value: edgeOpacity(k) }, uFog: FOG }, vertexShader: LN_VS, fragmentShader: LN_FS,
       transparent: true, depthWrite: false, blending: THREE.NormalBlending
     });
     var obj = new THREE.LineSegments(g, mat);
@@ -309,13 +340,16 @@
   /* ------------------------------------------------------------------ labels (constant pixel size, culled) */
   var labels = [];
   function worldPerPx() { return VL.spriteWpp(camera, host.clientHeight); }
-  /* px = label box height in CSS px (text is about px / 1.68) */
-  function makeLabel(text, opts) {
-    var s = VL.TextSprite(text, {
-      px: opts.px || 22, weight: opts.weight || '600', color: opts.color || TH.labelFg,
-      bg: opts.bg || TH.labelBg, border: opts.border != null ? opts.border : TH.labelBorder,
-      cx: opts.cx != null ? opts.cx : 0.5, cy: opts.cy != null ? opts.cy : -0.35
-    });
+  /* paper call-out: lines of parts (js/paper3d.js VL.paperLines), px = height of a one-line box in CSS px (text is about
+     px / 1.68); node call-outs stand on a thin grey leader above their point, layer call-outs sit at the layer corner */
+  function makeLabel(lines, opts) {
+    var o = VL.paperCallout(P, !!opts.sel);
+    o.lines = lines;
+    o.px = opts.px || 22;
+    o.weight = opts.weight || '400';
+    if (opts.leader) o.leader = opts.leader;
+    else { o.cx = opts.cx != null ? opts.cx : 0.5; o.cy = opts.cy != null ? opts.cy : -0.35; }
+    var s = VL.TextSprite(lines[0].map(function (p) { return p.text; }).join(''), o);
     s.__pri = opts.pri || 0;
     s.__layer = !!opts.layer;
     s.fit(worldPerPx());
@@ -340,7 +374,9 @@
     var rk = (D.net.ranks || [])[r] || {};
     var short = { 0: ['Constitution', 'Hiến pháp'], 1: ['Codes, laws, NA resolutions', 'Bộ luật, luật, nghị quyết QH'], 2: ['Ordinances, NASC resolutions', 'Pháp lệnh, nghị quyết UBTVQH'],
       3: ['Decrees, joint resolutions', 'Nghị định, nghị quyết liên tịch'], 4: ['Prime Minister decisions', 'Quyết định của Thủ tướng'], 5: ['Circulars, other decisions', 'Thông tư, quyết định khác'] }[r];
-    return (state.lang === 'vi' ? 'Hạng ' : 'Rank ') + r + ' · ' + (short ? short[state.lang === 'vi' ? 1 : 0] : (rk.en || ''));
+    var en = 'Rank ' + r + ' · ' + (short ? short[0] : (rk.en || '')), vi = 'Hạng ' + r + ' · ' + (short ? short[1] : (rk.vi || rk.en || ''));
+    if (state.lang === 'both') return [[{ text: vi, color: P.ink }], [{ text: en, color: P.ink2 }]];
+    return [[{ text: state.lang === 'vi' ? vi : en, color: P.ink }]];
   }
   function buildLayerLabels() {
     clearLabels(false);
@@ -348,7 +384,7 @@
     var E = D.extent * 1.06;
     for (var r = 0; r <= 5; r++) {
       var y = (D.layerZ[r] != null ? D.layerZ[r] : (5 - r) * 150) * ZS;
-      addLabel(makeLabel(rankLabel(r), { px: 22, weight: '500', color: TH.layerFg, bg: TH.layerBg, cx: 0, cy: 0.5, pri: 10 - r, layer: true }), -E, y, E);
+      addLabel(makeLabel(rankLabel(r), { px: 21, cx: 0, cy: 0.5, pri: 10 - r, layer: true }), -E, y, E);
     }
   }
   var cullTimer = null;
@@ -449,21 +485,26 @@
       frontier = next;
       if (next.length > 6000) break;
     }
-    // highlighted edges: incident to the selection or to hop-1 nodes, inside the neighbourhood
-    var pos = [], col = [], c = new THREE.Color();
+    /* highlighted edges inside the neighbourhood: the selection's own links are the traced answer (navy core over the
+       gold halo, thinner when there are many); with 2 hops the links of its neighbours stay pastel lines */
+    var paths = [], pos = [], col = [];
+    function pt(i) { return { x: D.pos[3 * i], y: D.pos[3 * i + 1], z: D.pos[3 * i + 2] }; }
     kinds.forEach(function (k) {
-      var pairs = D.edges[k];
-      c.set(edgeColor(k));
+      var pairs = D.edges[k], c = rgb(edgeColor(k));
       for (var e = 0; e < pairs.length; e += 2) {
         var s = pairs[e], t = pairs[e + 1];
         if (!ego[s] || !ego[t]) continue;
-        var core = (ego[s] === 3 || ego[t] === 3) || (state.hops > 1 && (ego[s] === 1 || ego[t] === 1));
-        if (!core) continue;
-        pos.push(D.pos[3 * s], D.pos[3 * s + 1], D.pos[3 * s + 2], D.pos[3 * t], D.pos[3 * t + 1], D.pos[3 * t + 2]);
-        col.push(c.r, c.g, c.b, c.r * 0.55, c.g * 0.55, c.b * 0.55);
-        if (pos.length > 6 * 30000) break;
+        if (ego[s] === 3 || ego[t] === 3) {
+          if (paths.length < 30000) paths.push([pt(s), pt(t)]);
+        } else if (state.hops > 1 && (ego[s] === 1 || ego[t] === 1) && pos.length < 6 * 30000) {
+          pos.push(D.pos[3 * s], D.pos[3 * s + 1], D.pos[3 * s + 2], D.pos[3 * t], D.pos[3 * t + 1], D.pos[3 * t + 2]);
+          col.push(c[0], c[1], c[2], c[0], c[1], c[2]);
+        }
       }
     });
+    var n = paths.length;
+    trace.setStyle(VL.traceStyle(P, n > 400 ? 0.34 : (n > 120 ? 0.45 : (n > 40 ? 0.6 : 0.75))));
+    trace.setPaths(paths);
     if (hlObj) { scene.remove(hlObj); hlObj.geometry.dispose(); hlObj.material.dispose(); hlObj = null; }
     if (pos.length) {
       var g = new THREE.BufferGeometry();
@@ -471,27 +512,56 @@
       g.setAttribute('aColor', new THREE.Float32BufferAttribute(col, 3));
       var al = new Float32Array(pos.length / 3); al.fill(1);
       g.setAttribute('aAlpha', new THREE.BufferAttribute(al, 1));
-      hlObj = new THREE.LineSegments(g, new THREE.ShaderMaterial({ uniforms: { uOpacity: { value: 0.95 } }, vertexShader: LN_VS, fragmentShader: LN_FS, transparent: true, depthWrite: false, blending: THREE.NormalBlending }));
+      hlObj = new THREE.LineSegments(g, new THREE.ShaderMaterial({ uniforms: { uOpacity: { value: 0.9 }, uFog: FOG }, vertexShader: LN_VS, fragmentShader: LN_FS, transparent: true, depthWrite: false, blending: THREE.NormalBlending }));
       hlObj.renderOrder = 5;
       scene.add(hlObj);
     }
     var cnt = [0, 0, 0];
     for (var i = 0; i < D.N; i++) if (ego[i] === 1) cnt[1]++; else if (ego[i] === 2) cnt[2]++;
-    M.egoHop1 = cnt[1]; M.egoHop2 = cnt[2]; M.egoEdges = pos.length / 6;
+    M.egoHop1 = cnt[1]; M.egoHop2 = cnt[2]; M.egoEdges = n + pos.length / 6;
+    M.traceSegments = trace.count();
     applyAlpha();
     egoLabels();
+    needsRender = true;
+  }
+  /* the replacement chain of a document (older -> newer through 'replaced' changes), as indices of doc_links */
+  function replacementChain(fi) {
+    var replaces = function (x) { return (DL.byActing[x] || []).filter(function (ci) { return DL.changes[ci][2] === 0; }).map(function (ci) { return DL.changes[ci][1]; }); };
+    var replacedBy = function (x) { return (DL.byAffected[x] || []).filter(function (ci) { return DL.changes[ci][2] === 0; }).map(function (ci) { return DL.changes[ci][0]; }); };
+    var back = [], fwd = [], seen = {}, cur = fi;
+    seen[fi] = 1;
+    for (var s = 0; s < 8; s++) { var r = replaces(cur).filter(function (x) { return !seen[x]; }); if (!r.length) break; r.sort(function (a, b) { return DL.year[b] - DL.year[a]; }); cur = r[0]; seen[cur] = 1; back.unshift(cur); }
+    cur = fi;
+    for (var t = 0; t < 8; t++) { var q = replacedBy(cur).filter(function (x) { return !seen[x]; }); if (!q.length) break; q.sort(function (a, b) { return DL.year[a] - DL.year[b]; }); cur = q[0]; seen[cur] = 1; fwd.push(cur); }
+    return (back.length || fwd.length) ? back.concat([fi], fwd) : null;
+  }
+  /* the chain in 3D: one traced path through the documents of the chain present in this dataset */
+  function drawChain(fi) {
+    var ch = DL && fi != null ? replacementChain(fi) : null, pts = [];
+    (ch || []).forEach(function (x) {
+      var i = D.idx[String(DL.ids[x])];
+      if (i != null) pts.push({ x: D.pos[3 * i], y: D.pos[3 * i + 1], z: D.pos[3 * i + 2] });
+    });
+    chainTrace.setStyle(VL.traceStyle(P, 1));
+    chainTrace.setPaths(pts.length > 1 ? [pts] : []);
+    M.chainTraceDocs = pts.length > 1 ? pts.length : 0;
+    needsRender = true;
   }
   function egoLabels() {
     clearLabels(true);
     var i0 = state.sel;
     if (i0 < 0) { scheduleCull(); return; }
-    var main = (D.num[i0] ? D.num[i0] + ' · ' : '') + VL.short(D.title[i0], 46);
-    addLabel(makeLabel(main, { px: 28, weight: '700', pri: 1000, color: TH.selFg, bg: TH.selBg, border: '' }), D.pos[3 * i0], D.pos[3 * i0 + 1], D.pos[3 * i0 + 2]);
+    /* the selected document: its title over its number and year, like the paper's call-outs (pale gold = selected) */
+    var meta = (D.num[i0] || 'no number') + (D.year[i0] > 0 ? ' · ' + D.year[i0] : '');
+    var main = D.title[i0] ? [[{ text: VL.short(D.title[i0], 46), color: P.ink }], [{ text: meta, color: P.ink2 }]] : [[{ text: meta, color: P.ink }]];
+    addLabel(makeLabel(main, { px: 25, pri: 1000, sel: true, leader: 10 }), D.pos[3 * i0], D.pos[3 * i0 + 1], D.pos[3 * i0 + 2]);
     var nb = [];
     for (var i = 0; i < D.N; i++) if (D.ego[i] === 1 || D.ego[i] === 2) nb.push(i);
     nb.sort(function (a, b) { return (D.ego[a] - D.ego[b]) || (D.degree[b] - D.degree[a]); });
     nb.slice(0, 40).forEach(function (j, r) {
-      addLabel(makeLabel(D.num[j] || VL.short(D.title[j], 30), { px: 22, weight: '600', pri: 500 - r - (D.ego[j] === 2 ? 100 : 0) }), D.pos[3 * j], D.pos[3 * j + 1], D.pos[3 * j + 2]);
+      var lines = D.num[j] ? [[{ text: D.num[j], color: P.ink }].concat(D.year[j] > 0 ? [{ text: ' · ' + D.year[j], color: P.ink2 }] : [])] :
+        [[{ text: VL.short(D.title[j], 30), color: P.ink }]];
+      addLabel(makeLabel(lines, { px: 21, pri: 500 - r - (D.ego[j] === 2 ? 100 : 0), leader: 8 }), D.pos[3 * j], D.pos[3 * j + 1], D.pos[3 * j + 2]);
     });
     scheduleCull();
   }
@@ -644,15 +714,9 @@
     return h;
   }
   function chainHtml(fi) {
-    var replaces = function (x) { return (DL.byActing[x] || []).filter(function (ci) { return DL.changes[ci][2] === 0; }).map(function (ci) { return DL.changes[ci][1]; }); };
-    var replacedBy = function (x) { return (DL.byAffected[x] || []).filter(function (ci) { return DL.changes[ci][2] === 0; }).map(function (ci) { return DL.changes[ci][0]; }); };
-    var back = [], fwd = [], seen = {}, cur = fi;
-    seen[fi] = 1;
-    for (var s = 0; s < 8; s++) { var r = replaces(cur).filter(function (x) { return !seen[x]; }); if (!r.length) break; r.sort(function (a, b) { return DL.year[b] - DL.year[a]; }); cur = r[0]; seen[cur] = 1; back.unshift(cur); }
-    cur = fi;
-    for (var t = 0; t < 8; t++) { var q = replacedBy(cur).filter(function (x) { return !seen[x]; }); if (!q.length) break; q.sort(function (a, b) { return DL.year[a] - DL.year[b]; }); cur = q[0]; seen[cur] = 1; fwd.push(cur); }
-    if (!back.length && !fwd.length) return '';
-    var items = back.concat([fi], fwd).map(function (x) {
+    var chain = replacementChain(fi);
+    if (!chain) return '';
+    var items = chain.map(function (x) {
       var lab = (DL.numbers[x] || VL.short(DL.titles[x], 24)) + (DL.year[x] > 0 ? ' (' + DL.year[x] + ')' : '');
       return x === fi ? '<span class="cur">' + VL.esc(lab) + '</span>' : '<button type="button" class="linkish" data-doc="' + VL.esc(String(DL.ids[x])) + '">' + VL.esc(lab) + '</button>';
     });
@@ -748,6 +812,7 @@
   function select(i, fly) {
     if (i < 0 || !D) return;
     state.sel = i;
+    if (chainTrace) { chainTrace.setPaths([]); M.chainTraceDocs = 0; }
     computeEgo();
     var r = 0, n = 0;
     for (var j = 0; j < D.N; j++) if (D.ego[j] === 1) {
@@ -765,6 +830,7 @@
       return loadShard(fi).then(function (sh) {
         if (select.token !== token) return;
         openPanel(docPanel(i, fi, sh), true);
+        drawChain(fi);
         M.panelLoaded = D.ids[i];
       });
     }).catch(function (e) { console.error(e); });
@@ -773,9 +839,11 @@
     state.sel = -1;
     if (D) { D.ego.fill(0); applyAlpha(); }
     if (hlObj) { scene.remove(hlObj); hlObj.geometry.dispose(); hlObj.material.dispose(); hlObj = null; }
+    if (trace) { trace.setPaths([]); chainTrace.setPaths([]); M.traceSegments = 0; M.chainTraceDocs = 0; }
     clearLabels(true);
     closePanel();
     scheduleCull();
+    needsRender = true;
   }
   function openPanel(html, keepScroll) {
     var st = panel.scrollTop;
@@ -955,37 +1023,43 @@
     VL.$('#btn-legend').setAttribute('aria-expanded', state.legendOpen ? 'true' : 'false');
     legendEl.classList.toggle('hidden', !state.legendOpen);
     if (!state.legendOpen || !D) return;
+    /* entries as in the paper's legend: "Vietnamese · English" (or the chosen language), shortened per part */
+    function bi(vi, en) {
+      vi = VL.cap(VL.short(vi || en || '', 26)); en = VL.cap(VL.short(en || vi || '', 24));
+      if (state.lang === 'vi') return VL.esc(vi);
+      if (state.lang === 'en') return VL.esc(en);
+      return '<span lang="vi">' + VL.esc(vi) + '</span> · ' + VL.esc(en);
+    }
     var items = [], cnt = {};
     if (state.colorBy === 'validity') {
       for (var i = 0; i < D.N; i++) cnt[D.validity[i]] = (cnt[D.validity[i]] || 0) + 1;
       VL.VALIDITY_ORDER.forEach(function (v) {
         var ix = D.net.validity.indexOf(v);
-        if (cnt[ix]) items.push([VL.VALIDITY[v].color, state.lang === 'vi' ? VL.VALIDITY[v].vi : VL.VALIDITY[v].en, cnt[ix]]);
+        if (cnt[ix]) items.push([VL.VALIDITY[v].color, VL.VALIDITY[v].vi, VL.VALIDITY[v].en, cnt[ix]]);
       });
     } else if (state.colorBy === 'type') {
       for (var j = 0; j < D.N; j++) cnt[D.type[j]] = (cnt[D.type[j]] || 0) + 1;
-      D.net.types.forEach(function (t, ix) { if (cnt[ix]) items.push([VL.TYPE_COLORS[t.code] || TH.typeOther, state.lang === 'vi' ? t.vi : t.en, cnt[ix]]); });
+      D.net.types.forEach(function (t, ix) { if (cnt[ix]) items.push([VL.TYPE_COLORS[t.code] || TH.typeOther, t.vi, t.en, cnt[ix]]); });
     } else {
       for (var a = 0; a < D.N; a++) cnt[D.area[a]] = (cnt[D.area[a]] || 0) + 1;
       var order = Object.keys(cnt).filter(function (x) { return +x >= 0; }).sort(function (x, y) { return cnt[y] - cnt[x]; });
       var nA = TH.areas.length;
-      order.slice(0, nA).forEach(function (x) { var ar = D.net.areas[+x]; items.push([areaColor(+x), ar ? (state.lang === 'vi' ? ar[1] : ar[2]) : x, cnt[x]]); });
+      order.slice(0, nA).forEach(function (x) { var ar = D.net.areas[+x]; items.push([areaColor(+x), ar ? ar[1] : x, ar ? ar[2] : x, cnt[x]]); });
       var rest = order.slice(nA).reduce(function (s, x) { return s + cnt[x]; }, 0);
-      if (rest) items.push([TH.areaOther, state.lang === 'vi' ? 'lĩnh vực khác' : 'other areas', rest]);
-      if (cnt[-1]) items.push([TH.areaNone, state.lang === 'vi' ? 'chưa có lĩnh vực' : 'no area', cnt[-1]]);
+      if (rest) items.push([TH.areaOther, 'lĩnh vực khác', 'other areas', rest]);
+      if (cnt[-1]) items.push([TH.areaNone, 'chưa có lĩnh vực', 'no area', cnt[-1]]);
     }
-    var title = { validity: 'Validity', type: 'Document type', area: 'Legal area' }[state.colorBy];
-    var h = '<h3>' + title + '</h3><ul>' + items.map(function (it) {
-      return '<li><span class="swatch" style="background:' + it[0] + '"></span>' + VL.esc(VL.short(it[1], 26)) + '</li>';
+    var title = { validity: ['Hiệu lực', 'Validity'], type: ['Loại văn bản', 'Document type'], area: ['Lĩnh vực', 'Legal area'] }[state.colorBy];
+    var h = '<h3>' + bi(title[0], title[1]) + '</h3><ul>' + items.map(function (it) {
+      return '<li><span class="swatch" style="background:' + it[0] + '"></span>' + bi(it[1], it[2]) + '</li>';
     }).join('') + '</ul>';
     var ek = enabledKinds();
-    if (ek.length) {
-      h += '<div class="legend-sub"><ul>' + ek.map(function (k) {
-        var lab = k === 'basis' ? VL.EDGE.basis : k === 'citation' ? VL.EDGE.citation : VL.CHANGE[k];
-        return '<li><span class="swatch line" style="background:' + edgeColor(k) + '"></span>' + VL.esc(state.lang === 'vi' ? lab.vi : lab.en) + '</li>';
-      }).join('') + '</ul></div>';
-    }
+    h += '<div class="legend-sub"><ul>' + ek.map(function (k) {
+      var lab = k === 'basis' ? VL.EDGE.basis : k === 'citation' ? VL.EDGE.citation : VL.CHANGE[k];
+      return '<li><span class="swatch line" style="background:' + edgeColor(k) + '"></span>' + bi(lab.vi, lab.en) + '</li>';
+    }).join('') + '<li><span class="swatch trace" aria-hidden="true"></span>' + bi('đường truy vết', 'traced answer (selection)') + '</li></ul></div>';
     legendEl.innerHTML = h;
+    M.legendEntries = VL.$$('li', legendEl).length;
   }
   /* ------------------------------------------------------------------ theme switch (light / dark): clear colour, point
      fade colour, node colours, edges (rebuilt with the theme palette and opacity), layer planes and every label sprite;
@@ -996,7 +1070,9 @@
     if (!renderer) return;
     renderer.setClearColor(TH.bg, 1);
     if (D && pointsObj) {
-      pointsMat.uniforms.uBg.value.set(TH.bg);
+      VL.rawColor(TH.bg, pointsMat.uniforms.uBg.value);
+      pointsMat.uniforms.uRim.value = TH.dark ? 0.7 : 0.84;
+      chainTrace.setStyle(VL.traceStyle(P, 1));
       Object.keys(edgeObjs).forEach(function (k) { var o = edgeObjs[k].obj; scene.remove(o); o.geometry.dispose(); o.material.dispose(); });
       edgeObjs = {};
       EDGE_KEYS.forEach(buildEdges);

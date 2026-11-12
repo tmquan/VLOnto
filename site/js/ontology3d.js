@@ -1,20 +1,25 @@
 /* VLOnto - 3D Ontology Playground (3d-force-graph over data/ontology_graph.js; SPARQL via js/sparql-core.js).
-   Classes are spheres (size ~ log instance count), concept schemes octahedra, aligned external terms icosahedra;
-   colour = ontology module. Labels are canvas sprites (js/labels3d.js) drawn at a constant pixel size and culled in screen space so that
-   no two labels overlap and no label is cut by the canvas edge or hidden under an overlay. */
+   Classes are spheres (size ~ log instance count), concept schemes octahedra, aligned external terms icosahedra.
+   Drawn like the figures of the paper (arXiv:2611.11426, Fig. 1 and Fig. 6; js/paper3d.js): white figure ground, soft
+   translucent spheres in the paper's class colours (Văn bản · Work, Điều · Article, Thuật ngữ · Term, ...) or else in
+   the module colour, thin class-tinted links fading with depth, bilingual call-outs (Libertinus Sans, white box, thin
+   grey leader) and the selection's chain and neighbourhood, or a CONSTRUCT result, as the traced path: a navy core over a
+   pale-gold halo with everything else faded. Labels are canvas sprites (js/labels3d.js) drawn at a constant pixel size and
+   culled in screen space so that no two labels overlap and no label is cut by the canvas edge or hidden under an overlay. */
 (function () {
   'use strict';
   var VL = window.VL, M = window.__VLONTO_METRICS;
   VL.chrome({ scene: true });
   M.page = 'ontology-3d';
+  M.paperStyle = true;
 
   var OG = window.VLONTO.ontology_graph;
   var EXAMPLES = ((window.VLONTO.sparql_examples || {}).queries) || [];
   var app = VL.$('#app'), stage = VL.$('#stage'), host = VL.$('#canvas-host');
   var panel = VL.$('#panel'), drawer = VL.$('#drawer'), legendEl = VL.$('#legend'), statusEl = VL.$('#status');
-  var FONT = '"Be Vietnam Pro", "Noto Sans Symbols 2", "Noto Sans Math", sans-serif';
+  /* label language: 'both' = the paper's "Vietnamese · English" call-outs (default), or one language */
   var state = {
-    lang: 'en', modules: {}, showExternal: true, showSchemes: true,
+    lang: 'both', modules: {}, showExternal: true, showSchemes: true,
     links: { subClassOf: true, property: true, alignment: true, inScheme: true },
     particles: true, selected: null, selectedLink: null, view: 'ontology', cm: 'overlay', legendOpen: !VL.isMobile()
   };
@@ -74,7 +79,16 @@
     if (n.kind === 'scheme') return 3.6 + 0.9 * Math.log10((n.instances || 0) + 1);
     return 3.4 + 1.9 * Math.log10((n.instances || 0) + 1);
   }
-  function nodeColor(n) { return VL.moduleColor(n.module || 'provenance'); }
+  /* paper class of a node (null when it has none): classes by their CURIE, records of the KG by their class */
+  function paperKey(n) {
+    if (n.inst) return n.cls ? VL.paperClassKey(n.cls, true) : null;
+    return n.kind === 'class' ? VL.paperClassKey(n.id) : null;
+  }
+  function nodeColor(n) {
+    var k = paperKey(n);
+    return (k && P.cls[k]) || VL.moduleColor(n.module || 'provenance');
+  }
+  function nodeVar(n) { var k = paperKey(n); return k ? VL.PAPER_CLASS[k].v : VL.moduleVar(n.module || 'provenance'); }
   function kindLabel(n) {
     if (n.inst) return 'instance';
     return { 'class': 'class', external: 'external term', scheme: 'concept scheme' }[n.kind] || n.kind;
@@ -82,6 +96,12 @@
   function labelText(n) {
     if (n.inst) return n.short;
     return (state.lang === 'vi' && n.label_vi) ? n.label_vi : n.label_en;
+  }
+  /* call-out lines: "Vietnamese · English" (Vietnamese over English when long) or the chosen language only */
+  function labelLines(n) {
+    if (n.inst) return [[{ text: n.short, color: P.ink }]];
+    if (state.lang === 'both') return VL.paperLines(n.label_vi, n.label_en, P, { secondary: n.kind === 'external' });
+    return [[{ text: labelText(n), color: n.kind === 'external' ? P.ink2 : P.ink }]];
   }
 
   /* ------------------------------------------------------------------ visibility */
@@ -105,52 +125,98 @@
   var hl = { nodes: null, links: null };
   function hlActive() { return !!hl.nodes; }
   function setHighlight(nodeSet, linkSet) { hl.nodes = nodeSet; hl.links = linkSet; applyHighlight(); }
+  /* soft pastel sphere (lit from the upper left, js/paper3d.js), a rim 16 % darker drawn by a slightly larger back-face
+     hull, and a pale-gold halo around the selected node; context outside the highlight fades towards the ground */
+  function rimHex(hex, f) {
+    var m = /^#?([0-9a-f]{6})$/i.exec(String(hex).trim()), n = m ? parseInt(m[1], 16) : 0x888888;
+    var c = [n >> 16, (n >> 8) & 255, n & 255].map(function (v) { return Math.round(v * f); });
+    return '#' + c.map(function (v) { return (v < 16 ? '0' : '') + v.toString(16); }).join('');
+  }
+  function styleNode(n, on, sel) {
+    var col = nodeColor(n), s = n.__r * (sel ? 1.3 : 1);
+    var m = n.__mesh.material;
+    m.color.set(col);
+    m.opacity = on ? 0.95 : P.fade;
+    m.depthWrite = on;
+    n.__mesh.scale.setScalar(s);
+    if (n.__rim) {
+      n.__rim.material.color.set(rimHex(col, P.dark ? 0.72 : 0.84));
+      n.__rim.material.opacity = on ? 0.95 : P.fade * 0.7;
+      n.__rim.material.depthWrite = on;
+      n.__rim.scale.setScalar(s * 1.07);
+    }
+    if (n.__halo) {
+      n.__halo.visible = sel;
+      n.__halo.material.color.set(P.halo);
+      n.__halo.scale.setScalar(s * 1.34);
+    }
+    if (n.__label && n.__labSel !== sel) { n.__labSel = sel; n.__label.setStyle(labelOpts(n)); }
+  }
   function applyHighlight() {
     current.nodes.forEach(function (n) {
       if (!n.__mesh) return;
-      var on = !hl.nodes || hl.nodes.has(n);
-      n.__mesh.material.opacity = on ? 1 : 0.16;
-      n.__mesh.material.depthWrite = on;
-      var sel = (state.selected === n);
-      n.__mesh.scale.setScalar(n.__r * (sel ? 1.3 : 1));
-      n.__mesh.material.emissive.copy(new THREE.Color(n.inst ? n.color : nodeColor(n))).multiplyScalar(sel ? 0.55 : (n.kind === 'external' ? 0.12 : 0.22));
+      styleNode(n, !hl.nodes || hl.nodes.has(n), state.selected === n);
     });
     if (graph) {
       graph.linkColor(graph.linkColor());
       graph.linkDirectionalParticles(graph.linkDirectionalParticles());
+      graph.linkDirectionalParticleColor(graph.linkDirectionalParticleColor());
       graph.linkWidth(graph.linkWidth());
     }
+    updateTrace();
     scheduleCull();
+  }
+  /* the traced path: every highlighted link (the selection's chain and neighbourhood, or the CONSTRUCT result) as a
+     navy core over a pale-gold halo, at constant pixel width and following curved links; thinner for large results */
+  var trace = null;
+  function updateTrace() {
+    if (!graph) return;
+    if (!trace) { trace = VL.TraceLines({ depthTest: true, renderOrder: 8 }); graph.scene().add(trace.object); }
+    var paths = [];
+    if (hl.links) hl.links.forEach(function (l) {
+      if (!linkVisible(l)) return;
+      var pts = VL.linkPoints(l, 16);
+      if (pts) paths.push(pts);
+    });
+    trace.setStyle(VL.traceStyle(P, paths.length > 150 ? 0.62 : (paths.length > 60 ? 0.8 : 1)));
+    trace.setPaths(paths);
+    M.traceLinks = paths.length;
+    M.traceSegments = trace.count();
   }
 
   /* ------------------------------------------------------------------ labels: constant pixel size + screen-space culling */
-  /* label box heights in CSS px (the text itself is about px / 1.68) */
-  var labelPx = { 'class': 24, scheme: 22, external: 21, instance: 21 };
-  var SELECTED_PX = 28;
+  /* call-out heights in CSS px for one line (the text itself is about px / 1.68) */
+  var labelPx = { 'class': 23, scheme: 22, external: 21, instance: 21 };
+  var SELECTED_PX = 26, LEADER = 9;
   function worldPerPx() { return VL.spriteWpp(graph.camera(), host.clientHeight); }
-  /* scene colours of the current theme (css/site.css: --scene-bg, --label-*, --o3d-link-*) */
-  var TH = {};
+  /* scene colours of the current theme (css/site.css: the paper style tokens, --scene-bg, --o3d-link-*) */
+  var TH = {}, P = {};
   function readTheme() {
+    P = VL.paperTheme();
     TH = {
-      bg: VL.tok('--scene-bg') || '#0a0f1e',
-      labelFg: VL.tok('--label-fg') || '#ffffff', labelFg2: VL.tok('--label-fg-2') || '#dbe2f1',
-      labelBg: VL.tok('--label-bg') || 'rgba(9, 14, 30, 0.78)', labelBorder: VL.tok('--label-border') || '',
+      bg: P.bg,
       link: { subClassOf: VL.tok('--o3d-link-subclass'), alignment: VL.tok('--o3d-link-alignment'), inScheme: VL.tok('--o3d-link-inscheme'),
         instance: VL.tok('--o3d-link-instance'), result: VL.tok('--o3d-link-result') },
-      linkDefault: VL.tok('--o3d-link-default') || '#9aa7c7', linkDim: VL.tok('--o3d-link-dim') || '#263152'
+      linkDefault: VL.tok('--o3d-link-default') || '#b8bdc6', linkDim: VL.tok('--o3d-link-dim') || '#eceef2'
     };
     M.sceneBg = TH.bg;
+    M.traceCore = P.core;
   }
   readTheme();
-  function labelStyle(n) { return { color: n.kind === 'external' ? TH.labelFg2 : TH.labelFg, bg: TH.labelBg, border: TH.labelBorder }; }
+  /* call-out of a node: the paper's box and greys, its lines, a leader to the node; the selected node's call-out is
+     pale gold with a border in the core colour */
+  function labelOpts(n) {
+    var o = VL.paperCallout(P, state.selected === n);
+    o.lines = labelLines(n);
+    o.weight = '400';
+    o.leader = LEADER;
+    return o;
+  }
   function makeLabel(n) {
-    var st = labelStyle(n);
-    var s = VL.TextSprite(labelText(n), {
-      px: labelPx[n.inst ? 'instance' : n.kind] || 21,
-      weight: (n.kind === 'class' || n.inst) ? '600' : '500',
-      color: st.color, bg: st.bg, border: st.border,
-      cx: 0.5, cy: -0.22
-    });
+    var o = labelOpts(n);
+    o.px = labelPx[n.inst ? 'instance' : n.kind] || 21;
+    var s = VL.TextSprite(labelText(n), o);
+    n.__labSel = state.selected === n;
     s.__basePx = s.__px;
     s.position.set(0, n.__r * 1.02, 0);
     s.fit(worldPerPx());
@@ -166,7 +232,7 @@
     });
   }
   function relabel() {
-    current.nodes.forEach(function (n) { if (n.__label) n.__label.setText(labelText(n)); });
+    current.nodes.forEach(function (n) { if (n.__label) n.__label.setLines(labelLines(n)); });
     scheduleCull();
   }
   function priority(n) {
@@ -214,13 +280,14 @@
       var s = n.__label;
       if (!s) return;
       if (!nodeVisible(n) || !n.__obj || (hl.nodes && !hl.nodes.has(n) && !n.inst && state.selected)) { s.layers.set(1); return; }
-      var r = n.__r * 1.02, w = s.scale.x * k, h = s.scale.y * k;
+      var r = n.__r * 1.02 * (state.selected === n ? 1.3 : 1), w = s.scale.x * k, h = s.scale.y * k;
       var up = anchor(s, r), dn = anchor(s, -r);
       if (!up.ok) { s.layers.set(1); return; }
-      /* candidate slots: above the node (preferred), then below it */
+      /* candidate slots: the call-out above the node with its leader down to it (preferred), then below it; the
+         rectangle covers box and leader, so leaders never cross another call-out */
       items.push({ n: n, s: s, p: priority(n), slots: [
-        { x0: up.x - w / 2, x1: up.x + w / 2, y0: up.y - 1.22 * h, y1: up.y - 0.22 * h, py: r, cy: -0.22 },
-        { x0: dn.x - w / 2, x1: dn.x + w / 2, y0: dn.y + 0.22 * h, y1: dn.y + 1.22 * h, py: -r, cy: 1.22 }
+        { x0: up.x - w / 2, x1: up.x + w / 2, y0: up.y - h, y1: up.y, py: r, side: 'above' },
+        { x0: dn.x - w / 2, x1: dn.x + w / 2, y0: dn.y, y1: dn.y + h, py: -r, side: 'below' }
       ] });
     });
     items.sort(function (a, b) { return b.p - a.p; });
@@ -237,13 +304,12 @@
       var slot = free(it.slots[0]) ? it.slots[0] : (free(it.slots[1]) ? it.slots[1] : null);
       if (slot) {
         it.s.position.set(0, slot.py, 0);
-        it.s.center.y = slot.cy;
+        it.s.setSide(slot.side);
         it.s.layers.set(0);
         placed.push(slot);
         shown++;
       } else {
         it.s.position.set(0, it.slots[0].py, 0);
-        it.s.center.y = -0.22;
         it.s.layers.set(1);
         hidden++;
       }
@@ -251,48 +317,61 @@
     cullStats = { shown: shown, hidden: hidden };
     M.labelsShown = shown;
     M.labelsHidden = hidden;
+    updateFog();
   }
 
   /* ------------------------------------------------------------------ node objects */
   var GEO = null;
   function makeNode(n) {
-    if (!GEO) GEO = { sphere: new THREE.SphereGeometry(1, 28, 18), ico: new THREE.IcosahedronGeometry(1, 0), oct: new THREE.OctahedronGeometry(1, 0) };
+    if (!GEO) GEO = { sphere: new THREE.SphereGeometry(1, 32, 20), ico: new THREE.IcosahedronGeometry(1, 0), oct: new THREE.OctahedronGeometry(1, 0) };
     var g = new THREE.Group();
-    var col = new THREE.Color(n.inst ? n.color : nodeColor(n));
-    var mat = new THREE.MeshLambertMaterial({
-      color: col, emissive: col.clone().multiplyScalar(n.kind === 'external' ? 0.12 : 0.22),
-      transparent: true, opacity: 1, flatShading: (n.kind === 'external' || n.kind === 'scheme')
-    });
+    var flat = n.kind === 'external' || n.kind === 'scheme';
     var geo = n.kind === 'external' ? GEO.ico : (n.kind === 'scheme' ? GEO.oct : GEO.sphere);
-    var mesh = new THREE.Mesh(geo, mat);
-    mesh.scale.setScalar(n.__r);
+    var mesh = new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: 0xffffff, transparent: true, opacity: 0.95, flatShading: flat }));
+    mesh.renderOrder = 1;
+    var rim = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: 0x888888, side: THREE.BackSide, transparent: true, opacity: 0.95 }));
+    var halo = new THREE.Mesh(GEO.sphere, new THREE.MeshBasicMaterial({ color: 0xecc890, side: THREE.BackSide, transparent: true, opacity: 0.9, depthWrite: false }));
+    halo.visible = false;
+    g.add(halo);
+    g.add(rim);
     g.add(mesh);
+    n.__mesh = mesh;
+    n.__rim = rim;
+    n.__halo = halo;
     var lab = makeLabel(n);
     g.add(lab);
-    n.__mesh = mesh;
     n.__label = lab;
     n.__obj = g;
+    styleNode(n, !hl.nodes || hl.nodes.has(n), state.selected === n);
     return g;
   }
 
   /* ------------------------------------------------------------------ link styling */
-  function linkBaseColor(l) { return l.type === 'property' ? VL.moduleColor(l.module) : (TH.link[l.type] || TH.linkDefault); }
+  /* thin links tinted by class, as in the paper: a subclass link takes the colour of the subclass, an object property
+     the colour of its module; the highlighted ones lie under the traced path (core colour, hairline width) */
+  function linkBaseColor(l) {
+    if (l.type === 'property') return VL.moduleColor(l.module);
+    if (l.type === 'subClassOf') { var s = nodeOf(l.source); return s ? rimHex(nodeColor(s), P.dark ? 1 : 0.9) : TH.link.subClassOf; }
+    return TH.link[l.type] || TH.linkDefault;
+  }
+  function inTrace(l) { return hlActive() && !!hl.links && hl.links.has(l); }
   function linkColor(l) {
-    if (hlActive() && !(hl.links && hl.links.has(l))) return TH.linkDim;
+    if (inTrace(l)) return P.core;
+    if (hlActive()) return TH.linkDim;
     return linkBaseColor(l);
   }
   function linkWidth(l) {
-    var on = hlActive() && hl.links && hl.links.has(l);
-    if (l.type === 'subClassOf') return on ? 1.5 : 0.9;
-    if (l.type === 'property') return on ? 1.1 : 0.55;
-    if (l.type === 'result') return 1.1;
-    return on ? 0.6 : 0;
+    if (inTrace(l)) return 0;
+    if (l.type === 'subClassOf') return 0.6;
+    if (l.type === 'property' || l.type === 'result') return 0.42;
+    return 0;
   }
   function linkParticles(l) {
     if (!state.particles) return 0;
-    if (hlActive() && !(hl.links && hl.links.has(l))) return 0;
+    if (hlActive() && !inTrace(l)) return 0;
     return (l.type === 'property' || l.type === 'result') ? 2 : 0;
   }
+  function particleColor(l) { return inTrace(l) ? P.halo : linkBaseColor(l); }
   function linkTooltip(l) {
     var s = nodeOf(l.source), t = nodeOf(l.target);
     var name = l.type === 'property' ? (state.lang === 'vi' && l.label_vi ? l.label_vi : l.label_en) :
@@ -355,7 +434,7 @@
       .linkVisibility(linkVisible)
       .linkColor(linkColor)
       .linkWidth(linkWidth)
-      .linkOpacity(0.8)
+      .linkOpacity(P.linkOpacity)
       .linkResolution(8)
       .linkCurvature('curvature')
       .linkCurveRotation('rotation')
@@ -365,7 +444,7 @@
       .linkDirectionalParticles(linkParticles)
       .linkDirectionalParticleWidth(1.7)
       .linkDirectionalParticleSpeed(0.0045)
-      .linkDirectionalParticleColor(function (l) { return linkBaseColor(l); })
+      .linkDirectionalParticleColor(particleColor)
       .linkLabel(linkTooltip)
       .linkHoverPrecision(2.5)
       .onNodeClick(function (n) { select(n, true); })
@@ -373,7 +452,7 @@
       .onBackgroundClick(function () { clearSelection(); })
       .onNodeHover(function (n) { host.style.cursor = n ? 'pointer' : ''; M.hover = n ? n.id : null; })
       .onLinkHover(function (l) { host.style.cursor = l ? 'pointer' : ''; })
-      .onEngineTick(scheduleCull)
+      .onEngineTick(function () { if (hl.links && hl.links.size) updateTrace(); scheduleCull(); })
       .onEngineStop(onEngineStop)
       .warmupTicks(160)
       .cooldownTicks(60)
@@ -384,15 +463,24 @@
       .distance(function (l) { return { subClassOf: 26, inScheme: 30, alignment: 50, property: 70, instance: 16, result: 34 }[l.type] || 50; })
       .strength(function (l) { return { subClassOf: 0.7, inScheme: 0.5, alignment: 0.35, property: 0.1, instance: 0.9, result: 0.5 }[l.type] || 0.3; });
     graph.d3Force('cluster', clusterForce());
+    /* the paper's light (upper left of the screen) and depth fade to the ground colour */
+    lights = VL.paperLights(P.dark);
+    graph.lights([lights.ambient]);
+    VL.attachCameraLight(graph.scene(), graph.camera(), lights.directional);
+    fog = VL.paperFog(graph.scene(), TH.bg);
     graph.graphData(baseData);
     current.nodes = nodes;
     current.byId = byId;
     graph.controls().addEventListener('change', scheduleCull);
     graph.controls().addEventListener('start', function () { hideHint(); });
-    var lights = graph.lights && graph.lights();
     M.webglRenderer = rendererName();
     fitView(0);
     window.VLApp.graph = graph;
+  }
+  var lights = null, fog = null, sceneR = 200;
+  function updateFog() {
+    if (!graph || !fog) return;
+    VL.fitFog(fog, graph.camera().position.distanceTo(graph.controls().target), sceneR);
   }
   function rendererName() {
     try {
@@ -409,6 +497,7 @@
     cx /= vis.length; cy /= vis.length; cz /= vis.length;
     var R = 10;
     vis.forEach(function (n) { R = Math.max(R, Math.sqrt(Math.pow(n.x - cx, 2) + Math.pow(n.y - cy, 2) + Math.pow(n.z - cz, 2)) + n.__r + 12); });
+    if (!subset) sceneR = R;
     var cam = graph.camera(), sz = stageSize();
     var vf = cam.fov * Math.PI / 180, aspect = sz.w / sz.h;
     var hf = 2 * Math.atan(Math.tan(vf / 2) * aspect);
@@ -433,6 +522,7 @@
 
   var firstStop = true;
   function onEngineStop() {
+    updateTrace();
     scheduleCull();
     if (!firstStop) return;
     firstStop = false;
@@ -466,13 +556,28 @@
   }
 
   /* ------------------------------------------------------------------ selection + panel */
+  /* the selection's neighbourhood (incident links) plus its chain: the subclass links up to the top of its hierarchy,
+     like the paper's trace from a point up to the law */
   function neighbourhood(n) {
-    var ns = new Set([n]), ls = new Set();
+    var ns = new Set([n]), ls = new Set(), up = {}, frontier = [n], seen = new Set([n]);
     graph.graphData().links.forEach(function (l) {
       if (!linkVisible(l)) return;
       var s = nodeOf(l.source), t = nodeOf(l.target);
       if (s === n || t === n) { ls.add(l); ns.add(s); ns.add(t); }
+      if (l.type === 'subClassOf' && s) (up[s.id] = up[s.id] || []).push(l);
     });
+    while (frontier.length) {
+      var next = [];
+      frontier.forEach(function (x) {
+        (up[x.id] || []).forEach(function (l) {
+          var t = nodeOf(l.target);
+          ls.add(l);
+          if (t && !seen.has(t)) { seen.add(t); ns.add(t); next.push(t); }
+        });
+      });
+      frontier = next;
+    }
+    M.highlightChain = seen.size - 1;
     return { nodes: ns, links: ls };
   }
   function select(n, fly) {
@@ -525,14 +630,17 @@
   function chip(id) {
     var n = current.byId[id] || byId[id];
     if (!n) return '<span class="plain">' + VL.esc(id) + '</span>';
-    return '<button type="button" class="linkish" data-node="' + VL.esc(n.id) + '"><span class="swatch" style="background:' + VL.moduleVar(n.module || 'provenance') + '"></span>' + VL.esc(labelText(n)) + '</button>';
+    return '<button type="button" class="linkish" data-node="' + VL.esc(n.id) + '"><span class="swatch" style="background:' + nodeVar(n) + '"></span>' + VL.esc(labelText(n)) + '</button>';
   }
   function section(title, body) { return body ? '<h3>' + VL.esc(title) + '</h3>' + body : ''; }
   function closeBtn() { return '<button class="btn btn-xs panel-close" type="button" data-act="close" aria-label="Close details">' + VL.ICON.close + '</button>'; }
   function nodePanel(n) {
     var m = VL.MODULE[n.module] || VL.MODULE.provenance;
+    var pk = paperKey(n), pc = pk ? VL.PAPER_CLASS[pk] : null;
     var h = closeBtn();
-    h += '<div class="panel-kind"><span class="badge"><span class="swatch" style="background:' + VL.moduleVar(n.module || 'provenance') + '"></span>' + VL.esc(m.en) + ' · <span lang="vi">' + VL.esc(m.vi) + '</span></span>' +
+    h += '<div class="panel-kind">' + (pc ? '<span class="badge" title="Class colour of the paper\u2019s figures"><span class="swatch" style="background:' + pc.v + '"></span><span lang="vi">' +
+      VL.esc(pc.vi) + '</span> · ' + VL.esc(pc.en) + '</span>' : '') +
+      '<span class="badge"><span class="swatch" style="background:' + VL.moduleVar(n.module || 'provenance') + '"></span>' + VL.esc(m.en) + ' · <span lang="vi">' + VL.esc(m.vi) + '</span></span>' +
       '<span class="badge">' + VL.esc(kindLabel(n)) + '</span></div>';
     h += '<h2>' + VL.esc(n.label_en) + '</h2>';
     if (n.label_vi) h += '<p class="vi" lang="vi">' + VL.esc(n.label_vi) + '</p>';
@@ -614,7 +722,9 @@
   function instancePanel(n) {
     var h = closeBtn();
     var cls = n.cls ? current.byId[n.cls] || byId[n.cls] : null;
-    h += '<div class="panel-kind"><span class="badge"><span class="swatch" style="background:' + VL.moduleVar(n.module || 'provenance') + '"></span>instance</span>' + (cls ? '<span class="badge">' + VL.esc(cls.label_en) + '</span>' : '') + '</div>';
+    var pk = paperKey(n), pc = pk ? VL.PAPER_CLASS[pk] : null;
+    h += '<div class="panel-kind"><span class="badge"><span class="swatch" style="background:' + nodeVar(n) + '"></span>' +
+      (pc ? '<span lang="vi">' + VL.esc(pc.vi) + '</span> · ' + VL.esc(pc.en) : 'instance') + '</span>' + (cls ? '<span class="badge">' + VL.esc(cls.label_en) + '</span>' : '') + '</div>';
     h += '<h2>' + VL.esc(n.number || n.label || n.id) + '</h2>';
     if (n.title && n.title !== n.number) h += '<p class="vi" lang="vi">' + VL.esc(n.title) + '</p>';
     h += '<dl class="kv">' + (n.iri ? '<dt>IRI</dt><dd><span class="iri">' + VL.wbr(n.iri) + '</span></dd>' : '') + (cls ? '<dt>Class</dt><dd>' + chip(cls.id) + '</dd>' : '') + '</dl>';
@@ -698,7 +808,7 @@
 
   var searchIndex = [];
   nodes.forEach(function (n) {
-    searchIndex.push({ t: 'node', id: n.id, main: n.label_en, sub: [n.label_vi, n.id].filter(Boolean).join(' · '), kind: kindLabel(n), color: VL.moduleVar(n.module || 'provenance'),
+    searchIndex.push({ t: 'node', id: n.id, main: n.label_en, sub: [n.label_vi, n.id].filter(Boolean).join(' · '), kind: kindLabel(n), color: nodeVar(n),
       hay: [VL.fold(n.label_en), VL.fold(n.label_vi || ''), VL.fold(n.id), VL.fold(n.id.split(':')[1] || ''), VL.fold(n.iri)], boost: n.kind === 'class' ? 3 : 1 });
   });
   links.forEach(function (l) {
@@ -802,24 +912,42 @@
     scheme: '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1.2L12.8 7 7 12.8 1.2 7z" fill="currentColor"/></svg>',
     external: '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1.3l5 2.9v5.7L7 12.7 2 9.9V4.2z" fill="currentColor"/></svg>'
   };
+  /* the paper's legend row: "Vietnamese · English" entries; the paper's classes present in the view first, then the
+     modules outside the paper's palette, then shapes, link kinds and the traced path */
+  function bi(vi, en) { return '<span lang="vi">' + VL.esc(VL.cap(vi)) + '</span> · ' + VL.esc(VL.cap(en)); }
+  var FAMILY = { documents: 1, provisions: 1, qa: 1, terminology: 1, classification: 1 };   // modules coloured like a paper class
   function renderLegend() {
     var btn = VL.$('#btn-legend');
     btn.setAttribute('aria-expanded', state.legendOpen ? 'true' : 'false');
     legendEl.classList.toggle('hidden', !state.legendOpen);
     if (!state.legendOpen) return;
-    var mods = VL.MODULES.filter(function (m) { return m.id !== 'citation-basis'; });
-    var h = '<h3>Modules</h3><ul>' + mods.map(function (m) {
-      return '<li><span class="swatch" style="background:' + m.v + '"></span>' + VL.esc(m.id === 'external' ? 'external terms' : m.en) + '</li>';
-    }).join('') + '</ul>';
-    h += '<div class="legend-sub"><ul>' +
-      '<li>' + SHAPES['class'] + 'class (size ~ instances)</li><li>' + SHAPES.scheme + 'concept scheme</li>' +
-      '<li>' + SHAPES.external + 'external term</li>' +
-      '<li><span class="swatch line" style="background:var(--o3d-link-subclass)"></span>subclass of</li>' +
-      '<li><span class="swatch line" style="background:linear-gradient(90deg,var(--mod-documents),var(--mod-validity-change))"></span>object property</li>' +
-      '<li><span class="swatch line" style="background:var(--o3d-link-alignment)"></span>alignment</li>' +
-      (view.mode !== 'ontology' ? '<li><span class="swatch line" style="background:var(--o3d-link-result)"></span>CONSTRUCT triple</li>' : '') +
-      '</ul></div>';
+    var keys = {}, mods = {};
+    current.nodes.forEach(function (n) {
+      if (!nodeVisible(n)) return;
+      var k = paperKey(n);
+      if (k) keys[k] = true;
+      else mods[n.kind === 'external' ? 'external' : (n.module || 'provenance')] = true;
+    });
+    var cls = VL.PAPER_CLASSES.filter(function (c) { return keys[c.key]; });
+    var other = VL.MODULES.filter(function (m) { return mods[m.id] && (!FAMILY[m.id] || m.id === 'external'); });
+    var famOnly = VL.MODULES.filter(function (m) { return mods[m.id] && FAMILY[m.id]; });
+    var h = '<ul class="lg-classes">' + cls.map(function (c) {
+      return '<li><span class="swatch" style="background:' + c.v + '"></span>' + bi(c.vi, c.en) + '</li>';
+    }).join('') + '<li><span class="swatch trace" aria-hidden="true"></span>' + bi('Đường truy vết', view.mode !== 'ontology' ? 'traced result' : 'traced path') + '</li></ul>';
+    if (other.length) {
+      h += '<div class="legend-sub"><ul class="lg-modules">' + other.map(function (m) {
+        return '<li><span class="swatch" style="background:' + m.v + '"></span>' + (m.id === 'external' ? bi('khái niệm ngoài', 'external terms') : bi(m.vi, m.en)) + '</li>';
+      }).join('') + '</ul></div>';
+    }
+    h += '<div class="legend-sub"><ul class="lg-marks">' +
+      '<li>' + SHAPES['class'] + bi('lớp', 'class (size ~ instances)') + '</li><li>' + SHAPES.scheme + bi('lược đồ khái niệm', 'concept scheme') + '</li>' +
+      '<li>' + SHAPES.external + bi('khái niệm ngoài', 'external term') + '</li>' +
+      '<li><span class="swatch line" style="background:linear-gradient(90deg,var(--cls-work),var(--cls-article),var(--cls-term))"></span>' + bi('lớp con của', 'subclass of') + '</li>' +
+      '<li><span class="swatch line" style="background:linear-gradient(90deg,var(--mod-validity-change),var(--mod-agents),var(--mod-judiciary))"></span>' + bi('thuộc tính', 'object property') + '</li>' +
+      '<li><span class="swatch line" style="background:var(--o3d-link-alignment)"></span>' + bi('liên kết ngoài', 'alignment') + '</li>' +
+      '</ul>' + (famOnly.length ? '<p class="lg-note">' + VL.esc('Other classes take the colour of their module: ' + famOnly.map(function (m) { return m.en; }).join(', ') + '.') + '</p>' : '') + '</div>';
     legendEl.innerHTML = h;
+    M.legendEntries = VL.$$('li', legendEl).length;
   }
   function showHint() {
     if (VL.store.get('hint-onto3d') === 'off') return;
@@ -838,17 +966,21 @@
     readTheme();
     if (!graph) return;
     graph.backgroundColor(TH.bg);
+    if (fog) fog.color.set(TH.bg);
+    if (lights) {
+      var L2 = VL.paperLights(P.dark);
+      lights.ambient.intensity = L2.ambient.intensity;
+      lights.directional.intensity = L2.directional.intensity;
+    }
     var seen = new Set();
     nodes.concat(current.nodes || []).forEach(function (n) {
       if (seen.has(n)) return;
       seen.add(n);
-      if (n.inst) n.color = VL.moduleColor(n.module || 'provenance');
-      if (n.__mesh) n.__mesh.material.color.set(n.inst ? n.color : nodeColor(n));
-      if (n.__label) n.__label.setStyle(labelStyle(n));
+      if (n.__label) { n.__labSel = state.selected === n; n.__label.setStyle(labelOpts(n)); }
     });
+    graph.linkOpacity(P.linkOpacity);
     applyHighlight();
     graph.linkDirectionalArrowColor(graph.linkDirectionalArrowColor());
-    graph.linkDirectionalParticleColor(graph.linkDirectionalParticleColor());
     renderLegend();
     M.themeRenders = (M.themeRenders || 0) + 1;
   }
@@ -1030,7 +1162,7 @@
     closePanel();
     graph.warmupTicks(mode === 'overlay' ? 60 : 140);
     graph.graphData(data);
-    setHighlight(mode === 'overlay' ? resultNodes : null, mode === 'overlay' ? resultLinks : null);
+    setHighlight(resultNodes, resultLinks);     // the result is the traced path (overlay: the rest of the ontology fades)
     VL.$('#qd-back').classList.remove('hidden');
     renderLegend();
     setTimeout(function () { fitView(700, mode === 'overlay' ? Array.from(resultNodes) : null); }, 60);

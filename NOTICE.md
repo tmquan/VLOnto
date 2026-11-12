@@ -22,6 +22,7 @@ Vietnamese:
 ## Third-party components
 
 - Fonts in `site/fonts/` and `typst/fonts/` (Be Vietnam Pro, Noto Serif, JetBrains Mono NL, Noto Sans Symbols 2,
-  Noto Sans Math): SIL Open Font License 1.1; licence files are next to the fonts.
+  Noto Sans Math) and the web-only Latin + Vietnamese subset of Libertinus Sans 7.051 used by the 3D views (the figure
+  font of the paper): SIL Open Font License 1.1; licence files are next to the fonts.
 - JavaScript libraries in `site/vendor/` (three.js, 3d-force-graph, three-spritetext, ECharts, Oxigraph): see
   `site/vendor/THIRD_PARTY_LICENSES.md` and `tools/vendor.lock.json`.

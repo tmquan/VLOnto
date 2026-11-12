@@ -792,6 +792,39 @@
    "unicode_range": null
   },
   {
+   "file": "site/fonts/LibertinusSans-Bold.subset.woff2",
+   "sha256": "a99ebabc9a2db6acdd9ccc41711cf2a1a44d4d03cdce110aa5fc98cc2fa6a97b",
+   "bytes": 32024,
+   "source": "fontTools subset of https://github.com/alerque/libertinus/releases/download/v7.051/Libertinus-7.051.zip!Libertinus-7.051/static/TTF/LibertinusSans-Bold.ttf",
+   "source_sha256": "9ebce4e4463c806336ee7ab353c06fe40a6ee8691b5187f32118458726e3ed82",
+   "package": "Libertinus Sans",
+   "version": "Version 7.051",
+   "licence": "OFL-1.1",
+   "unicode_range": "U+0020-007E, U+00A0-017F, U+01A0-01A1, U+01AF-01B0, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0300-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+2000-2027, U+202F-2037, U+2039-203E, U+2042, U+2044, U+2047-204B, U+204F, U+20AB-20AC, U+2122, U+2190-2193, U+2212, U+2215, U+FFFD"
+  },
+  {
+   "file": "site/fonts/LibertinusSans-Italic.subset.woff2",
+   "sha256": "68ed3c7e952d12ab2ed31cb9ae8f0e11d3fd4065137e4d11a6ed9fb93466bf10",
+   "bytes": 38696,
+   "source": "fontTools subset of https://github.com/alerque/libertinus/releases/download/v7.051/Libertinus-7.051.zip!Libertinus-7.051/static/TTF/LibertinusSans-Italic.ttf",
+   "source_sha256": "8cdc179ffe4c3fd3f63b504b30c8b2e872d90e4686ce1d6a5d9a5eb9c53b7802",
+   "package": "Libertinus Sans",
+   "version": "Version 7.051",
+   "licence": "OFL-1.1",
+   "unicode_range": "U+0020-007E, U+00A0-017F, U+01A0-01A1, U+01AF-01B0, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0300-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+2000-200B, U+200D, U+2010-2027, U+202F-2037, U+2039-203E, U+2042, U+2044, U+2047-204B, U+204F, U+20AB-20AC, U+2122, U+2190-2193, U+2212, U+2215, U+FFFD"
+  },
+  {
+   "file": "site/fonts/LibertinusSans-Regular.subset.woff2",
+   "sha256": "4a0ada244424ae3bdb9214cc21627a65c7bd874e1940543938aed6518ab8613e",
+   "bytes": 30560,
+   "source": "fontTools subset of https://github.com/alerque/libertinus/releases/download/v7.051/Libertinus-7.051.zip!Libertinus-7.051/static/TTF/LibertinusSans-Regular.ttf",
+   "source_sha256": "a488d956f64d88b14df8a01708c5b480815107695e711d45e13561038004f0af",
+   "package": "Libertinus Sans",
+   "version": "Version 7.051",
+   "licence": "OFL-1.1",
+   "unicode_range": "U+0020-007E, U+00A0-017F, U+01A0-01A1, U+01AF-01B0, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0300-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+2000-2027, U+202F-2037, U+2039-203E, U+2042, U+2044, U+2047-204B, U+204F, U+20AB-20AC, U+2122, U+2190-2193, U+2212, U+2215, U+FFFD"
+  },
+  {
    "file": "site/fonts/NotoSansMath-Regular.subset.woff2",
    "sha256": "6c2bf81c42d4575ee9bfc9e851b56dbd684c7d6123e1eb2f8edd323ce4e26a03",
    "bytes": 109212,
@@ -870,6 +903,15 @@
    "licence": "OFL-1.1"
   },
   {
+   "file": "site/fonts/OFL-Libertinus.txt",
+   "sha256": "9aeecc8107c489ec1ec0068b0313e531a760edf3493705b32ab8ab8215a8794e",
+   "bytes": 4426,
+   "source": "https://github.com/alerque/libertinus/releases/download/v7.051/Libertinus-7.051.zip!Libertinus-7.051/OFL.txt",
+   "package": "OFL-Libertinus",
+   "version": "",
+   "licence": "OFL-1.1"
+  },
+  {
    "file": "site/fonts/OFL-Noto.txt",
    "sha256": "f2095b08bed08b23a6fe26112fcd679a2bee3f002eef077eb05d215ed1051bd8",
    "bytes": 4374,
@@ -897,6 +939,15 @@
    "licence": "OFL-1.1"
   },
   {
+   "file": "site/fonts/embedded/libertinus-sans.css",
+   "sha256": "049f0858b4d7469d505eac5345d8a3da08af77eeceba1973fe483304685e23e4",
+   "bytes": 136630,
+   "source": "generated @font-face CSS",
+   "package": "fonts",
+   "version": "",
+   "licence": "OFL-1.1"
+  },
+  {
    "file": "site/fonts/embedded/noto-serif.css",
    "sha256": "c2d3dcc5a0473881bb75223828dc47ad623eab2eae347b72ea39182fbc37382e",
    "bytes": 1346420,
@@ -916,8 +967,8 @@
   },
   {
    "file": "site/fonts/fonts-embedded.css",
-   "sha256": "8ad4e825cb0d0141d4562a596783be4e04a8a6078681c93847dabb8ce7d96b65",
-   "bytes": 711,
+   "sha256": "dbe62f9e61bcd711c3236b36f95989edbc02fbaf2ebfe7008cc36ce41d0b39b2",
+   "bytes": 866,
    "source": "generated @font-face CSS",
    "package": "fonts",
    "version": "",
@@ -925,8 +976,8 @@
   },
   {
    "file": "site/fonts/fonts.css",
-   "sha256": "b310586f4e6846102ef809b9bf2038ae8ba58696f880df93e853a5506bf5e39b",
-   "bytes": 4210,
+   "sha256": "3325db3f49e2215e72baf26b4ab83fdc65b2f3bfcbf4ce7fdead9fd1b028e775",
+   "bytes": 5762,
    "source": "generated @font-face CSS",
    "package": "fonts",
    "version": "",
@@ -988,8 +1039,8 @@
   },
   {
    "file": "site/vendor/THIRD_PARTY_LICENSES.md",
-   "sha256": "258494ca30533068d50129ea0473c70f2da4fcbabedf241e9a90fc13cb3be720",
-   "bytes": 3934,
+   "sha256": "b2a66ca2a02a26b1f2956868c8c32ceec77aa24c996d9c0f74cd1ac23fe7f4ca",
+   "bytes": 4641,
    "package": "licences",
    "version": "",
    "licence": "-",

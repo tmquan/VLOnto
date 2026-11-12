@@ -127,6 +127,7 @@ fixed vertical field of view), so scale the distance by the canvas aspect ratio 
 | mono: code, IRIs | JetBrains Mono **NL** 2.304 (no ligatures: `<=`, `->` stay literal) - Regular, Italic, Bold, BoldItalic | JetBrains release v2.304 |
 | fallback: ✓ ✗ dingbats | Noto Sans Symbols 2 2.008 | notofonts @ 4cf78353 |
 | fallback: → ← ≤ ≥ ≠ ⇒, math | Noto Sans Math 3.000 (also the Typst math font) | notofonts @ 4cf78353 |
+| paper: 3D labels, legends, panel headings (web only) | Libertinus Sans 7.051 - Regular, Italic, Bold, subset to Latin + Vietnamese (146/146 letters), stack `--vlo-font-paper` | Libertinus release v7.051 (github.com/alerque/libertinus) |
 
 Why: Be Vietnam Pro is designed for Vietnamese stacked diacritics; Noto Serif covers all of Vietnamese; JetBrains
 Mono NL is the only text family that covers all 18 required symbols. Coverage (fontTools, `font_coverage.py`): every
@@ -137,7 +138,8 @@ Vietnamese letters, 18/18 symbols and 11/11 extras (₫ « » ↔ ⇒ ≠ ± © 
 to show the detected decomposition (≠ by Noto Serif, 10/11 extras). Full table: `font_coverage.md` from run_proofs.
 
 * Typst: `--font-path typst/fonts` (TTF). Web: `site/fonts/fonts.css` (woff2, symbol fonts subset to their blocks
-  with matching `unicode-range`) or `site/fonts/fonts-embedded.css` (data: URIs, works from any folder).
+  with matching `unicode-range`) or `site/fonts/fonts-embedded.css` (data: URIs, works from any folder). Libertinus
+  Sans is web only (the paper's figure font); the 3D pages load it through `site/css/fonts-paper.css`.
 * CSS stacks (defined in both CSS files): `font-family: var(--vlo-font-sans)` / `var(--vlo-font-serif)` / `var(--vlo-font-mono)`.
 * Noto Serif lacks ≠ but has `=` and U+0338, so Chrome **and** Typst (HarfBuzz) draw ≠ from Noto Serif as
   `=` + combining overlay (seen as "=/") instead of falling back. Both sides therefore route arrows and operators

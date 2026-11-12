@@ -225,7 +225,8 @@ def downloads_html(files, kg_tables, rdf_dump, stats, n_total=None) -> str:
     body.append('<section class="block" id="dl-vendor">\n<h2>Third-party libraries and fonts</h2>\n'
                 '<p class="lead-sm">Vendored classic-script builds pinned and checksummed by the toolchain '
                 '(<a href="vendor/THIRD_PARTY_LICENSES.md">third-party licences</a>). Fonts: Be Vietnam Pro, JetBrains Mono NL, '
-                'Noto Sans Symbols 2 and Noto Sans Math under the SIL Open Font License 1.1 '
+                'Noto Sans Symbols 2, Noto Sans Math and Libertinus Sans (the paper\u2019s figure font, used by the 3D views; '
+                '<a href="fonts/OFL-Libertinus.txt">OFL</a>) under the SIL Open Font License 1.1 '
                 '(<a href="fonts/OFL-BeVietnamPro.txt">OFL</a>), embedded as data URIs in <code>fonts/embedded/</code>.</p>'
                 '<div class="table-wrap"><table class="data files"><thead><tr><th>File</th><th class="num">Size</th>'
                 '<th class="col-hash">SHA-256</th></tr></thead><tbody>')

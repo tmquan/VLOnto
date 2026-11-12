@@ -20,7 +20,7 @@ done
 "$W/python" scripts/site/interaction_tests.py --root site --out "$B/site_tests/core" --tests ${TESTS_CORE:-ontology,network,sparql,dashboard,simple} \
   > "$B/site_tests/core/interactions.log" 2>&1 &
 PIC=$!
-"$W/python" scripts/site/interaction_tests.py --root site --out "$B/site_tests/theme" --tests ${TESTS_THEME:-theme,paper} \
+"$W/python" scripts/site/interaction_tests.py --root site --out "$B/site_tests/theme" --tests ${TESTS_THEME:-theme,paper,paper_style} \
   > "$B/site_tests/theme/interactions.log" 2>&1 &
 PIT=$!
 "$W/python" scripts/site/interaction_tests.py --root site --out "$B/site_tests/gallery" --tests gallery --modes http \

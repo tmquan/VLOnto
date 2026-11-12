@@ -90,6 +90,37 @@
     citation: { en: 'citation', vi: 'trích dẫn', qual: 'document pairs', qualVi: 'cặp văn bản', color: '#9AA8C7' }
   };
   VL.TYPE_COLORS = { HP: '#FFD166', BL: '#FF8A3D', L: '#EF476F', PL: '#F472B6', NQ: '#A78BFA', NQLT: '#8B7CF6', 'NĐ': '#4F8EF7', 'QĐ': '#22D3EE', TT: '#4ADE80', TTLT: '#B5E853' };
+
+  /* The classes of the paper's figure legend (arXiv:2611.11426, Fig. 1), in its order and with its colours (css/site.css
+     --cls-*; the same in both themes). The 3D views (paper style, js/paper3d.js) colour a node with its paper class where
+     it has one, else with its module. Instances (records of the knowledge graph) of the document classes are records. */
+  VL.PAPER_FONT = '"Libertinus Sans", "Be Vietnam Pro", "Noto Sans Symbols 2", "Noto Sans Math", sans-serif';
+  VL.PAPER_CLASSES = [
+    { key: 'work', vi: 'Văn bản', en: 'Work', color: '#7dbe8e' },
+    { key: 'record', vi: 'Bản ghi', en: 'Record', color: '#a3d3ae' },
+    { key: 'chapter', vi: 'Chương', en: 'Chapter', color: '#6fb7b4' },
+    { key: 'section', vi: 'Mục', en: 'Section', color: '#86c4bf' },
+    { key: 'article', vi: 'Điều', en: 'Article', color: '#9ed2c9' },
+    { key: 'clause', vi: 'Khoản', en: 'Clause', color: '#bde2d9' },
+    { key: 'point', vi: 'Điểm', en: 'Point', color: '#d9efe9' },
+    { key: 'term', vi: 'Thuật ngữ', en: 'Term', color: '#8db8e8' },
+    { key: 'question', vi: 'Câu hỏi', en: 'Question', color: '#f4b183' },
+    { key: 'answer', vi: 'Trả lời', en: 'Answer', color: '#f8d49b' },
+    { key: 'intent', vi: 'Ý định', en: 'Intent', color: '#b9a3e3' },
+    { key: 'area', vi: 'Lĩnh vực', en: 'Area', color: '#b9b9ce' }
+  ];
+  VL.PAPER_CLASS = {};
+  VL.PAPER_CLASSES.forEach(function (c) { VL.PAPER_CLASS[c.key] = c; c.v = 'var(--cls-' + c.key + ')'; });
+  var PAPER_OF = { Chapter: 'chapter', Section: 'section', Article: 'article', Clause: 'clause', Point: 'point', LegalTerm: 'term',
+    LegalQuestion: 'question', LegalAnswer: 'answer', LegalArea: 'area' };
+  ['LegalDocument', 'NormativeLegalDocument', 'Constitution', 'Code', 'Law', 'Ordinance', 'Resolution', 'JointResolution', 'Decree',
+    'Decision', 'Circular', 'JointCircular'].forEach(function (w) { PAPER_OF[w] = 'work'; });
+  /* paper class key of an ontology class (CURIE, IRI or local name), or null; instance = a record of the knowledge graph */
+  VL.paperClassKey = function (cls, instance) {
+    var k = PAPER_OF[String(cls || '').split(/[#:\/]/).pop()] || null;
+    return k === 'work' && instance ? 'record' : k;
+  };
+  VL.cap = function (s) { s = VL.nfc(s); return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; };
   /* document-type codes as ASCII custom-property names (--type-ND, --type-QD) */
   var TYPE_KEY = { HP: 'HP', BL: 'BL', L: 'L', PL: 'PL', NQ: 'NQ', NQLT: 'NQLT', 'NĐ': 'ND', 'QĐ': 'QD', TT: 'TT', TTLT: 'TTLT' };
   Object.keys(VL.VALIDITY).forEach(function (k) { VL.VALIDITY[k].v = 'var(--val-' + k + ')'; });
@@ -196,7 +227,8 @@
     ROOT.setAttribute('data-theme', themeFromUrl || storedTheme() || systemTheme());   // inline head script missing
   }
   VL.theme = function () { return ROOT.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; };
-  VL.tok = function (name) { return getComputedStyle(ROOT).getPropertyValue(name).trim(); };
+  /* a custom property of the current theme; el = a scoped element (data-style="paper" on the CONSTRUCT view) */
+  VL.tok = function (name, el) { return getComputedStyle(el || ROOT).getPropertyValue(name).trim(); };
   VL.tokNum = function (name, fb) { var v = parseFloat(VL.tok(name)); return isNaN(v) ? fb : v; };
   VL.hue = function (name) { return VL.tok('--hue-' + name) || '#888888'; };
   VL.alpha = function (color, a) {
@@ -424,6 +456,8 @@
   VL.fontsReady = function () {
     if (VL._fonts) return VL._fonts;
     var list = ['400 16px "Be Vietnam Pro"', '500 16px "Be Vietnam Pro"', '600 16px "Be Vietnam Pro"', '700 16px "Be Vietnam Pro"', '400 13px "JetBrains Mono NL"'];
+    /* the paper's figure font for the canvas labels of the 3D views (css/fonts-paper.css, linked by those pages only) */
+    if (VL.$$('link[href$="fonts-paper.css"]').length) list.push('400 16px "Libertinus Sans"', '700 16px "Libertinus Sans"', 'italic 400 16px "Libertinus Sans"');
     var p = (document.fonts && document.fonts.load) ? Promise.all(list.map(function (f) { return document.fonts.load(f); })) : Promise.resolve();
     var timeout = new Promise(function (res) { setTimeout(res, 4000); });
     VL._fonts = Promise.race([p, timeout]).then(function () { M.fontsMs = Math.round(performance.now()); });

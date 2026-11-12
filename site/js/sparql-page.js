@@ -116,31 +116,21 @@
     VL.downloadText(S.toCSV(last), 'vlonto-sparql-results.csv', 'text/csv;charset=utf-8');
   });
 
-  /* ------------------------------------------------------------------ CONSTRUCT -> 3D */
-  var G = null;
-  function labelStyle() {
-    return { color: VL.tok('--label-fg') || '#ffffff', bg: VL.tok('--label-bg') || 'rgba(9, 14, 30, 0.8)', border: VL.tok('--label-border') || '' };
-  }
-  /* theme switch: background, node colours (module palette of the theme), labels and links of the CONSTRUCT view */
-  window.addEventListener('vlonto-theme', function () {
-    if (!G) return;
-    G.backgroundColor(VL.tok('--scene-bg') || '#0a0f1e');
-    var st = labelStyle();
-    G.graphData().nodes.forEach(function (n) {
-      n.color = VL.moduleColor(n.mod || 'provenance');
-      if (n.__label) n.__label.setStyle(st);
-    });
-    G.nodeColor(G.nodeColor());
-    G.linkColor(G.linkColor());
-    M.constructThemed = (M.constructThemed || 0) + 1;
-  });
+  /* ------------------------------------------------------------------ CONSTRUCT -> 3D
+     Drawn like the figures of the paper (arXiv:2611.11426; js/paper3d.js), with the tokens of #graph-wrap
+     (data-style="paper"): white figure ground, pastel spheres in the paper's class colours (records of the documents,
+     articles, terms, ...) or else their module's colour, the result's links as the traced answer (navy core over a
+     pale-gold halo), call-outs in Libertinus Sans with leader lines, depth fade, and the paper's legend row. */
+  var G = null, P = null, trace = null, fog = null, lights = null, legend = null, sceneR = 100;
+  var scope = VL.$('#graph-wrap');
+  function readTheme() { P = VL.paperTheme(scope); }
   function load3d() {
-    if (window.ForceGraph3D) return Promise.resolve();
+    if (window.ForceGraph3D && VL.TraceLines) return Promise.resolve();
     return VL.loadScript('vendor/three/three.iife.min.js')
       .then(function () { return VL.loadScript('js/labels3d.js'); })
+      .then(function () { return VL.loadScript('js/paper3d.js'); })
       .then(function () { return VL.loadScript('vendor/3d-force-graph/3d-force-graph.iife.min.js'); });
   }
-  var ONTO = window.VLONTO.ontology_graph;
   function classModule(types) {
     var mods = { Constitution: 'documents', Code: 'documents', Law: 'documents', Ordinance: 'documents', Resolution: 'documents', JointResolution: 'documents',
       Decree: 'documents', Decision: 'documents', Circular: 'documents', JointCircular: 'documents', LegalChange: 'validity-change', IssuingBody: 'agents',
@@ -151,6 +141,71 @@
     }
     return null;
   }
+  /* paper class of a record (the first of its types that has one) and its English class name, "JointCircular" -> "joint circular" */
+  function paperKeyOf(types) {
+    for (var i = 0; i < (types || []).length; i++) { var k = VL.paperClassKey(types[i], true); if (k) return k; }
+    return null;
+  }
+  function className(types) {
+    var t = (types || []).map(function (x) { return String(x); }).filter(function (x) { return x.indexOf(VL.NS.vlo) === 0; })[0];
+    return t ? t.split('#').pop().replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase() : '';
+  }
+  function nodeColor(n) { return (n.pk && P.cls[n.pk]) || VL.tok('--mod-' + n.mod, scope) || VL.moduleColor(n.mod); }
+  function rimHex(hex, f) {
+    var m = /^#?([0-9a-f]{6})$/i.exec(String(hex).trim()), v = m ? parseInt(m[1], 16) : 0x888888;
+    return '#' + [v >> 16, (v >> 8) & 255, v & 255].map(function (c) { c = Math.round(c * f); return (c < 16 ? '0' : '') + c.toString(16); }).join('');
+  }
+  /* call-out: the record's number, label or title, then its class in English, in the paper's two greys */
+  function labelOpts(n) {
+    var o = VL.paperCallout(P, false);
+    o.lines = [[{ text: n.label, color: P.ink }].concat(n.cls ? [{ text: ' · ' + n.cls, color: P.ink2 }] : [])];
+    o.weight = '400';
+    o.leader = 11;
+    return o;
+  }
+  function styleNode(n) {
+    if (!n.__rim) return;
+    n.__rim.material.color.set(rimHex(nodeColor(n), P.dark ? 0.72 : 0.84));
+  }
+  function updateTrace() {
+    if (!G || !trace) return;
+    var paths = [];
+    G.graphData().links.forEach(function (l) { var pts = VL.linkPoints(l, 12); if (pts) paths.push(pts); });
+    trace.setStyle(VL.traceStyle(P, paths.length > 150 ? 0.55 : (paths.length > 60 ? 0.72 : 0.9)));
+    trace.setPaths(paths);
+    M.constructTrace = trace.count();
+  }
+  function updateFog() { if (G && fog) VL.fitFog(fog, G.camera().position.distanceTo(G.controls().target), sceneR); }
+  function bi(vi, en) { return '<span lang="vi">' + VL.esc(VL.cap(vi)) + '</span> · ' + VL.esc(VL.cap(en)); }
+  function renderLegend(nodes) {
+    if (!legend) return;
+    var keys = {}, mods = {};
+    nodes.forEach(function (n) { if (n.pk) keys[n.pk] = true; else mods[n.mod] = true; });
+    var h = '<ul>' + VL.PAPER_CLASSES.filter(function (c) { return keys[c.key]; }).map(function (c) {
+      return '<li><span class="swatch" style="background:' + c.v + '"></span>' + bi(c.vi, c.en) + '</li>';
+    }).join('') + VL.MODULES.filter(function (m) { return mods[m.id]; }).map(function (m) {
+      return '<li><span class="swatch" style="background:' + m.v + '"></span>' + bi(m.vi, m.en) + '</li>';
+    }).join('') + '<li><span class="swatch trace" aria-hidden="true"></span>' + bi('đường truy vết', 'query result') + '</li></ul>';
+    legend.innerHTML = h;
+  }
+  /* theme switch: background, fog, light, node colours, call-outs, the traced result and the legend of the CONSTRUCT view */
+  window.addEventListener('vlonto-theme', function () {
+    if (!G) return;
+    readTheme();
+    G.backgroundColor(P.bg);
+    if (fog) fog.color.set(P.bg);
+    if (lights) { var L2 = VL.paperLights(P.dark); lights.ambient.intensity = L2.ambient.intensity; lights.directional.intensity = L2.directional.intensity; }
+    G.graphData().nodes.forEach(function (n) {
+      n.color = nodeColor(n);
+      styleNode(n);
+      if (n.__label) n.__label.setStyle(labelOpts(n));
+    });
+    G.nodeColor(G.nodeColor());
+    G.linkColor(G.linkColor());
+    G.linkDirectionalArrowColor(G.linkDirectionalArrowColor());
+    updateTrace();
+    M.constructThemed = (M.constructThemed || 0) + 1;
+  });
   function drawGraph(ctx, res) {
     var wrap = VL.$('#graph-wrap');
     wrap.classList.remove('hidden');
@@ -159,7 +214,7 @@
       var isOnto = n.iri && n.iri.indexOf(VL.NS.vlo) === 0;
       var mod = classModule(n.types) || (isOnto ? 'documents' : 'provenance');
       var label = n.number || n.label || (n.title ? VL.short(n.title, 26) : null) || VL.shortIri(n.iri || n.id);
-      return { id: n.id, iri: n.iri, label: VL.nfc(label), title: n.title, mod: mod, color: VL.moduleColor(mod) };
+      return { id: n.id, iri: n.iri, label: VL.nfc(label), title: n.title, mod: mod, pk: paperKeyOf(n.types), cls: className(n.types) };
     });
     var links = g.links.map(function (l) { return { source: l.source, target: l.target, pred: l.pred }; });
     VL.$('#graph-note').textContent = VL.fmt(nodes.length) + ' nodes and ' + VL.fmt(links.length) + ' links' + (g.truncated ? ' (truncated to 400 nodes)' : '') +
@@ -167,26 +222,47 @@
     M.constructDrawn = { nodes: nodes.length, links: links.length };
     return load3d().then(function () { return VL.fontsReady(); }).then(function () {
       var el = VL.$('#graph-view');
+      readTheme();
+      nodes.forEach(function (n) { n.color = nodeColor(n); });
       if (!G) {
         G = new ForceGraph3D(el, { controlType: 'orbit', rendererConfig: { antialias: true, alpha: false } })
-          .backgroundColor(VL.tok('--scene-bg') || '#0a0f1e').showNavInfo(false)
+          .backgroundColor(P.bg).showNavInfo(false)
           .nodeRelSize(3).nodeVal(function () { return 1.6; })
           .nodeColor(function (n) { return n.color; })
+          .nodeOpacity(0.95).nodeResolution(20)
           .nodeLabel(function (n) { return '<b>' + VL.esc(n.label) + '</b>' + (n.title ? '<br>' + VL.esc(VL.short(n.title, 70)) : ''); })
           .nodeThreeObjectExtend(true)
           .nodeThreeObject(function (n) {
-            var s = VL.TextSprite(n.label, Object.assign({ px: 22, weight: '600', cx: 0.5, cy: -0.3 }, labelStyle()));
+            var grp = new THREE.Group();
+            /* the darker rim of the paper's spheres: a slightly larger back-face hull around the default sphere */
+            var rim = new THREE.Mesh(new THREE.SphereGeometry(Math.cbrt(1.6) * 3 * 1.08, 20, 14),
+              new THREE.MeshBasicMaterial({ color: 0x888888, side: THREE.BackSide, transparent: true, opacity: 0.95 }));
+            n.__rim = rim;
+            styleNode(n);
+            grp.add(rim);
+            var s = VL.TextSprite(n.label, Object.assign({ px: 21 }, labelOpts(n)));
             s.fit(VL.spriteWpp(G.camera(), el.clientHeight));
             n.__label = s;
-            return s;
+            grp.add(s);
+            return grp;
           })
-          .linkColor(function () { return VL.tok('--o3d-link-result') || '#FFD166'; })
-          .linkOpacity(0.7).linkWidth(0.6)
+          .linkColor(function () { return P.core; })
+          .linkOpacity(0.5).linkWidth(0)
           .linkDirectionalArrowLength(3.5).linkDirectionalArrowRelPos(1)
+          .linkDirectionalArrowColor(function () { return P.core; })
           .linkLabel(function (l) { return VL.esc(l.pred); })
           .onNodeClick(function (n) { var d = VL.docIdFromIri(n.iri); if (d) location.href = VL.href('network-3d.html#doc=' + encodeURIComponent(d)); })
           .warmupTicks(100).cooldownTicks(80)
-          .onEngineStop(function () { fit(); });
+          .onEngineTick(updateTrace)
+          .onEngineStop(function () { updateTrace(); fit(); });
+        lights = VL.paperLights(P.dark);
+        G.lights([lights.ambient]);
+        VL.attachCameraLight(G.scene(), G.camera(), lights.directional);
+        fog = VL.paperFog(G.scene(), P.bg);
+        trace = VL.TraceLines({ depthTest: true, renderOrder: 8 });
+        G.scene().add(trace.object);
+        legend = VL.el('div', { 'class': 'legend', id: 'construct-legend', 'aria-label': 'Legend of the CONSTRUCT view' });
+        el.appendChild(legend);
         G.controls().addEventListener('change', cull);
         window.addEventListener('resize', function () {
           G.width(el.clientWidth).height(el.clientHeight);
@@ -197,30 +273,39 @@
       }
       G.width(el.clientWidth).height(el.clientHeight);
       G.graphData({ nodes: nodes, links: links });
+      renderLegend(nodes);
       setTimeout(fit, 300);
     });
   }
   function fit() {
     if (!G) return;
     G.zoomToFit(400, 30);
+    var bb = G.getGraphBbox && G.getGraphBbox();
+    if (bb) sceneR = Math.max(20, 0.5 * Math.sqrt(Math.pow(bb.x[1] - bb.x[0], 2) + Math.pow(bb.y[1] - bb.y[0], 2) + Math.pow(bb.z[1] - bb.z[0], 2)));
     setTimeout(cull, 450);
   }
-  /* hide labels that would overlap another label or be cut by the canvas edge */
+  /* hide call-outs that would overlap another call-out or the legend, or be cut by the canvas edge; the call-out stands
+     on its leader above the node (sprite centre at the node) */
   function cull() {
     if (!G) return;
     var el = VL.$('#graph-view'), W = el.clientWidth, H = el.clientHeight, cam = G.camera(), v = new THREE.Vector3();
     var k = H / (2 * Math.tan(cam.fov * Math.PI / 360)), placed = [];
+    if (legend && legend.offsetParent !== null) {
+      var hr = el.getBoundingClientRect(), lr = legend.getBoundingClientRect();
+      placed.push({ x0: lr.left - hr.left - 4, x1: lr.right - hr.left + 4, y0: lr.top - hr.top - 4, y1: lr.bottom - hr.top + 4 });
+    }
     G.graphData().nodes.forEach(function (n) {
       var s = n.__label;
       if (!s) return;
       s.getWorldPosition(v);
       v.project(cam);
       var sx = (v.x + 1) / 2 * W, sy = (1 - v.y) / 2 * H, w = s.scale.x * k, h = s.scale.y * k;
-      var b = { x0: sx - w / 2, x1: sx + w / 2, y0: sy - 1.3 * h, y1: sy - 0.3 * h };
+      var b = { x0: sx - w / 2, x1: sx + w / 2, y0: sy - h, y1: sy };
       var ok = v.z < 1 && b.x0 > 3 && b.x1 < W - 3 && b.y0 > 3 && b.y1 < H - 3 && !placed.some(function (p) { return !(b.x1 + 3 < p.x0 || b.x0 - 3 > p.x1 || b.y1 + 2 < p.y0 || b.y0 - 2 > p.y1); });
       s.layers.set(ok ? 0 : 1);
       if (ok) placed.push(b);
     });
+    updateFog();
   }
 
   /* ------------------------------------------------------------------ self-test over the 10 examples */

@@ -1,0 +1,8 @@
+/* VLOnto 3D views: Libertinus Sans, the figure font of the paper (arXiv:2611.11426), for the 3D labels, legends and panel
+   headings. Latin + Vietnamese subset of Libertinus 7.051 (SIL Open Font License 1.1, fonts/OFL-Libertinus.txt), embedded
+   as data URIs so that it also loads from file://. Linked only by the pages with a 3D view (index.html, network-3d.html,
+   sparql.html); tools/fetch_vendor.sh makes fonts/embedded/libertinus-sans.css. */
+@import url("../fonts/embedded/libertinus-sans.css");
+:root {
+  --vlo-font-paper: "Libertinus Sans", "Be Vietnam Pro", "Noto Sans Symbols 2", "Noto Sans Math", sans-serif;
+}
