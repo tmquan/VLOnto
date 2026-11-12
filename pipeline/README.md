@@ -15,7 +15,7 @@ PY=$R/envs/data/bin/python
 $PY download.py                               # datasets at the revisions in download_manifest.json
 $PY profile_data.py                           # optional: field profile of the raw data
 $PY clean.py                                  # -> $R/data/clean/docs_clean.parquet (scope funnel, text normalisation)
-$PY chunk.py                                  # -> $R/data/chunks/{chunks,doc_struct,anle_chunks}.parquet
+$PY chunk.py                                  # -> $R/data/chunks/{chunks,doc_struct}.parquet (+ anle_chunks with court data)
 $PY fix_docnums.py                            # repairs document numbers taken from URL slugs
 AS_OF=2026-11-08 STATUS_FIRST=1 SAMPLE_SEED=31 $PY validity.py   # -> $R/data/validity/{relations,validity}.parquet
 $PY eval_retrieval.py gold                    # -> $R/eval/gold_all.parquet (Q&A -> article labels)
