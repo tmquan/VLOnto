@@ -34,9 +34,10 @@ import urllib.parse
 from pathlib import Path
 
 PLAYBOOK_FILES = {"data/playbook_html.js", "downloads/VLOnto-playbook.pdf", "downloads/playbook.md"}
-# The full graph is not published as a dataset: it is rebuilt from the six source datasets with the code on GitHub.
-SOURCE_DATASETS = ["thuvienphapluat-vn-vbpl", "thuvienphapluat-vn-hdpl", "thuvienphapluat-vn-tnpl", "thuvienphapluat-vn-htpl",
-                   "anle-toaan-gov-vn", "cbba-toaan-gov-vn"]
+# The full graph is not published as a dataset: it is rebuilt from the source datasets with the code on GitHub.
+# Release v1 reads the four thuvienphapluat.vn datasets; the court datasets (anle-, cbba-toaan-gov-vn) join in v2.
+SOURCE_DATASETS = ["thuvienphapluat-vn-vbpl", "thuvienphapluat-vn-hdpl", "thuvienphapluat-vn-tnpl", "thuvienphapluat-vn-htpl"]
+NUMBER_WORDS = {2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven", 8: "eight"}
 HF_SOURCE = "https://huggingface.co/datasets/tmquan/"
 REPO_URL = "https://github.com/tmquan/VLOnto"
 SITE_URL = "https://tmquan.github.io/VLOnto/"
@@ -70,6 +71,20 @@ def human(n: int) -> str:
 
 def esc(s) -> str:
     return html.escape(str(s), quote=True)
+
+
+def site_version(site: Path | None = None) -> str:
+    """The machine-readable release version: VL.VERSION in site/js/common.js, the one place the site sets it."""
+    js = (site or Path(__file__).resolve().parents[2] / "site") / "js" / "common.js"
+    m = re.search(r"VL\.VERSION = '([0-9]+\.[0-9]+\.[0-9]+)'", js.read_text(encoding="utf-8"))
+    if not m:
+        raise SystemExit(f"cannot find VL.VERSION in {js}")
+    return m.group(1)
+
+
+def release_label(version: str | None = None) -> str:
+    """The release as the site names it: 'VLOnto v1' for every 1.x.y (the rule of VL.releaseLabel in common.js)."""
+    return "VLOnto v" + (version or site_version()).split(".")[0]
 
 
 def attribution_texts(policy_md: str):
@@ -237,17 +252,18 @@ def downloads_html(files, kg_tables, rdf_dump, stats, n_total=None) -> str:
         body.append(f'<tr><td class="mono nowrap">{esc(f["path"])}</td><td class="num">{esc(human(f["bytes"]))}</td>'
                     f'<td class="col-hash">{hash_cell(f["sha256"])}</td></tr>')
     body.append('</tbody></table></div></section>')
-    # the full graph is not part of the site and not published as a dataset: it is rebuilt from the six sources
+    # the full graph is not part of the site and not published as a dataset: it is rebuilt from the sources of this release
     srcs = "".join(f'<li><a class="mono nowrap" href="{HF_SOURCE}{s}" target="_blank" rel="noopener">tmquan/{esc(s)}</a></li>'
                    for s in SOURCE_DATASETS)
     body.append('<section class="block" id="dl-full">\n<h2>Rebuild the full graph</h2>\n'
                 '<p class="lead-sm">The complete knowledge graph is too large for this website and is not published as a separate '
-                f'dataset. Rebuild it from the six public source datasets with the code in the <a href="{REPO_URL}" target="_blank" '
+                f'dataset. Rebuild it from the {NUMBER_WORDS.get(len(SOURCE_DATASETS), len(SOURCE_DATASETS))} public source datasets of this release with the code in the <a href="{REPO_URL}" target="_blank" '
                 f'rel="noopener">GitHub repository</a> (see its README for the requirements); this site keeps its own downloads above.</p>'
                 f'<pre class="code">git clone {REPO_URL}\ncd VLOnto\npython -m vlonto.cli all</pre>'
                 f'<p class="lead-sm" style="margin-top:12px">Source datasets on Hugging Face, by TMQuan:</p><ul class="source-list">{srcs}</ul>'
                 f'<p class="lead-sm">A rebuild writes {len(kg_tables)} parquet tables with a data dictionary and the full RDF dump; '
-                'rows and sizes below are those of this release (VLOnto 0.1.0).</p>'
+                f'rows and sizes below are those of this release (<span data-vl-release>{esc(release_label())}</span>); '
+                'court decisions join in v2.</p>'
                 '<div class="table-wrap"><table class="data files"><thead><tr><th>Table</th><th class="num">Rows</th>'
                 '<th class="num">Size</th><th class="col-desc">Description</th></tr></thead><tbody>')
     for t in kg_tables:
@@ -397,6 +413,13 @@ def main(argv=None) -> int:
         desc = (info.get("description") or md_desc.get(p.stem) or "").strip()
         tables.append({"file": p.name, "bytes": p.stat().st_size, "rows": int(rows or 0), "description": desc})
     stats = json.loads((sd / "stats.json").read_text(encoding="utf-8"))
+    # the release the pages name (VL.VERSION in site/js/common.js) against the data they ship (stats.version)
+    sv = site_version(site)
+    rep["release"] = {"label": release_label(sv), "site_version": sv, "data_version": stats.get("version"),
+                      "data_matches_site": stats.get("version") == sv}
+    if stats.get("version") != sv:
+        print(f"warning: the site names {release_label(sv)} ({sv}) but the site data is version {stats.get('version')}",
+              file=sys.stderr)
     rdf = V / "build" / "rdf" / "vlonto-kg.nt.gz"
     rdf_dump = {"file": rdf.name, "bytes": rdf.stat().st_size, "triples": int(stats.get("rdf_triples") or 0)} if rdf.exists() else None
     # KG totals the 3D network relates its document-pair counts to (citation links are recorded at document and article level)

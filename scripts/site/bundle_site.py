@@ -18,7 +18,7 @@ DATE = (2026, 11, 11, 0, 0, 0)
 README = """VLOnto website - offline review copy
 ====================================
 
-VLOnto {version}: ontology and knowledge graph of Vietnamese law. Site built {build_date}; validity of documents
+{release} (version {version}): ontology and knowledge graph of Vietnamese law. Site built {build_date}; validity of documents
 derived as of {asof}. {nfiles} files, {mb:.1f} MB.
 
 How to open
@@ -31,6 +31,7 @@ How to open
                          the paper and its BibTeX in the side panel)
      network-3d.html     3D legal network (40,816 documents by legal force; search e.g. 45/2019/QH14)
      sparql.html         SPARQL playground (Oxigraph WebAssembly, 10 bilingual examples, CSV export)
+     traces.html         question traces: 27 legal areas, 20 answers each traced to the article that grounds them
      dashboard.html      dashboard with linked filters
      ontology.html       ontology modules and the pyLODE reference documentation
      playbook.html       playbook (rendered from the playbook Markdown; PDF and Markdown downloads)
@@ -56,7 +57,7 @@ Tested
 Notes
 -----
 - On wide screens the 3D legal network loads all 40,816 documents (about 10 MB); phones start with a 6,000-document subset.
-- No page loads anything from the internet. External links (sources on thuvienphapluat.vn, the six source datasets
+- No page loads anything from the internet. External links (sources on thuvienphapluat.vn, the four source datasets
   on Hugging Face, the paper on arXiv, the code on GitHub, licences) open only when clicked.
 - VLOnto is not an official legal text and is not legal advice. Relations and validity are extracted automatically
   and may be wrong; read documents at their official source.
@@ -90,7 +91,9 @@ def main(argv=None):
         sj = site / "downloads" / "data" / "stats.json"
         if sj.exists():
             stats = json.loads(sj.read_text(encoding="utf-8"))
-    readme = README.format(version=stats.get("version") or "0.1.0", build_date=stats.get("build_date") or "", asof=stats.get("validity_as_of") or "",
+    from build_site import release_label, site_version  # same directory; the release is named in one place
+    version = site_version(site)
+    readme = README.format(release=release_label(version), version=version, build_date=stats.get("build_date") or "", asof=stats.get("validity_as_of") or "",
                            nfiles=len(files) + 1, mb=total / 1048576)
     if not (site / "data" / "playbook_html.js").exists():
         readme = readme.replace("playbook (rendered from the playbook Markdown; PDF and Markdown downloads)", "playbook (placeholder: the playbook was not built yet)")

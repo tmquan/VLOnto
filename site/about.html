@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script>/* theme before first paint: ?theme=, else stored choice, else system (css/site.css, js/common.js) */(function(d,w){var t=null,m=/[?&]theme=(light|dark)(?:&|$)/.exec(w.location.search);if(m)t=m[1];else{try{t=w.localStorage.getItem('vlonto.theme')}catch(e){}if(t!=='light'&&t!=='dark'){try{t=w.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}catch(e){t='light'}}}d.setAttribute('data-theme',t);d.style.colorScheme=t})(document.documentElement,window);</script>
 <title>About · VLOnto, Vietnamese Legal Ontology and Knowledge Graph</title>
-<meta name="description" content="VLOnto is an ontology and knowledge graph of Vietnamese law built from six public datasets: legal documents, validity and change relations, citations, court decisions, legal Q&As, terminology and news.">
+<meta name="description" content="VLOnto is an ontology and knowledge graph of Vietnamese law built from four public datasets: legal documents, validity and change relations, citations, legal Q&As, terminology and news.">
 <link rel="stylesheet" href="css/fonts-web.css">
 <link rel="stylesheet" href="css/site.css">
 </head>
@@ -20,8 +20,8 @@
         <h1>VLOnto</h1>
         <p class="vi-title">An ontology and knowledge graph of Vietnamese law</p>
         <p>VLOnto describes Vietnamese legal documents and their articles, the bodies that issue them, their validity and the
-          dated events that replace, amend or repeal them, legal-basis and citation links, court decisions and precedents,
-          legal questions and answers, terminology and news. The knowledge graph instantiates the ontology from six public
+          dated events that replace, amend or repeal them, legal-basis and citation links,
+          legal questions and answers, terminology and news. The knowledge graph instantiates the ontology from four public
           datasets and links every record back to its source.</p>
         <div class="actions">
           <a class="btn btn-primary" href="index.html">Open the 3D ontology playground</a>
@@ -65,6 +65,7 @@
       <h2 id="h-numbers">The knowledge graph at a glance</h2>
       <p class="lead-sm" id="numbers-note"></p>
       <div class="kpis" id="kpis"></div>
+      <p class="v2-note">Court decisions join in v2. <span lang="vi">Bản án và quyết định của tòa án sẽ có trong v2.</span></p>
     </section>
 
     <section class="block" aria-labelledby="h-tools">
@@ -73,10 +74,10 @@
     </section>
 
     <section class="block" aria-labelledby="h-sources">
-      <h2 id="h-sources">Built from six public datasets</h2>
-      <p class="lead-sm">All six datasets are published on Hugging Face by TMQuan. VLOnto keeps metadata, structure, short
-        labels and the links it derives; it does not republish document bodies, Q&amp;A or news text, glossary definitions,
-        judgment text or person names; the only exception is the title of each question on the
+      <h2 id="h-sources">Built from four public datasets</h2>
+      <p class="lead-sm">All four datasets are published on Hugging Face by TMQuan. VLOnto keeps metadata, structure, short
+        labels and the links it derives; it does not republish document bodies, Q&amp;A or news text, glossary definitions
+        or person names; the only exception is the title of each question on the
         <a href="traces.html">Traces</a> page. Each record links to its source for the text.</p>
       <div class="table-wrap">
         <table class="data">
@@ -97,14 +98,14 @@
     <section class="block" id="cite" aria-labelledby="h-cite">
       <h2 id="h-cite">How to cite</h2>
       <p class="lead-sm">For the approach, cite the paper (<a href="#paper">BibTeX above</a>: Bui &amp; Tran Minh (2026),
-        arXiv:2611.11426). For the data and files of this release, cite VLOnto 0.1.0:</p>
+        arXiv:2611.11426). For the data and files of this release, cite <span data-vl-release>VLOnto v1</span>:</p>
       <div class="grid grid-2">
         <div class="card">
           <h3>Text</h3>
-          <p>tmquan (2026). <em>VLOnto: Vietnamese Legal Ontology and Knowledge Graph</em>, version <span id="cite-version">0.1.0</span>.
+          <p>tmquan (2026). <em>VLOnto: Vietnamese Legal Ontology and Knowledge Graph</em>, version <span id="cite-version" data-vl-version>1.0.0</span>.
             Code: <a href="https://github.com/tmquan/VLOnto" target="_blank" rel="noopener">github.com/tmquan/VLOnto</a>;
             website: <a href="https://tmquan.github.io/VLOnto/" target="_blank" rel="noopener">tmquan.github.io/VLOnto</a>.</p>
-          <p class="muted">Please also credit the six source datasets (see the attribution below).</p>
+          <p class="muted">Please also credit the four source datasets (see the attribution below).</p>
         </div>
         <div class="card">
           <h3>BibTeX</h3>
@@ -113,7 +114,7 @@
   title   = {{VLOnto}: Vietnamese Legal
              Ontology and Knowledge Graph},
   year    = {2026},
-  version = {0.1.0},
+  version = {<span data-vl-version>1.0.0</span>},
   url     = {https://github.com/tmquan/VLOnto}
 }</pre>
           <div class="row" style="margin-top:10px"><button class="btn btn-xs" type="button" id="copy-bib">Copy BibTeX</button></div>

@@ -782,6 +782,8 @@ pre.code {
 .tool-card p { color: var(--fg-2); font-size: 14px; margin: 0; }
 .tool-card .go { margin-top: auto; font-size: 13.5px; font-weight: 600; color: var(--accent); }
 .tool-card.featured { border: 1px solid var(--accent-line); background: var(--featured-bg); }
+/* release v1: one line where court content was (court decisions join in v2) */
+.v2-note { margin: 10px 0 0; font-size: 14px; color: var(--fg-2); }
 /* the paper (index card, playground panels): long title wraps at word boundaries, BibTeX scrolls inside its box */
 .paper-card { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 14px 26px; align-items: start; border-left: 4px solid var(--accent); }
 .paper-card .paper-title { font-size: 18px; line-height: 1.4; margin: 0 0 6px; overflow-wrap: normal; }

@@ -39,8 +39,8 @@
   (function revisions() {
     var r = IDX.source_revisions || {};
     var revs = Object.keys(r).map(function (k) { return esc(k.replace('tmquan/', '')) + ' @' + esc(String(r[k]).slice(0, 10)); }).join(', ');
-    VL.$('#tr-revs').innerHTML = 'Data: traces ' + esc(IDX.version || '') + ', built ' + esc(IDX.generated || '') + ' from the Hugging Face datasets ' +
-      revs + ' (data revisions of build/traces/index.json). <span class="vi" lang="vi">Dữ liệu: bản ' + esc(IDX.version || '') +
+    VL.$('#tr-revs').innerHTML = 'Data: question traces of ' + esc(VL.releaseLabel()) + ', built ' + esc(IDX.generated || '') + ' from the Hugging Face datasets ' +
+      revs + ' (data revisions of build/traces/index.json). <span class="vi" lang="vi">Dữ liệu: truy vết câu hỏi của ' + esc(VL.releaseLabel()) +
       ', tạo ngày ' + esc(IDX.generated || '') + ', từ các phiên bản dữ liệu nêu trên.</span>';
   })();
 

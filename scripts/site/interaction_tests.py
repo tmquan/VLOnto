@@ -507,8 +507,7 @@ def t_dashboard(c: Ctx, stats):
         t = pg.evaluate("window.VLApp.dashTotals()")
         kg, ch, k = t["kg"], t["charts"], t["kpis"]
         want = {"c-type-year": kg["documents"], "c-validity": kg["documents"], "c-ranks": kg["documents"], "c-areas": kg["documents"],
-                "c-changes": kg["change_events"], "c-dec-year": kg["court_decisions"], "c-dec-level": kg["court_decisions"],
-                "c-dec-inst": kg["court_decisions"], "c-qa": kg["legal_questions"], "c-terms": kg["legal_terms"], "c-news": kg["news_articles"]}
+                "c-changes": kg["change_events"], "c-qa": kg["legal_questions"], "c-terms": kg["legal_terms"], "c-news": kg["news_articles"]}
         bad = {cid: (round(ch[cid]), w) for cid, w in want.items() if round(ch[cid]) != w}
         if k["docs"] != kg["documents"]:
             bad["KPI documents"] = (k["docs"], kg["documents"])
@@ -524,6 +523,22 @@ def t_dashboard(c: Ctx, stats):
         return {"charts": {cid: round(v) for cid, v in ch.items()}, "kpis": k, "kg": kg, "caption": t["caption"]}
     check("unfiltered KPIs and chart totals equal the KG totals", totals)
 
+    def no_courts():
+        # release v1: no court chart, KPI or citing source, whether or not the data files still carry court fields
+        d = pg.evaluate("""() => ({ charts: Array.from(document.querySelectorAll('.chart')).map(e => e.id),
+            tabs: Array.from(document.querySelectorAll('#tabs-docs [data-src], #tabs-arts [data-src]')).map(b => b.getAttribute('data-src')),
+            kpis: Array.from(document.querySelectorAll('#kpis-all .kpi .k, #kpis-sel .kpi .k')).map(e => e.textContent),
+            note: (document.querySelector('.v2-note') || {}).textContent || '',
+            release: Array.from(document.querySelectorAll('[data-vl-release]')).map(e => e.textContent),
+            text: document.querySelector('main').textContent.toLowerCase() })""")
+        bad = [x for x in d["charts"] if x.startswith("c-dec")] + [x for x in d["tabs"] if "court" in x] + [k for k in d["kpis"] if "court" in k.lower()]
+        words = [w for w in ("anle", "cbba", "toaan", "precedent", "court level", "applied provision") if w in d["text"]]
+        if bad or words or not d["note"].startswith("Court decisions join in v2.") or len(d["charts"]) != 10 or set(d["release"]) != {"VLOnto v1"}:
+            raise RuntimeError(f"court content or release label: bad {bad}, words {words}, note {d['note']!r}, charts {len(d['charts'])}, "
+                               f"release {d['release']}")
+        return {"charts": len(d["charts"]), "tabs": d["tabs"], "kpis": d["kpis"], "note": d["note"], "release": d["release"]}
+    check("release v1: no court chart, KPI or citing source; the v2 note; the release named VLOnto v1", no_courts)
+
     def year_note():
         # a year range leaves undated records out and says so; reset brings the undated buckets back
         last2 = "echarts.getInstanceByDom(document.getElementById('{}')).getOption().xAxis[0].data.slice(-2)"
@@ -531,17 +546,17 @@ def t_dashboard(c: Ctx, stats):
         pg.wait_for_timeout(500)
         t = pg.evaluate("window.VLApp.dashTotals()")
         cap, lo = t["caption"], t["undatedLeftOut"]
-        subs = pg.evaluate("['sub-type-year', 'sub-changes', 'sub-dec-year'].map(id => document.getElementById(id).textContent)")
-        cats = {cid: pg.evaluate(last2.format(cid)) for cid in ("c-type-year", "c-changes", "c-dec-year")}
+        subs = pg.evaluate("['sub-type-year', 'sub-changes'].map(id => document.getElementById(id).textContent)")
+        cats = {cid: pg.evaluate(last2.format(cid)) for cid in ("c-type-year", "c-changes")}
         shot = c.shot(pg, "dashboard_year_range")
         pg.click("#f-reset")
         pg.wait_for_timeout(500)
         t2 = pg.evaluate("window.VLApp.dashTotals()")
-        cats2 = {cid: pg.evaluate(last2.format(cid)) for cid in ("c-type-year", "c-changes", "c-dec-year")}
+        cats2 = {cid: pg.evaluate(last2.format(cid)) for cid in ("c-type-year", "c-changes")}
         problems = []
-        if not (lo["docs"] > 0 and lo["changes"] > 0 and lo["decisions"] > 0):
+        if not (lo["docs"] > 0 and lo["changes"] > 0):
             problems.append(f"undated counts {lo}")
-        for key, words, sub in (("docs", "without an issue year", 0), ("changes", "without an effective date", 1), ("decisions", "without a year", 2)):
+        for key, words, sub in (("docs", "without an issue year", 0), ("changes", "without an effective date", 1)):
             n = lo[key]
             if n and (f"{n:,}" not in cap or words not in cap):
                 problems.append(f"filter caption lacks the {key}: {cap!r}")
@@ -549,7 +564,7 @@ def t_dashboard(c: Ctx, stats):
                 problems.append(f"chart caption lacks the {key}: {subs[sub]!r}")
         if any(v[-1] in ("no year", "no date") for v in cats.values()):
             problems.append(f"undated bucket still drawn with a year range: {cats}")
-        if [v[-1] for v in cats2.values()] != ["no year", "no date", "no year"]:
+        if [v[-1] for v in cats2.values()] != ["no year", "no date"]:
             problems.append(f"undated buckets missing after reset: {cats2}")
         if any(t2["undatedLeftOut"].values()):
             problems.append("undated records still left out after reset")
@@ -622,6 +637,13 @@ def t_simple(c: Ctx, root: Path):
     card = pg.evaluate("""() => { const c = document.querySelector('#paper .paper-card, #paper [data-vl-paper]');
         return { title: (document.querySelector('#paper .paper-title') || {}).textContent || '', copy: !!document.querySelector('#paper [data-copy-bib]'),
                  bib: ((document.querySelector('#paper pre.bibtex') || {}).textContent || '').slice(0, 30), brand: (document.querySelector('.vl-brand') || {}).getAttribute('href') }; }""")
+    rel = pg.evaluate("""() => ({ release: Array.from(document.querySelectorAll('[data-vl-release]')).map(e => e.textContent),
+        version: Array.from(document.querySelectorAll('[data-vl-version]')).map(e => e.textContent),
+        note: (document.getElementById('numbers-note') || {}).textContent || '', footer: (document.querySelector('.vl-footer .meta') || {}).textContent || '',
+        kpis: Array.from(document.querySelectorAll('#kpis .kpi .k')).map(e => e.textContent),
+        sources: Array.from(document.querySelectorAll('#sources tr td:first-child a')).map(a => a.textContent),
+        v2: (document.querySelector('.v2-note') || {}).textContent || '', bib: (document.getElementById('bibtex') || {}).textContent || '' })""")
+    four = ["thuvienphapluat-vn-vbpl", "thuvienphapluat-vn-hdpl", "thuvienphapluat-vn-tnpl", "thuvienphapluat-vn-htpl"]
     out.append({"test": "about", "checks": [
         {"name": "navigation (3D Ontology = index.html first, 9 pages incl. traces.html + Paper) and tool cards link to existing pages",
          "pass": len(internal) == 9 and internal[0] == "index.html" and internal[-1] == "about.html" and "traces.html" in internal
@@ -629,7 +651,12 @@ def t_simple(c: Ctx, root: Path):
          "details": {"nav": nav, "tools": tools, "missing": missing}},
         {"name": "about.html renders the paper card with BibTeX and Copy; the logo links to index.html",
          "pass": card["title"].startswith("Vietnamese Legal Ontology") and card["copy"] and card["bib"].startswith("@misc{bui2026vietnamese") and card["brand"] == "index.html",
-         "details": card}], "log": log})
+         "details": card},
+        {"name": "release v1: named VLOnto v1 (version 1.0.0), four source datasets, no court KPI, the v2 note",
+         "pass": set(rel["release"]) == {"VLOnto v1"} and set(rel["version"]) == {"1.0.0"} and rel["note"].startswith("VLOnto v1 (this release)")
+                 and "VLOnto v1" in rel["footer"] and rel["sources"] == four and not [k for k in rel["kpis"] if "court" in k.lower()]
+                 and rel["v2"].startswith("Court decisions join in v2.") and "version = {1.0.0}" in rel["bib"],
+         "details": rel}], "log": log})
     ctx.close()
     # the old playground address forwards to index.html, keeping the #hash (deep link to a class). Opened from about.html
     # with wait_until=commit: the stub replaces itself while it loads, which would interrupt a goto waiting for 'load'.

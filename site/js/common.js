@@ -11,7 +11,11 @@
   M.t0 = Math.round(performance.now());
   window.__VLONTO_READY = false;
 
-  VL.VERSION = '0.1.0';
+  /* The release. VL.VERSION is the machine-readable version (stats.version of the v1 build); the site names the release
+     only through VL.releaseLabel() ('VLOnto v1' for every 1.x.y). Static pages carry <span data-vl-release> and
+     <span data-vl-version> placeholders that VL.chrome() fills in; scripts/site/build_site.py reads VL.VERSION from here. */
+  VL.VERSION = '1.0.0';
+  VL.releaseLabel = function () { return 'VLOnto v' + VL.VERSION.split('.')[0]; };
   VL.NS = {
     vlo: 'https://tmquan.github.io/VLOnto/ontology#',
     id: 'https://tmquan.github.io/VLOnto/id/'
@@ -131,7 +135,7 @@
   VL.typeVar = function (code) { return TYPE_KEY[code] ? 'var(--type-' + TYPE_KEY[code] + ')' : 'var(--hue-slate)'; };
 
   /* The paper. Cite it by title, authors, arXiv link and BibTeX only: its graph numbers come from a different build,
-     every number on this site is computed from this release (VLOnto 0.1.0). */
+     every number on this site is computed from this release (VL.releaseLabel()). */
   VL.PAPER = {
     title: 'Vietnamese Legal Ontology: Every legal answer, traced to the article that grounds it',
     authors: 'Khac-Hoai Nam Bui, Quan Tran Minh',
@@ -147,7 +151,7 @@
       '  primaryClass  = {cs.CL},\n' +
       '  url           = {https://arxiv.org/abs/2611.11426}\n' +
       '}',
-    note: 'The approach is described in the paper above; numbers here are computed from the VLOnto 0.1.0 release and can differ from the paper\u2019s.'
+    note: 'The approach is described in the paper above; numbers here are computed from the ' + VL.releaseLabel() + ' release and can differ from the paper\u2019s.'
   };
 
   /* ------------------------------------------------------------------ text helpers */
@@ -385,8 +389,8 @@
   VL.meta = function () { return window.VLONTO.site_meta || {}; };
   VL.attribution = function (lang) {
     var m = VL.meta();
-    var fb = 'VLOnto is derived from six datasets published on Hugging Face by TMQuan (sources thuvienphapluat.vn, ' +
-      'anle.toaan.gov.vn and congbobanan.toaan.gov.vn). Extracted relations are produced automatically and may be wrong. ' +
+    var fb = 'VLOnto is derived from four datasets published on Hugging Face by TMQuan (source thuvienphapluat.vn). ' +
+      'Extracted relations are produced automatically and may be wrong. ' +
       'VLOnto is not an official legal text and is not legal advice.';
     return VL.nfc(lang === 'vi' ? (m.attribution_vi || fb) : (m.attribution_en || fb));
   };
@@ -432,7 +436,7 @@
         VL.esc(VL.PAPER.short) + ', arXiv:' + VL.PAPER.arxiv + '</a>';
       if (opts.scene) {
         ftr.outerHTML = '<footer class="vl-footbar"><strong>Not legal advice.</strong>' +
-          '<span class="grow">Data: <span class="fb-md">six public </span>datasets by TMQuan<span class="fb-lg"> (thuvienphapluat.vn, toaan.gov.vn)</span>' +
+          '<span class="grow">Data: <span class="fb-md">four public </span>datasets by TMQuan<span class="fb-lg"> (thuvienphapluat.vn)</span>' +
           '<span class="fb-xl">; relations are extracted automatically and may be wrong</span>.</span>' +
           citeLink + '<a href="about.html#licences">Attribution</a></footer>';
       } else {
@@ -443,11 +447,14 @@
           '<p>Validity is derived automatically (as of ' + VL.esc(S.validity_as_of || '2026-11-08') + ') and is unknown for many documents. ' +
           'Always read the document at its source before relying on it.</p>' +
           '<p>Ontology and VLOnto’s own data: CC BY 4.0. Fonts: SIL OFL 1.1. Libraries: MIT / Apache-2.0 (see Downloads).</p></div>' +
-          '<div class="meta">VLOnto ' + VL.esc(S.version || VL.VERSION) + ' · built ' + VL.esc(S.build_date || '2026-11-11') +
+          '<div class="meta">' + VL.esc(VL.releaseLabel()) + ' · built ' + VL.esc(S.build_date || '2026-11-11') +
           ' · <a href="downloads.html">Downloads and checksums</a> · <a href="about.html#cite">How to cite</a> · <a href="about.html#licences">Licences</a></div>' +
           '</div></footer>';
       }
     }
+    /* the release name and version wherever a page carries a placeholder */
+    VL.$$('[data-vl-release]').forEach(function (e) { e.textContent = VL.releaseLabel(); });
+    VL.$$('[data-vl-version]').forEach(function (e) { e.textContent = VL.VERSION; });
     VL.paperBlocks(document);
     /* embedded documents (pyLODE) follow this page's theme from their first load on */
     VL.$$('iframe').forEach(function (f) {
