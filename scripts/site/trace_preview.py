@@ -184,7 +184,8 @@ def card_mock(tr, fig_svg, font, theme_tok, x0, y0, width):
     pad = 14
     inner = width - 2 * pad
     parts, y = [], y0 + pad
-    head = f"{tr['law']['en']} · {tr['law']['number']}"
+    # as lawHead() in site/js/traces.js: the number only when the English name does not carry it
+    head = tr['law']['en'] if tr['law']['number'] in tr['law']['en'] else f"{tr['law']['en']} · {tr['law']['number']}"
     y += 16
     parts.append(f'<text x="{x0 + pad}" y="{y}" font-family="Libertinus Sans" font-weight="700" font-size="15" fill="{ink}">{tr["rank"]}</text>')
     parts.append(f'<text x="{x0 + pad + 24}" y="{y}" font-family="Libertinus Sans" font-size="16" fill="{ink}">{esc(head)}</text>')

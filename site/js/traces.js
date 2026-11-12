@@ -112,6 +112,11 @@
   function lawHead(law) {
     return law.en.indexOf(law.number) >= 0 ? esc(law.en) : esc(law.en) + ' · <span class="num">' + esc(law.number) + '</span>';
   }
+  function lawTitle(law) {
+    /* focus title: Vietnamese name · English name · number, without repeating a number that a name already carries */
+    var num = law.number || '', named = (law.vi || '').indexOf(num) >= 0 || (law.en || '').indexOf(num) >= 0;
+    return '<span lang="vi" class="vi">' + esc(law.vi) + '</span> · ' + esc(law.en) + (num && !named ? ' · <span class="num">' + esc(num) + '</span>' : '');
+  }
   function primary(tr) { for (var i = 0; i < tr.paths.length; i++) if (tr.paths[i].pr) return tr.paths[i]; return tr.paths[0]; }
   function bi(n) { return n.vi === n.en ? n.vi : n.vi + ' · ' + n.en; }
   function chainTitle(tr) {
@@ -239,7 +244,7 @@
   function focusHtml(a, tr, view) {
     var id = 'tf-' + a.id + '-' + tr.rank;
     return '<div class="tf-head"><div><p class="tf-area">#' + tr.rank + ' · <span lang="vi">' + esc(a.label_vi) + '</span> · ' + esc(a.label_en) + '</p>' +
-      '<h2 id="tf-title"><span lang="vi" class="vi">' + esc(tr.law.vi) + '</span> · ' + esc(tr.law.en) + ' · <span class="num">' + esc(tr.law.number) + '</span></h2>' +
+      '<h2 id="tf-title">' + lawTitle(tr.law) + '</h2>' +
       '<p class="tf-q" lang="vi">' + esc(tr.qa.vi) + '</p><p class="tf-g">' + esc(tr.qa.en) + '</p></div>' +
       '<button type="button" class="btn tf-close" data-close aria-label="Đóng · Close (Esc)">Close · <span lang="vi">Đóng</span></button></div>' +
       '<div class="tf-fig" data-view="' + view + '">' + TD.svg(tr, view, { id: id, title: chainTitle(tr), desc: chainDesc(a, tr), nodeTitles: true }) + '</div>' +
