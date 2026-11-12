@@ -5,7 +5,10 @@ vlonto-kg.nt.gz  full N-Triples (ontology + all KG tables), streamed table by ta
                  concatenated (a valid gzip stream); the full graph is never held in memory.
 vlonto-core.ttl  browser-sized Turtle subset: ontology + documents of legal-force rank <= CORE_MAX_RANK with
                  their change events, legal-basis edges and document-level citations among themselves, plus
-                 issuers, areas, precedents, source datasets, edge sets and the build activity.
+                 issuers, areas, precedents (only when court data is included), source datasets, edge sets and the
+                 build activity.
+Court parts (courts, decisions, precedents and their edges) are written only when config.INCLUDE_COURTS is on;
+release v1 has none.
 """
 import gzip
 import json
@@ -342,6 +345,13 @@ EDGESETS = {  # table -> (property, source dataset, method column or fixed metho
 }
 
 
+def release_note():
+    if C.INCLUDE_COURTS:
+        return f"Release {C.RELEASE} ({C.VERSION}) built from {len(C.SOURCES)} source datasets, court data included."
+    return (f"Release {C.RELEASE} ({C.VERSION}) built from the {len(C.SOURCES)} thuvienphapluat.vn datasets "
+            f"({', '.join(C.SOURCES)}); court decisions and precedents ({', '.join(C.DEFERRED_SOURCES)}) are planned for v2.")
+
+
 def lit_py(s, lang=None, dt=None):
     s = re.sub(r"[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]", " ", nfc(str(s))).replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n").replace("\r", "\\r")
     return f'"{s}"' + (f"@{lang}" if lang else (f"^^<{XSD}{dt}>" if dt else ""))
@@ -352,7 +362,8 @@ def provenance_lines(kg):
     b = f"<{C.iri_build()}>"
     out += [f"{b} {RDF_TYPE} {P('BuildActivity')} .", f"{b} {RDFS_LABEL} {lit_py('VLOnto build ' + C.VERSION + ' (' + C.BUILD_DATE + ')', 'en')} .",
             f"{b} {P('validityAsOf')} {lit_py(C.VALIDITY_AS_OF, dt='date')} .", f"{b} {P('softwareVersion')} {lit_py(C.VERSION)} .",
-            f"{b} <{PROV}startedAtTime> {lit_py(C.BUILD_DATE + 'T00:00:00Z', dt='dateTime')} ."]
+            f"{b} <{PROV}startedAtTime> {lit_py(C.BUILD_DATE + 'T00:00:00Z', dt='dateTime')} .",
+            f"{b} {RDFS_COMMENT} {lit_py(release_note(), 'en')} ."]
     srcs = pl.read_parquet(os.path.join(kg, "sources.parquet"))
     for r in srcs.iter_rows(named=True):
         s = f"<{r['iri']}>"
@@ -364,7 +375,7 @@ def provenance_lines(kg):
             out.append(f"{s} <{DCT}license> <{CC_BY}> .")
     for table, (prop, ds, mcol) in EDGESETS.items():
         p = os.path.join(kg, table + ".parquet")
-        if not os.path.exists(p):
+        if (table in C.COURT_TABLES and not C.INCLUDE_COURTS) or not os.path.exists(p):
             continue
         df = pl.read_parquet(p)
         es = f"<{C.iri_edgeset(table)}>"
@@ -408,6 +419,11 @@ PARTS = [("documents", lines_documents), ("structure", lines_structure), ("artic
          ("news", lines_news), ("edges_news_document", lines_news_document)]
 
 
+def active_parts():
+    """Parts of this build: the court parts only when court data is included."""
+    return [(n, f) for n, f in PARTS if C.INCLUDE_COURTS or n not in C.COURT_TABLES]
+
+
 def _write_part(args):
     name, fn_name, kg, outdir = args
     fn = dict(PARTS)[name]
@@ -425,12 +441,13 @@ def _write_part(args):
     return name, n, round(time.time() - t0, 1)
 
 
-def export_all(workers=12):
+def export_all(workers=None):
     t0 = time.time()
     kg, out = C.KG, C.RDF_DIR
     parts_dir = os.path.join(out, "parts")
     os.makedirs(parts_dir, exist_ok=True)
-    rep = {"parts": {}}
+    workers = workers or int(os.environ.get("NPROC", "12"))
+    rep = {"parts": {}, "release": C.release_info(), "workers": workers}
     # ontology part
     from rdflib import Graph
     og = Graph().parse(os.path.join(C.REPO, "ontology", "vlonto.ttl"))
@@ -442,14 +459,18 @@ def export_all(workers=12):
     with gzip.open(os.path.join(parts_dir, "part_01_provenance.nt.gz"), "wt", encoding="utf-8") as f:
         f.write(nfc("\n".join(prov) + "\n"))
     rep["parts"]["provenance"] = len(prov)
-    jobs = [(name, name, kg, parts_dir) for name, _ in PARTS]
+    for name in C.COURT_TABLES:      # parts of an earlier build with court data must not be concatenated
+        stale = os.path.join(parts_dir, f"part_{name}.nt.gz")
+        if not C.INCLUDE_COURTS and os.path.exists(stale):
+            os.remove(stale)
+    jobs = [(name, name, kg, parts_dir) for name, _ in active_parts()]
     with mp.get_context("spawn").Pool(min(workers, len(jobs))) as pool:
         for name, n, s in pool.imap_unordered(_write_part, jobs):
             rep["parts"][name] = n
             rep.setdefault("part_wall_s", {})[name] = s
             print(f"  part {name}: {n:,} triples ({s}s)", flush=True)
     full = os.path.join(out, "vlonto-kg.nt.gz")
-    order = ["part_00_ontology.nt.gz", "part_01_provenance.nt.gz"] + [f"part_{n}.nt.gz" for n, _ in PARTS]
+    order = ["part_00_ontology.nt.gz", "part_01_provenance.nt.gz"] + [f"part_{n}.nt.gz" for n, _ in active_parts()]
     with open(full, "wb") as w:
         for p in order:
             with open(os.path.join(parts_dir, p), "rb") as r:
@@ -489,8 +510,11 @@ def core_subset(max_rank=None, max_triples=200_000):
             lines += lines_edges_doc(ci.filter(pl.col("p") == p), p)[0].to_list()
         iss = pl.read_parquet(os.path.join(kg, "issuers.parquet"))
         areas = pl.read_parquet(os.path.join(kg, "areas.parquet"))
-        prec = pl.read_parquet(os.path.join(kg, "precedents.parquet")).with_columns(pl.lit(None, dtype=pl.List(pl.Utf8)).alias("source_decision_ids"))
-        for fn, df in ((lines_issuers, iss), (lines_areas, areas), (lines_precedents, prec)):
+        extra = []
+        if C.INCLUDE_COURTS:
+            prec = pl.read_parquet(os.path.join(kg, "precedents.parquet")).with_columns(pl.lit(None, dtype=pl.List(pl.Utf8)).alias("source_decision_ids"))
+            extra = [(lines_precedents, prec)]
+        for fn, df in ((lines_issuers, iss), (lines_areas, areas), *extra):
             for s in fn(df):
                 lines += s.to_list()
         lines += provenance_lines(kg)
@@ -511,7 +535,10 @@ def core_subset(max_rank=None, max_triples=200_000):
     head = ("# VLOnto core subset " + C.VERSION + " (" + C.BUILD_DATE + "): ontology + documents of legal-force rank <= "
             f"{mr} (Constitution, codes, laws, National Assembly resolutions" + (", ordinances and Standing Committee resolutions" if mr >= 2 else "")
             + ") with their change events, legal-basis links and citations among themselves (article-level citations projected to "
-            "document level), issuers, legal areas, precedents, source datasets, edge sets and the build activity. Full graph: vlonto-kg.nt.gz.\n")
+            "document level), issuers, legal areas, " + ("precedents, " if C.INCLUDE_COURTS else "")
+            + "source datasets, edge sets and the build activity. Full graph: vlonto-kg.nt.gz.\n"
+            + ("" if C.INCLUDE_COURTS else "# Release " + C.RELEASE + ": sources " + ", ".join(C.SOURCES) + "; court data ("
+               + ", ".join(C.DEFERRED_SOURCES) + ") is planned for v2.\n"))
     path = os.path.join(C.RDF_DIR, "vlonto-core.ttl")
     with open(path, "w", encoding="utf-8") as f:
         f.write(nfc(head + ttl))

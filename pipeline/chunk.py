@@ -261,6 +261,9 @@ def chunk_doc(d):
 def chunk_anle():
     man = json.load(open(R / "data" / "download_manifest.json"))
     import glob
+    if "tmquan/anle-toaan-gov-vn" not in man["datasets"]:
+        # VLOnto release v1 downloads only the four thuvienphapluat datasets; anle (court precedents) is planned for v2
+        return {"anle_docs": 0, "anle_chunks": 0, "anle_note": "anle-toaan-gov-vn not downloaded (court data is planned for VLOnto v2)"}
     fs = sorted(glob.glob(os.path.join(man["datasets"]["tmquan/anle-toaan-gov-vn"]["local_dir"], "documents-*.parquet")))
     a = pl.read_parquet(fs, columns=["doc_name", "official_document_id", "court", "issued_date", "category",
                                       "instance_level", "is_precedent", "precedent_number", "web_url", "markdown", "citations_law"])

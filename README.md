@@ -7,14 +7,16 @@
 
 **Paper:** [Vietnamese Legal Ontology: Every legal answer, traced to the article that grounds it](https://arxiv.org/abs/2611.11426)
 (Khac-Hoai Nam Bui, Quan Tran Minh; arXiv:2611.11426, 2026). The approach is described in the paper; the numbers below
-are computed from the VLOnto 0.1.0 release in this repository and can differ from the paper's.
+are computed from the VLOnto 1.0.0 release (v1) in this repository and can differ from the paper's.
 
 ![3D ontology playground: VLOnto classes coloured by module, with external alignments](docs/img/ontology-3d.png)
 
-VLOnto 0.1.0 is an OWL 2 ontology and a knowledge graph of Vietnamese law. It links legal documents, their
-articles, the changes between documents (replacement, amendment, repeal), legal bases and citations, court decisions and
-the provisions they apply, legal Q&As, legal terms and legal news. It is built from six public datasets on Hugging Face
-and aligned to the European Legislation Identifier ontology (ELI), SKOS, PROV-O, schema.org, ORG and DCTERMS.
+VLOnto 1.0.0 (release v1) is an OWL 2 ontology and a knowledge graph of Vietnamese law. It links legal documents, their
+articles, the changes between documents (replacement, amendment, repeal), legal bases and citations, legal Q&As and the
+articles they cite, legal terms and legal news. Release v1 is built from the four thuvienphapluat.vn datasets on Hugging
+Face; court decisions, courts and precedents are modelled in the ontology and will be added from two court datasets in
+v2 (release 0.1.0 already included them). The ontology is aligned to the European Legislation Identifier ontology (ELI),
+SKOS, PROV-O, schema.org, ORG and DCTERMS.
 
 | Content | Count |
 |---|---|
@@ -22,11 +24,9 @@ and aligned to the European Legislation Identifier ontology (ELI), SKOS, PROV-O,
 | Articles (main body 425,892, appendices 10,417) | 436,309 |
 | Change events: replaced 6,321 / amended 4,678 / partially repealed 1,854 / repealed 1,674 / partially expired 508 | 15,035 |
 | Legal-basis links / citation links | 99,038 / 268,563 |
-| Court decisions / courts / applied-provision links | 1,544,091 / 1,345 / 7,060,655 |
-| Case-to-case links / precedents | 14,650 / 28 |
-| Legal Q&As (metadata and citation links) | 109,543 |
+| Legal Q&As (metadata) / Q&A-to-article links / Q&A-to-document links | 109,543 / 34,869 / 119,683 |
 | Legal terms / legal news items | 16,701 / 681 |
-| RDF triples in the full dump / in the browser subset | 31,516,606 / 49,923 |
+| RDF triples in the full dump / in the browser subset | 6,963,753 / 49,846 |
 | Ontology: classes, object properties, datatype properties, concept schemes | 47, 46, 35, 13 |
 
 Validity of documents is derived as of 2026-11-08; it is unknown for 28,660 of
@@ -52,10 +52,12 @@ embedded, so nothing is fetched from the internet.
 ![3D legal network: documents layered by legal force, with change and legal-basis links](docs/img/network-3d.png)
 
 The site ships the ontology and a browser subset of the graph. The full knowledge graph (parquet tables and the
-N-Triples dump) is rebuilt from the six source datasets with `python -m vlonto.cli all` (see Reproduce):
+N-Triples dump) of release v1 is rebuilt from the four source datasets with `python -m vlonto.cli all` (see Reproduce):
 [`tmquan/thuvienphapluat-vn-vbpl`](https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-vbpl) (revision `705ade5853`),  [`tmquan/thuvienphapluat-vn-hdpl`](https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-hdpl) (revision `e814ecbfa1`), 
-[`tmquan/thuvienphapluat-vn-tnpl`](https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-tnpl) (revision `f94d1e2485`),  [`tmquan/thuvienphapluat-vn-htpl`](https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-htpl) (revision `043c8f2988`), 
-[`tmquan/anle-toaan-gov-vn`](https://huggingface.co/datasets/tmquan/anle-toaan-gov-vn) (revision `d6124923dd`),  [`tmquan/cbba-toaan-gov-vn`](https://huggingface.co/datasets/tmquan/cbba-toaan-gov-vn) (revision `8ace3afc9c`).
+[`tmquan/thuvienphapluat-vn-tnpl`](https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-tnpl) (revision `f94d1e2485`),  [`tmquan/thuvienphapluat-vn-htpl`](https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-htpl) (revision `043c8f2988`).
+The court datasets [`tmquan/anle-toaan-gov-vn`](https://huggingface.co/datasets/tmquan/anle-toaan-gov-vn) (revision `d6124923dd`) and
+[`tmquan/cbba-toaan-gov-vn`](https://huggingface.co/datasets/tmquan/cbba-toaan-gov-vn) (revision `8ace3afc9c`) are planned for v2; the build reads
+them only with `VLONTO_INCLUDE_COURTS=1`.
 
 
 ## Repository layout
@@ -76,7 +78,8 @@ N-Triples dump) is rebuilt from the six source datasets with `python -m vlonto.c
    in `tools/versions.lock`).
 2. Corpus: run `pipeline/` in the order given in `pipeline/README.md` (source datasets at the pinned revisions in
    `pipeline/download_manifest.json`).
-3. Knowledge graph: `cd vlonto && python -m vlonto.cli all` (build, export, core subset, validation, site data, report).
+3. Knowledge graph: `cd vlonto && python -m vlonto.cli all` (build, export, core subset, validation, site data, report);
+   release v1 leaves the court data out by default (`VLONTO_INCLUDE_COURTS=0`).
 4. Playbook PDF from the committed Typst sources only: `TY=/path/to/typst bash scripts/build_pdf.sh --pdf-only --out VLOnto-playbook.pdf`.
    The result is byte-identical to `site/downloads/VLOnto-playbook.pdf`; the `reproduce-pdf` job in
    `.github/workflows/pages.yml` checks this on every push.

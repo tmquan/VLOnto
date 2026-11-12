@@ -5,6 +5,9 @@ English and Vietnamese labels, an English definition and a module, find dangling
 ELI terms used against the ELI ontology (when a copy is available), run an OWL-RL closure on synthetic
 fixtures (expected inferences present, expected inconsistency detected), run SHACL on the fixtures
 (positive conforms, negative reports the planted errors), write pyLODE HTML and a JSON-LD context.
+release_check(): the ontology header carries the release of the build (owl:versionInfo, owl:versionIRI,
+dcterms:modified = build date, dcterms:source = the source datasets of the build) and every term of the judiciary
+module (plus vlo:Court) has a scope note saying that it is populated from v2.
 """
 import json
 import os
@@ -373,6 +376,36 @@ def run_with_timeout(fn, args, timeout_s):
     return out
 
 
+COURT_EXTRA_TERMS = (VLO.Court, VLO["module-judiciary"])
+
+
+def court_terms(g):
+    """Terms whose data comes from the court datasets: the judiciary module, vlo:Court and the module concept itself."""
+    return sorted(set(g.subjects(VLO.module, VLO["module-judiciary"])) | set(COURT_EXTRA_TERMS), key=str)
+
+
+def release_check(g):
+    try:
+        from . import config as C
+    except ImportError:          # run as a script: no package context
+        return {"available": False, "pass": None}
+    vi, viri = g.value(ONTO_IRI, OWL.versionInfo), g.value(ONTO_IRI, OWL.versionIRI)
+    prior, mod = g.value(ONTO_IRI, OWL.priorVersion), g.value(ONTO_IRI, DCTERMS.modified)
+    srcs = sorted(str(o) for o in g.objects(ONTO_IRI, DCTERMS.source))
+    want = sorted(f"https://huggingface.co/datasets/tmquan/{d}" for d in C.SOURCES)
+    terms = court_terms(g)
+    noted = [t for t in terms if any(isinstance(o, Literal) and o.language == "en" and "2.0" in str(o) for o in g.objects(t, SKOS.scopeNote))
+             and any(isinstance(o, Literal) and o.language == "vi" for o in g.objects(t, SKOS.scopeNote))]
+    out = {"available": True, "versionInfo": str(vi) if vi is not None else None, "versionIRI": str(viri) if viri is not None else None,
+           "priorVersion": str(prior) if prior is not None else None, "modified": str(mod) if mod is not None else None,
+           "expected": {"versionInfo": C.VERSION, "versionIRI": C.ONTOLOGY_VERSION_IRI, "modified": C.BUILD_DATE, "sources": want},
+           "sources": srcs, "n_sources": len(srcs), "sources_match": srcs == want, "court_terms": len(terms), "scope_notes": len(noted),
+           "court_terms_without_note": [str(t) for t in terms if t not in noted]}
+    out["pass"] = (out["versionInfo"] == C.VERSION and out["versionIRI"] == C.ONTOLOGY_VERSION_IRI and out["modified"] == C.BUILD_DATE
+                   and out["sources_match"] and len(noted) == len(terms))
+    return out
+
+
 def check_ontology(repo, outdir, eli_path=None):
     os.makedirs(outdir, exist_ok=True)
     onto_path = os.path.join(repo, "ontology", "vlonto.ttl")
@@ -391,6 +424,8 @@ def check_ontology(repo, outdir, eli_path=None):
     print(f"completeness {time.time() - t1:.1f}s", flush=True)
     rep["dangling"] = dangling(onto)
     print(f"dangling {time.time() - t1:.1f}s", flush=True)
+    rep["release"] = release_check(onto)
+    print(f"release metadata pass={rep['release'].get('pass')}", flush=True)
     rep["eli"] = eli_check(onto, eli_path)
     print(f"eli {time.time() - t1:.1f}s", flush=True)
     print("parse/completeness/dangling/eli done", flush=True)
@@ -411,7 +446,7 @@ def check_ontology(repo, outdir, eli_path=None):
     except Exception as e:
         rep["pylode"] = {"error": repr(e), "trace": traceback.format_exc()[-2000:]}
     print(f"pylode done {time.time() - t1:.1f}s", flush=True)
-    rep["pass"] = (not rep["completeness"]["problems"] and not rep["dangling"]
+    rep["pass"] = (not rep["completeness"]["problems"] and not rep["dangling"] and rep["release"].get("pass") is not False
                    and (not rep["eli"].get("available") or not rep["eli"].get("missing_in_eli"))
                    and rep.get("owlrl", {}).get("pass") is True and rep.get("shacl", {}).get("pass") is True
                    and "error" not in rep.get("pylode", {}))

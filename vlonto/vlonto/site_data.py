@@ -8,6 +8,9 @@ sparql_examples.json  example queries with their result counts on vlonto-core.tt
 js/<name>.js          offline twins: window.VLONTO["<name>"] = <same JSON>; also vlonto_core_ttl.js and
                       vlonto_ontology_ttl.js holding the Turtle files as strings (no fetch() under file://)
 manifest.json         files, sizes, sha256
+
+Release v1 has no court data: the court keys of stats.json and dashboard.json are kept (0 or empty) so that the pages
+keep working, and stats.json says which sources the build used (courts_included, sources, deferred_sources).
 """
 import hashlib
 import json
@@ -27,6 +30,23 @@ MAX_BYTES = 20 * 1024 * 1024
 
 def T(name, cols=None):
     return pl.read_parquet(os.path.join(C.KG, name + ".parquet"), columns=cols)
+
+
+def T_court(name, cols):
+    """A court table, or an empty frame with the given columns in a build without court data (release v1)."""
+    if C.INCLUDE_COURTS:
+        return T(name, list(cols))
+    return pl.DataFrame({c: pl.Series(c, [], dtype=t) for c, t in cols.items()})
+
+
+COURT_COLS = {
+    "decisions": {"decision_id": pl.Utf8, "source": pl.Utf8, "year": pl.Int64, "category": pl.Utf8, "court_level": pl.Utf8,
+                  "instance_level": pl.Utf8, "decision_kind": pl.Utf8, "court_id": pl.Utf8, "court_note": pl.Utf8},
+    "edges_decision_provision": {"decision_id": pl.Utf8, "dst_doc_id": pl.Utf8, "dst_article_id": pl.Utf8},
+    "edges_decision_case": {"src_id": pl.Utf8, "dst_id": pl.Utf8, "method": pl.Utf8},
+    "courts": {"court_id": pl.Utf8, "label": pl.Utf8, "court_level": pl.Utf8, "n_decisions": pl.Int64, "court_kind": pl.Utf8, "province": pl.Utf8},
+    "precedents": {"precedent_id": pl.Utf8, "precedent_number": pl.Utf8, "n_citing_decisions": pl.Int64},
+}
 
 
 def dump(obj, name):
@@ -69,15 +89,17 @@ def stats_and_dashboard(build, export, core, validation):
     arts = T("articles", ["article_id", "article_no", "heading", "segment", "doc_id"])
     am = {r["article_id"]: r for r in arts.iter_rows(named=True)}
     ch, lb, ci = T("changes"), T("edges_legal_basis"), T("edges_citation")
-    dec, dp, dc = T("decisions"), T("edges_decision_provision"), T("edges_decision_case")
+    dec, dp, dc = (T_court(n, COURT_COLS[n]) for n in ("decisions", "edges_decision_provision", "edges_decision_case"))
     qas, qa_art, qa_doc = T("qas"), T("edges_qa_article"), T("edges_qa_document")
-    terms, news, ne, areas, iss, courts, prec = T("terms"), T("news"), T("edges_news_document"), T("areas"), T("issuers"), T("courts"), T("precedents")
+    terms, news, ne, areas, iss = T("terms"), T("news"), T("edges_news_document"), T("areas"), T("issuers")
+    courts, prec = T_court("courts", COURT_COLS["courts"]), T_court("precedents", COURT_COLS["precedents"])
     files = build.get("files", {})
     n_nodes = sum(files[k]["rows"] for k in ("documents", "articles", "structure", "provisions_ref", "issuers", "areas", "changes", "courts",
                                              "decisions", "precedents", "qas", "terms", "news", "news_categories", "sources") if k in files) + qas.height
     n_edges = sum(files[k]["rows"] for k in files if k.startswith("edges_"))
     stats = {
-        "name": "VLOnto", "version": C.VERSION, "build_date": C.BUILD_DATE, "validity_as_of": C.VALIDITY_AS_OF,
+        "name": "VLOnto", "version": C.VERSION, "release": C.RELEASE, "build_date": C.BUILD_DATE, "validity_as_of": C.VALIDITY_AS_OF,
+        "courts_included": C.INCLUDE_COURTS,
         "documents": docs.height, "documents_by_type": dict(Counter(docs["doc_type_vi"].to_list())),
         "articles": arts.height, "articles_main_body": int((arts["segment"] == "main").sum()), "articles_appendix": int((arts["segment"] != "main").sum()),
         "structure_nodes": dict(Counter(T("structure", ["kind"])["kind"].to_list())), "clause_point_nodes": dict(Counter(T("provisions_ref", ["kind"])["kind"].to_list())),
@@ -93,9 +115,11 @@ def stats_and_dashboard(build, export, core, validation):
         "rdf_nt_gz_bytes": export.get("nt_gz_bytes"), "core_ttl_triples": core.get("triples"), "core_ttl_bytes": core.get("bytes"),
         "ontology": {"classes": None, "object_properties": None, "datatype_properties": None},
         "sources": {k: {"revision": v["revision"], "licence": v["licence"]} for k, v in C.SOURCES.items()},
+        "deferred_sources": {k: {"revision": v["revision"], "licence": v["licence"], "planned_release": "2.0.0"}
+                             for k, v in C.DEFERRED_SOURCES.items()},
     }
     # ---------------- dashboard
-    db = {"version": C.VERSION, "generated": C.BUILD_DATE}
+    db = {"version": C.VERSION, "release": C.RELEASE, "generated": C.BUILD_DATE, "courts_included": C.INCLUDE_COURTS}
     d2 = docs.with_columns(pl.col("year").fill_null(-1))
     db["documents_by_type_year"] = rows(d2.group_by("doc_type_code", "year").len().sort("doc_type_code", "year").rename({"len": "n"}))
     il = {r["issuer_id"]: r for r in iss.iter_rows(named=True)}
@@ -126,7 +150,8 @@ def stats_and_dashboard(build, export, core, validation):
     db["most_cited_documents"] = {"vbpl_citations": top_docs(ci.filter(pl.col("src_doc_id") != pl.col("dst_doc_id")), "src_doc_id"),
                                   "qa": top_docs(qa_docs, "qa_id"), "court_decisions": top_docs(dp, "decision_id")}
     db["most_cited_articles"] = {"vbpl_citations": top_arts(ci, "src_doc_id"), "qa": top_arts(qa_art, "qa_id"), "court_decisions": top_arts(dp, "decision_id")}
-    db["most_cited_documents_note"] = "citing = number of distinct citing documents / Q&As / court decisions"
+    db["most_cited_documents_note"] = "citing = number of distinct citing documents / Q&As / court decisions" + (
+        "" if C.INCLUDE_COURTS else " (no court decisions in release v1: court data is planned for v2)")
     dec2 = dec.with_columns(pl.col("year").fill_null(-1), pl.col("category").fill_null("unknown"), pl.col("court_level").fill_null("unknown"),
                             pl.col("instance_level").fill_null("unknown"))
     db["decisions_by_category_year"] = rows(dec2.group_by("category", "year").len().sort("category", "year").rename({"len": "n"}))
@@ -134,7 +159,7 @@ def stats_and_dashboard(build, export, core, validation):
     db["decisions_by_instance_level"] = rows(desc(dec2.group_by("instance_level").len(), "len", "instance_level").rename({"len": "n"}))
     db["decisions_by_kind_source"] = rows(desc(dec2.group_by("decision_kind", "source").len(), "len", "decision_kind", "source").rename({"len": "n"}))
     db["top_courts"] = rows(courts.select("court_id", "label", "court_level", "n_decisions").head(30))
-    if "court_kind" in courts.columns:
+    if "court_kind" in courts.columns or not C.INCLUDE_COURTS:
         db["courts_by_kind"] = rows(desc(courts.group_by("court_kind").agg(pl.len().alias("courts"), pl.col("n_decisions").sum().alias("decisions")),
                                          "decisions", "court_kind"))
         db["decisions_by_province"] = rows(desc(courts.filter(pl.col("province").is_not_null()).group_by("province")
@@ -191,6 +216,12 @@ def ontology_graph():
         m = g.value(s, URIRef(VLO + "module"))
         return str(g.value(m, SKOS.notation)) if m is not None else "external"
 
+    def scope(s, lang):
+        for o in g.objects(s, SKOS.scopeNote):
+            if isinstance(o, Literal) and o.language == lang:
+                return str(o)
+        return None
+
     counts = class_counts()
     examples = class_examples()
     nodes, links = {}, []
@@ -201,7 +232,8 @@ def ontology_graph():
         nodes[cur(s)] = {"id": cur(s), "iri": local, "kind": "class" if is_vlo else "external", "module": module(s) if is_vlo else "external",
                          "label_en": lab(s, "en"), "label_vi": lab(s, "vi"), "definition_en": defin(s, "en"), "definition_vi": defin(s, "vi"),
                          "superclasses": sorted(cur(o) for o in g.objects(s, RDFS.subClassOf) if isinstance(o, URIRef)),
-                         "instances": counts.get(cur(s)), "examples": examples.get(cur(s), []), "attributes": []}
+                         "instances": counts.get(cur(s)), "examples": examples.get(cur(s), []), "attributes": [],
+                         "scope_note_en": scope(s, "en"), "scope_note_vi": scope(s, "vi")}
     for s in g.subjects(RDF.type, SKOS.ConceptScheme):
         concepts = sorted({c for c in g.subjects(SKOS.inScheme, s)}, key=str)
         nodes[cur(s)] = {"id": cur(s), "iri": str(s), "kind": "scheme", "module": module(s), "label_en": lab(s, "en"), "label_vi": lab(s, "vi"),
@@ -247,13 +279,15 @@ def ontology_graph():
             nodes[cur(dom)]["attributes"].append(item)
     modules = [{"id": str(g.value(m, SKOS.notation)), "label_en": lab(m, "en"), "label_vi": lab(m, "vi"), "definition_en": defin(m, "en")}
                for m in sorted(g.subjects(RDF.type, URIRef(VLO + "Module")), key=str)]
-    out = {"name": "VLOnto ontology graph", "version": C.VERSION, "ontology_iri": "https://tmquan.github.io/VLOnto/ontology",
+    out = {"name": "VLOnto ontology graph", "version": C.VERSION, "release": C.RELEASE, "ontology_iri": C.ONTOLOGY_IRI,
+           "ontology_version_iri": str(g.value(URIRef(C.ONTOLOGY_IRI), OWL.versionIRI) or ""), "courts_included": C.INCLUDE_COURTS,
            "modules": modules + [{"id": "external", "label_en": "aligned external terms", "label_vi": "khái niệm ngoài được liên kết"}],
            "nodes": list(nodes.values()), "links": links,
            "counts": {"classes_vlo": sum(1 for n in nodes.values() if n["kind"] == "class"), "external": sum(1 for n in nodes.values() if n["kind"] == "external"),
                       "schemes": sum(1 for n in nodes.values() if n["kind"] == "scheme"), "object_properties": n_obj, "datatype_properties": n_dat,
                       "links": len(links)},
-           "notes": "instances = number of knowledge-graph nodes of the class (including subclasses for LegalDocument, Provision, CourtDecision, JudicialDocument); examples are up to 5 instances."}
+           "notes": "instances = number of knowledge-graph nodes of the class (including subclasses for LegalDocument, Provision, CourtDecision, JudicialDocument); examples are up to 5 instances."
+                    + ("" if C.INCLUDE_COURTS else " Release v1 has no court data: the judiciary classes (and vlo:Court) have no instances; they are populated from v2 (scope_note_en).")}
     return out
 
 
@@ -267,15 +301,18 @@ def class_counts():
     c.update({"vlo:Article": n_art, "vlo:Chapter": s.get("Chapter", 0), "vlo:Section": s.get("Section", 0), "vlo:Part": s.get("Part", 0),
               "vlo:Appendix": s.get("Appendix", 0), "vlo:Clause": p.get("Clause", 0), "vlo:Point": p.get("Point", 0)})
     c["vlo:Provision"] = n_art + sum(s.values()) + sum(p.values())
-    dk = Counter(T("decisions", ["decision_kind"])["decision_kind"].to_list())
+    dk = Counter(T_court("decisions", {"decision_kind": pl.Utf8})["decision_kind"].to_list())
     c.update({"vlo:Judgment": dk.get("Judgment", 0), "vlo:CourtRuling": dk.get("CourtRuling", 0), "vlo:CourtDecision": sum(dk.values())})
-    np_ = T("precedents", ["precedent_id"]).height
+    np_ = T_court("precedents", {"precedent_id": pl.Utf8}).height
     c.update({"vlo:Precedent": np_, "vlo:JudicialDocument": sum(dk.values()) + np_})
     nq = T("qas", ["qa_id"]).height
-    iss, crt = T("issuers", ["issuer_id"]).height, T("courts", ["court_id"]).height
+    iss, crt = T("issuers", ["issuer_id"]).height, T_court("courts", {"court_id": pl.Utf8}).height
+    n_edgesets = sum(1 for t in ("edges_change", "edges_legal_basis", "edges_citation", "edges_decision_provision", "edges_decision_case",
+                                 "edges_precedent_source", "edges_qa_article", "edges_qa_document", "edges_term_related", "edges_news_document")
+                     if os.path.exists(os.path.join(C.KG, t + ".parquet")) and (C.INCLUDE_COURTS or t not in C.COURT_TABLES))
     c.update({"vlo:LegalQuestion": nq, "vlo:LegalAnswer": nq, "vlo:LegalTerm": T("terms", ["term_id"]).height, "vlo:LegalNewsArticle": T("news", ["news_id"]).height,
               "vlo:IssuingBody": iss, "vlo:Court": crt, "vlo:PublicAuthority": iss + crt, "vlo:LegalArea": T("areas", ["area_id"]).height,
-              "vlo:LegalChange": T("changes", ["change_id"]).height, "vlo:SourceDataset": 6, "vlo:EdgeSet": 10, "vlo:BuildActivity": 1,
+              "vlo:LegalChange": T("changes", ["change_id"]).height, "vlo:SourceDataset": len(C.SOURCES), "vlo:EdgeSet": n_edgesets, "vlo:BuildActivity": 1,
               "vlo:NewsCategory": T("news_categories", ["category"]).height, "vlo:DocumentType": 10, "vlo:ValidityStatus": 8, "vlo:ChangeKind": 5,
               "vlo:LegalForceRank": 6, "vlo:CourtLevel": 5, "vlo:InstanceLevel": 4, "vlo:CaseCategory": 8, "vlo:Module": 11})
     c["vlo:LegalAreaScheme"] = int(T("areas", ["schemes"])["schemes"].list.contains("LegalAreaScheme").sum())
@@ -299,6 +336,9 @@ def class_examples():
     for t, cls, labcol in (("changes", "vlo:LegalChange", "evidence"), ("issuers", "vlo:IssuingBody", "label_vi"), ("areas", "vlo:LegalArea", "label_vi"),
                            ("courts", "vlo:Court", "label"), ("precedents", "vlo:Precedent", "precedent_number"), ("terms", "vlo:LegalTerm", "label_vi"),
                            ("news_categories", "vlo:NewsCategory", "label_vi")):
+        if t in C.COURT_TABLES and not C.INCLUDE_COURTS:
+            ex[cls] = []
+            continue
         df = T(t).head(5)
         ex[cls] = [{"iri": r["iri"], "label": C.cut(str(r[labcol]), 90)} for r in df.iter_rows(named=True)]
     s = T("structure", ["iri", "kind", "heading"])
@@ -307,7 +347,7 @@ def class_examples():
     p = T("provisions_ref", ["iri", "kind", "prov_id"]).sort("prov_id").head(2000)
     for k in ("Clause", "Point"):
         ex[f"vlo:{k}"] = [{"iri": r["iri"], "label": r["prov_id"]} for r in p.filter(pl.col("kind") == k).head(5).iter_rows(named=True)]
-    d = T("decisions", ["iri", "decision_kind", "decision_number", "source"]).filter(pl.col("source") == "anle")
+    d = T_court("decisions", {"iri": pl.Utf8, "decision_kind": pl.Utf8, "decision_number": pl.Utf8, "source": pl.Utf8}).filter(pl.col("source") == "anle")
     for k in ("Judgment", "CourtRuling"):
         ex[f"vlo:{k}"] = [{"iri": r["iri"], "label": r["decision_number"]} for r in d.filter(pl.col("decision_kind") == k).head(5).iter_rows(named=True)]
     ex["vlo:CourtDecision"] = ex.get("vlo:Judgment", [])
@@ -417,7 +457,8 @@ def build_site():
                 b = open(p, "rb").read()
                 man.append({"file": os.path.relpath(p, C.SITE), "bytes": len(b), "sha256": hashlib.sha256(b).hexdigest(), "within_20MB": len(b) <= MAX_BYTES})
     with open(os.path.join(C.SITE, "manifest.json"), "w") as f:
-        json.dump({"version": C.VERSION, "files": man, "note": "js/<name>.js twins assign window.VLONTO[name] for file:// use; "
+        json.dump({"version": C.VERSION, "release": C.RELEASE, "build_date": C.BUILD_DATE, "courts_included": C.INCLUDE_COURTS,
+                   "files": man, "note": "js/<name>.js twins assign window.VLONTO[name] for file:// use; "
                    "js/manifest.js is written after this list"}, f, indent=1)
     write_js_twin(os.path.join(C.SITE, "manifest.json"), "manifest")
     print(json.dumps({"files": [(m["file"], m["bytes"]) for m in man], "all_within_20MB": all(m["within_20MB"] for m in man),

@@ -1,4 +1,8 @@
-"""Step 3: build the typed node and edge tables of the VLOnto knowledge graph ($V/build/kg/*.parquet)."""
+"""Step 3: build the typed node and edge tables of the VLOnto knowledge graph ($V/build/kg/*.parquet).
+
+Court tables (courts, decisions, precedents and their edges) are built only when config.INCLUDE_COURTS is on
+(VLONTO_INCLUDE_COURTS=1); release v1 is built without them (court data is planned for v2).
+"""
 import glob
 import hashlib
 import json
@@ -9,7 +13,6 @@ from collections import Counter
 import polars as pl
 
 from . import config as C
-from .build_courts import build_courts
 from .build_docs import build_areas, build_articles, build_changes, build_documents, build_issuers
 from .build_links import build_links
 from .build_other import build_area_table, build_news, build_qa, build_terms
@@ -119,7 +122,7 @@ DESCRIPTIONS = {
         "year": "year", "n_numbers_found": "document numbers found", "n_documents_resolved": "documents linked"}),
     "edges_news_document": ("News article -> mentioned document.", {"news_id": "news", "dst_doc_id": "document", "number_found": "number", "method": "docnum-regex"}),
     "news_categories": ("News categories.", {}),
-    "sources": ("Source datasets with revision, licence and policy.", {}),
+    "sources": ("Source datasets of this build with revision, licence and policy (release v1: the four thuvienphapluat.vn datasets).", {}),
 }
 
 
@@ -173,13 +176,20 @@ def sources_table():
 
 
 def data_dictionary(rep):
+    if C.INCLUDE_COURTS:
+        scope = "Sources: " + ", ".join(f"`{k}`" for k in C.SOURCES) + " (court data included)."
+    else:
+        scope = (f"Release {C.RELEASE} sources: " + ", ".join(f"`{k}`" for k in C.SOURCES) + ". Court data ("
+                 + ", ".join(f"`{k}`" for k in C.DEFERRED_SOURCES) + ") is planned for v2: the ontology keeps the judiciary "
+                 "classes, but this build has no court, decision or precedent tables.")
     md = ["# VLOnto knowledge-graph data dictionary", "",
-          f"Version {C.VERSION}, built {C.BUILD_DATE}. Tables are parquet (zstd) files in `{C.rel(C.KG)}`; "
+          f"Version {C.VERSION} (release {C.RELEASE}), built {C.BUILD_DATE}, document validity as of {C.VALIDITY_AS_OF}. "
+          f"Tables are parquet (zstd) files in `{C.rel(C.KG)}`; "
           f"`{C.rel(C.KG_LOCAL)}` holds local-only tables that are not for publication (licence policy). "
-          "Paths are relative to the VLOnto root.", "",
+          "Paths are relative to the VLOnto root.", "", scope, "",
           "IRIs: documents `id/document/<doc_id>`, articles `id/document/<doc_id>/dieu-<n>`, clauses `.../khoan-<k>`, "
-          "points `.../diem-<p>`, decisions `id/decision/<source>/<doc_name>`, courts `id/court/<slug>`, Q&As `id/qa/<id>` "
-          "(answer `id/qa/<id>/answer`), terms `id/term/<id>`, news `id/news/<id>`, under https://tmquan.github.io/VLOnto/.", ""]
+          "points `.../diem-<p>`, " + ("decisions `id/decision/<source>/<doc_name>`, courts `id/court/<slug>`, " if C.INCLUDE_COURTS else "")
+          + "Q&As `id/qa/<id>` (answer `id/qa/<id>/answer`), terms `id/term/<id>`, news `id/news/<id>`, under https://tmquan.github.io/VLOnto/.", ""]
     js = {}
     for name, f in rep["files"].items():
         desc, cols = DESCRIPTIONS.get(name, ("", {}))
@@ -206,9 +216,22 @@ def data_dictionary(rep):
         json.dump(nfc_obj(js), fh, ensure_ascii=False, indent=1)
 
 
+def remove_stale_court_tables(rep):
+    """A build without court data must not leave court tables of an earlier build in the output directory."""
+    gone = []
+    for name in C.COURT_TABLES:
+        p = os.path.join(C.KG, name + ".parquet")
+        if os.path.exists(p):
+            os.remove(p)
+            gone.append(name)
+    rep["stale_court_tables_removed"] = gone
+    return gone
+
+
 def build_all(with_text=True):
     t0 = time.time()
-    rep = {"version": C.VERSION, "build_date": C.BUILD_DATE, "files": {}}
+    rep = {"version": C.VERSION, "release": C.RELEASE, "build_date": C.BUILD_DATE, "courts_included": C.INCLUDE_COURTS,
+           "sources": list(C.SOURCES), "deferred_sources": list(C.DEFERRED_SOURCES), "files": {}}
     os.makedirs(C.KG, exist_ok=True)
     print("documents ...", flush=True)
     docs = build_documents(rep)
@@ -223,14 +246,23 @@ def build_all(with_text=True):
                         pl.col("kind").replace_strict(C.CHANGE_PROPERTY).alias("property"), "change_id", "method")
     print("links ...", flush=True)
     cit, basis = build_links(docs, arts, rep)
-    print("courts ...", flush=True)
-    dec, courts, precedents, law, case_edges, prec_src = build_courts(docs, arts, rep)
+    if C.INCLUDE_COURTS:
+        print("courts ...", flush=True)
+        from .build_courts import build_courts
+        dec, courts, precedents, law, case_edges, prec_src = build_courts(docs, arts, rep)
+        court_tables = [(courts, "courts"), (dec, "decisions"), (precedents, "precedents"), (law, "edges_decision_provision"),
+                        (case_edges, "edges_decision_case"), (prec_src, "edges_precedent_source")]
+        law_edges = [law]
+    else:
+        print("courts: not built (VLONTO_INCLUDE_COURTS=0; court data is planned for v2)", flush=True)
+        court_tables, law_edges = [], []
+        remove_stale_court_tables(rep)
     print("qa, terms, news ...", flush=True)
     qas, qa_art, qa_doc = build_qa(docs, arts, rep)
     terms, term_rel, term_area_labels = build_terms(rep)
     news, news_edges = build_news(docs, rep)
     areas = build_area_table(doc_areas, qas, terms, term_area_labels, rep)
-    pref = provisions_ref([cit, law, qa_art])
+    pref = provisions_ref([cit, *law_edges, qa_art])
     rep["provisions_ref"] = dict(Counter(pref["kind"].to_list())) if pref.height else {}
     dt = pl.DataFrame([{"doc_type_vi": k, "label_en": C.DOC_TYPE_EN[k], "class": v[0], "concept": v[1], "notation": v[2],
                         "n_documents": int((docs["doc_type_vi"] == k).sum())} for k, v in C.DOC_TYPES.items()])
@@ -239,13 +271,12 @@ def build_all(with_text=True):
     nc = pl.DataFrame([{"category": k, "iri": C.iri_news_category(k), "label_vi": v[0], "label_en": v[1],
                         "n_articles": int((news["category"] == k).sum())} for k, v in C.NEWS_CATEGORY_LABELS.items()])
     print("writing ...", flush=True)
-    for df, name in ((docs, "documents"), (arts, "articles"), (structs, "structure"), (pref, "provisions_ref"), (issuers, "issuers"),
-                     (areas, "areas"), (dt, "doc_types"), (rk, "legal_force_ranks"), (changes, "changes"), (ec, "edges_change"),
-                     (basis, "edges_legal_basis"), (cit, "edges_citation"), (courts, "courts"), (dec, "decisions"),
-                     (precedents, "precedents"), (law, "edges_decision_provision"), (case_edges, "edges_decision_case"),
-                     (prec_src, "edges_precedent_source"), (qas, "qas"), (qa_art, "edges_qa_article"), (qa_doc, "edges_qa_document"),
-                     (terms, "terms"), (term_rel, "edges_term_related"), (news, "news"), (news_edges, "edges_news_document"),
-                     (nc, "news_categories"), (sources_table(), "sources")):
+    tables = [(docs, "documents"), (arts, "articles"), (structs, "structure"), (pref, "provisions_ref"), (issuers, "issuers"),
+              (areas, "areas"), (dt, "doc_types"), (rk, "legal_force_ranks"), (changes, "changes"), (ec, "edges_change"),
+              (basis, "edges_legal_basis"), (cit, "edges_citation"), *court_tables, (qas, "qas"), (qa_art, "edges_qa_article"),
+              (qa_doc, "edges_qa_document"), (terms, "terms"), (term_rel, "edges_term_related"), (news, "news"),
+              (news_edges, "edges_news_document"), (nc, "news_categories"), (sources_table(), "sources")]
+    for df, name in tables:
         write(df, name, rep)
     if txt is not None:
         write(txt, "article_text", rep, local=True)

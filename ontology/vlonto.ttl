@@ -1,4 +1,4 @@
-# VLOnto - Vietnamese Legal Ontology, version 0.1.0
+# VLOnto - Vietnamese Legal Ontology, version 1.0.0 (release v1)
 # OWL 2 ontology in Turtle. Namespace https://tmquan.github.io/VLOnto/ontology# (prefix vlo:).
 # Instance IRIs of the knowledge graph use https://tmquan.github.io/VLOnto/id/ (prefix vlid:).
 # Every VLOnto class and property has rdfs:label in English and Vietnamese, an English skos:definition,
@@ -25,10 +25,11 @@
 <https://tmquan.github.io/VLOnto/ontology>
     a owl:Ontology ;
     dcterms:title "VLOnto: Vietnamese Legal Ontology"@en , "VLOnto: Bản thể học pháp luật Việt Nam"@vi ;
-    dcterms:description """VLOnto describes Vietnamese legal documents and their provisions, the bodies that issue them, their validity and the dated events that replace, amend or repeal them, legal-basis and citation links, court decisions and case-law precedents, legal questions and answers, legal terminology, legal news and the classification schemes used to organise them. Terms are aligned with ELI (European Legislation Identifier), SKOS, DCTERMS, PROV-O, schema.org and the W3C Organization ontology by sub-class and sub-property axioms. The VLOnto knowledge graph instantiates the ontology from six public datasets of Vietnamese legal material."""@en ,
-        """VLOnto mô tả văn bản pháp luật Việt Nam và các điều, khoản của chúng, cơ quan ban hành, tình trạng hiệu lực và các sự kiện thay thế, sửa đổi, bãi bỏ văn bản, quan hệ căn cứ pháp lý và trích dẫn, bản án, quyết định của Tòa án và án lệ, hỏi đáp pháp luật, thuật ngữ pháp lý, tin tức pháp luật và các hệ thống phân loại. Các khái niệm được liên kết với ELI, SKOS, DCTERMS, PROV-O, schema.org và W3C Organization bằng tiên đề lớp con và thuộc tính con. Đồ thị tri thức VLOnto được xây dựng từ sáu bộ dữ liệu công khai về pháp luật Việt Nam."""@vi ;
-    owl:versionInfo "0.1.0" ;
-    owl:versionIRI <https://tmquan.github.io/VLOnto/ontology/0.1.0> ;
+    dcterms:description """VLOnto describes Vietnamese legal documents and their provisions, the bodies that issue them, their validity and the dated events that replace, amend or repeal them, legal-basis and citation links, court decisions and case-law precedents, legal questions and answers, legal terminology, legal news and the classification schemes used to organise them. Terms are aligned with ELI (European Legislation Identifier), SKOS, DCTERMS, PROV-O, schema.org and the W3C Organization ontology by sub-class and sub-property axioms. The VLOnto knowledge graph instantiates the ontology from public datasets of Vietnamese legal material: release 1.0.0 uses the four thuvienphapluat.vn datasets (legal documents, legal Q&As, legal terminology and legal news); court decisions, courts and precedents are modelled by the judiciary module and are populated from release 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn)."""@en ,
+        """VLOnto mô tả văn bản pháp luật Việt Nam và các điều, khoản của chúng, cơ quan ban hành, tình trạng hiệu lực và các sự kiện thay thế, sửa đổi, bãi bỏ văn bản, quan hệ căn cứ pháp lý và trích dẫn, bản án, quyết định của Tòa án và án lệ, hỏi đáp pháp luật, thuật ngữ pháp lý, tin tức pháp luật và các hệ thống phân loại. Các khái niệm được liên kết với ELI, SKOS, DCTERMS, PROV-O, schema.org và W3C Organization bằng tiên đề lớp con và thuộc tính con. Đồ thị tri thức VLOnto được xây dựng từ các bộ dữ liệu công khai về pháp luật Việt Nam: phiên bản 1.0.0 dùng bốn bộ dữ liệu của thuvienphapluat.vn (văn bản pháp luật, hỏi đáp pháp luật, thuật ngữ pháp lý và tin tức pháp luật); bản án, quyết định, tòa án và án lệ được mô tả trong mô-đun tư pháp và có dữ liệu từ phiên bản 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn)."""@vi ;
+    owl:versionInfo "1.0.0" ;
+    owl:versionIRI <https://tmquan.github.io/VLOnto/ontology/1.0.0> ;
+    owl:priorVersion <https://tmquan.github.io/VLOnto/ontology/0.1.0> ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
     dcterms:creator [ a schema:Person ; schema:name "tmquan" ; schema:url "https://github.com/tmquan"^^xsd:anyURI ] ;
     dcterms:created "2026-11-11"^^xsd:date ;
@@ -40,9 +41,9 @@
     dcterms:source <https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-vbpl> ,
         <https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-hdpl> ,
         <https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-tnpl> ,
-        <https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-htpl> ,
-        <https://huggingface.co/datasets/tmquan/anle-toaan-gov-vn> ,
-        <https://huggingface.co/datasets/tmquan/cbba-toaan-gov-vn> .
+        <https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-htpl> ;
+    skos:editorialNote "Release 1.0.0 (v1): the knowledge graph is built from the four thuvienphapluat.vn datasets tmquan/thuvienphapluat-vn-vbpl, -hdpl, -tnpl and -htpl. The court datasets tmquan/anle-toaan-gov-vn and tmquan/cbba-toaan-gov-vn are planned for release 2.0; the judiciary classes and properties are kept in the ontology and marked with a scope note."@en ,
+        "Phiên bản 1.0.0 (v1): đồ thị tri thức được xây dựng từ bốn bộ dữ liệu của thuvienphapluat.vn: tmquan/thuvienphapluat-vn-vbpl, -hdpl, -tnpl và -htpl. Các bộ dữ liệu tòa án tmquan/anle-toaan-gov-vn và tmquan/cbba-toaan-gov-vn được dự kiến đưa vào phiên bản 2.0; các lớp và thuộc tính của mô-đun tư pháp vẫn được giữ trong bản thể và có ghi chú phạm vi."@vi .
 
 # =====================================================================================================
 # Annotation properties and the module scheme
@@ -92,7 +93,9 @@ vlo:module-validity-change a vlo:Module , owl:NamedIndividual ; skos:inScheme vl
 vlo:module-citation-basis a vlo:Module , owl:NamedIndividual ; skos:inScheme vlo:ModuleScheme ; skos:topConceptOf vlo:ModuleScheme ; skos:notation "citation-basis" ;
     skos:prefLabel "citation and legal basis"@en , "trích dẫn và căn cứ"@vi ; skos:definition "Legal-basis and citation links between legal resources and from other works to legal resources."@en .
 vlo:module-judiciary a vlo:Module , owl:NamedIndividual ; skos:inScheme vlo:ModuleScheme ; skos:topConceptOf vlo:ModuleScheme ; skos:notation "judiciary" ;
-    skos:prefLabel "judiciary"@en , "tư pháp"@vi ; skos:definition "Court decisions, judgments, precedents and their classification."@en .
+    skos:prefLabel "judiciary"@en , "tư pháp"@vi ; skos:definition "Court decisions, judgments, precedents and their classification."@en ;
+    skos:scopeNote "The terms of this module are populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no court data."@en ,
+        "Các khái niệm của mô-đun này có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu tòa án."@vi .
 vlo:module-qa a vlo:Module , owl:NamedIndividual ; skos:inScheme vlo:ModuleScheme ; skos:topConceptOf vlo:ModuleScheme ; skos:notation "qa" ;
     skos:prefLabel "legal Q&A"@en , "hỏi đáp pháp luật"@vi ; skos:definition "Published legal questions and their answers."@en .
 vlo:module-terminology a vlo:Module , owl:NamedIndividual ; skos:inScheme vlo:ModuleScheme ; skos:topConceptOf vlo:ModuleScheme ; skos:notation "terminology" ;
@@ -343,7 +346,9 @@ vlo:Court
     rdfs:label "Court"@en , "Tòa án"@vi ;
     skos:definition "A people's court or military court that decides cases; identified by its official name, for example Tòa án nhân dân tỉnh Cà Mau."@en ;
     skos:definition "Tòa án nhân dân hoặc Tòa án quân sự xét xử các vụ việc; được xác định bằng tên chính thức."@vi ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-agents .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-agents ;
+    skos:scopeNote "Populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for this term."@en ,
+        "Có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu cho khái niệm này."@vi .
 
 # =====================================================================================================
 # Module: validity-change
@@ -383,7 +388,9 @@ vlo:JudicialDocument
     rdfs:label "Judicial document"@en , "Văn bản của Tòa án"@vi ;
     skos:definition "A document produced in the judicial system: a court decision in a case or a published case-law precedent."@en ;
     skos:definition "Văn bản trong hoạt động xét xử: bản án, quyết định của Tòa án hoặc án lệ đã công bố."@vi ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for this term."@en ,
+        "Có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu cho khái niệm này."@vi .
 
 vlo:CourtDecision
     a owl:Class ;
@@ -391,7 +398,9 @@ vlo:CourtDecision
     rdfs:label "Court decision"@en , "Bản án, quyết định của Tòa án"@vi ;
     skos:definition "A judgment or ruling issued by a court in a specific case, identified by its decision number (for example 38/2021/DS-PT), court and date."@en ;
     skos:definition "Bản án hoặc quyết định do Tòa án ban hành trong một vụ việc cụ thể, xác định bằng số (ví dụ 38/2021/DS-PT), Tòa án và ngày."@vi ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for this term."@en ,
+        "Có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu cho khái niệm này."@vi .
 
 vlo:Judgment
     a owl:Class ;
@@ -400,7 +409,9 @@ vlo:Judgment
     skos:definition "A court decision that settles a case on its merits after a hearing (first instance, appeal, cassation or retrial)."@en ;
     skos:definition "Quyết định của Tòa án giải quyết nội dung vụ án sau phiên tòa (sơ thẩm, phúc thẩm, giám đốc thẩm hoặc tái thẩm)."@vi ;
     rdfs:comment "In the knowledge graph a decision is a Judgment when its number code does not start with QĐ."@en ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for this term."@en ,
+        "Có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu cho khái niệm này."@vi .
 
 vlo:CourtRuling
     a owl:Class ;
@@ -409,7 +420,9 @@ vlo:CourtRuling
     skos:definition "A decision of a court other than a judgment, for example recognising the parties' agreement or suspending a case."@en ;
     skos:definition "Quyết định của Tòa án không phải bản án, ví dụ quyết định công nhận sự thỏa thuận của các đương sự hoặc đình chỉ giải quyết vụ án."@vi ;
     rdfs:comment "In the knowledge graph a decision is a CourtRuling when its number code starts with QĐ (quyết định)."@en ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for this term."@en ,
+        "Có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu cho khái niệm này."@vi .
 
 vlo:Precedent
     a owl:Class ;
@@ -417,7 +430,9 @@ vlo:Precedent
     rdfs:label "Precedent"@en , "Án lệ"@vi ;
     skos:definition "Reasoning or a ruling in a court decision that the Council of Judges of the Supreme People's Court has selected and the Chief Justice has published as a precedent for courts to follow; identified by its number, for example 04/2016/AL."@en ;
     skos:definition "Lập luận, phán quyết trong bản án, quyết định của Tòa án được Hội đồng Thẩm phán Tòa án nhân dân tối cao lựa chọn và được Chánh án công bố là án lệ để các Tòa án nghiên cứu, áp dụng; xác định bằng số, ví dụ 04/2016/AL."@vi ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for this term."@en ,
+        "Có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu cho khái niệm này."@vi .
 
 vlo:Judgment owl:disjointWith vlo:CourtRuling .
 vlo:CourtDecision owl:disjointWith vlo:Precedent .
@@ -429,7 +444,9 @@ vlo:CourtLevel
     rdfs:label "Court level"@en , "Cấp Tòa án"@vi ;
     skos:definition "The level of a court in the court system: supreme, high, provincial, district or military."@en ;
     skos:definition "Cấp của Tòa án trong hệ thống: tối cao, cấp cao, cấp tỉnh, cấp huyện hoặc quân sự."@vi ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Its concepts are defined in the ontology; they classify court decisions, which are populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn). VLOnto 1.0.0 has no court decisions."@en ,
+        "Các khái niệm được định nghĩa trong bản thể; chúng phân loại bản án, quyết định của Tòa án, có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn). VLOnto 1.0.0 chưa có bản án, quyết định."@vi .
 
 vlo:InstanceLevel
     a owl:Class ;
@@ -437,7 +454,9 @@ vlo:InstanceLevel
     rdfs:label "Instance level"@en , "Cấp xét xử"@vi ;
     skos:definition "The procedural stage at which a decision is made: first instance, appeal, cassation review or retrial review."@en ;
     skos:definition "Giai đoạn tố tụng ra quyết định: sơ thẩm, phúc thẩm, giám đốc thẩm hoặc tái thẩm."@vi ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Its concepts are defined in the ontology; they classify court decisions, which are populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn). VLOnto 1.0.0 has no court decisions."@en ,
+        "Các khái niệm được định nghĩa trong bản thể; chúng phân loại bản án, quyết định của Tòa án, có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn). VLOnto 1.0.0 chưa có bản án, quyết định."@vi .
 
 vlo:CaseCategory
     a owl:Class ;
@@ -445,7 +464,9 @@ vlo:CaseCategory
     rdfs:label "Case category"@en , "Loại vụ việc"@vi ;
     skos:definition "The legal domain of a case: civil, criminal, administrative, commercial, labour, marriage and family, bankruptcy or economic."@en ;
     skos:definition "Lĩnh vực của vụ việc: dân sự, hình sự, hành chính, kinh doanh thương mại, lao động, hôn nhân và gia đình, phá sản hoặc kinh tế."@vi ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Its concepts are defined in the ontology; they classify court decisions, which are populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn). VLOnto 1.0.0 has no court decisions."@en ,
+        "Các khái niệm được định nghĩa trong bản thể; chúng phân loại bản án, quyết định của Tòa án, có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn). VLOnto 1.0.0 chưa có bản án, quyết định."@vi .
 
 # =====================================================================================================
 # Module: qa
@@ -899,87 +920,113 @@ vlo:decidedBy a owl:ObjectProperty ;
     rdfs:domain vlo:CourtDecision ; rdfs:range vlo:Court ;
     rdfs:label "decided by"@en , "Tòa án ban hành"@vi ;
     skos:definition "The court that issued a court decision."@en ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for this term."@en ,
+        "Có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu cho khái niệm này."@vi .
 
 vlo:courtLevel a owl:ObjectProperty ;
     rdfs:range vlo:CourtLevel ;
     rdfs:label "court level"@en , "cấp Tòa án"@vi ;
     skos:definition "The level of the court that issued a decision, or of a court."@en ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for this term."@en ,
+        "Có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu cho khái niệm này."@vi .
 
 vlo:instanceLevel a owl:ObjectProperty ;
     rdfs:domain vlo:CourtDecision ; rdfs:range vlo:InstanceLevel ;
     rdfs:label "instance level"@en , "cấp xét xử"@vi ;
     skos:definition "The procedural stage at which a court decision was made."@en ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for this term."@en ,
+        "Có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu cho khái niệm này."@vi .
 
 vlo:caseCategory a owl:ObjectProperty ;
     rdfs:domain vlo:JudicialDocument ; rdfs:range vlo:CaseCategory ;
     rdfs:label "case category"@en , "loại vụ việc"@vi ;
     skos:definition "The legal domain of the case decided or of the precedent."@en ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for this term."@en ,
+        "Có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu cho khái niệm này."@vi .
 
 vlo:decisionNumber a owl:DatatypeProperty ;
     rdfs:subPropertyOf dcterms:identifier ;
     rdfs:domain vlo:CourtDecision ; rdfs:range xsd:string ;
     rdfs:label "decision number"@en , "số bản án, quyết định"@vi ;
     skos:definition "The number of a court decision as issued, for example 38/2021/DS-PT. Numbers are unique only within one court."@en ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for this term."@en ,
+        "Có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu cho khái niệm này."@vi .
 
 vlo:decisionCode a owl:DatatypeProperty ;
     rdfs:domain vlo:CourtDecision ; rdfs:range xsd:string ;
     rdfs:label "decision code"@en , "ký hiệu bản án, quyết định"@vi ;
     skos:definition "The symbol part of a decision number that encodes case domain and stage, for example DS-PT (civil, appeal) or QĐST-HNGĐ (first-instance ruling, marriage and family)."@en ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for this term."@en ,
+        "Có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu cho khái niệm này."@vi .
 
 vlo:decisionDate a owl:DatatypeProperty ;
     rdfs:subPropertyOf dcterms:date ;
     rdfs:domain vlo:CourtDecision ; rdfs:range xsd:date ;
     rdfs:label "decision date"@en , "ngày tuyên án, ra quyết định"@vi ;
     skos:definition "The date on which a court decision was issued."@en ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for this term."@en ,
+        "Có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu cho khái niệm này."@vi .
 
 vlo:precedentNumber a owl:DatatypeProperty ;
     rdfs:subPropertyOf dcterms:identifier ;
     rdfs:domain vlo:Precedent ; rdfs:range xsd:string ;
     rdfs:label "precedent number"@en , "số án lệ"@vi ;
     skos:definition "The national number of a precedent, for example 04/2016/AL."@en ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for this term."@en ,
+        "Có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu cho khái niệm này."@vi .
 
 vlo:selectedFrom a owl:ObjectProperty ;
     rdfs:subPropertyOf prov:wasDerivedFrom ;
     rdfs:domain vlo:Precedent ; rdfs:range vlo:CourtDecision ;
     rdfs:label "selected from"@en , "được lựa chọn từ"@vi ;
     skos:definition "The court decision whose reasoning or ruling was selected as the precedent."@en ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for this term."@en ,
+        "Có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu cho khái niệm này."@vi .
 
 vlo:appliesProvision a owl:ObjectProperty ;
     rdfs:subPropertyOf vlo:refersTo ;
     rdfs:domain vlo:JudicialDocument ; rdfs:range vlo:Provision ;
     rdfs:label "applies provision"@en , "áp dụng điều khoản"@vi ;
     skos:definition "A court decision cites an article, clause or point of a legal document as applied or relied on."@en ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for this term."@en ,
+        "Có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu cho khái niệm này."@vi .
 
 vlo:appliesDocument a owl:ObjectProperty ;
     rdfs:subPropertyOf vlo:refersTo ;
     rdfs:domain vlo:JudicialDocument ; rdfs:range vlo:LegalDocument ;
     rdfs:label "applies document"@en , "áp dụng văn bản"@vi ;
     skos:definition "A court decision cites a legal document as a whole, or a provision of it that is not available as an article node."@en ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for this term."@en ,
+        "Có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu cho khái niệm này."@vi .
 
 vlo:citesCase a owl:ObjectProperty ;
     rdfs:subPropertyOf vlo:refersTo ;
     rdfs:domain vlo:JudicialDocument ; rdfs:range vlo:JudicialDocument ;
     rdfs:label "cites case"@en , "viện dẫn bản án"@vi ;
     skos:definition "A court decision refers to another court decision (for example the first-instance judgment under appeal) or to a precedent."@en ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for this term."@en ,
+        "Có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu cho khái niệm này."@vi .
 
 vlo:appliesPrecedent a owl:ObjectProperty ;
     rdfs:subPropertyOf vlo:citesCase ;
     rdfs:domain vlo:JudicialDocument ; rdfs:range vlo:Precedent ;
     rdfs:label "applies precedent"@en , "áp dụng án lệ"@vi ;
     skos:definition "A court decision cites a precedent by its number."@en ;
-    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn); the VLOnto 1.0.0 knowledge graph has no data for this term."@en ,
+        "Có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn); đồ thị tri thức VLOnto 1.0.0 chưa có dữ liệu cho khái niệm này."@vi .
 
 # =====================================================================================================
 # Properties: Q&A, terminology, news
@@ -1234,7 +1281,9 @@ vlo:rank-5 a vlo:LegalForceRank , owl:NamedIndividual ; skos:inScheme vlo:LegalF
 vlo:CourtLevelScheme a skos:ConceptScheme ;
     rdfs:label "Court levels"@en , "Cấp Tòa án"@vi ;
     skos:definition "Levels of the Vietnamese court system as recorded by the court-decision datasets."@en ;
-    vlo:module vlo:module-judiciary .
+    vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Its concepts are defined in the ontology; they classify court decisions, which are populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn). VLOnto 1.0.0 has no court decisions."@en ,
+        "Các khái niệm được định nghĩa trong bản thể; chúng phân loại bản án, quyết định của Tòa án, có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn). VLOnto 1.0.0 chưa có bản án, quyết định."@vi .
 
 vlo:court-level-supreme a vlo:CourtLevel , owl:NamedIndividual ; skos:inScheme vlo:CourtLevelScheme ; skos:topConceptOf vlo:CourtLevelScheme ;
     skos:notation "Supreme" ; skos:prefLabel "Supreme People's Court"@en , "Tòa án nhân dân tối cao"@vi ; skos:definition "The highest court."@en .
@@ -1250,7 +1299,9 @@ vlo:court-level-military a vlo:CourtLevel , owl:NamedIndividual ; skos:inScheme 
 vlo:InstanceLevelScheme a skos:ConceptScheme ;
     rdfs:label "Instance levels"@en , "Cấp xét xử"@vi ;
     skos:definition "Procedural stages at which court decisions are made."@en ;
-    vlo:module vlo:module-judiciary .
+    vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Its concepts are defined in the ontology; they classify court decisions, which are populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn). VLOnto 1.0.0 has no court decisions."@en ,
+        "Các khái niệm được định nghĩa trong bản thể; chúng phân loại bản án, quyết định của Tòa án, có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn). VLOnto 1.0.0 chưa có bản án, quyết định."@vi .
 
 vlo:instance-first-instance a vlo:InstanceLevel , owl:NamedIndividual ; skos:inScheme vlo:InstanceLevelScheme ; skos:topConceptOf vlo:InstanceLevelScheme ;
     skos:notation "First-instance" ; skos:prefLabel "first instance"@en , "sơ thẩm"@vi ; skos:definition "First hearing of a case."@en .
@@ -1264,7 +1315,9 @@ vlo:instance-retrial a vlo:InstanceLevel , owl:NamedIndividual ; skos:inScheme v
 vlo:CaseCategoryScheme a skos:ConceptScheme ;
     rdfs:label "Case categories"@en , "Loại vụ việc"@vi ;
     skos:definition "Legal domains of cases as recorded by the court-decision datasets."@en ;
-    vlo:module vlo:module-judiciary .
+    vlo:module vlo:module-judiciary ;
+    skos:scopeNote "Its concepts are defined in the ontology; they classify court decisions, which are populated from VLOnto 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn). VLOnto 1.0.0 has no court decisions."@en ,
+        "Các khái niệm được định nghĩa trong bản thể; chúng phân loại bản án, quyết định của Tòa án, có dữ liệu từ VLOnto 2.0 (các bộ dữ liệu tòa án anle-toaan-gov-vn và cbba-toaan-gov-vn). VLOnto 1.0.0 chưa có bản án, quyết định."@vi .
 
 vlo:case-civil a vlo:CaseCategory , owl:NamedIndividual ; skos:inScheme vlo:CaseCategoryScheme ; skos:topConceptOf vlo:CaseCategoryScheme ;
     skos:notation "Civil" ; skos:prefLabel "civil"@en , "dân sự"@vi ; skos:definition "Civil cases and matters."@en .

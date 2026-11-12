@@ -8,8 +8,11 @@
 5. OWL-RL closure on a real sample (logical axioms of the ontology + sampled instances): no inconsistency.
 6. Spot checks: 10 random edges per edge type with the evidence that produced them (no person names,
    no Q&A/news text), written to spot_checks.md for manual judgement.
+7. Release scope: without court data (release v1) no court table exists and the dump has no court, decision or
+   precedent node and no statement about the court source datasets.
 Results: $V/build/reports/validation.json, spot_checks.md, spot_checks.json.
 """
+import glob
 import gzip
 import json
 import multiprocessing as mp
@@ -35,7 +38,17 @@ EXPECTED = {
 
 
 def T(name):
+    if name in C.COURT_TABLES and not C.INCLUDE_COURTS:
+        raise RuntimeError(f"{name}: court tables are not part of this build (VLONTO_INCLUDE_COURTS=0)")
     return pl.read_parquet(os.path.join(C.KG, name + ".parquet"))
+
+
+def n_rows(name, kind=None):
+    """Rows of a node table (0 for a court table in a build without court data)."""
+    if name in C.COURT_TABLES and not C.INCLUDE_COURTS:
+        return 0
+    df = T(name)
+    return df.height if not kind else int((df["kind"] == kind).sum())
 
 
 def orphans(values, universe):
@@ -52,14 +65,15 @@ def referential_integrity():
     st = T("structure")
     st_ids = set(st["struct_id"].to_list())
     pref = T("provisions_ref")
-    dec = set(T("decisions")["decision_id"].to_list())
-    prec = set(T("precedents")["precedent_id"].to_list())
+    courts_on = C.INCLUDE_COURTS
+    dec = set(T("decisions")["decision_id"].to_list()) if courts_on else set()
+    prec = set(T("precedents")["precedent_id"].to_list()) if courts_on else set()
     qas = set(T("qas")["qa_id"].to_list())
     terms = set(T("terms")["term_id"].to_list())
     news = set(T("news")["news_id"].to_list())
     issuers = set(T("issuers")["issuer_id"].to_list())
     areas = set(T("areas")["area_id"].to_list())
-    courts = set(T("courts")["court_id"].to_list())
+    courts = set(T("courts")["court_id"].to_list()) if courts_on else set()
     changes = set(T("changes")["change_id"].to_list())
     checks = {}
 
@@ -93,19 +107,20 @@ def referential_integrity():
     chk("edges_citation.dst_article -> articles", e["dst_article_id"].to_list(), art_ids)
     bad = e.filter(pl.col("dst_article_id").is_not_null() & (pl.col("dst_article_id").str.split("::").list.first() != pl.col("dst_doc_id"))).height
     checks["edges_citation.dst_article in dst_doc"] = {"checked": int(e["dst_article_id"].is_not_null().sum()), "orphans": bad, "examples": []}
-    e = T("decisions")
-    chk("decisions.court_id -> courts", e["court_id"].to_list(), courts)
-    e = T("edges_decision_provision")
-    chk("edges_decision_provision.decision -> decisions", e["decision_id"].to_list(), dec)
-    chk("edges_decision_provision.dst_doc -> documents", e["dst_doc_id"].to_list(), docs)
-    chk("edges_decision_provision.dst_article -> articles", e["dst_article_id"].to_list(), art_ids)
-    e = T("edges_decision_case")
-    chk("edges_decision_case.src -> decisions", e["src_id"].to_list(), dec)
-    chk("edges_decision_case.dst(decision) -> decisions", e.filter(pl.col("dst_kind") == "decision")["dst_id"].to_list(), dec)
-    chk("edges_decision_case.dst(precedent) -> precedents", e.filter(pl.col("dst_kind") == "precedent")["dst_id"].to_list(), prec)
-    e = T("edges_precedent_source")
-    chk("edges_precedent_source.src -> precedents", e["src_id"].to_list(), prec)
-    chk("edges_precedent_source.dst -> decisions", e["dst_id"].to_list(), dec)
+    if courts_on:
+        e = T("decisions")
+        chk("decisions.court_id -> courts", e["court_id"].to_list(), courts)
+        e = T("edges_decision_provision")
+        chk("edges_decision_provision.decision -> decisions", e["decision_id"].to_list(), dec)
+        chk("edges_decision_provision.dst_doc -> documents", e["dst_doc_id"].to_list(), docs)
+        chk("edges_decision_provision.dst_article -> articles", e["dst_article_id"].to_list(), art_ids)
+        e = T("edges_decision_case")
+        chk("edges_decision_case.src -> decisions", e["src_id"].to_list(), dec)
+        chk("edges_decision_case.dst(decision) -> decisions", e.filter(pl.col("dst_kind") == "decision")["dst_id"].to_list(), dec)
+        chk("edges_decision_case.dst(precedent) -> precedents", e.filter(pl.col("dst_kind") == "precedent")["dst_id"].to_list(), prec)
+        e = T("edges_precedent_source")
+        chk("edges_precedent_source.src -> precedents", e["src_id"].to_list(), prec)
+        chk("edges_precedent_source.dst -> decisions", e["dst_id"].to_list(), dec)
     q = T("qas")
     chk("qas.area_id -> areas", q["area_id"].to_list(), areas)
     e = T("edges_qa_article")
@@ -127,6 +142,8 @@ def referential_integrity():
     pids = set(pref["prov_id"].to_list())
     need = []
     for name in ("edges_citation", "edges_decision_provision", "edges_qa_article"):
+        if name in C.COURT_TABLES and not courts_on:
+            continue
         df = T(name).filter(pl.col("dst_article_id").is_not_null() & (pl.col("clause").is_not_null() | pl.col("point").is_not_null()))
         for a, k, p in df.select("dst_article_id", "clause", "point").iter_rows():
             need.append(f"{a}::khoan-{k}" + (f"::diem-{p}" if p else "") if k else f"{a}::diem-{p}")
@@ -161,10 +178,11 @@ def reconcile(build):
     row("hdpl Q&As", EXPECTED["hdpl_qas"], T("qas").height)
     row("tnpl terms (rows minus not_found placeholders)", EXPECTED["tnpl_rows"] - EXPECTED["tnpl_not_found"], T("terms").height)
     row("htpl news", EXPECTED["htpl"], T("news").height)
-    dec = T("decisions")
-    src = Counter(dec["source"].to_list())
-    row("anle decisions", EXPECTED["anle"], src.get("anle", 0))
-    row("cbba decisions (card: released rows)", EXPECTED["cbba_card_rows"], src.get("cbba", 0))
+    if C.INCLUDE_COURTS:
+        dec = T("decisions")
+        src = Counter(dec["source"].to_list())
+        row("anle decisions", EXPECTED["anle"], src.get("anle", 0))
+        row("cbba decisions (card: released rows)", EXPECTED["cbba_card_rows"], src.get("cbba", 0))
     return out
 
 
@@ -201,10 +219,11 @@ def rdf_counts(st):
     q = "SELECT ?c (COUNT(?s) AS ?n) WHERE { ?s a ?c FILTER(STRSTARTS(STR(?c), '%s')) } GROUP BY ?c" % C.VLO
     by = {str(r["c"].value)[len(C.VLO):]: int(r["n"].value) for r in st.query(q)}
     for cls, (table, kind) in CLASS_TABLE.items():
-        df = T(table)
-        exp = df.height if not kind else int((df["kind"] == kind).sum())
+        exp = n_rows(table, kind)
         got = sum(by.get(c, 0) for c in SUBS.get(cls, [cls]))
         out[cls] = {"parquet": exp, "rdf": got, "match": exp == got}
+        if table in C.COURT_TABLES and not C.INCLUDE_COURTS:
+            out[cls]["note"] = "court data not in this release (expected 0)"
     out["_rdf_type_counts"] = by
     preds = "SELECT ?p (COUNT(*) AS ?n) WHERE { ?s ?p ?o FILTER(STRSTARTS(STR(?p), '%s')) } GROUP BY ?p" % C.VLO
     out["_vlo_predicate_counts"] = {str(r["p"].value)[len(C.VLO):]: int(r["n"].value) for r in st.query(preds)}
@@ -217,10 +236,17 @@ def dangling_iris():
     typed, objs = set(), set()
     pat = re.compile(r'^<([^>]+)> <([^>]+)> <(' + re.escape(C.ID) + r'[^>]*)> \.$')
     rdf_type = "http://www.w3.org/1999/02/22-rdf-syntax-ns#type"
+    court_marks = tuple(f"<{C.ID}{x}/" for x in ("court", "decision", "precedent")) + tuple(f"<{C.iri_source(d)}>" for d in C.COURT_DATASETS) \
+        + tuple(f"<{C.iri_edgeset(t)}>" for t in C.COURT_TABLES)
+    court_lines, court_examples = 0, []
     n = 0
     with gzip.open(os.path.join(C.RDF_DIR, "vlonto-kg.nt.gz"), "rt", encoding="utf-8") as f:
         for line in f:
             n += 1
+            if not C.INCLUDE_COURTS and any(m in line for m in court_marks):
+                court_lines += 1
+                if len(court_examples) < 5:
+                    court_examples.append(line.strip()[:200])
             if line.startswith("<" + C.ID):
                 s_end = line.find(">")
                 s = line[1:s_end]
@@ -231,7 +257,26 @@ def dangling_iris():
                 objs.add(m.group(3))
     missing = objs - typed
     return {"lines": n, "typed_vlid_subjects": len(typed), "vlid_objects": len(objs), "objects_without_type": len(missing),
-            "examples": sorted(missing)[:10], "pass": not missing, "wall_s": round(time.time() - t0, 1)}
+            "examples": sorted(missing)[:10], "pass": not missing,
+            "court_data_lines": court_lines if not C.INCLUDE_COURTS else None, "court_data_examples": court_examples,
+            "wall_s": round(time.time() - t0, 1)}
+
+
+def release_scope(rdf_counts_, dangling):
+    """Release v1: no court table in build/kg, no court node or court-source statement in the dump."""
+    if C.INCLUDE_COURTS:
+        return {"courts_included": True, "pass": None, "note": "court data included; scope check not applicable"}
+    present = [t for t in C.COURT_TABLES if os.path.exists(os.path.join(C.KG, t + ".parquet"))]
+    by = rdf_counts_.get("_rdf_type_counts", {})
+    typed = {c: by.get(c, 0) for c in ("Court", "CourtDecision", "Judgment", "CourtRuling", "Precedent", "JudicialDocument")}
+    srcs = sorted(os.path.basename(p)[:-8] for p in glob.glob(os.path.join(C.KG, "*.parquet")))
+    sources = T("sources")["dataset"].to_list()
+    out = {"courts_included": False, "court_tables_present": present, "court_typed_nodes_in_rdf": typed,
+           "court_data_lines_in_dump": dangling.get("court_data_lines"), "court_data_examples": dangling.get("court_data_examples"),
+           "source_datasets": sources, "tables": srcs}
+    out["pass"] = (not present and not any(typed.values()) and dangling.get("court_data_lines") == 0
+                   and sorted(sources) == sorted(C.SOURCES))
+    return out
 
 
 def sample_graph(st, iris):
@@ -304,18 +349,22 @@ def shacl_samples(st, n_per_class=150, seed=7, timeout_s=600):
     for k in p["kind"].unique().to_list():
         groups[f"provisions_ref:{k}"] = p.filter(pl.col("kind") == k)["iri"].to_list()
     for t in ("issuers", "areas", "changes", "courts", "precedents", "terms", "news", "news_categories", "sources"):
+        if t in C.COURT_TABLES and not C.INCLUDE_COURTS:
+            continue
         groups[t] = T(t)["iri"].to_list()
-    dec = T("decisions")
-    for k in dec["decision_kind"].unique().to_list():
-        for srcname in ("anle", "cbba"):
-            ids = dec.filter((pl.col("decision_kind") == k) & (pl.col("source") == srcname))["iri"].to_list()
-            if ids:
-                groups[f"decisions:{srcname}:{k}"] = ids
+    if C.INCLUDE_COURTS:
+        dec = T("decisions")
+        for k in dec["decision_kind"].unique().to_list():
+            for srcname in ("anle", "cbba"):
+                ids = dec.filter((pl.col("decision_kind") == k) & (pl.col("source") == srcname))["iri"].to_list()
+                if ids:
+                    groups[f"decisions:{srcname}:{k}"] = ids
     q = T("qas")
     groups["qas"] = q["iri"].to_list()
     groups["answers"] = q["answer_iri"].to_list()
     groups["edgesets"] = [C.iri_edgeset(x) for x in ("edges_change", "edges_legal_basis", "edges_citation", "edges_decision_provision", "edges_decision_case",
-                                                      "edges_precedent_source", "edges_qa_article", "edges_qa_document", "edges_term_related", "edges_news_document")]
+                                                      "edges_precedent_source", "edges_qa_article", "edges_qa_document", "edges_term_related", "edges_news_document")
+                          if C.INCLUDE_COURTS or x not in C.COURT_TABLES]
     groups["build"] = [C.iri_build()]
     sample = {}
     for g, ids in groups.items():
@@ -379,9 +428,18 @@ def spot_checks(seed=11, k=10):
     dm = {r["doc_id"]: r for r in docs.iter_rows(named=True)}
     arts = T("articles").select("article_id", "heading")
     am = dict(arts.iter_rows())
-    dec = T("decisions").select("decision_id", "decision_number", "issued_date", "court_id", "category", "instance_level")
-    decm = {r["decision_id"]: r for r in dec.iter_rows(named=True)}
-    courts = dict(T("courts").select("court_id", "label").iter_rows())
+    courts_on = C.INCLUDE_COURTS
+    if courts_on:
+        dec = T("decisions").select("decision_id", "decision_number", "issued_date", "court_id", "category", "instance_level")
+        decm = {r["decision_id"]: r for r in dec.iter_rows(named=True)}
+        courts = dict(T("courts").select("court_id", "label").iter_rows())
+
+    def skip_draws(n):
+        """Without court data the court samples are not drawn; their random draws are still consumed so that every
+        other edge type gets the same sample as in a build with court data (0.1.0: 2 decision-provision methods,
+        3 case-link methods, 1 decision-court sample before the issuer sample, 1 precedent-source sample after it)."""
+        for _ in range(n):
+            rnd.randint(0, 10 ** 6)
 
     def dl(d):
         r = dm.get(d) or {}
@@ -411,15 +469,17 @@ def spot_checks(seed=11, k=10):
         out[f"citation:{kind}"] = [{"citing": dl(r["src_doc_id"]), "where": r["source_location"], "raw": r["raw"], "cited": dl(r["dst_doc_id"]),
                                     "cited_article": f"{r['dst_article_id']} {C.cut(am.get(r['dst_article_id']), 80)}" if r["dst_article_id"] else None,
                                     "method": r["method"]} for r in e.iter_rows(named=True)]
-    dp = T("edges_decision_provision")
-    for m in ("docnum-key", "law-name-year"):
+    if not courts_on:
+        skip_draws(2 + 3 + 1)
+    dp = T("edges_decision_provision") if courts_on else None
+    for m in (("docnum-key", "law-name-year") if courts_on else ()):
         e = pick(dp.filter(pl.col("method") == m))
         out[f"decision_provision:{m}"] = [{"decision": f"{(decm.get(r['decision_id']) or {}).get('decision_number')} ({(decm.get(r['decision_id']) or {}).get('issued_date')})",
                                             "ref": r["ref"], "cited": dl(r["dst_doc_id"]),
                                             "cited_article": f"{r['dst_article_id']} {C.cut(am.get(r['dst_article_id']), 80)}" if r["dst_article_id"] else None}
                                            for r in e.iter_rows(named=True)]
-    dc = T("edges_decision_case")
-    for m in dc["method"].unique().to_list():
+    dc = T("edges_decision_case") if courts_on else None
+    for m in (dc["method"].unique().to_list() if courts_on else []):
         e = pick(dc.filter(pl.col("method") == m))
         rows = []
         for r in e.iter_rows(named=True):
@@ -433,25 +493,29 @@ def spot_checks(seed=11, k=10):
                 rows.append({"citing": f"{s.get('decision_number')} {s.get('issued_date')}", "cited_as": r["cited_id"], "resolved": f"precedent {r['dst_id']}"})
         out[f"decision_case:{m}"] = rows
     # decision -> court: compare the canonical court with the court field of the source record
-    import glob as _glob
-    dfull = T("decisions").select("decision_id", "source", "doc_name", "decision_number", "court_id", "court_method", "court_note")
-    e = pick(dfull.filter(pl.col("court_id").is_not_null() & (pl.col("source") == "cbba")))
-    names = set(e["doc_name"].to_list())
-    raw = {}
-    for f in sorted(_glob.glob(f"{C.snapshot('cbba-toaan-gov-vn')}/documents-*.parquet")):
-        part = pl.read_parquet(f, columns=["doc_name", "court"]).filter(pl.col("doc_name").cast(pl.Utf8).is_in(pl.Series(list(map(str, names)))))
-        raw.update({str(a): b for a, b in part.iter_rows()})
-    out["decision_court"] = [{"decision": r["decision_number"], "source_court_field": C.cut(raw.get(str(r["doc_name"])), 110),
-                              "method": r["court_method"], "court": courts.get(r["court_id"])} for r in e.iter_rows(named=True)]
+    if courts_on:
+        import glob as _glob
+        dfull = T("decisions").select("decision_id", "source", "doc_name", "decision_number", "court_id", "court_method", "court_note")
+        e = pick(dfull.filter(pl.col("court_id").is_not_null() & (pl.col("source") == "cbba")))
+        names = set(e["doc_name"].to_list())
+        raw = {}
+        for f in sorted(_glob.glob(f"{C.snapshot('cbba-toaan-gov-vn')}/documents-*.parquet")):
+            part = pl.read_parquet(f, columns=["doc_name", "court"]).filter(pl.col("doc_name").cast(pl.Utf8).is_in(pl.Series(list(map(str, names)))))
+            raw.update({str(a): b for a, b in part.iter_rows()})
+        out["decision_court"] = [{"decision": r["decision_number"], "source_court_field": C.cut(raw.get(str(r["doc_name"])), 110),
+                                  "method": r["court_method"], "court": courts.get(r["court_id"])} for r in e.iter_rows(named=True)]
     # document -> issuing body
     iss = dict(T("issuers").select("issuer_id", "label_vi").iter_rows())
     dd = T("documents").select("doc_number", "doc_type_vi", "title_vi", "issuer_ids", "issuer_method").filter(pl.col("issuer_ids").list.len() > 0)
     e = pick(dd)
     out["document_issuer"] = [{"document": f"{r['doc_number']} | {C.cut(r['title_vi'], 80)}", "issuers": ", ".join(iss.get(x, x) for x in r["issuer_ids"]),
                                "method": r["issuer_method"]} for r in e.iter_rows(named=True)]
-    e = pick(T("edges_precedent_source"))
-    out["precedent_source"] = [{"precedent": r["src_id"], "decision": f"{(decm.get(r['dst_id']) or {}).get('decision_number')} {(decm.get(r['dst_id']) or {}).get('issued_date')}"}
-                               for r in e.iter_rows(named=True)]
+    if courts_on:
+        e = pick(T("edges_precedent_source"))
+        out["precedent_source"] = [{"precedent": r["src_id"], "decision": f"{(decm.get(r['dst_id']) or {}).get('decision_number')} {(decm.get(r['dst_id']) or {}).get('issued_date')}"}
+                                   for r in e.iter_rows(named=True)]
+    else:
+        skip_draws(1)
     qa = T("edges_qa_article")
     e = pick(qa)
     out["qa_article"] = [{"qa": r["qa_id"], "ref": r["ref"], "resolved": dl(r["dst_doc_id"]), "article": f"{r['dst_article_id']} {C.cut(am.get(r['dst_article_id']), 80)}",
@@ -467,6 +531,10 @@ def spot_checks(seed=11, k=10):
     with open(os.path.join(C.REPORTS, "spot_checks.json"), "w", encoding="utf-8") as f:
         json.dump(out, f, ensure_ascii=False, indent=1)
     md = ["# Spot checks (10 random edges per edge type, seed %d)" % seed, ""]
+    if not courts_on:
+        md += [f"Release {C.RELEASE} ({C.VERSION}) has no court data, so the court edge types (decision_provision, decision_case, "
+               "decision_court, precedent_source) are not sampled; the random draws they would use are skipped so that the other "
+               "edge types get the same samples as a build with court data.", ""]
     for kname, rows in out.items():
         md.append(f"## {kname}")
         md.append("")
@@ -480,7 +548,7 @@ def spot_checks(seed=11, k=10):
 
 def validate_all():
     t0 = time.time()
-    rep = {}
+    rep = {"release": C.release_info()}
     build = json.load(open(os.path.join(C.REPORTS, "build_report.json")))
     print("referential integrity ...", flush=True)
     rep["referential_integrity"] = referential_integrity()
@@ -496,6 +564,8 @@ def validate_all():
     print("dangling IRIs ...", flush=True)
     rep["dangling_iris"] = dangling_iris()
     print("  ", {k: v for k, v in rep["dangling_iris"].items() if k != "examples"}, flush=True)
+    rep["release_scope"] = release_scope(rep["rdf_counts"], rep["dangling_iris"])
+    print("release scope:", {k: v for k, v in rep["release_scope"].items() if k != "tables"}, flush=True)
     print("SHACL samples ...", flush=True)
     rep["shacl"], g = shacl_samples(st)
     print("  ", {k: v for k, v in rep["shacl"].items() if k not in ("violations", "sample_groups")}, flush=True)

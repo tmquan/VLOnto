@@ -182,6 +182,9 @@ def main():
     rel = rel.filter(~strong | pl.col("hierarchy_ok")).drop("hierarchy_ok")
     rep["relations_kept"] = rel.height
     rep["kept_by_relation"] = rel.group_by("relation").len().sort("len", descending=True).rows()
+    # deterministic row order (VLOnto 1.0.0): polars unique()/join do not keep row order, so without this sort the same
+    # relations came out in a different order on every run (change ids of repeated relations and samples then varied)
+    rel = rel.sort(["new_id", "relation", "old_key", "old_id", "old_number", "evidence"], nulls_last=True)
     rel.write_parquet(OUT / "relations.parquet")
     # ---- per-document validity
     # display label for the acting document; a few acts have no parsed number -> 'doc_id:<id>'
@@ -192,8 +195,8 @@ def main():
         pl.col("new_effective_date").min().alias("superseded_from"), pl.col("relation").first().alias("supersession_kind"),
         pl.col("evidence").first().alias("supersession_evidence"))
     amd = rel.filter(~pl.col("relation").is_in(["replaced", "repealed"])).group_by("old_id").agg(
-        pl.col("new_doc_number").unique().alias("amended_by"), pl.col("new_id").unique().alias("amended_by_ids"),
-        pl.col("relation").unique().alias("amendment_kinds"), pl.col("evidence").first().alias("amendment_evidence"))
+        pl.col("new_doc_number").unique(maintain_order=True).alias("amended_by"), pl.col("new_id").unique(maintain_order=True).alias("amended_by_ids"),
+        pl.col("relation").unique(maintain_order=True).alias("amendment_kinds"), pl.col("evidence").first().alias("amendment_evidence"))
     v = docs.drop(["text", "first_article_pos"]).join(sup.rename({"old_id": "id"}), on="id", how="left").join(amd.rename({"old_id": "id"}), on="id", how="left")
     T = TODAY
     # v4/v5: the curated source status 'Còn hiệu lực' (in force) / 'Còn hiệu lực đến <future date>' wins over a
@@ -224,6 +227,7 @@ def main():
           .when(pl.col("status_code").is_not_null()).then(pl.lit("status"))
           .when(pl.col("superseded_by").is_not_null() | pl.col("amended_by").is_not_null()).then(pl.lit("text")).otherwise(pl.lit("none")).alias("evidence_source"),
         pl.lit(T).alias("as_of"))
+    v = v.sort("id")
     v.write_parquet(OUT / "validity.parquet")
     rep["validity_counts"] = v.group_by("validity").len().sort("len", descending=True).rows()
     rep["in_force_counts"] = v.group_by("in_force").len().rows()

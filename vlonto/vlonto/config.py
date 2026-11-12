@@ -1,11 +1,42 @@
-"""Paths, source revisions, IRI builders and small shared helpers for the VLOnto build."""
+"""Paths, source revisions, release switches, IRI builders and small shared helpers for the VLOnto build.
+
+Release v1 (1.0.0) is built from the four thuvienphapluat.vn datasets (vbpl, hdpl, tnpl, htpl). The court datasets
+(anle-toaan-gov-vn, cbba-toaan-gov-vn) are planned for v2: they are read only when the build is run with
+VLONTO_INCLUDE_COURTS=1 (or `python -m vlonto.cli ... --with-courts`). The judiciary classes and properties stay in the
+ontology either way.
+"""
 import os
 import re
 import unicodedata
 
-VERSION = "0.1.0"
-BUILD_DATE = "2026-11-11"
+from . import RELEASE, __version__
+
+VERSION = __version__
+# Build date stamped into the outputs (stats, reports, build activity IRI); the ontology's dcterms:modified must equal
+# it (checked by `vlonto.cli check-ontology`). Override with VLONTO_BUILD_DATE=YYYY-MM-DD for a later rebuild.
+BUILD_DATE = os.environ.get("VLONTO_BUILD_DATE", "2026-11-12")
+if not re.match(r"^\d{4}-\d{2}-\d{2}$", BUILD_DATE):
+    raise ValueError(f"VLONTO_BUILD_DATE={BUILD_DATE!r}: use YYYY-MM-DD")
+# Validity of documents is evaluated as of this date (pipeline/validity.py AS_OF, STATUS_FIRST=1); unchanged since 0.1.0.
 VALIDITY_AS_OF = "2026-11-08"
+ONTOLOGY_IRI = "https://tmquan.github.io/VLOnto/ontology"
+ONTOLOGY_VERSION_IRI = f"{ONTOLOGY_IRI}/{VERSION}"
+
+
+def _flag(name, default):
+    v = os.environ.get(name, default).strip().lower()
+    if v in ("1", "true", "yes", "on"):
+        return True
+    if v in ("0", "false", "no", "off", ""):
+        return False
+    raise ValueError(f"{name}={v!r}: use 1 or 0")
+
+
+# Court data switch: OFF for release v1 (court decisions and precedents are planned for v2).
+INCLUDE_COURTS = _flag("VLONTO_INCLUDE_COURTS", "0")
+COURT_DATASETS = ("anle-toaan-gov-vn", "cbba-toaan-gov-vn")
+COURT_TABLES = ("courts", "decisions", "precedents", "edges_decision_provision", "edges_decision_case", "edges_precedent_source")
+COURT_CLASSES = ("Court", "CourtDecision", "Judgment", "CourtRuling", "Precedent")
 
 # V = VLOnto root (contains repo/, build/, envs/); default: three levels above this package (<V>/repo/vlonto/vlonto).
 # R = processed vn-legal corpus root; default: the sibling directory <V>/../vnlegal.
@@ -20,7 +51,7 @@ RDF_DIR = os.path.join(BUILD, "rdf")
 SITE = os.path.join(BUILD, "site_data")
 REPORTS = os.path.join(BUILD, "reports")
 
-SOURCES = {
+SOURCES_ALL = {
     "thuvienphapluat-vn-vbpl": {"revision": "705ade585384108ded5fc30f40a06fe110bdff22", "licence": "cc-by-4.0",
                                 "publisher": "thuvienphapluat.vn", "kind": "legal documents"},
     "thuvienphapluat-vn-hdpl": {"revision": "e814ecbfa1a1c0c32727c2f2ad2498d52f04b8bd", "licence": "other",
@@ -34,6 +65,11 @@ SOURCES = {
     "cbba-toaan-gov-vn": {"revision": "8ace3afc9c974afd51e12dccbefd4b3ba54ce1ec", "licence": "cc-by-4.0",
                           "publisher": "congbobanan.toaan.gov.vn", "kind": "court judgments and rulings"},
 }
+for _ds, _s in SOURCES_ALL.items():
+    _s["release"] = "2.0.0 (planned)" if _ds in COURT_DATASETS else "1.0.0"
+# Sources of this build (v1: the four thuvienphapluat datasets) and the sources deferred to a later release.
+SOURCES = {k: v for k, v in SOURCES_ALL.items() if INCLUDE_COURTS or k not in COURT_DATASETS}
+DEFERRED_SOURCES = {k: v for k, v in SOURCES_ALL.items() if k not in SOURCES}
 
 
 def rel(path):
@@ -51,7 +87,17 @@ def rel(path):
 
 
 def snapshot(dataset):
+    if dataset not in SOURCES:
+        raise RuntimeError(f"{dataset} is not a source of this build (VLONTO_INCLUDE_COURTS={int(INCLUDE_COURTS)}); "
+                           "court data is planned for v2")
     return os.path.join(HF_HUB, f"datasets--tmquan--{dataset}", "snapshots", SOURCES[dataset]["revision"])
+
+
+def release_info():
+    """Release scope recorded in the build report, stats and site data."""
+    return {"version": VERSION, "release": RELEASE, "build_date": BUILD_DATE, "validity_as_of": VALIDITY_AS_OF,
+            "courts_included": INCLUDE_COURTS, "sources": list(SOURCES),
+            "deferred_sources": {k: {"revision": v["revision"], "planned_release": "2.0.0"} for k, v in DEFERRED_SOURCES.items()}}
 
 
 PROCESSED = {

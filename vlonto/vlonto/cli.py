@@ -16,7 +16,9 @@
     python -m vlonto.cli all              # build, nfc, export, core, validate, site, check-ontology, nfc-check, link-check, report
 
 Environment: R (processed corpus + HF cache), V (VLOnto root). Defaults: V = the directory that contains repo/,
-R = <V>/../vnlegal (see config.py).
+R = <V>/../vnlegal (see config.py). NPROC = worker processes of the RDF export (default 12).
+Release v1 (1.0.0) is built from the four thuvienphapluat.vn datasets. Court data (anle-toaan-gov-vn,
+cbba-toaan-gov-vn) is planned for v2 and is read only with VLONTO_INCLUDE_COURTS=1 or --with-courts.
 """
 import argparse
 import json
@@ -33,12 +35,19 @@ def main(argv=None):
     ap.add_argument("--link-out", default="link_check.json", help="report file name for link-check (in the reports directory)")
     ap.add_argument("--no-article-text", action="store_true", help="do not write the local-only article text table")
     ap.add_argument("--with-article-text", action="store_true", help="also copy article text into the publishable articles table (licence decision)")
-    ap.add_argument("--workers", type=int, default=17)
+    ap.add_argument("--workers", type=int, default=None, help="worker processes of the RDF export (default: $NPROC or 12)")
+    ap.add_argument("--with-courts", action="store_true", help="include the court datasets (anle, cbba; planned for v2); "
+                                                                "same as VLONTO_INCLUDE_COURTS=1")
     ap.add_argument("--core-max-rank", type=int, default=None)
     a = ap.parse_args(argv)
     t0 = time.time()
+    if a.with_courts:
+        os.environ["VLONTO_INCLUDE_COURTS"] = "1"   # read by config at import
     from . import config as C
+    if a.with_courts and not C.INCLUDE_COURTS:
+        raise SystemExit("--with-courts must be given before vlonto.config is imported")
     os.makedirs(C.REPORTS, exist_ok=True)
+    print(json.dumps({"vlonto": C.release_info()}, ensure_ascii=False), flush=True)
     cmds = (["build", "nfc", "export", "core", "validate", "site", "check-ontology", "nfc-check", "link-check", "report"]
             if a.command == "all" else [a.command])
     for cmd in cmds:
@@ -54,7 +63,7 @@ def main(argv=None):
                 print("article text added to the publishable articles table", flush=True)
         elif cmd == "export":
             from .export_rdf import export_all
-            rep = export_all()
+            rep = export_all(workers=a.workers)
             print(json.dumps({k: v for k, v in rep.items() if k != "part_wall_s"}, indent=1), flush=True)
         elif cmd == "core":
             from .export_rdf import core_subset
@@ -89,6 +98,9 @@ def main(argv=None):
                 data_dictionary(json.load(f))
             print(json.dumps({"written": [C.rel(os.path.join(C.KG, x)) for x in ("data_dictionary.md", "data_dictionary.json")]}), flush=True)
         elif cmd == "hf-dataset":
+            if not C.INCLUDE_COURTS:
+                raise SystemExit("hf-dataset: the Hugging Face dataset folder of 0.1.0 describes the court tables; there is no VLOnto "
+                                 "dataset on Hugging Face (decision of 2026-11-12) and release v1 has no court data, so it is not built.")
             from .hf_dataset import build_hf_dataset
             r = build_hf_dataset()
             print(json.dumps(r, ensure_ascii=False, indent=1), flush=True)
