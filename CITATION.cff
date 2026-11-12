@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use VLOnto, please cite it as below."
 title: "VLOnto: Vietnamese Legal Ontology and Knowledge Graph"
 type: dataset
-version: "0.1.0"
+version: "1.0.0"
 date-released: "2026-11-12"
 authors:
   - alias: "tmquan"

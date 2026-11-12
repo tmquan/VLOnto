@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
-"""Step 1 - Acquisition: download the `documents` parquet files of the six
-tmquan Vietnamese legal datasets into the shared Hugging Face cache.
+"""Step 1 - Acquisition: download the `documents` parquet files of the tmquan
+Vietnamese legal datasets into the shared Hugging Face cache.
+
+VLOnto release v1 uses the four thuvienphapluat.vn datasets (vbpl, hdpl, tnpl,
+htpl) at the revisions pinned in download_manifest.json. The court datasets
+(anle-toaan-gov-vn, cbba-toaan-gov-vn) are planned for v2 and are downloaded
+only with VLONTO_INCLUDE_COURTS=1.
 
 Why: every later step (profiling, cleaning, chunking, evaluation) reads these
 parquet files; pinning the repo revision makes the run reproducible.
@@ -25,10 +30,21 @@ DATASETS = {
     "tmquan/thuvienphapluat-vn-hdpl": ["documents-*.parquet"],
     "tmquan/thuvienphapluat-vn-tnpl": ["documents.parquet"],
     "tmquan/thuvienphapluat-vn-htpl": ["documents.parquet"],
+}
+COURT_DATASETS = {                   # planned for VLOnto v2
     "tmquan/anle-toaan-gov-vn":       ["documents-*.parquet"],
-    # 1.54M court judgments: ONE shard of 16 is enough for a secondary-source demo
+    # 1.54M court judgments: ONE shard of 16 is enough for a secondary-source demo (the KG build of 0.1.0 read all 16)
     "tmquan/cbba-toaan-gov-vn":       ["documents-00000-of-00016.parquet"],
 }
+if os.environ.get("VLONTO_INCLUDE_COURTS", "0") == "1":
+    DATASETS.update(COURT_DATASETS)
+# Revisions of VLOnto release v1 (download_manifest.json); set PIN_REVISIONS=0 to take the latest revision instead.
+PINNED = {"tmquan/thuvienphapluat-vn-vbpl": "705ade585384108ded5fc30f40a06fe110bdff22",
+          "tmquan/thuvienphapluat-vn-hdpl": "e814ecbfa1a1c0c32727c2f2ad2498d52f04b8bd",
+          "tmquan/thuvienphapluat-vn-tnpl": "f94d1e24852f233e85330c6d5093f43adbddde29",
+          "tmquan/thuvienphapluat-vn-htpl": "043c8f2988e248f1123ead53a54e3cbf83a02e44",
+          "tmquan/anle-toaan-gov-vn": "d6124923ddcba618811644f433de7c748a291e22",
+          "tmquan/cbba-toaan-gov-vn": "8ace3afc9c974afd51e12dccbefd4b3ba54ce1ec"}
 
 def main():
     api = HfApi()
@@ -40,7 +56,8 @@ def main():
            "HF_HOME": os.environ["HF_HOME"], "datasets": {}}
     t_all = time.time()
     for repo, pats in DATASETS.items():
-        info = api.dataset_info(repo, files_metadata=True)
+        rev = PINNED.get(repo) if os.environ.get("PIN_REVISIONS", "1") == "1" else None
+        info = api.dataset_info(repo, revision=rev, files_metadata=True)
         remote = {s.rfilename: s.size for s in info.siblings if s.rfilename.startswith("documents")}
         t0 = time.time()
         local = snapshot_download(repo_id=repo, repo_type="dataset", revision=info.sha,

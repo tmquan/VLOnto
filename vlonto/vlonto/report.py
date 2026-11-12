@@ -1,6 +1,8 @@
 """kg_report.md and checks.json from the JSON reports of the build, export, validation, ontology check and site steps.
 
-Spot-check verdicts are read from docs/spot_check_review.json (written by a person after reading spot_checks.md).
+Spot-check verdicts are read from docs/spot_check_review.json (written by a person after reading spot_checks.md); the
+court edge types and court limitations (keys edge_types_courts, limitations_courts) are used only when court data is
+included (release v1 has none).
 """
 import json
 import os
@@ -44,6 +46,29 @@ EDGE_TABLES = [("edges_change", "vlo:replaces / amends / repeals / partiallyRepe
                ("edges_qa_document", "vlo:answerCitesDocument"), ("edges_term_related", "vlo:relatedTerm"), ("edges_news_document", "vlo:mentionsDocument")]
 
 
+def court_table(t):
+    return t in C.COURT_TABLES
+
+
+def node_tables():
+    return [(t, c) for t, c in NODE_TABLES if C.INCLUDE_COURTS or not court_table(t)]
+
+
+def edge_tables():
+    return [(t, p) for t, p in EDGE_TABLES if C.INCLUDE_COURTS or not court_table(t)]
+
+
+def review_edge_types(S):
+    et = dict(S.get("edge_types", {}))
+    if C.INCLUDE_COURTS:
+        et.update(S.get("edge_types_courts", {}))
+    return et
+
+
+def review_limitations(S):
+    return list(S.get("limitations", [])) + (list(S.get("limitations_courts", [])) if C.INCLUDE_COURTS else [])
+
+
 def make_checks(B, V, E, O, S, M, R):
     ch = []
 
@@ -54,6 +79,12 @@ def make_checks(B, V, E, O, S, M, R):
     add("Ontology completeness (en+vi labels, en definition, module for every VLOnto term)", (comp == []) if comp is not None else None,
         f"{len(comp) if comp is not None else '-'} problems; terms by kind {g(O, 'completeness', 'by_kind')}")
     add("Ontology has no dangling references", (g(O, "dangling") == []) if "dangling" in O else None, f"dangling={g(O, 'dangling')}")
+    rel = g(O, "release")
+    add(f"Ontology release metadata (owl:versionInfo {C.VERSION}, owl:versionIRI {C.ONTOLOGY_VERSION_IRI}, dcterms:modified = build date {C.BUILD_DATE})",
+        g(rel, "pass") if rel else None,
+        f"versionInfo {g(rel, 'versionInfo')}, versionIRI {g(rel, 'versionIRI')}, priorVersion {g(rel, 'priorVersion')}, modified {g(rel, 'modified')}; "
+        f"dcterms:source {g(rel, 'n_sources')} datasets (match: {g(rel, 'sources_match')}); judiciary terms with a v2 scope note {g(rel, 'scope_notes')}/{g(rel, 'court_terms')}"
+        if rel else "ontology_check.json has no release section")
     add("ELI terms used by VLOnto exist in the ELI ontology", (g(O, "eli", "missing_in_eli") == []) if g(O, "eli", "available") else None,
         f"{g(O, 'eli', 'eli_terms_defined')} ELI terms defined; missing {g(O, 'eli', 'missing_in_eli')}")
     add("OWL-RL on fixtures (expected inferences present, planted disjointness and functional clash detected)", g(O, "owlrl", "pass"),
@@ -90,9 +121,16 @@ def make_checks(B, V, E, O, S, M, R):
     add("OWL-RL closure of the KG sample is consistent", g(ow, "pass"),
         f"{n(g(ow, 'input_triples'))} -> {n(g(ow, 'closure_triples'))} triples; inconsistencies {g(ow, 'n_inconsistencies')}, "
         f"sameAs between distinct nodes {g(ow, 'n_sameAs')}")
+    rs = g(V, "release_scope")
+    if not C.INCLUDE_COURTS:
+        add(f"Release {C.RELEASE} scope: no court data (no court table, no court/decision/precedent node, no court-source statement); sources = the {len(C.SOURCES)} thuvienphapluat datasets",
+            g(rs, "pass") if rs else None,
+            (f"court tables present {g(rs, 'court_tables_present')}; typed court nodes in RDF {g(rs, 'court_typed_nodes_in_rdf')}; "
+             f"dump lines mentioning court IRIs or court sources {g(rs, 'court_data_lines_in_dump')}; source datasets {g(rs, 'source_datasets')}")
+            if rs else "validation.json has no release_scope section")
     sc_name = "Spot checks: 10 random edges per edge type read and judged (criterion: at least 8 correct per 10 for every edge type)"
     if S:
-        et = S.get("edge_types", {})
+        et = review_edge_types(S)
         tot = sum(v.get("checked", 0) for v in et.values())
         cor = sum(v.get("correct", 0) for v in et.values())
         wrong = sum(v.get("wrong", 0) for v in et.values())
@@ -130,7 +168,8 @@ def make_checks(B, V, E, O, S, M, R):
             f"wording that calls a VLOnto document a card {t.get('dataset_card_wording')}"
             + (f" in {L.get('files_with_forbidden_links', L.get('files_with_forbidden'))}"
                if L.get("files_with_forbidden_links", L.get("files_with_forbidden")) else "")
-            + f"; kept: {n(t.get('source_dataset_links'))} links to the six source datasets, {n(t.get('github_repo_links'))} to the GitHub "
+            + f"; kept: {n(t.get('source_dataset_links'))} links to the tmquan source datasets on Hugging Face ({len(C.SOURCES)} sources of this build"
+            + (f", {len(C.DEFERRED_SOURCES)} planned for v2" if C.DEFERRED_SOURCES else "") + f"), {n(t.get('github_repo_links'))} to the GitHub "
             f"repository, {n(t.get('paper_links'))} to the paper (arXiv:2611.11426)")
     else:
         add(name, None, "link_check.json missing")
@@ -158,9 +197,15 @@ def build_report(out_md=None):
     w = L.append
     w("# VLOnto knowledge graph: build and validation report")
     w("")
-    w(f"Version {C.VERSION} · build date {C.BUILD_DATE} · validity as of {C.VALIDITY_AS_OF} · ontology "
+    w(f"Version {C.VERSION} (release {C.RELEASE}) · build date {C.BUILD_DATE} · validity as of {C.VALIDITY_AS_OF} · ontology "
       f"<https://tmquan.github.io/VLOnto/ontology> ({g(O, 'parse', 'version')}). Not an official legal source and not legal advice.")
     w("")
+    if not C.INCLUDE_COURTS:
+        w(f"Release {C.RELEASE} is built from the {len(C.SOURCES)} thuvienphapluat.vn datasets ("
+          + ", ".join(f"`{k}`" for k in C.SOURCES) + "). The court datasets (" + ", ".join(f"`{k}`" for k in C.DEFERRED_SOURCES)
+          + ") are planned for v2: the ontology keeps its judiciary classes and properties (marked with a v2 scope note), "
+          "but this build has no court, decision or precedent data (switch `VLONTO_INCLUDE_COURTS`, default 0).")
+        w("")
     w("## 1. Summary")
     w("")
     w(f"- {n(g(B, 'documents'))} legal documents, {n(g(B, 'articles_total'))} articles ({n(g(B, 'articles_main'))} main-body, "
@@ -168,8 +213,11 @@ def build_report(out_md=None):
       f"{n(sum(g(B, 'provisions_ref', default={}).values()))} clause/point nodes.")
     w(f"- {n(g(B, 'changes'))} legal-change events, {n(g(files, 'edges_legal_basis', 'rows'))} legal-basis links, "
       f"{n(g(files, 'edges_citation', 'rows'))} citation links between documents/articles.")
-    w(f"- {n(g(B, 'decisions'))} court decisions, {n(g(files, 'courts', 'rows'))} canonical courts, {n(g(B, 'precedents'))} precedents, "
-      f"{n(g(files, 'edges_decision_provision', 'rows'))} applied-provision links, {n(g(files, 'edges_decision_case', 'rows'))} case links.")
+    if C.INCLUDE_COURTS:
+        w(f"- {n(g(B, 'decisions'))} court decisions, {n(g(files, 'courts', 'rows'))} canonical courts, {n(g(B, 'precedents'))} precedents, "
+          f"{n(g(files, 'edges_decision_provision', 'rows'))} applied-provision links, {n(g(files, 'edges_decision_case', 'rows'))} case links.")
+    else:
+        w("- No court decisions, courts or precedents: court data is planned for v2.")
     w(f"- {n(g(files, 'qas', 'rows'))} legal Q&As (metadata only) with {n(g(files, 'edges_qa_article', 'rows'))} article links and "
       f"{n(g(files, 'edges_qa_document', 'rows'))} document links; {n(g(files, 'terms', 'rows'))} legal terms; {n(g(files, 'news', 'rows'))} news items.")
     w(f"- RDF: {n(g(E, 'triples_total'))} N-Triples lines ({n(g(V, 'oxigraph', 'triples_loaded'))} distinct triples in Oxigraph), "
@@ -191,18 +239,22 @@ def build_report(out_md=None):
         k = keep.get(ds, ("", ""))
         w(f"| tmquan/{ds} | `{info.get('revision', '')[:12]}` | {info.get('licence', '')} | {k[0]} | {k[1]} |")
     w("")
+    if C.DEFERRED_SOURCES:
+        w("Planned for v2 (not read by this build): " + ", ".join(f"tmquan/{ds} (`{info['revision'][:12]}`, {info['licence']})"
+                                                               for ds, info in C.DEFERRED_SOURCES.items()) + ".")
+        w("")
     w("Details and attribution: `docs/licence_policy.md`.")
     w("")
     w("## 3. Built objects")
     w("")
     w("| node table | rows | RDF class |")
     w("|---|---:|---|")
-    for t, cls in NODE_TABLES:
+    for t, cls in node_tables():
         w(f"| {t} | {n(g(files, t, 'rows'))} | {cls} |")
     w("")
     w("| edge table | rows | RDF property |")
     w("|---|---:|---|")
-    for t, p in EDGE_TABLES:
+    for t, p in edge_tables():
         w(f"| {t} | {n(g(files, t, 'rows'))} | {p} |")
     w("")
     w("RDF parts (triples per table):")
@@ -249,31 +301,36 @@ def build_report(out_md=None):
     w("")
     w("### 4.4 Court decisions")
     w("")
+    if not C.INCLUDE_COURTS:
+        w(f"Not part of release {C.RELEASE}: the court datasets (" + ", ".join(f"`{k}`" for k in C.DEFERRED_SOURCES)
+          + ") are planned for v2. The build code for them is kept (`vlonto/build_courts.py`, run with `VLONTO_INCLUDE_COURTS=1`).")
+        w("")
     tot = g(B, "court_pass1", "totals", default={})
-    w(f"Law citations in decisions: {n(g(tot, 'law_raw'))} records, {n(g(tot, 'law_resolved_doc'))} resolved to a document "
-      f"({pct(g(tot, 'law_resolved_doc'), g(tot, 'law_raw'))}), {n(g(tot, 'law_resolved_article'))} to an article; "
-      f"{n(g(tot, 'law_precedent'))} cite a precedent. Main unresolved reasons: "
-      + ", ".join(f"{k.split(':', 1)[1]} {n(v)}" for k, v in sorted(((k, v) for k, v in tot.items() if k.startswith("law_unresolved:")), key=lambda x: -x[1])[:6]) + ".")
-    cc = g(B, "case_citations", default={})
-    w(f"Case citations: {n(g(cc, 'records'))} records → {n(g(cc, 'edges_decision_to_decision'))} decision→decision edges "
-      f"(by date {n(g(cc, 'resolved:case-number-date'))}, by court {n(g(cc, 'resolved:case-number-court'))}) and "
-      f"{n(g(cc, 'edges_decision_to_precedent'))} decision→precedent edges; {n(g(cc, 'no_candidate_in_corpus'))} cite a decision that is not in the corpus, "
-      f"{n(g(cc, 'ambiguous_same_date'))} + {n(g(cc, 'ambiguous_same_court'))} were ambiguous and dropped, {n(g(cc, 'no_date_or_court_match'))} had no matching date or court.")
-    cn = g(B, "courts_canonical", default={})
-    w(f"Courts: {n(g(cn, 'courts'))} canonical courts by kind {g(cn, 'by_kind')}; {n(g(cn, 'decisions_linked'))} of {n(g(B, 'decisions'))} decisions "
-      f"linked to a court ({pct(g(cn, 'decisions_linked'), g(B, 'decisions'))}); {n(g(cn, 'decisions_province_from_name'))} took the province "
-      f"from the same name elsewhere; decisions without court: {g(cn, 'decisions_by_court_note')}.")
-    w(f"Decision dates: {g(B, 'decisions_issued_date_check')} (dates outside 1945..build date, more than one year from the year in the "
-      f"decision number, or earlier than the year of a cited law or decision are set to null). {n(g(tot, 'decision_number:legislative_dropped'))} source "
-      f"records carried the number of a cited law (for example the court-fee resolution 326/2016/UBTVQH14) as their own number; number, "
-      f"symbol and date of those records were dropped.")
-    w(f"Case links removed by consistency rules: date-only match where a court is unknown {n(g(cc, 'dropped:date_match_court_unknown'))}, "
-      f"date-only match to a court in another (or an unknown) province {n(g(cc, 'dropped:date_match_other_province'))}, "
-      f"date-only match outside the citing High Court's region {n(g(cc, 'dropped:date_match_outside_high_court_region'))}, "
-      f"first-instance judgment from another province {n(g(cc, 'dropped:first_instance_other_province'))}, "
-      f"first-instance judgment at an impossible court level {n(g(cc, 'dropped:first_instance_wrong_level'))}, "
-      f"first-instance judgment of the appellate court itself {n(g(cc, 'dropped:first_instance_same_court'))}.")
-    w("")
+    if C.INCLUDE_COURTS:
+        w(f"Law citations in decisions: {n(g(tot, 'law_raw'))} records, {n(g(tot, 'law_resolved_doc'))} resolved to a document "
+          f"({pct(g(tot, 'law_resolved_doc'), g(tot, 'law_raw'))}), {n(g(tot, 'law_resolved_article'))} to an article; "
+          f"{n(g(tot, 'law_precedent'))} cite a precedent. Main unresolved reasons: "
+          + ", ".join(f"{k.split(':', 1)[1]} {n(v)}" for k, v in sorted(((k, v) for k, v in tot.items() if k.startswith("law_unresolved:")), key=lambda x: -x[1])[:6]) + ".")
+        cc = g(B, "case_citations", default={})
+        w(f"Case citations: {n(g(cc, 'records'))} records → {n(g(cc, 'edges_decision_to_decision'))} decision→decision edges "
+          f"(by date {n(g(cc, 'resolved:case-number-date'))}, by court {n(g(cc, 'resolved:case-number-court'))}) and "
+          f"{n(g(cc, 'edges_decision_to_precedent'))} decision→precedent edges; {n(g(cc, 'no_candidate_in_corpus'))} cite a decision that is not in the corpus, "
+          f"{n(g(cc, 'ambiguous_same_date'))} + {n(g(cc, 'ambiguous_same_court'))} were ambiguous and dropped, {n(g(cc, 'no_date_or_court_match'))} had no matching date or court.")
+        cn = g(B, "courts_canonical", default={})
+        w(f"Courts: {n(g(cn, 'courts'))} canonical courts by kind {g(cn, 'by_kind')}; {n(g(cn, 'decisions_linked'))} of {n(g(B, 'decisions'))} decisions "
+          f"linked to a court ({pct(g(cn, 'decisions_linked'), g(B, 'decisions'))}); {n(g(cn, 'decisions_province_from_name'))} took the province "
+          f"from the same name elsewhere; decisions without court: {g(cn, 'decisions_by_court_note')}.")
+        w(f"Decision dates: {g(B, 'decisions_issued_date_check')} (dates outside 1945..build date, more than one year from the year in the "
+          f"decision number, or earlier than the year of a cited law or decision are set to null). {n(g(tot, 'decision_number:legislative_dropped'))} source "
+          f"records carried the number of a cited law (for example the court-fee resolution 326/2016/UBTVQH14) as their own number; number, "
+          f"symbol and date of those records were dropped.")
+        w(f"Case links removed by consistency rules: date-only match where a court is unknown {n(g(cc, 'dropped:date_match_court_unknown'))}, "
+          f"date-only match to a court in another (or an unknown) province {n(g(cc, 'dropped:date_match_other_province'))}, "
+          f"date-only match outside the citing High Court's region {n(g(cc, 'dropped:date_match_outside_high_court_region'))}, "
+          f"first-instance judgment from another province {n(g(cc, 'dropped:first_instance_other_province'))}, "
+          f"first-instance judgment at an impossible court level {n(g(cc, 'dropped:first_instance_wrong_level'))}, "
+          f"first-instance judgment of the appellate court itself {n(g(cc, 'dropped:first_instance_same_court'))}.")
+        w("")
     qa = g(B, "qa", default={})
     w("### 4.5 Q&A, terminology, news")
     w("")
@@ -307,9 +364,15 @@ def build_report(out_md=None):
     if S:
         w(S.get("method", ""))
         w("")
+        if C.INCLUDE_COURTS and S.get("method_courts"):
+            w(S["method_courts"])
+            w("")
+        if not C.INCLUDE_COURTS and S.get("release_note"):
+            w(S["release_note"])
+            w("")
         w("| edge type | checked | correct | wrong | not verifiable | notes |")
         w("|---|---:|---:|---:|---:|---|")
-        for k, v in S.get("edge_types", {}).items():
+        for k, v in review_edge_types(S).items():
             unv = v.get("checked", 0) - v.get("correct", 0) - v.get("wrong", 0)
             w(f"| {k} | {v.get('checked')} | {v.get('correct')} | {v.get('wrong', 0)} | {unv} | {v.get('notes', '')} |")
     else:
@@ -317,16 +380,17 @@ def build_report(out_md=None):
     w("")
     w("## 7. Limitations")
     w("")
-    for x in S.get("limitations", []) if S else []:
+    for x in review_limitations(S) if S else []:
         w(f"- {x}")
     w("")
     w("## 8. Reproduce")
     w("")
     w("```bash")
-    w("export R=<processed vn-legal corpus root> V=<VLOnto root>")
-    w("cd $V/repo/vlonto && $V/envs/kg/bin/python -m vlonto.cli all          # build, export, core, validate, site")
-    w("$V/envs/kg/bin/python -m vlonto.cli check-ontology                     # ontology checks, pyLODE HTML, JSON-LD context")
-    w("$V/envs/kg/bin/python -m vlonto.cli report                             # this report")
+    w("export R=<processed vn-legal corpus root> V=<VLOnto root> NPROC=8")
+    w("cd $V/repo/vlonto && python -m vlonto.cli all     # build, nfc, export, core, validate, site, check-ontology, nfc-check, link-check, report")
+    w("python -m vlonto.cli check-ontology                # ontology checks, pyLODE HTML, JSON-LD context")
+    w("python -m vlonto.cli report                        # this report")
+    w("# court data (planned for v2): VLONTO_INCLUDE_COURTS=1 python -m vlonto.cli all   (or: python -m vlonto.cli all --with-courts)")
     w("```")
     md = "\n".join(L) + "\n"
     out_md = out_md or os.path.join(rp, "kg_report.md")

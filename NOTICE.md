@@ -2,13 +2,20 @@
 
 ## Attribution
 
-> VLOnto is derived from six datasets published on Hugging Face by TMQuan: `thuvienphapluat-vn-vbpl` (metadata CC BY 4.0; source thuvienphapluat.vn), `thuvienphapluat-vn-hdpl`, `thuvienphapluat-vn-tnpl` and `thuvienphapluat-vn-htpl` (source thuvienphapluat.vn and thuvienphapluat.vn/tnpl/; only identifiers, links, dates, categories, term names and derived links are used), `anle-toaan-gov-vn` (CC BY 4.0; source anle.toaan.gov.vn, Supreme People's Court of Viet Nam) and `cbba-toaan-gov-vn` (CC BY 4.0; source congbobanan.toaan.gov.vn, Supreme People's Court of Viet Nam). English term labels from `tnpl` are machine translations. Extracted relations are produced automatically and may be wrong. VLOnto is not an official legal text and is not legal advice.
+Release v1 (1.0.0):
+
+> VLOnto is derived from four datasets published on Hugging Face by TMQuan: `thuvienphapluat-vn-vbpl` (metadata CC BY 4.0; source thuvienphapluat.vn), `thuvienphapluat-vn-hdpl`, `thuvienphapluat-vn-tnpl` and `thuvienphapluat-vn-htpl` (source thuvienphapluat.vn and thuvienphapluat.vn/tnpl/; only identifiers, links, dates, categories, term names and derived links are used). English term labels from `tnpl` are machine translations. Extracted relations are produced automatically and may be wrong. VLOnto is not an official legal text and is not legal advice.
 
 Vietnamese:
 
-> VLOnto được xây dựng từ sáu bộ dữ liệu do TMQuan công bố trên Hugging Face: `thuvienphapluat-vn-vbpl` (siêu dữ liệu theo CC BY 4.0; nguồn thuvienphapluat.vn), `thuvienphapluat-vn-hdpl`, `thuvienphapluat-vn-tnpl`, `thuvienphapluat-vn-htpl` (nguồn thuvienphapluat.vn; chỉ dùng mã định danh, liên kết, ngày, lĩnh vực, tên thuật ngữ và các liên kết suy ra), `anle-toaan-gov-vn` (CC BY 4.0; nguồn anle.toaan.gov.vn, Tòa án nhân dân tối cao) và `cbba-toaan-gov-vn` (CC BY 4.0; nguồn congbobanan.toaan.gov.vn, Tòa án nhân dân tối cao). Tên tiếng Anh của thuật ngữ là bản dịch máy. Các quan hệ được trích xuất tự động và có thể sai. VLOnto không phải văn bản pháp luật chính thức và không phải tư vấn pháp lý.
+> VLOnto được xây dựng từ bốn bộ dữ liệu do TMQuan công bố trên Hugging Face: `thuvienphapluat-vn-vbpl` (siêu dữ liệu theo CC BY 4.0; nguồn thuvienphapluat.vn), `thuvienphapluat-vn-hdpl`, `thuvienphapluat-vn-tnpl` và `thuvienphapluat-vn-htpl` (nguồn thuvienphapluat.vn; chỉ dùng mã định danh, liên kết, ngày, lĩnh vực, tên thuật ngữ và các liên kết suy ra). Tên tiếng Anh của thuật ngữ là bản dịch máy. Các quan hệ được trích xuất tự động và có thể sai. VLOnto không phải văn bản pháp luật chính thức và không phải tư vấn pháp lý.
+
+From v2 the court datasets `anle-toaan-gov-vn` (CC BY 4.0; source anle.toaan.gov.vn, Supreme People's Court of Viet Nam) and `cbba-toaan-gov-vn` (CC BY 4.0; source congbobanan.toaan.gov.vn, Supreme People's Court of Viet Nam) are added to this attribution (as in release 0.1.0).
 
 ## Source datasets
+
+Release v1 (1.0.0):
+
 
 | Dataset | Revision | Licence |
 |---|---|---|
@@ -16,6 +23,11 @@ Vietnamese:
 | [`tmquan/thuvienphapluat-vn-hdpl`](https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-hdpl) | `e814ecbfa1` | other |
 | [`tmquan/thuvienphapluat-vn-tnpl`](https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-tnpl) | `f94d1e2485` | other |
 | [`tmquan/thuvienphapluat-vn-htpl`](https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-htpl) | `043c8f2988` | other |
+
+Planned for v2 (not used by release v1):
+
+| Dataset | Revision | Licence |
+|---|---|---|
 | [`tmquan/anle-toaan-gov-vn`](https://huggingface.co/datasets/tmquan/anle-toaan-gov-vn) | `d6124923dd` | cc-by-4.0 |
 | [`tmquan/cbba-toaan-gov-vn`](https://huggingface.co/datasets/tmquan/cbba-toaan-gov-vn) | `8ace3afc9c` | cc-by-4.0 |
 

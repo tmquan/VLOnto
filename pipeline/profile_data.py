@@ -209,6 +209,9 @@ def main():
     # ---------------- tnpl / htpl / anle / cbba ----------------
     for key, repo in [("tnpl", "tmquan/thuvienphapluat-vn-tnpl"), ("htpl", "tmquan/thuvienphapluat-vn-htpl"),
                       ("anle", "tmquan/anle-toaan-gov-vn"), ("cbba1", "tmquan/cbba-toaan-gov-vn")]:
+        if repo not in MAN["datasets"]:      # VLOnto v1 manifest: court datasets are planned for v2
+            prof[f"{key}_rows"] = None
+            continue
         fs = files(repo)
         prof[f"{key}_schema"] = schema_of(fs)
         d = pl.read_parquet(fs)
