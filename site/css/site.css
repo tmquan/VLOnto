@@ -1204,6 +1204,11 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
 [data-style="paper"] .swatch.line { width: 20px; height: 2px; border-radius: 1px; box-shadow: none; }
 [data-style="paper"] .swatch.trace { width: 20px; height: 8px; border-radius: 4px; background: var(--paper-trace-halo); box-shadow: none; position: relative; }
 [data-style="paper"] .swatch.trace::after { content: ""; position: absolute; left: 1px; right: 1px; top: 3px; height: 2px; border-radius: 1px; background: var(--paper-trace-core); }
+/* curved link swatches (3D legal network): the same curve as the links, the trace as navy core over the gold halo */
+[data-style="paper"] .swatch-curve { width: 22px; height: 12px; flex: 0 0 auto; overflow: visible; }
+[data-style="paper"] .swatch-curve path { fill: none; stroke-width: 2; stroke-linecap: round; }
+[data-style="paper"] .swatch-curve.trace .halo { stroke: var(--paper-trace-halo); stroke-width: 6; }
+[data-style="paper"] .swatch-curve.trace .core { stroke: var(--paper-trace-core); stroke-width: 2.2; }
 [data-style="paper"] .side-title, [data-style="paper"] .scene-panel h3 { font-family: var(--vlo-font-paper); font-size: 12.5px; letter-spacing: .05em; }
 [data-style="paper"] .side-title .links { font-family: var(--vlo-font-sans); }
 [data-style="paper"] .scene-panel h2 { font-family: var(--vlo-font-paper); font-weight: 400; font-size: 24px; line-height: 1.2; }
