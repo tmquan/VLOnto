@@ -18,6 +18,9 @@ Checks (each records pass/fail, details, console errors, page errors, failed and
   theme         toggle on every page re-renders canvas / charts / CONSTRUCT view / pyLODE frame; persistence (storage and
                 ?theme= carry), system preference, ?theme=dark
   paper         Paper link in header, footer and footbar on every page; BibTeX copy (clipboard and fallback); no overflow
+  paper_style   the 3D views drawn like the paper's figures, both themes: tokens and Libertinus Sans on the playground,
+                the legal network and the CONSTRUCT view; selecting a class / 45/2019/QH14 draws the traced path (core and
+                halo pixels), the network traces the replacement chain; other pages keep their palette; screenshots
 Exit 0 = all pass, 1 = failures.
 """
 from __future__ import annotations
@@ -1187,6 +1190,189 @@ def t_paper(c: Ctx):
     return res
 
 
+# Paper style of the 3D views (css/site.css "paper style", js/paper3d.js): expected tokens per theme, the colours of the
+# traced path, and the old palette of the pages outside the 3D views.
+PAPER_EXPECT = {
+    "light": {"scene_bg": "#ffffff", "core": "#2c3a47", "halo": "#ecc890", "work": "#7dbe8e", "callout_line": "#d3d7dc"},
+    "dark": {"scene_bg": "#0f131a", "core": "#f6f1e6", "halo": "#ecc890", "work": "#7dbe8e", "callout_line": "#3a4350"},
+}
+OTHER_PAGES_EXPECT = {"light": {"mod_documents": "#2563eb", "scene_bg": "#f3f6fb"}, "dark": {"mod_documents": "#4f8ef7", "scene_bg": "#0a0f1e"}}
+JS_PAPER = """(sel) => { const el = sel ? document.querySelector(sel) : document.documentElement, cs = getComputedStyle(el), M = window.__VLONTO_METRICS || {};
+  const t = n => cs.getPropertyValue(n).trim().toLowerCase();
+  const lib = [...document.fonts].filter(f => f.family.replace(/["']/g, '') === 'Libertinus Sans').map(f => f.weight + '/' + f.style + ':' + f.status);
+  return { scope: el.getAttribute('data-style'), theme: document.documentElement.getAttribute('data-theme'), scene_bg: t('--scene-bg'),
+    core: t('--paper-trace-core'), halo: t('--paper-trace-halo'), work: t('--cls-work'), callout_line: t('--paper-callout-line'),
+    font_paper: t('--vlo-font-paper'), libertinus: lib, paperStyle: !!M.paperStyle }; }"""
+# pixels of the canvas within a tolerance of each target colour (decoded in the page, like JS_MODE)
+JS_COUNT = """async (arg) => { const img = new Image(); img.src = arg.src; await img.decode();
+  const cv = document.createElement('canvas'); cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+  const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(img, 0, 0);
+  const d = cx.getImageData(0, 0, cv.width, cv.height).data, out = arg.targets.map(() => 0);
+  for (let i = 0; i < d.length; i += 4) arg.targets.forEach((t, k) => { const dr = d[i] - t[0], dg = d[i + 1] - t[1], db = d[i + 2] - t[2];
+    if (dr * dr + dg * dg + db * db <= t[3] * t[3]) out[k]++; });
+  return out; }"""
+
+
+def hex_rgb(h):
+    h = h.lstrip("#")
+    return [int(h[i:i + 2], 16) for i in (0, 2, 4)]
+
+
+def trace_pixels(pg, sel, theme):
+    """navy (light) or off-white (dark) core pixels and gold halo pixels in the element's screenshot; the overlays (details
+    panel, hint, tooltip and the legend with its own trace swatch) are hidden while capturing, so only WebGL is counted"""
+    e = PAPER_EXPECT[theme]
+    hide = "#panel, #hint, #tip, .legend, .vl-footbar"
+    pg.evaluate("(q) => document.querySelectorAll(q).forEach(e => { e.dataset.ccVis = e.style.visibility; e.style.visibility = 'hidden'; })", hide)
+    pg.wait_for_timeout(120)
+    try:
+        png = pg.locator(sel).first.screenshot()
+    finally:
+        pg.evaluate("(q) => document.querySelectorAll(q).forEach(e => { e.style.visibility = e.dataset.ccVis || ''; delete e.dataset.ccVis; })", hide)
+    core, halo = pg.evaluate(JS_COUNT, {"src": "data:image/png;base64," + base64.b64encode(png).decode(),
+                                        "targets": [hex_rgb(e["core"]) + [12], hex_rgb(e["halo"]) + [16]]})
+    return {"core": core, "halo": halo}
+
+
+def t_paper_style(c: Ctx):
+    """The 3D views follow the paper's figures (arXiv:2611.11426, Fig. 1 / Fig. 6): per theme the scene ground, class
+    colours, call-out border and trace colours come from the paper-style tokens and Libertinus Sans is loaded; selecting a
+    class in the playground and 45/2019/QH14 in the legal network draws the traced path (core and halo pixels appear,
+    the network also traces the replacement chain); a CONSTRUCT result on the SPARQL page is drawn as a trace with the
+    paper's legend row; pages outside the 3D views keep their palette. Screenshots of each view in both themes."""
+    res = {"test": "paper style (3D views)", "checks": []}
+    logs = {"console_errors": [], "page_errors": [], "failed_requests": [], "external_requests": []}
+
+    def merge(log):
+        for k in logs:
+            logs[k] += log.get(k, [])
+
+    def check(name, fn):
+        t0 = time.time()
+        try:
+            res["checks"].append({"name": name, "pass": True, "details": fn(), "s": round(time.time() - t0, 2)})
+        except Exception as e:  # noqa
+            res["checks"].append({"name": name, "pass": False, "details": {"error": str(e)[:1200]}, "s": round(time.time() - t0, 2)})
+
+    def tokens_ok(got, theme, where):
+        want = PAPER_EXPECT[theme]
+        bad = [f"{k} {got.get(k)} != {v}" for k, v in want.items() if got.get(k) != v]
+        if got.get("theme") != theme:
+            bad.append(f"theme {got.get('theme')}")
+        if "Libertinus Sans" not in (got.get("font_paper") or ""):
+            bad.append(f"--vlo-font-paper {got.get('font_paper')}")
+        if not any(s.endswith(":loaded") for s in got.get("libertinus") or []):
+            bad.append(f"Libertinus Sans not loaded: {got.get('libertinus')}")
+        if bad:
+            raise RuntimeError(f"{where}: " + "; ".join(bad))
+
+    def shot(pg, name, theme):
+        if c.mode != "http":
+            return None
+        p = c.out / "gallery" / f"paper_style_{name}__{theme}__{c.vp[0]}x{c.vp[1]}.png"
+        p.parent.mkdir(parents=True, exist_ok=True)
+        pg.screenshot(path=str(p))
+        return str(p.relative_to(c.out))
+
+    for theme in c.themes:
+        def playground(theme=theme):
+            ctx, pg, log = c.open("index.html", scheme=theme)
+            try:
+                pg.wait_for_timeout(1500)
+                got = pg.evaluate(JS_PAPER, None)
+                tokens_ok(got, theme, "index.html")
+                legend = pg.evaluate("document.getElementById('legend').textContent") if not c.mobile else ""
+                if not c.mobile and not all(x in legend for x in ("Văn bản · Work", "Điều · Article", "Đường truy vết")):
+                    raise RuntimeError(f"legend row: {legend[:200]}")
+                before = trace_pixels(pg, "#canvas-host", theme)
+                pg.evaluate("() => window.VLApp.select('vlo:Article')")
+                pg.wait_for_function("window.__VLONTO_METRICS.selected === 'vlo:Article' && window.__VLONTO_METRICS.traceSegments > 0", timeout=15000)
+                pg.wait_for_timeout(1800)
+                after = trace_pixels(pg, "#canvas-host", theme)
+                m = pg.evaluate("window.__VLONTO_METRICS")
+                if m.get("highlightChain", 0) < 1:
+                    raise RuntimeError(f"no superclass chain in the highlight: {m.get('highlightChain')}")
+                if after["core"] - before["core"] < 30 or after["halo"] - before["halo"] < 60:
+                    raise RuntimeError(f"traced path not drawn: core/halo pixels {before} -> {after}")
+                return {"tokens": {k: got[k] for k in ("scene_bg", "core", "halo", "work")}, "libertinus": got["libertinus"], "trace_links": m.get("traceLinks"),
+                        "trace_segments": m.get("traceSegments"), "chain": m.get("highlightChain"), "pixels_before": before, "pixels_after": after,
+                        "legend_entries": m.get("legendEntries"), "shot": shot(pg, "playground_article", theme)}
+            finally:
+                merge(log)
+                ctx.close()
+        check(f"playground ({theme}): tokens, Libertinus, legend row; selecting Article draws its chain as the traced path", playground)
+
+        def network(theme=theme):
+            ctx, pg, log = c.open("network-3d.html", scheme=theme, ready_timeout=240000)
+            try:
+                got = pg.evaluate(JS_PAPER, None)
+                tokens_ok(got, theme, "network-3d.html")
+                before = trace_pixels(pg, "#canvas-host", theme)
+                pg.evaluate("() => window.VLApp.selectById('333670')")
+                pg.wait_for_function("window.__VLONTO_METRICS.panelLoaded === '333670' && window.__VLONTO_METRICS.chainTraceDocs >= 2", timeout=120000)
+                pg.wait_for_timeout(1800)
+                after = trace_pixels(pg, "#canvas-host", theme)
+                m = pg.evaluate("window.__VLONTO_METRICS")
+                if not m.get("traceSegments"):
+                    raise RuntimeError("the selection's links are not traced")
+                if after["core"] - before["core"] < 30 or after["halo"] - before["halo"] < 60:
+                    raise RuntimeError(f"traced answer not drawn: core/halo pixels {before} -> {after}")
+                legend = pg.evaluate("document.getElementById('legend').textContent") if not c.mobile else ""
+                if not c.mobile and "Đường truy vết" not in legend:
+                    raise RuntimeError(f"legend: {legend[:200]}")
+                return {"trace_segments": m.get("traceSegments"), "chain_docs": m.get("chainTraceDocs"), "ego_edges": m.get("egoEdges"),
+                        "pixels_before": before, "pixels_after": after, "shot": shot(pg, "network_45_2019", theme)}
+            finally:
+                merge(log)
+                ctx.close()
+        check(f"legal network ({theme}): tokens; 45/2019/QH14 traced with its replacement chain", network)
+
+        def construct(theme=theme):
+            ctx, pg, log = c.open("sparql.html", scheme=theme)
+            try:
+                pg.locator("#ex-construct button").first.click()
+                pg.wait_for_function("!!window.__VLONTO_METRICS.constructDrawn && window.__VLONTO_METRICS.constructTrace > 0", timeout=120000)
+                pg.wait_for_timeout(2000)
+                got = pg.evaluate(JS_PAPER, "#graph-wrap")
+                tokens_ok(got, theme, "sparql.html #graph-wrap")
+                page_bg = pg.evaluate("getComputedStyle(document.documentElement).getPropertyValue('--mod-documents').trim().toLowerCase()")
+                if page_bg != OTHER_PAGES_EXPECT[theme]["mod_documents"]:
+                    raise RuntimeError(f"the SPARQL page outside the CONSTRUCT view changed its palette: --mod-documents {page_bg}")
+                px = trace_pixels(pg, "#graph-view", theme)
+                if px["core"] < 30 or px["halo"] < 60:
+                    raise RuntimeError(f"CONSTRUCT result not drawn as a trace: {px}")
+                legend = pg.evaluate("(document.getElementById('construct-legend') || {}).textContent || ''")
+                if "Đường truy vết" not in legend:
+                    raise RuntimeError(f"CONSTRUCT legend: {legend[:200]}")
+                pg.locator("#graph-view").scroll_into_view_if_needed()
+                return {"pixels": px, "legend": legend[:160], "trace": pg.evaluate("window.__VLONTO_METRICS.constructTrace"),
+                        "shot": shot(pg, "sparql_construct", theme)}
+            finally:
+                merge(log)
+                ctx.close()
+        check(f"SPARQL CONSTRUCT view ({theme}): scoped tokens, result traced, legend row", construct)
+
+        def others(theme=theme):
+            out = {}
+            for page in ("about.html", "dashboard.html"):
+                ctx, pg, log = c.open(page, scheme=theme)
+                try:
+                    got = pg.evaluate("""() => { const cs = getComputedStyle(document.documentElement);
+                        return { scope: document.documentElement.getAttribute('data-style'), mod_documents: cs.getPropertyValue('--mod-documents').trim().toLowerCase(),
+                                 scene_bg: cs.getPropertyValue('--scene-bg').trim().toLowerCase() }; }""")
+                    want = OTHER_PAGES_EXPECT[theme]
+                    if got["scope"] or got["mod_documents"] != want["mod_documents"] or got["scene_bg"] != want["scene_bg"]:
+                        raise RuntimeError(f"{page} is not in its old look: {got}")
+                    out[page] = got
+                finally:
+                    merge(log)
+                    ctx.close()
+            return out
+        check(f"pages outside the 3D views keep their palette ({theme})", others)
+    res["log"] = logs
+    return res
+
+
 GALLERY = ["index.html", "about.html", "network-3d.html", "sparql.html", "dashboard.html", "ontology.html",
            "playbook.html", "downloads.html", "ontology/vlonto.html"]
 
@@ -1238,7 +1424,7 @@ def main(argv=None):
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--modes", default="http,file")
     ap.add_argument("--viewports", default="1440x900,390x844")
-    ap.add_argument("--tests", default="ontology,network,sparql,dashboard,simple,theme,paper,gallery")
+    ap.add_argument("--tests", default="ontology,network,sparql,dashboard,simple,theme,paper,paper_style,gallery")
     ap.add_argument("--themes", default="light,dark", help="themes of the gallery and paper screenshots (emulated system setting)")
     ap.add_argument("--chrome", type=Path, default=HERE.parent.parent / "tools" / "chrome.sh")
     a = ap.parse_args(argv)
@@ -1263,6 +1449,8 @@ def main(argv=None):
                     runs.append(lambda: [t_theme(c)])
                 if "paper" in tests:
                     runs.append(lambda: [t_paper(c)])
+                if "paper_style" in tests:
+                    runs.append(lambda: [t_paper_style(c)])
                 if "ontology" in tests:
                     runs.append(lambda: [t_ontology(c)])
                 if "network" in tests:

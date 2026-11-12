@@ -122,7 +122,7 @@
     opts = opts || {};
     var group = new THREE.Group();
     group.name = 'vlonto-trace';
-    var geo = new THREE.BufferGeometry();
+    var geo = new THREE.BufferGeometry(), cap = 0;
     var widths = { halo2: 11, halo: 7.5, core: 3.2 }, colors = { halo2: '#f4dcac', halo: '#ecc890', core: '#2c3a47' };
     var size = new THREE.Vector2(), nseg = 0, layers = {};
     ['halo2', 'halo', 'core'].forEach(function (k, i) {
@@ -152,32 +152,50 @@
       });
       if (st.opacity != null) Object.keys(layers).forEach(function (k) { layers[k].mat.uniforms.uOpacity.value = st.opacity; });
     }
+    /* buffers grow by half when needed (old ones freed with their geometry) and are rewritten in place otherwise: the
+       ontology view updates the trace on every layout tick */
+    function ensure(n) {
+      if (n <= cap) return;
+      cap = Math.max(64, n, Math.ceil(cap * 1.5));
+      var g2 = new THREE.BufferGeometry();
+      var side = new Float32Array(cap * 4), end = new Float32Array(cap * 4);
+      var idx = cap * 4 > 65535 ? new Uint32Array(cap * 6) : new Uint16Array(cap * 6);
+      for (var v = 0; v < cap * 4; v++) { side[v] = v % 2 === 0 ? 1 : -1; end[v] = v % 4 < 2 ? 0 : 1; }
+      for (var s = 0; s < cap; s++) {
+        var o = s * 4;
+        idx[s * 6] = o; idx[s * 6 + 1] = o + 1; idx[s * 6 + 2] = o + 2;
+        idx[s * 6 + 3] = o; idx[s * 6 + 4] = o + 2; idx[s * 6 + 5] = o + 3;
+      }
+      g2.setAttribute('position', new THREE.BufferAttribute(new Float32Array(cap * 12), 3));
+      g2.setAttribute('aOther', new THREE.BufferAttribute(new Float32Array(cap * 12), 3));
+      g2.setAttribute('aSide', new THREE.BufferAttribute(side, 1));
+      g2.setAttribute('aEnd', new THREE.BufferAttribute(end, 1));
+      g2.setIndex(new THREE.BufferAttribute(idx, 1));
+      geo.dispose();
+      geo = g2;
+      Object.keys(layers).forEach(function (k) { layers[k].mesh.geometry = geo; });
+    }
     function setPaths(paths) {
       var n = 0;
       (paths || []).forEach(function (pl) { if (pl && pl.length > 1) n += pl.length - 1; });
-      var pos = new Float32Array(n * 12), oth = new Float32Array(n * 12), side = new Float32Array(n * 4), end = new Float32Array(n * 4);
-      var idx = n * 4 > 65535 ? new Uint32Array(n * 6) : new Uint16Array(n * 6), s = 0;
-      (paths || []).forEach(function (pl) {
-        if (!pl || pl.length < 2) return;
-        for (var i = 0; i + 1 < pl.length; i++, s++) {
-          var a = pl[i], b = pl[i + 1];
-          for (var k = 0; k < 4; k++) {
-            var own = k < 2 ? a : b, other = k < 2 ? b : a, v = s * 4 + k;
-            pos[3 * v] = own.x; pos[3 * v + 1] = own.y || 0; pos[3 * v + 2] = own.z || 0;
-            oth[3 * v] = other.x; oth[3 * v + 1] = other.y || 0; oth[3 * v + 2] = other.z || 0;
-            side[v] = k % 2 === 0 ? 1 : -1;
-            end[v] = k < 2 ? 0 : 1;
+      ensure(n);
+      if (n) {
+        var pos = geo.attributes.position.array, oth = geo.attributes.aOther.array, s = 0;
+        (paths || []).forEach(function (pl) {
+          if (!pl || pl.length < 2) return;
+          for (var i = 0; i + 1 < pl.length; i++, s++) {
+            var a = pl[i], b = pl[i + 1];
+            for (var k = 0; k < 4; k++) {
+              var own = k < 2 ? a : b, other = k < 2 ? b : a, v = s * 4 + k;
+              pos[3 * v] = own.x; pos[3 * v + 1] = own.y || 0; pos[3 * v + 2] = own.z || 0;
+              oth[3 * v] = other.x; oth[3 * v + 1] = other.y || 0; oth[3 * v + 2] = other.z || 0;
+            }
           }
-          var o = s * 4;
-          idx[s * 6] = o; idx[s * 6 + 1] = o + 1; idx[s * 6 + 2] = o + 2;
-          idx[s * 6 + 3] = o; idx[s * 6 + 4] = o + 2; idx[s * 6 + 5] = o + 3;
-        }
-      });
-      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-      geo.setAttribute('aOther', new THREE.BufferAttribute(oth, 3));
-      geo.setAttribute('aSide', new THREE.BufferAttribute(side, 1));
-      geo.setAttribute('aEnd', new THREE.BufferAttribute(end, 1));
-      geo.setIndex(new THREE.BufferAttribute(idx, 1));
+        });
+        geo.attributes.position.needsUpdate = true;
+        geo.attributes.aOther.needsUpdate = true;
+      }
+      geo.setDrawRange(0, n * 6);
       nseg = n;
       setStyle({});
       return n;
