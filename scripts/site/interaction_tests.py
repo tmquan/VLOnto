@@ -199,7 +199,7 @@ def t_ontology(c: Ctx):
         pg.click("#btn-reset2")
         pg.wait_for_timeout(1600)
         tried = []
-        cands = ["vlo:Law", "vlo:Decree", "vlo:Circular", "vlo:Article", "vlo:LegalDocument", "vlo:CourtDecision", "vlo:Provision", "vlo:LegalChange", "vlo:Code"]
+        cands = ["vlo:Law", "vlo:Decree", "vlo:Circular", "vlo:Article", "vlo:LegalDocument", "vlo:LegalArea", "vlo:Provision", "vlo:LegalChange", "vlo:Code"]
         for cid in cands:
             p = pg.evaluate("id => window.VLApp.screenPos(id)", cid)
             if not (p and p["inside"]):
@@ -235,6 +235,42 @@ def t_ontology(c: Ctx):
             return {"clicked": cid, "x": round(p["x"]), "y": round(p["y"]), "panel_starts": label, "tried": tried, "shot": c.shot(pg, "ontology3d_click_class")}
         raise RuntimeError(f"no class node could be clicked: {tried}")
     check("click a class on the canvas -> panel", click_class)
+
+    # release v1 (js/common.js VL.releaseScope): the terms whose scope note says they are populated from VLOnto 2.0 are
+    # left out of the playground (the ontology page and its pyLODE reference keep them)
+    V2_TERMS = {"vlo:Court", "vlo:JudicialDocument", "vlo:CourtDecision", "vlo:Judgment", "vlo:CourtRuling", "vlo:Precedent", "vlo:CourtLevel",
+                "vlo:InstanceLevel", "vlo:CaseCategory", "vlo:CourtLevelScheme", "vlo:InstanceLevelScheme", "vlo:CaseCategoryScheme"}
+    V2_PROPS = {"vlo:decidedBy", "vlo:instanceLevel", "vlo:caseCategory", "vlo:selectedFrom", "vlo:appliesProvision", "vlo:appliesDocument",
+                "vlo:citesCase", "vlo:appliesPrecedent"}
+
+    def release_scope():
+        r = pg.evaluate("""() => { const S = (window.__VLONTO_METRICS || {}).releaseScope || {};
+            return { scope: S, chips: Array.from(document.querySelectorAll('#module-chips [data-mod]')).map(b => b.getAttribute('data-mod')),
+              note: ((document.querySelector('#module-later') || {}).textContent || '').trim(),
+              drawn: ['vlo:CourtDecision', 'vlo:Court', 'vlo:CaseCategoryScheme'].filter(id => window.VLApp.screenPos(id)),
+              search: ['tòa án', 'court', 'bản án', 'judgment', 'precedent', 'án lệ', 'decided by'].map(q => window.VLApp.searchIds(q)).flat() }; }""")
+        sc, hidden = r["scope"], set(r["scope"].get("hidden") or [])
+        bad = []
+        if not V2_TERMS <= hidden:
+            bad.append(f"not left out: {sorted(V2_TERMS - hidden)}")
+        if set(sc.get("hiddenProperties") or []) != V2_PROPS:
+            bad.append(f"properties left out {sc.get('hiddenProperties')}")
+        if sc.get("laterModules") != {"judiciary": 2} or "judiciary" in r["chips"]:
+            bad.append(f"modules: later {sc.get('laterModules')}, chips {r['chips']}")
+        if r["note"] != "Tư pháp (tòa án) · Judiciary: from v2":
+            bad.append(f"module note {r['note']!r}")
+        if r["drawn"]:
+            bad.append(f"drawn: {r['drawn']}")
+        leaked = sorted(set(x for x in r["search"] if x in hidden or x in V2_PROPS))
+        if leaked:
+            bad.append(f"search suggests {leaked}")
+        if sc.get("nodes") != 75 - len(hidden) or sc.get("links", 0) + sc.get("hiddenLinks", 0) != 104:
+            bad.append(f"counts: {sc.get('nodes')} nodes + {len(hidden)} left out (75), {sc.get('links')} links + {sc.get('hiddenLinks')} left out (104)")
+        if bad:
+            raise RuntimeError("; ".join(bad))
+        return {"left_out": sorted(hidden), "properties": len(V2_PROPS), "nodes": sc.get("nodes"), "links": sc.get("links"),
+                "chips": len(r["chips"]), "note": r["note"]}
+    check("release v1: terms populated from v2 (judiciary module, vlo:Court) left out; the module note", release_scope)
 
     def construct():
         pg.keyboard.press("Escape")
@@ -484,6 +520,19 @@ def t_sparql(c: Ctx, examples):
             raise RuntimeError(f"no clear syntax error: {msg}")
         return {"message": msg}
     check("syntax error message with line and column", error)
+
+    def construct_scope():
+        # release v1: a CONSTRUCT over the ontology shows no term populated from v2 (js/common.js VL.scopeQuads)
+        q = "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nCONSTRUCT { ?c rdfs:subClassOf ?d } WHERE { ?c rdfs:subClassOf ?d }"
+        lq = pg.evaluate("(q) => window.VLApp.run(q, 'ontology')", q)
+        pg.wait_for_function("window.__VLONTO_METRICS.constructDrawn && window.__VLONTO_METRICS.constructDrawn.nodes > 0", timeout=T_(60000))
+        ids = pg.evaluate("window.VLApp.constructNodes().map(n => n.id)")
+        court = [i for i in ids if any(w in i for w in ("Court", "Judicial", "Judgment", "Precedent", "CaseCategory", "InstanceLevel"))]
+        status = pg.inner_text("#status")
+        if lq.get("error") or not lq.get("hiddenLater") or court or "not shown" not in status:
+            raise RuntimeError(f"CONSTRUCT scope: hidden {lq.get('hiddenLater')}, court nodes {court[:6]}, status {status[:200]!r}, error {lq.get('error')}")
+        return {"triples": lq.get("count"), "not_shown": lq.get("hiddenLater"), "nodes_drawn": len(ids)}
+    check("release v1: CONSTRUCT results leave out the terms populated from v2", construct_scope)
 
     def csv():
         pg.evaluate("window.VLApp.runExample('s1')")

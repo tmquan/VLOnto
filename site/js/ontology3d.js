@@ -13,7 +13,14 @@
   M.page = 'ontology-3d';
   M.paperStyle = true;
 
-  var OG = window.VLONTO.ontology_graph;
+  /* release scope (js/common.js VL.releaseScope): the terms populated from a later release (in v1 the judiciary module
+     and vlo:Court) are left out of the playground; a note under the module chips says when they come */
+  var OG0 = window.VLONTO.ontology_graph, SCOPE = VL.releaseScope(OG0), OG = {};
+  Object.keys(OG0).forEach(function (k) { OG[k] = OG0[k]; });
+  OG.nodes = SCOPE.nodes;
+  OG.links = SCOPE.links;
+  M.releaseScope = { release: SCOPE.release, hidden: SCOPE.hidden, hiddenProperties: SCOPE.hiddenProperties, hiddenLinks: SCOPE.hiddenLinks,
+    laterModules: SCOPE.laterModules, nodes: OG.nodes.length, links: OG.links.length };
   var EXAMPLES = ((window.VLONTO.sparql_examples || {}).queries) || [];
   var app = VL.$('#app'), stage = VL.$('#stage'), host = VL.$('#canvas-host');
   var panel = VL.$('#panel'), drawer = VL.$('#drawer'), legendEl = VL.$('#legend'), statusEl = VL.$('#status');
@@ -23,7 +30,7 @@
     links: { subClassOf: true, property: true, alignment: true, inScheme: true },
     particles: true, selected: null, selectedLink: null, view: 'ontology', cm: 'overlay', legendOpen: !VL.isMobile()
   };
-  VL.MODULES.forEach(function (m) { state.modules[m.id] = true; });
+  VL.MODULES.forEach(function (m) { if (!SCOPE.laterModules[m.id]) state.modules[m.id] = true; });
 
   /* ------------------------------------------------------------------ data */
   var nodes = OG.nodes.map(function (n) {
@@ -800,13 +807,19 @@
     var counts = {};
     nodes.forEach(function (n) { if (n.kind !== 'external') counts[n.module] = (counts[n.module] || 0) + 1; });
     links.forEach(function (l) { if (l.type === 'property' && !counts[l.module]) counts[l.module] = 0; });
-    var html = VL.MODULES.filter(function (m) { return m.id !== 'external'; }).map(function (m) {
+    var html = VL.MODULES.filter(function (m) { return m.id !== 'external' && !SCOPE.laterModules[m.id]; }).map(function (m) {
       var on = state.modules[m.id] !== false;
       var c = counts[m.id] || 0;
       return '<button type="button" class="chip" data-mod="' + m.id + '" aria-pressed="' + on + '" title="' + VL.esc(m.vi) + '">' +
         '<span class="swatch" style="background:' + m.v + '"></span>' + VL.esc(m.en) + (c ? ' · ' + c : '') + '</button>';
     }).join('');
     VL.$('#module-chips').innerHTML = html;
+    var note = VL.$('#module-later'), text = VL.laterModulesNote(SCOPE.laterModules);
+    if (!note && text) {
+      note = VL.el('p', { 'class': 'side-note', id: 'module-later' });
+      VL.$('#module-chips').insertAdjacentElement('afterend', note);
+    }
+    if (note) note.innerHTML = text;
   }
   VL.$('#module-chips').addEventListener('click', function (e) {
     var b = e.target.closest('[data-mod]');
@@ -884,6 +897,10 @@
   window.VLApp.select = function (id) { var n = current.byId[id] || byId[id]; if (n) select(n, true); return !!n; };
   /* tests: hover a node (id, or null to end the hover) as the pointer would; returns the number of traced hover links */
   window.VLApp.hover = function (id) { setHover(id ? (current.byId[id] || byId[id] || null) : null); return M.hoverTrace || 0; };
+  /* tests: ids of the search suggestions for a query (nodes by id, links by property id or key) */
+  window.VLApp.searchIds = function (q) {
+    return searchSource(q).map(function (e) { return e.t === 'node' ? e.id : ((linkByKey[e.key] || {}).id || e.key); });
+  };
   window.VLApp.screenPos = function (id) {
     var n = current.byId[id] || byId[id];
     if (!n || !graph) return null;
@@ -990,7 +1007,7 @@
       '<li>' + SHAPES['class'] + bi('lớp', 'class (size ~ instances)') + '</li><li>' + SHAPES.scheme + bi('lược đồ khái niệm', 'concept scheme') + '</li>' +
       '<li>' + SHAPES.external + bi('khái niệm ngoài', 'external term') + '</li>' +
       '<li><span class="swatch line" style="background:linear-gradient(90deg,var(--cls-work),var(--cls-article),var(--cls-term))"></span>' + bi('lớp con của', 'subclass of') + '</li>' +
-      '<li><span class="swatch line" style="background:linear-gradient(90deg,var(--mod-validity-change),var(--mod-agents),var(--mod-judiciary))"></span>' + bi('thuộc tính', 'object property') + '</li>' +
+      '<li><span class="swatch line" style="background:linear-gradient(90deg,var(--mod-validity-change),var(--mod-agents),var(--mod-documents))"></span>' + bi('thuộc tính', 'object property') + '</li>' +
       '<li><span class="swatch line" style="background:var(--o3d-link-alignment)"></span>' + bi('liên kết ngoài', 'alignment') + '</li>' +
       '</ul>' + (famOnly.length ? '<p class="lg-note">' + VL.esc('Other classes take the colour of their module: ' + famOnly.map(function (m) { return m.en; }).join(', ') + '.') + '</p>' : '') + '</div>';
     legendEl.innerHTML = h;
@@ -1152,7 +1169,9 @@
   window.VLApp.constructExamples = VL.Sparql.CONSTRUCT_EXAMPLES;
 
   function drawConstruct(ctx, res) {
-    var g = VL.Sparql.quadsToGraph(ctx, res.quads, 500);
+    var sc = VL.scopeQuads(ctx, res.quads);
+    M.constructHiddenLater = sc.hidden;
+    var g = VL.Sparql.quadsToGraph(ctx, sc.quads, 500);
     if (!g.nodes.length) {
       setQStatus(res.form + ' returned no triples (' + res.ms + ' ms).', 'ok');
       qResult.innerHTML = '';
