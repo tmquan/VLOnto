@@ -1259,7 +1259,7 @@ def t_paper_style(c: Ctx):
         bad = [f"{k} {got.get(k)} != {v}" for k, v in want.items() if got.get(k) != v]
         if got.get("theme") != theme:
             bad.append(f"theme {got.get('theme')}")
-        if "Libertinus Sans" not in (got.get("font_paper") or ""):
+        if "libertinus sans" not in (got.get("font_paper") or "").lower():  # JS_PAPER lower-cases every token
             bad.append(f"--vlo-font-paper {got.get('font_paper')}")
         if not any(s.endswith(":loaded") for s in got.get("libertinus") or []):
             bad.append(f"Libertinus Sans not loaded: {got.get('libertinus')}")
