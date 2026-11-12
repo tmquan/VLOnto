@@ -25165,11 +25165,11 @@ vlo:rankLevel a owl:DatatypeProperty ;
 
 vlo:ruleVersion a owl:DatatypeProperty ;
     rdfs:label "rule version"@en,
-        "phiên bản bộ luật trích xuất"@vi ;
+        "phiên bản quy tắc trích xuất"@vi ;
     rdfs:domain vlo:LegalChange ;
     rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ;
     rdfs:range xsd:string ;
-    skos:definition "The version of the extraction rules that produced a legal change (v7 in VLOnto 0.1.0)."@en ;
+    skos:definition "The version of the extraction rules that produced a legal change, for example v7."@en ;
     vlo:module vlo:module-validity-change .
 
 vlo:selectedFrom a owl:ObjectProperty ;
@@ -48464,7 +48464,7 @@ vldocume:518805 a vlo:Law ;
 vlo:DocumentTypeScheme a skos:ConceptScheme ;
     rdfs:label "Document types"@en,
         "Loại văn bản"@vi ;
-    skos:definition "The ten types of normative legal documents in scope of VLOnto 0.1.0."@en ;
+    skos:definition "The ten types of normative legal documents in the scope of VLOnto."@en ;
     vlo:module vlo:module-classification .
 
 vlarea:giao-thong-van-tai a vlo:LegalArea ;

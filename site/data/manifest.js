@@ -13,31 +13,31 @@ window.VLONTO["manifest"] = {
   {
    "file": "legal_network.json",
    "bytes": 9889490,
-   "sha256": "6c5f93538253832fa4202f744fbefc75b4a97ca56d60d7463df3de9d7d966274",
+   "sha256": "91d797ef11ae193ab80afd86e46dce553e6bce04a6b1f203dafccfbb26c7a7e8",
    "within_20MB": true
   },
   {
    "file": "legal_network_lite.json",
    "bytes": 1875595,
-   "sha256": "f8bcf719db2173b2be8c46f680ec2a8e00c9b2befa8624a80c7367e512f5c96a",
+   "sha256": "d44bfdae8b41f4a256213e3ada1d9d7b51f64b2107c503d4676589fa5e6f6e6d",
    "within_20MB": true
   },
   {
    "file": "ontology_graph.json",
-   "bytes": 117749,
-   "sha256": "8bceaf7bbf94c2fdd868109fd7d6d7710b52b167ae20cd19b16f74b6371c49a5",
+   "bytes": 117740,
+   "sha256": "2023dd9e873fc897f2e219d284583c86940fa5c7334c0e8a93b57616a320873c",
    "within_20MB": true
   },
   {
    "file": "sparql_examples.json",
    "bytes": 6596,
-   "sha256": "fd64f00a5987592d75d92a02ee43a5084330e88fcf2b3d207d639dc5e3232876",
+   "sha256": "cd5a24805c04ec3ae59108c6dd03cb03efe81c85ede5431b104915c467df2a9c",
    "within_20MB": true
   },
   {
    "file": "stats.json",
    "bytes": 1856,
-   "sha256": "4bd6645052626c065343a83202ee4bfaea31bf992624c15f95e2dcb2bf439214",
+   "sha256": "5ef64500e5f10af59c0730f59abc78be4ab7b9bc168af8796ea2d9310a6e8e52",
    "within_20MB": true
   },
   {
@@ -49,49 +49,49 @@ window.VLONTO["manifest"] = {
   {
    "file": "js/legal_network.js",
    "bytes": 9889562,
-   "sha256": "2270eb6bc4c5bb3c676ca3999d670b7bbc5470dfb36178b2ef37df12acfc996f",
+   "sha256": "00db76e6cc0f355c32ccecd926e90914c5eef6a7959cbbc206336a08753dad05",
    "within_20MB": true
   },
   {
    "file": "js/legal_network_lite.js",
    "bytes": 1875672,
-   "sha256": "87dc6d5e4802fb8778626b2a7c6b93a1ebd0e9d2f185bc05bbb81f8b346a1c9f",
+   "sha256": "4b09658c61d39dfc95cb7a9ab6a6fd691d77a8f137c588d1722838d422632285",
    "within_20MB": true
   },
   {
    "file": "js/manifest.js",
-   "bytes": 2758,
-   "sha256": "20b15c005a48e21dc56ab125fd32102e9d7383b14f0cfad6f8c6d90426d78dfd",
+   "bytes": 2785,
+   "sha256": "9be87f9ea65daf1f62a3ec7b161028a0576f152decf286d9fcb9b8fcf0850b01",
    "within_20MB": true
   },
   {
    "file": "js/ontology_graph.js",
-   "bytes": 117822,
-   "sha256": "c2314f786aafa86153ef8e66aad94803fa9d8d3e3cc8417e046c1ea0596134ee",
+   "bytes": 117813,
+   "sha256": "351588a06c6fd1d00ec2eee1b91c12316fffb28f2881947581001e7a183eb7bb",
    "within_20MB": true
   },
   {
    "file": "js/sparql_examples.js",
    "bytes": 6670,
-   "sha256": "e8f3c824d80d6bfc34e1caf0f1f069dd3370c015bb26e3fbcad7329ae219b476",
+   "sha256": "78c4b2ed656d30a117d9967afae41de66e2c14f3b9ed04a9dd6a323690bb85fa",
    "within_20MB": true
   },
   {
    "file": "js/stats.js",
    "bytes": 1920,
-   "sha256": "8b11273a871bcfaa8e49e640bdca7ec7df0595b0e246e824607620364ae67c33",
+   "sha256": "0315b8d42ff78145d4cc1bff5f7a37cd6e6bcf92d186860821e6efe19a9769e4",
    "within_20MB": true
   },
   {
    "file": "js/vlonto_core_ttl.js",
-   "bytes": 2715433,
-   "sha256": "64eb2eed2191279ecbc78931a001831f22bf0655b3fe6a702f76059831e74190",
+   "bytes": 2715424,
+   "sha256": "0e8a4483d2333e6da4103aad5bfe411cebd94eda1c51980ca308807a95910e74",
    "within_20MB": true
   },
   {
    "file": "js/vlonto_ontology_ttl.js",
-   "bytes": 124882,
-   "sha256": "27f2f142e732640a783b9f48fa5ba7b682b3a73d945ac7238672a87ae58549b3",
+   "bytes": 124873,
+   "sha256": "795945bd0634e1166975617c3f28fc732f8c409188325f19c7b8a41234b7c682",
    "within_20MB": true
   }
  ],

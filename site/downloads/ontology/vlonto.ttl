@@ -785,8 +785,8 @@ vlo:evidenceText a owl:DatatypeProperty ;
 
 vlo:ruleVersion a owl:DatatypeProperty ;
     rdfs:domain vlo:LegalChange ; rdfs:range xsd:string ;
-    rdfs:label "rule version"@en , "phiên bản bộ luật trích xuất"@vi ;
-    skos:definition "The version of the extraction rules that produced a legal change (v7 in VLOnto 0.1.0)."@en ;
+    rdfs:label "rule version"@en , "phiên bản quy tắc trích xuất"@vi ;
+    skos:definition "The version of the extraction rules that produced a legal change, for example v7."@en ;
     rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
 
 vlo:changes a owl:ObjectProperty ;
@@ -1185,7 +1185,7 @@ vlo:shortcutProperty a owl:AnnotationProperty ;
 
 vlo:DocumentTypeScheme a skos:ConceptScheme ;
     rdfs:label "Document types"@en , "Loại văn bản"@vi ;
-    skos:definition "The ten types of normative legal documents in scope of VLOnto 0.1.0."@en ;
+    skos:definition "The ten types of normative legal documents in the scope of VLOnto."@en ;
     vlo:module vlo:module-classification .
 
 vlo:doctype-constitution a vlo:DocumentType , owl:NamedIndividual ; skos:inScheme vlo:DocumentTypeScheme ; skos:topConceptOf vlo:DocumentTypeScheme ;
