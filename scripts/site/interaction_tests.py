@@ -1415,8 +1415,9 @@ JS_TRACE_GEOM = """(sel) => {
   document.querySelectorAll(sel).forEach((svg, fi) => {
     out.figs++;
     const vb = svg.viewBox.baseVal, ink = [];
-    svg.querySelectorAll('circle.tn').forEach(e => ink.push(['node', e.getBBox()]));
-    svg.querySelectorAll('path.tl, path.th2, path.th, path.tc').forEach(e => {
+    // faded background nodes and links (class bg) may sit behind a call-out, as in the paper: not ink
+    svg.querySelectorAll('circle.tn:not(.bg)').forEach(e => ink.push(['node', e.getBBox()]));
+    svg.querySelectorAll('path.tl:not(.bg), path.th2, path.th, path.tc').forEach(e => {
       const b = e.getBBox(), w = (parseFloat(getComputedStyle(e).strokeWidth) || 0) / 2;
       ink.push(['link', { x: b.x - w, y: b.y - w, width: b.width + 2 * w, height: b.height + 2 * w }]);
     });
