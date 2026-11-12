@@ -27,10 +27,21 @@ import base64
 import functools
 import http.server
 import json
+import os
 import sys
 import threading
 import time
 from pathlib import Path
+
+
+# Slow CI runners (GitHub: 4 CPUs, WebGL in SwiftShader) set VLONTO_TIMEOUT_SCALE (scripts/site/ci_check.sh: 4); every
+# wait and screenshot limit is multiplied by it. The assertions are unchanged; on the build node it stays 1.
+TIMEOUT_SCALE = max(1.0, float(os.environ.get("VLONTO_TIMEOUT_SCALE") or 1))
+
+
+def T_(ms: int) -> int:
+    return int(ms * TIMEOUT_SCALE)
+
 
 HERE = Path(__file__).resolve().parent
 SCENES = ("index.html", "network-3d.html")   # WebGL pages (index.html is the 3D ontology playground)
@@ -306,14 +317,15 @@ def check_page(browser, base, page, theme, vp):
     ctx = browser.new_context(viewport={"width": vp[0], "height": vp[1]}, device_scale_factor=dpr, is_mobile=mobile, has_touch=mobile,
                               color_scheme=theme)
     pg = ctx.new_page()
+    pg.set_default_timeout(T_(30000))
     errors = []
     pg.on("pageerror", lambda e: errors.append(str(e)[:200]))
     rec = {"page": page, "theme": theme, "viewport": f"{vp[0]}x{vp[1]}", "text": [], "ui": [], "errors": errors}
     t0 = time.time()
     try:
-        pg.goto(base + page, wait_until="load", timeout=120000)
+        pg.goto(base + page, wait_until="load", timeout=T_(120000))
         if not page.startswith("ontology/"):
-            pg.wait_for_function("window.__VLONTO_READY === true", timeout=240000)
+            pg.wait_for_function("window.__VLONTO_READY === true", timeout=T_(240000))
         pg.wait_for_timeout(2500 if page in SCENES else 900)
         rec["applied"] = pg.evaluate("document.documentElement.getAttribute('data-theme')")
         n = pg.evaluate(INDEX)

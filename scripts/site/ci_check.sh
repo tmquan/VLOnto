@@ -12,6 +12,7 @@
 # contrast check run through ci_pages.py, which appends new pages to their page lists.
 # Usage:  VLONTO_ROOT=<ROOT of ci_setup.sh> VLONTO_PYTHON=<ROOT>/envs/web/bin/python bash scripts/site/ci_check.sh [OUT]
 # Env:    CI_PARALLEL       browser processes at the same time (default 3 here; the preview workflow passes 1 on GitHub's 4-CPU runners)
+#         VLONTO_TIMEOUT_SCALE  multiplies every wait and screenshot limit of the browser checks (default 4 here, 1 elsewhere)
 #         CI_CHECK_TIMEOUT  time limit per check, coreutils syntax (default 120m; the check then exits 124)
 #         TESTS_CORE, TESTS_THEME  as in check.sh;  SITE_BUILD_REPORT  site_build_report.json, if the site was built
 # Output: OUT/{site_check_light,site_check_dark,site_tests/{core,theme,gallery},site_contrast} as $V/build/... on the
@@ -24,6 +25,9 @@ OUT=${1:-${SITE_CHECK_OUT:-$REPO/build/site_check_ci}}
 PY=${VLONTO_PYTHON:-python3}
 PAR=${CI_PARALLEL:-3}
 TMO=${CI_CHECK_TIMEOUT:-120m}
+# GitHub runners draw WebGL with SwiftShader on 4 CPUs: the browser checks wait VLONTO_TIMEOUT_SCALE times longer
+# (screenshots, waits); the assertions are the same as on the build node, where the scale is 1
+export VLONTO_TIMEOUT_SCALE=${VLONTO_TIMEOUT_SCALE:-4}
 CFG=scripts/site/site_check_pages.json
 case "$PAR" in ''|*[!0-9]*|0) echo "CI_PARALLEL must be a positive integer, not '$PAR'" >&2; exit 2 ;; esac
 cd "$REPO" || exit 2

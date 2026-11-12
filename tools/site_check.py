@@ -57,6 +57,7 @@ import hashlib
 import http.server
 import io
 import json
+import os
 import re
 import sys
 import threading
@@ -64,6 +65,16 @@ import time
 import unicodedata
 import urllib.parse
 from pathlib import Path
+
+
+# Slow CI runners (GitHub: 4 CPUs, WebGL in SwiftShader) set VLONTO_TIMEOUT_SCALE (scripts/site/ci_check.sh: 4); every
+# wait and screenshot limit is multiplied by it. The assertions are unchanged; on the build node it stays 1.
+TIMEOUT_SCALE = max(1.0, float(os.environ.get("VLONTO_TIMEOUT_SCALE") or 1))
+
+
+def T_(ms: int) -> int:
+    return int(ms * TIMEOUT_SCALE)
+
 
 HERE = Path(__file__).resolve().parent
 TOLX = 1.0
@@ -655,6 +666,7 @@ def run_one(browser, root: Path, page: str, mode: str, vp, base_http: str, cfg: 
     ctx = browser.new_context(viewport={"width": w, "height": h}, device_scale_factor=2 if mobile else 1,
                               is_mobile=mobile, has_touch=mobile)
     pg = ctx.new_page()
+    pg.set_default_timeout(T_(30000))
     url = (base_http + urllib.parse.quote(page)) if mode == "http" else (root / page).resolve().as_uri()
     root_prefix = base_http if mode == "http" else root.resolve().as_uri().rstrip("/") + "/"
     rec = {"page": page, "mode": mode, "viewport": f"{w}x{h}", "url": url, "failures": [], "warnings": []}
@@ -748,7 +760,7 @@ def run_one(browser, root: Path, page: str, mode: str, vp, base_http: str, cfg: 
             canv.append({**c, "checked": False})
             continue
         try:
-            png = loc.nth(c["index"]).screenshot(timeout=15000)
+            png = loc.nth(c["index"]).screenshot(timeout=T_(15000))
             st = canvas_stats(png)
             cpath = outdir / "canvas" / f"{slug(page)}__{mode}__{w}x{h}__canvas{c['index']}.png"
             cpath.parent.mkdir(parents=True, exist_ok=True)

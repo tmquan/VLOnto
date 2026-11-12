@@ -35,12 +35,23 @@ import functools
 import hashlib
 import http.server
 import json
+import os
 import re
 import sys
 import threading
 import time
 import urllib.parse
 from pathlib import Path
+
+
+# Slow CI runners (GitHub: 4 CPUs, WebGL in SwiftShader) set VLONTO_TIMEOUT_SCALE (scripts/site/ci_check.sh: 4); every
+# wait and screenshot limit is multiplied by it. The assertions are unchanged; on the build node it stays 1.
+TIMEOUT_SCALE = max(1.0, float(os.environ.get("VLONTO_TIMEOUT_SCALE") or 1))
+
+
+def T_(ms: int) -> int:
+    return int(ms * TIMEOUT_SCALE)
+
 
 HERE = Path(__file__).resolve().parent
 
@@ -75,7 +86,7 @@ class Ctx:
             return self.base_http + path + query + (("#" + frag) if frag else "")
         return (self.root / path).resolve().as_uri() + query + (("#" + frag) if frag else "")
 
-    def open(self, page: str, ready_timeout=180000, ready=True, scheme="light", query="", init_script=None, permissions=None):
+    def open(self, page: str, ready_timeout=T_(180000), ready=True, scheme="light", query="", init_script=None, permissions=None):
         """New browser context per page: scheme = the emulated system setting (prefers-color-scheme), which is the
         site's default theme when nothing was chosen; query e.g. '?theme=dark'; init_script runs before page scripts."""
         ctx = self.browser.new_context(viewport={"width": self.vp[0], "height": self.vp[1]}, device_scale_factor=2 if self.mobile else 1,
@@ -85,6 +96,7 @@ class Ctx:
         if init_script:
             ctx.add_init_script(init_script)
         pg = ctx.new_page()
+        pg.set_default_timeout(T_(30000))
         log = {"console_errors": [], "page_errors": [], "failed_requests": [], "external_requests": []}
         root_prefix = self.base_http if self.mode == "http" else self.root.resolve().as_uri().rstrip("/") + "/"
         pg.on("console", lambda m: log["console_errors"].append(m.text[:300]) if m.type == "error" else None)
@@ -99,7 +111,7 @@ class Ctx:
             log["external_requests"].append(u[:160])
         pg.on("request", on_req)
         t0 = time.time()
-        pg.goto(self.url(page, query), wait_until="load", timeout=120000)
+        pg.goto(self.url(page, query), wait_until="load", timeout=T_(120000))
         if ready:
             pg.wait_for_function("window.__VLONTO_READY === true", timeout=ready_timeout)
         log["ready_s"] = round(time.time() - t0, 2)
@@ -138,7 +150,7 @@ def no_hscroll(c, pg, where: str):
     return w
 
 
-def panel_has(pg, *texts, timeout=30000):
+def panel_has(pg, *texts, timeout=T_(30000)):
     js = "(t) => { const p = document.getElementById('panel'); return !!p && !p.classList.contains('hidden') && t.every(x => p.textContent.includes(x)); }"
     pg.wait_for_function(js, arg=list(texts), timeout=timeout)
     return True
@@ -161,7 +173,7 @@ def t_ontology(c: Ctx):
 
     def search_article():
         pg.fill(sel, "Article")
-        pg.wait_for_selector(("#onto-suggest-m" if c.mobile else "#onto-suggest") + " li[role=option]", timeout=10000)
+        pg.wait_for_selector(("#onto-suggest-m" if c.mobile else "#onto-suggest") + " li[role=option]", timeout=T_(10000))
         first = pg.inner_text(("#onto-suggest-m" if c.mobile else "#onto-suggest") + " li[role=option]")
         pg.press(sel, "Enter")
         panel_has(pg, "Article", "Điều")
@@ -173,7 +185,7 @@ def t_ontology(c: Ctx):
     def search_dieu():
         pg.keyboard.press("Escape")
         pg.fill(sel, "Điều")
-        pg.wait_for_selector(("#onto-suggest-m" if c.mobile else "#onto-suggest") + " li[role=option]", timeout=10000)
+        pg.wait_for_selector(("#onto-suggest-m" if c.mobile else "#onto-suggest") + " li[role=option]", timeout=T_(10000))
         first = pg.inner_text(("#onto-suggest-m" if c.mobile else "#onto-suggest") + " li[role=option]").split("\n")[0]
         pg.press(sel, "Enter")
         panel_has(pg, "Article")
@@ -213,7 +225,7 @@ def t_ontology(c: Ctx):
                     continue
                 pg.mouse.click(p["x"], p["y"])
             try:
-                pg.wait_for_function("id => window.__VLONTO_METRICS.selected === id", arg=cid, timeout=8000)
+                pg.wait_for_function("id => window.__VLONTO_METRICS.selected === id", arg=cid, timeout=T_(8000))
             except Exception:  # noqa
                 tried.append([cid, f"selected {pg.evaluate('window.__VLONTO_METRICS.selected')}"])
                 continue
@@ -228,11 +240,11 @@ def t_ontology(c: Ctx):
         pg.evaluate("() => { const a = document.activeElement; if (a && a.blur) a.blur(); const x = document.querySelector('[data-act=close]'); if (x) x.click(); window.scrollTo(0, 0); }")
         pg.wait_for_timeout(300)
         pg.click("#btn-query-m" if c.mobile else "#btn-query")
-        pg.wait_for_function("window.__VLONTO_METRICS.storeTriples > 0", timeout=60000)
+        pg.wait_for_function("window.__VLONTO_METRICS.storeTriples > 0", timeout=T_(60000))
         no_hscroll(c, pg, "query drawer open")
         pg.select_option("#qd-example", "c0")
         pg.click("#qd-run")
-        pg.wait_for_function("(window.__VLONTO_METRICS.view || '').indexOf('construct') === 0", timeout=60000)
+        pg.wait_for_function("(window.__VLONTO_METRICS.view || '').indexOf('construct') === 0", timeout=T_(60000))
         pg.wait_for_timeout(2500)
         m = M()
         st = pg.evaluate("window.VLApp.state()")
@@ -241,7 +253,7 @@ def t_ontology(c: Ctx):
             raise RuntimeError(f"graph did not change: {m.get('constructTriples')} triples, nodes {st['nodes']} vs {base_nodes}")
         status = pg.inner_text("#qd-status")
         pg.click("#qd-back")
-        pg.wait_for_function("window.__VLONTO_METRICS.view === 'ontology'", timeout=20000)
+        pg.wait_for_function("window.__VLONTO_METRICS.view === 'ontology'", timeout=T_(20000))
         back = pg.evaluate("window.VLApp.state()")
         return {"triples": m.get("constructTriples"), "nodes_before": base_nodes, "nodes_after": st["nodes"], "links_after": st["links"],
                 "nodes_back": back["nodes"], "store_triples": m.get("storeTriples"), "status": status[:200], "shot": shot}
@@ -250,7 +262,7 @@ def t_ontology(c: Ctx):
     def select_in_drawer():
         pg.select_option("#qd-example", "s0")
         pg.click("#qd-run")
-        pg.wait_for_function("window.__VLONTO_METRICS.lastQuery && window.__VLONTO_METRICS.lastQuery.form === 'SELECT'", timeout=30000)
+        pg.wait_for_function("window.__VLONTO_METRICS.lastQuery && window.__VLONTO_METRICS.lastQuery.form === 'SELECT'", timeout=T_(30000))
         lq = M()["lastQuery"]
         rows = pg.evaluate("document.querySelectorAll('#qd-result table tbody tr').length")
         if lq.get("count") != 1 or rows != 1:
@@ -262,12 +274,12 @@ def t_ontology(c: Ctx):
         pg.click("[data-cm=replace]")
         pg.select_option("#qd-example", "c4")
         pg.click("#qd-run")
-        pg.wait_for_function("window.__VLONTO_METRICS.view === 'construct-replace'", timeout=30000)
+        pg.wait_for_function("window.__VLONTO_METRICS.view === 'construct-replace'", timeout=T_(30000))
         pg.wait_for_timeout(2000)
         st = pg.evaluate("window.VLApp.state()")
         shot = c.shot(pg, "ontology3d_construct_replace")
         pg.click("#qd-back")
-        pg.wait_for_function("window.__VLONTO_METRICS.view === 'ontology'", timeout=20000)
+        pg.wait_for_function("window.__VLONTO_METRICS.view === 'ontology'", timeout=T_(20000))
         pg.click("#qd-close")
         return {"nodes": st["nodes"], "links": st["links"], "shot": shot}
     check("CONSTRUCT in replace mode (class hierarchy) and back", construct_replace)
@@ -305,7 +317,7 @@ def t_ontology(c: Ctx):
 
 def t_network(c: Ctx):
     res = {"test": "network-3d", "checks": []}
-    ctx, pg, log = c.open("network-3d.html", ready_timeout=240000)
+    ctx, pg, log = c.open("network-3d.html", ready_timeout=T_(240000))
     M = lambda: pg.evaluate("window.__VLONTO_METRICS")
     sel = "#net-search-m" if c.mobile else "#net-search"
 
@@ -349,11 +361,11 @@ def t_network(c: Ctx):
     def search():
         pg.fill(sel, "45/2019/QH14")
         lst = "#net-suggest-m" if c.mobile else "#net-suggest"
-        pg.wait_for_selector(lst + " li[role=option]", timeout=15000)
+        pg.wait_for_selector(lst + " li[role=option]", timeout=T_(15000))
         first = pg.inner_text(lst + " li[role=option]").split("\n")[0]
         pg.press(sel, "Enter")
         panel_has(pg, "Bộ luật Lao động")
-        pg.wait_for_function("window.__VLONTO_METRICS.panelLoaded === '333670'", timeout=60000)
+        pg.wait_for_function("window.__VLONTO_METRICS.panelLoaded === '333670'", timeout=T_(60000))
         panel_has(pg, "10/2012/QH13", "Replacement chain")
         no_hscroll(c, pg, "document panel open")
         pg.wait_for_timeout(1500)
@@ -382,7 +394,7 @@ def t_network(c: Ctx):
     def chain_click():
         pg.click("#panel button.linkish[data-doc='142187']")
         panel_has(pg, "10/2012/QH13")
-        pg.wait_for_function("window.__VLONTO_METRICS.panelLoaded === '142187'", timeout=30000)
+        pg.wait_for_function("window.__VLONTO_METRICS.panelLoaded === '142187'", timeout=T_(30000))
         txt = pg.evaluate("document.getElementById('panel').innerText")
         warn = "No longer in force" in txt or "Superseded" in txt
         if not warn:
@@ -423,7 +435,7 @@ def t_network(c: Ctx):
         pg.click(f"[data-ds={other}]")
         if c.mobile:
             pg.click("#btn-side-m")
-        pg.wait_for_function("ds => window.__VLONTO_METRICS.dataset === ds", arg=other, timeout=180000)
+        pg.wait_for_function("ds => window.__VLONTO_METRICS.dataset === ds", arg=other, timeout=T_(180000))
         pg.wait_for_timeout(1000)
         f = pg.evaluate("ms => window.VLApp.measureFps(ms)", 3000)
         m = M()
@@ -456,7 +468,7 @@ def t_sparql(c: Ctx, examples):
 
     def construct():
         pg.click("[data-ex=c0]")
-        pg.wait_for_function("window.__VLONTO_METRICS.constructDrawn && window.__VLONTO_METRICS.constructDrawn.nodes > 0", timeout=60000)
+        pg.wait_for_function("window.__VLONTO_METRICS.constructDrawn && window.__VLONTO_METRICS.constructDrawn.nodes > 0", timeout=T_(60000))
         pg.wait_for_timeout(2500)
         m = pg.evaluate("window.__VLONTO_METRICS")
         pg.evaluate("document.getElementById('graph-wrap').scrollIntoView()")
@@ -474,8 +486,8 @@ def t_sparql(c: Ctx, examples):
 
     def csv():
         pg.evaluate("window.VLApp.runExample('s1')")
-        pg.wait_for_function("window.__VLONTO_METRICS.lastQuery && window.__VLONTO_METRICS.lastQuery.count === 27", timeout=30000)
-        with pg.expect_download(timeout=20000) as d:
+        pg.wait_for_function("window.__VLONTO_METRICS.lastQuery && window.__VLONTO_METRICS.lastQuery.count === 27", timeout=T_(30000))
+        with pg.expect_download(timeout=T_(20000)) as d:
             pg.click("#btn-csv")
         dl = d.value
         path = dl.path()
@@ -662,10 +674,10 @@ def t_simple(c: Ctx, root: Path):
     # with wait_until=commit: the stub replaces itself while it loads, which would interrupt a goto waiting for 'load'.
     ctx, pg, log = c.open("about.html")
     try:
-        pg.goto(c.url("ontology-3d.html#class=vlo:Article"), wait_until="commit", timeout=60000)
-        pg.wait_for_url(re.compile(r".*/index\.html(\?[^#]*)?#class=vlo:Article$"), timeout=30000)
-        pg.wait_for_function("window.__VLONTO_READY === true", timeout=180000)
-        pg.wait_for_function("window.__VLONTO_METRICS.selected === 'vlo:Article'", timeout=60000)
+        pg.goto(c.url("ontology-3d.html#class=vlo:Article"), wait_until="commit", timeout=T_(60000))
+        pg.wait_for_url(re.compile(r".*/index\.html(\?[^#]*)?#class=vlo:Article$"), timeout=T_(30000))
+        pg.wait_for_function("window.__VLONTO_READY === true", timeout=T_(180000))
+        pg.wait_for_function("window.__VLONTO_METRICS.selected === 'vlo:Article'", timeout=T_(60000))
         red = {"pass": True, "details": {"landed": pg.url[-60:], "selected": pg.evaluate("window.__VLONTO_METRICS.selected")}}
     except Exception as e:  # noqa
         red = {"pass": False, "details": {"error": str(e)[:400], "url": pg.url[-80:]}}
@@ -851,7 +863,7 @@ def region_mode(pg, sel, w=480, h=300):
 
 def click_theme(pg, want):
     pg.locator(".vl-header .vl-theme-btn").click()
-    pg.wait_for_function("(t) => document.documentElement.getAttribute('data-theme') === t", arg=want, timeout=15000)
+    pg.wait_for_function("(t) => document.documentElement.getAttribute('data-theme') === t", arg=want, timeout=T_(15000))
 
 
 def nav_to(c, pg, href):
@@ -859,9 +871,9 @@ def nav_to(c, pg, href):
     if c.mobile:
         pg.locator(".vl-menu-btn").click()
         pg.wait_for_timeout(250)
-    with pg.expect_navigation(wait_until="load", timeout=120000):
+    with pg.expect_navigation(wait_until="load", timeout=T_(120000)):
         pg.locator(f'#vl-nav a[href^="{href}"]').first.click()
-    pg.wait_for_function("window.__VLONTO_READY === true", timeout=180000)
+    pg.wait_for_function("window.__VLONTO_READY === true", timeout=T_(180000))
 
 
 def doc_frame(pg):
@@ -921,11 +933,11 @@ def t_theme(c: Ctx):
 
     def toggle_page(page):
         def fn():
-            ctx, pg, log = c.open(page, scheme="light", ready_timeout=240000)
+            ctx, pg, log = c.open(page, scheme="light", ready_timeout=T_(240000))
             try:
                 if page == "sparql.html":    # draw a CONSTRUCT result so the 3D view is part of the switch
                     pg.locator("#ex-construct button").first.click()
-                    pg.wait_for_function("!!window.__VLONTO_METRICS.constructDrawn", timeout=120000)
+                    pg.wait_for_function("!!window.__VLONTO_METRICS.constructDrawn", timeout=T_(120000))
                     pg.wait_for_timeout(1500)
                 pg.wait_for_timeout(1500 if page in SCENES else 400)
                 s0 = pg.evaluate(JS_THEME)
@@ -970,7 +982,7 @@ def t_theme(c: Ctx):
                 nav_to(c, pg, "dashboard.html")
                 a = pg.evaluate(JS_THEME)
                 pg.reload(wait_until="load")
-                pg.wait_for_function("window.__VLONTO_READY === true", timeout=120000)
+                pg.wait_for_function("window.__VLONTO_READY === true", timeout=T_(120000))
                 b = pg.evaluate(JS_THEME)
                 click_theme(pg, "light")
                 nav_to(c, pg, "playbook.html")
@@ -992,7 +1004,7 @@ def t_theme(c: Ctx):
         try:
             a = pg.evaluate(JS_THEME)
             pg.emulate_media(color_scheme="light")
-            pg.wait_for_function("document.documentElement.getAttribute('data-theme') === 'light'", timeout=10000)
+            pg.wait_for_function("document.documentElement.getAttribute('data-theme') === 'light'", timeout=T_(10000))
             click_theme(pg, "dark")
             pg.emulate_media(color_scheme="light")
             pg.wait_for_timeout(400)
@@ -1023,13 +1035,13 @@ def t_theme(c: Ctx):
         ctx, pg, log = c.open("ontology.html", scheme="light")
         try:
             f = doc_frame(pg)
-            f.wait_for_function("document.documentElement.getAttribute('data-theme') === 'light'", timeout=15000)
+            f.wait_for_function("document.documentElement.getAttribute('data-theme') === 'light'", timeout=T_(15000))
             click_theme(pg, "dark")
-            f.wait_for_function("document.documentElement.getAttribute('data-theme') === 'dark'", timeout=15000)
+            f.wait_for_function("document.documentElement.getAttribute('data-theme') === 'dark'", timeout=T_(15000))
             bg = f.evaluate("getComputedStyle(document.body).backgroundColor")
             f.locator(".vl-theme-btn").click()
-            pg.wait_for_function("document.documentElement.getAttribute('data-theme') === 'light'", timeout=15000)
-            f.wait_for_function("document.documentElement.getAttribute('data-theme') === 'light'", timeout=15000)
+            pg.wait_for_function("document.documentElement.getAttribute('data-theme') === 'light'", timeout=T_(15000))
+            f.wait_for_function("document.documentElement.getAttribute('data-theme') === 'light'", timeout=T_(15000))
             return {"frame_dark_bg": bg, "frame_toggle_switched_page": True}
         finally:
             merge(log)
@@ -1039,10 +1051,10 @@ def t_theme(c: Ctx):
     def doc_standalone():
         ctx, pg, log = c.open("ontology/vlonto.html", scheme="dark", ready=False)
         try:
-            pg.wait_for_function("!!window.__VLONTO_DOC_THEME", timeout=30000)
+            pg.wait_for_function("!!window.__VLONTO_DOC_THEME", timeout=T_(30000))
             a = pg.evaluate("document.documentElement.getAttribute('data-theme')")
             pg.locator(".vl-theme-btn").click()
-            pg.wait_for_function("document.documentElement.getAttribute('data-theme') === 'light'", timeout=10000)
+            pg.wait_for_function("document.documentElement.getAttribute('data-theme') === 'light'", timeout=T_(10000))
             st = pg.evaluate("(() => { try { return localStorage.getItem('vlonto.theme'); } catch (e) { return 'blocked'; } })()")
             if a != "dark" or st != "light":
                 raise RuntimeError(f"pyLODE page default {a}, stored after toggle {st}")
@@ -1083,7 +1095,7 @@ def t_paper(c: Ctx):
     def links():
         found, prob = {}, []
         for page in SITE_PAGES + ["ontology/vlonto.html"]:
-            ctx, pg, log = c.open(page, ready=not page.startswith("ontology/"), ready_timeout=240000)
+            ctx, pg, log = c.open(page, ready=not page.startswith("ontology/"), ready_timeout=T_(240000))
             try:
                 if page.startswith("ontology/"):
                     pg.wait_for_timeout(800)
@@ -1126,14 +1138,14 @@ def t_paper(c: Ctx):
         def fn():
             init = NO_CLIPBOARD if variant == "fallback" else None
             perms = ["clipboard-read", "clipboard-write"] if variant == "clipboard" else None
-            ctx, pg, log = c.open(page, init_script=init, permissions=perms, ready_timeout=180000)
+            ctx, pg, log = c.open(page, init_script=init, permissions=perms, ready_timeout=T_(180000))
             try:
                 if page == "index.html":
                     open_side(pg)
                 btn = pg.locator("[data-copy-bib]").first
                 btn.scroll_into_view_if_needed()
                 btn.click()
-                pg.wait_for_function("!!window.__VLONTO_METRICS.lastCopy", timeout=10000)
+                pg.wait_for_function("!!window.__VLONTO_METRICS.lastCopy", timeout=T_(10000))
                 pg.wait_for_timeout(200)
                 how = pg.evaluate("window.__VLONTO_METRICS.lastCopy")
                 got = None
@@ -1271,7 +1283,7 @@ def callout_faults(co):
     return faults
 
 
-def wait_callouts(pg, after_runs=0, must_id=None, timeout=15000):
+def wait_callouts(pg, after_runs=0, must_id=None, timeout=T_(15000)):
     """wait for a placement run newer than after_runs (with must_id: one that shows that call-out); returns the run"""
     pg.wait_for_function("""(a) => { const c = window.__VLONTO_METRICS.callouts;
         return !!c && c.runs > a.runs && (!a.id || c.placed.some(p => p.id === a.id)); }""", arg={"runs": after_runs, "id": must_id}, timeout=timeout)
@@ -1367,7 +1379,7 @@ def t_paper_style(c: Ctx):
                 before = trace_pixels(pg, "#canvas-host", theme)
                 runs = co0["runs"]
                 pg.evaluate("() => window.VLApp.select('vlo:Article')")
-                pg.wait_for_function("window.__VLONTO_METRICS.selected === 'vlo:Article' && window.__VLONTO_METRICS.traceSegments > 0", timeout=15000)
+                pg.wait_for_function("window.__VLONTO_METRICS.selected === 'vlo:Article' && window.__VLONTO_METRICS.traceSegments > 0", timeout=T_(15000))
                 pg.wait_for_timeout(1800)
                 co1 = wait_callouts(pg, runs, "vlo:Article")
                 faults = callout_faults(co1)
@@ -1384,7 +1396,7 @@ def t_paper_style(c: Ctx):
                 # other links are thin coloured lines; hovering a neighbour traces its link and keeps its call-out
                 r0 = pg.evaluate("window.__VLONTO_METRICS.callouts.runs")
                 pg.evaluate("() => window.VLApp.select('vlo:NormativeLegalDocument')")
-                pg.wait_for_function("window.__VLONTO_METRICS.selected === 'vlo:NormativeLegalDocument'", timeout=15000)
+                pg.wait_for_function("window.__VLONTO_METRICS.selected === 'vlo:NormativeLegalDocument'", timeout=T_(15000))
                 pg.wait_for_timeout(1800)
                 co2 = wait_callouts(pg, r0, "vlo:NormativeLegalDocument")
                 faults = callout_faults(co2)
@@ -1425,16 +1437,16 @@ def t_paper_style(c: Ctx):
         check(f"playground ({theme}): tokens, Libertinus, legend row; call-outs clear of ink and of each other; selecting Article traces its chain, a hover traces a link", playground)
 
         def network(theme=theme):
-            ctx, pg, log = c.open("network-3d.html", scheme=theme, ready_timeout=240000)
+            ctx, pg, log = c.open("network-3d.html", scheme=theme, ready_timeout=T_(240000))
             try:
                 got = pg.evaluate(JS_PAPER, None)
                 tokens_ok(got, theme, "network-3d.html")
                 before = trace_pixels(pg, "#canvas-host", theme)
                 runs = (pg.evaluate(JS_CALLOUTS) or {}).get("runs", 0)
                 pg.evaluate("() => window.VLApp.selectById('333670')")
-                pg.wait_for_function("window.__VLONTO_METRICS.panelLoaded === '333670' && window.__VLONTO_METRICS.chainTraceDocs >= 2", timeout=120000)
+                pg.wait_for_function("window.__VLONTO_METRICS.panelLoaded === '333670' && window.__VLONTO_METRICS.chainTraceDocs >= 2", timeout=T_(120000))
                 pg.wait_for_timeout(1800)
-                co1 = wait_callouts(pg, runs, "doc-333670", timeout=60000)
+                co1 = wait_callouts(pg, runs, "doc-333670", timeout=T_(60000))
                 faults = callout_faults(co1)
                 if faults:
                     raise RuntimeError("45/2019/QH14 selected: " + "; ".join(faults))
@@ -1452,7 +1464,7 @@ def t_paper_style(c: Ctx):
                 hovered = pg.evaluate("() => window.VLApp.hoverDoc('142187')")
                 if not hovered:
                     raise RuntimeError("hovering 10/2012/QH13 traced no link")
-                co2 = wait_callouts(pg, r0, "doc-142187", timeout=60000)
+                co2 = wait_callouts(pg, r0, "doc-142187", timeout=T_(60000))
                 faults = callout_faults(co2)
                 if faults:
                     raise RuntimeError("10/2012/QH13 hovered: " + "; ".join(faults))
@@ -1474,7 +1486,7 @@ def t_paper_style(c: Ctx):
             ctx, pg, log = c.open("sparql.html", scheme=theme)
             try:
                 pg.locator("#ex-construct button").first.click()
-                pg.wait_for_function("!!window.__VLONTO_METRICS.constructDrawn && !!window.__VLONTO_METRICS.callouts", timeout=120000)
+                pg.wait_for_function("!!window.__VLONTO_METRICS.constructDrawn && !!window.__VLONTO_METRICS.callouts", timeout=T_(120000))
                 pg.wait_for_timeout(2000)
                 got = pg.evaluate(JS_PAPER, "#graph-wrap")
                 tokens_ok(got, theme, "sparql.html #graph-wrap")
@@ -1613,7 +1625,7 @@ def t_traces(c: Ctx):
             raise RuntimeError(f"{where}: {json.dumps(g, ensure_ascii=False)[:900]}")
         return {k: g[k] for k in ("figs", "boxes", "texts", "ink")}
 
-    ctx, pg, log = c.open("traces.html", ready_timeout=180000)
+    ctx, pg, log = c.open("traces.html", ready_timeout=T_(180000))
     try:
         def tabs():
             s = pg.evaluate(JS_TRACE_STATE)
@@ -1639,13 +1651,13 @@ def t_traces(c: Ctx):
             pg.keyboard.press("ArrowRight")
             nxt = ids[(i + 1) % len(ids)]
             pg.wait_for_function("(id) => { const T = window.__VLONTO_METRICS.traces; return T.area === id && document.querySelectorAll('#tr-panel .tr-card').length === 20; }",
-                                 arg=nxt, timeout=60000)
+                                 arg=nxt, timeout=T_(60000))
             s1 = pg.evaluate(JS_TRACE_STATE)
             pg.keyboard.press("End")
-            pg.wait_for_function("(id) => window.__VLONTO_METRICS.traces.area === id", arg=ids[-1], timeout=60000)
+            pg.wait_for_function("(id) => window.__VLONTO_METRICS.traces.area === id", arg=ids[-1], timeout=T_(60000))
             pg.keyboard.press("Home")
             pg.wait_for_function("(id) => window.__VLONTO_METRICS.traces.area === id && document.querySelectorAll('#tr-panel .tr-card').length === 20",
-                                 arg=ids[0], timeout=60000)
+                                 arg=ids[0], timeout=T_(60000))
             s2 = pg.evaluate(JS_TRACE_STATE)
             if s1["active"] != f"tr-tab-{nxt}" or s1["selected"] != [nxt] or len(s1["loaded"]) < 2 or s2["active"] != f"tr-tab-{ids[0]}" or "#area=" not in s2["hash"]:
                 raise RuntimeError(f"after ArrowRight {s1}; after End/Home {s2}")
@@ -1689,7 +1701,7 @@ def t_traces(c: Ctx):
         def focus_keyboard():
             pg.focus("#tr-panel .tr-card .tc-open")
             pg.keyboard.press("Enter")
-            pg.wait_for_function("() => { const f = window.__VLONTO_METRICS.traces.focus; return f && f.open; }", timeout=30000)
+            pg.wait_for_function("() => { const f = window.__VLONTO_METRICS.traces.focus; return f && f.open; }", timeout=T_(30000))
             st = pg.evaluate("""() => { const d = document.getElementById('tr-focus-dialog'), w = document.getElementById('tr-focus');
                 return { visible: !w.hidden && d.getBoundingClientRect().height > 0, role: d.getAttribute('role'), modal: d.getAttribute('aria-modal'),
                   closeFocused: document.activeElement && document.activeElement.classList.contains('tf-close'), hops: d.querySelectorAll('.hop').length,
@@ -1705,7 +1717,7 @@ def t_traces(c: Ctx):
                 pg.keyboard.press("Tab")
             inside = pg.evaluate("() => !!document.activeElement.closest('#tr-focus-dialog')")
             pg.keyboard.press("Escape")
-            pg.wait_for_function("() => { const f = window.__VLONTO_METRICS.traces.focus; return f && !f.open; }", timeout=10000)
+            pg.wait_for_function("() => { const f = window.__VLONTO_METRICS.traces.focus; return f && !f.open; }", timeout=T_(10000))
             after = pg.evaluate("() => ({ hidden: document.getElementById('tr-focus').hidden, active: document.activeElement && document.activeElement.className, hash: location.hash })")
             if not inside or not after["hidden"] or "tc-open" not in (after["active"] or "") or "q=" in after["hash"]:
                 raise RuntimeError(f"focus trap {inside}; after Escape {after}")
@@ -1718,9 +1730,9 @@ def t_traces(c: Ctx):
     # deep link and screenshots, per theme (emulated system setting)
     for theme in c.themes:
         def deep(theme=theme):
-            ctx, pg, log = c.open("traces.html#area=lao-dong-tien-luong&q=3", scheme=theme, ready_timeout=180000)
+            ctx, pg, log = c.open("traces.html#area=lao-dong-tien-luong&q=3", scheme=theme, ready_timeout=T_(180000))
             try:
-                pg.wait_for_function("() => { const f = window.__VLONTO_METRICS.traces.focus; return f && f.open; }", timeout=60000)
+                pg.wait_for_function("() => { const f = window.__VLONTO_METRICS.traces.focus; return f && f.open; }", timeout=T_(60000))
                 f = pg.evaluate("window.__VLONTO_METRICS.traces.focus")
                 applied = pg.evaluate("document.documentElement.getAttribute('data-theme')")
                 if f["area"] != "lao-dong-tien-luong" or f["rank"] != 3 or applied != theme:
@@ -1728,7 +1740,7 @@ def t_traces(c: Ctx):
                 g = geom(pg, "#tr-focus-dialog svg.tr-fig", "focus view (deep link)")
                 focus_shot = c.shot(pg, f"traces_focus__{theme}")
                 pg.keyboard.press("Escape")
-                pg.wait_for_function("() => !window.__VLONTO_METRICS.traces.focus.open", timeout=10000)
+                pg.wait_for_function("() => !window.__VLONTO_METRICS.traces.focus.open", timeout=T_(10000))
                 pg.evaluate("() => window.scrollTo(0, 0)")
                 pg.wait_for_timeout(300)
                 top_shot = c.shot(pg, f"traces_top__{theme}")
@@ -1756,7 +1768,7 @@ def t_gallery(c: Ctx):
     shots = []
     for theme in c.themes:
       for page in GALLERY:
-        ctx, pg, log = c.open(page, ready=not page.startswith("ontology/"), scheme=theme, ready_timeout=240000)
+        ctx, pg, log = c.open(page, ready=not page.startswith("ontology/"), scheme=theme, ready_timeout=T_(240000))
         pg.wait_for_timeout(2500 if page in SCENES else 800)
         pg.evaluate("() => window.scrollTo(0, 0)")
         pg.wait_for_timeout(300)
