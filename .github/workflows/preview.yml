@@ -1,0 +1,74 @@
+# Runs the website's own browser checks - those of the node's release job, scripts/site/check.sh - on preview
+# branches, so a change can be tested in headless Chrome before it is merged into main and published by pages.yml:
+#   site_check in light and dark (every page of scripts/site/site_check_pages.json x http/file x 1440x900/390x844),
+#   the interaction tests (core, theme, gallery), the WCAG contrast check and the merged report (make_report.py).
+# Trigger: push to a branch named preview/<anything>, or run it by hand (Actions > preview-site-check > Run workflow;
+# the manual run needs this file on the default branch). The job fails when any check fails; screenshots, gallery
+# images, logs and the JSON/Markdown reports are uploaded as the artifact site-check-<run id> (kept 14 days), and the
+# summary table is shown on the run page. Toolchain from the repo's pins: CPython of tools/versions.lock, the test
+# packages of tools/requirements-web.lock (hash-checked), the pinned chrome-headless-shell (sha256) run through
+# tools/chrome.sh. Details: docs/ci_preview.md, scripts/site/ci_setup.sh, scripts/site/ci_check.sh.
+# Actions are pinned to the commit SHAs of the tags named in the comments.
+name: preview-site-check
+
+on:
+  push:
+    branches: ['preview/**']
+  workflow_dispatch:
+    inputs:
+      parallel:
+        description: Checks (browser processes) run at the same time; the node ran all 6, 1 rules out load-related timeouts
+        type: choice
+        options: ['3', '1', '2', '4', '6']
+        default: '3'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: preview-site-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  site-check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    env:
+      CI_PARALLEL: ${{ inputs.parallel || '3' }}
+      CI_CHECK_TIMEOUT: 120m
+      PYTHONUNBUFFERED: '1'
+      TZ: UTC
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Read the pinned Python version (tools/versions.lock)
+        id: pins
+        run: |
+          v=$(sed -n 's/^PYTHON_VERSION=\([0-9.]*\).*/\1/p' tools/versions.lock)
+          test -n "$v"
+          echo "python=$v" >> "$GITHUB_OUTPUT"
+          echo "SITE_CHECK_OUT=$RUNNER_TEMP/site-check" >> "$GITHUB_ENV"
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ steps.pins.outputs.python }}
+      - name: Install Playwright (lock) and the pinned chrome-headless-shell
+        run: bash scripts/site/ci_setup.sh "$RUNNER_TEMP/vlonto"
+      - name: Run the site checks
+        timeout-minutes: 285
+        run: bash scripts/site/ci_check.sh "$SITE_CHECK_OUT"
+      - name: Upload screenshots and reports
+        id: upload
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: site-check-${{ github.run_id }}
+          path: ${{ runner.temp }}/site-check
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Write the job summary
+        if: always()
+        continue-on-error: true
+        env:
+          ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
+        run: python3 scripts/site/ci_summary.py --out "$SITE_CHECK_OUT" --append "$GITHUB_STEP_SUMMARY" --artifact-url "$ARTIFACT_URL"
