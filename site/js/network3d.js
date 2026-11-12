@@ -61,11 +61,11 @@
   var FOG = { value: new THREE.Vector3(1, 1e6, 0) };
   var PT_VS = [
     'attribute vec3 aColor; attribute float aAlpha; attribute float aSize;',
-    'uniform float uScale; varying vec3 vColor; varying float vAlpha; varying float vDepth;',
+    'uniform float uScale; uniform vec3 uFog; varying vec3 vColor; varying float vAlpha; varying float vFog;',
     'void main() {',
     '  vColor = aColor; vAlpha = aAlpha;',
     '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
-    '  vDepth = -mv.z;',
+    '  vFog = clamp((-mv.z - uFog.x) / max(1.0, uFog.y - uFog.x), 0.0, 1.0) * uFog.z;',
     '  float s = aSize * uScale / max(1.0, -mv.z);',
     '  gl_PointSize = aAlpha < 0.01 ? 0.0 : clamp(s, 2.0, 56.0);',
     '  gl_Position = projectionMatrix * mv;',
@@ -73,26 +73,110 @@
   /* a soft pastel sphere like the paper's nodes: lit from the upper left, a thin rim 16 % darker, fading to the ground
      with depth and outside the highlight (vAlpha) */
   var PT_FS = [
-    'uniform vec3 uBg; uniform vec3 uFog; uniform float uRim; varying vec3 vColor; varying float vAlpha; varying float vDepth;',
+    'uniform vec3 uBg; uniform float uRim; varying vec3 vColor; varying float vAlpha; varying float vFog;',
     'void main() {',
     '  vec2 c = gl_PointCoord - vec2(0.5); float r = length(c) * 2.0;',
     '  if (r > 1.0 || vAlpha < 0.01) discard;',
     '  vec3 n = vec3(c.x * 2.0, -c.y * 2.0, sqrt(max(0.0, 1.0 - r * r)));',
     '  vec3 col = vColor * (0.86 + 0.2 * dot(n, vec3(-0.45, 0.55, 0.70)));',
     '  col = mix(col, vColor * uRim, smoothstep(0.76, 0.96, r));',
-    '  float f = clamp((vDepth - uFog.x) / max(1.0, uFog.y - uFog.x), 0.0, 1.0) * uFog.z;',
-    '  gl_FragColor = vec4(mix(uBg, mix(col, uBg, f), vAlpha), 1.0);',
+    '  gl_FragColor = vec4(mix(uBg, mix(col, uBg, vFog), vAlpha), 1.0);',
     '}'].join('\n');
-  var LN_VS = [
-    'attribute vec3 aColor; attribute float aAlpha; varying vec3 vColor; varying float vAlpha; varying float vDepth;',
-    'void main() { vColor = aColor; vAlpha = aAlpha; vec4 mv = modelViewMatrix * vec4(position, 1.0); vDepth = -mv.z; gl_Position = projectionMatrix * mv; }'].join('\n');
-  var LN_FS = [
-    'uniform float uOpacity; uniform vec3 uFog; varying vec3 vColor; varying float vAlpha; varying float vDepth;',
+  /* links as smooth curves, drawn as the traces draw theirs (js/trace-draw.js TD.curve): a cubic Bezier with tangents
+     along the legal-force axis at both ends, control points at 45 % of the height difference (Sankey-like S-curves
+     between layers). A link within one layer would be straight that way, so it is lifted into a soft arch above its
+     plane (lift = BEND x horizontal length, at most LIFT_MAX = 40 % of a layer gap; fading out over one layer gap of
+     height difference). The vertex shader evaluates the curve from the two endpoints of each link: one instanced draw
+     per link kind with a shared strip of SEG + 1 points (t) and the endpoints, alpha (filters) and, for mixed kinds,
+     the colour as per-link attributes. curvePoint() is the same curve on the CPU for the few traced and emphasised
+     links drawn as ribbons. */
+  var BEND = 0.18, LAYER_GAP = 150 * ZS, LIFT_MAX = 0.4 * LAYER_GAP;
+  /* #curves=0 draws straight links (one segment each) to compare the frame rate of the curves with straight lines */
+  var CURVES = params.curves !== '0';
+  var CV_VS = [
+    'attribute float aT; attribute vec3 aA; attribute vec3 aB; attribute float aAlpha;',
+    '#ifdef INST_COLOR',
+    'attribute vec3 aColor;',
+    '#endif',
+    'uniform vec3 uColA; uniform vec3 uColB; uniform float uBend; uniform float uLiftMax; uniform float uLayer; uniform vec3 uFog;',
+    'varying vec3 vColor; varying float vAlpha; varying float vFog;',
+    'void main() {',
+    '  vAlpha = aAlpha;',
+    '  if (aAlpha < 0.01) { vColor = vec3(0.0); vFog = 0.0; gl_Position = vec4(0.0, 0.0, 2.0, 1.0); return; }',
+    '#ifdef INST_COLOR',
+    '  vColor = aColor;',
+    '#else',
+    '  vColor = mix(uColA, uColB, aT);',
+    '#endif',
+    '  vec3 d = aB - aA;',
+    '  float k = 0.45 * d.y, lift = min(uBend * length(d.xz), uLiftMax) * clamp(1.0 - abs(d.y) / uLayer, 0.0, 1.0);',
+    '  float t = aT, u = 1.0 - t, w0 = u * u * u, w1 = 3.0 * u * u * t, w2 = 3.0 * u * t * t, w3 = t * t * t;',
+    '  vec3 p = vec3((w0 + w1) * aA.x + (w2 + w3) * aB.x,',
+    '    w0 * aA.y + w1 * (aA.y + k + lift) + w2 * (aB.y - k + lift) + w3 * aB.y,',
+    '    (w0 + w1) * aA.z + (w2 + w3) * aB.z);',
+    '  vec4 mv = modelViewMatrix * vec4(p, 1.0);',
+    '  vFog = clamp((-mv.z - uFog.x) / max(1.0, uFog.y - uFog.x), 0.0, 1.0) * uFog.z;',
+    '  gl_Position = projectionMatrix * mv;',
+    '}'].join('\n');
+  var CV_FS = [
+    'uniform float uOpacity; varying vec3 vColor; varying float vAlpha; varying float vFog;',
     'void main() {',
     '  if (vAlpha < 0.01) discard;',
-    '  float f = clamp((vDepth - uFog.x) / max(1.0, uFog.y - uFog.x), 0.0, 1.0) * uFog.z;',
-    '  gl_FragColor = vec4(vColor, vAlpha * uOpacity * (1.0 - f));',
+    '  gl_FragColor = vec4(vColor, vAlpha * uOpacity * (1.0 - vFog));',
     '}'].join('\n');
+  /* the same curve on the CPU (ribbons of the traced chain, the hovered link, the selection's links; call-out ink) */
+  function curvePoint(a, b, t) {
+    var dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z, k = 0.45 * dy;
+    var lift = Math.min(BEND * Math.sqrt(dx * dx + dz * dz), LIFT_MAX) * Math.max(0, Math.min(1, 1 - Math.abs(dy) / LAYER_GAP));
+    var u = 1 - t, w0 = u * u * u, w1 = 3 * u * u * t, w2 = 3 * u * t * t, w3 = t * t * t;
+    return { x: (w0 + w1) * a.x + (w2 + w3) * b.x, y: w0 * a.y + w1 * (a.y + k + lift) + w2 * (b.y - k + lift) + w3 * b.y,
+      z: (w0 + w1) * a.z + (w2 + w3) * b.z };
+  }
+  function curvePts(a, b, n) {
+    if (!CURVES) n = 1;
+    var out = [];
+    for (var i = 0; i <= n; i++) out.push(curvePoint(a, b, i / n));
+    return out;
+  }
+  /* segments per link: fewer for the bulk (basis and citation links, fainter) and on the full dataset */
+  function segsFor(k) {
+    if (!CURVES) return 1;
+    var full = D && D.N > 20000;
+    return KINDS.indexOf(k) >= 0 ? (full ? 8 : 10) : (full ? 4 : 6);
+  }
+  /* per-frame cost of the visible links: vertices through the shader and line segments drawn (straight: 2 and 1) */
+  function edgeCost() {
+    var c = { curves: CURVES, links: 0, vertices: 0, segments: 0 };
+    EDGE_KEYS.forEach(function (k) {
+      var eo = edgeObjs[k];
+      if (!eo || !state.edges[k]) return;
+      c.links += eo.m; c.vertices += eo.m * (eo.seg + 1); c.segments += eo.m * eo.seg;
+    });
+    c.vsRatio = c.links ? Math.round(c.vertices / (2 * c.links) * 100) / 100 : 0;
+    return c;
+  }
+  function curveGeometry(S, A, B, al, col) {
+    var g = new THREE.InstancedBufferGeometry(), t = new Float32Array(S + 1), idx = new Uint16Array(2 * S);
+    for (var i = 0; i <= S; i++) t[i] = i / S;
+    for (var j = 0; j < S; j++) { idx[2 * j] = j; idx[2 * j + 1] = j + 1; }
+    g.setAttribute('aT', new THREE.BufferAttribute(t, 1));
+    g.setIndex(new THREE.BufferAttribute(idx, 1));
+    g.setAttribute('aA', new THREE.InstancedBufferAttribute(A, 3));
+    g.setAttribute('aB', new THREE.InstancedBufferAttribute(B, 3));
+    g.setAttribute('aAlpha', new THREE.InstancedBufferAttribute(al, 1));
+    if (col) g.setAttribute('aColor', new THREE.InstancedBufferAttribute(col, 3));
+    g.instanceCount = al.length;
+    g.boundingSphere = new THREE.Sphere(new THREE.Vector3(0, 375 * ZS, 0), 2 * (D ? D.extent : 1400) + 800 * ZS);
+    return g;
+  }
+  function curveMaterial(instColor, opacity) {
+    return new THREE.ShaderMaterial({
+      defines: instColor ? { INST_COLOR: 1 } : {},
+      uniforms: { uOpacity: { value: opacity }, uFog: FOG, uColA: { value: new THREE.Color() }, uColB: { value: new THREE.Color() },
+        uBend: { value: BEND }, uLiftMax: { value: LIFT_MAX }, uLayer: { value: LAYER_GAP } },
+      vertexShader: CV_VS, fragmentShader: CV_FS, transparent: true, depthWrite: false, blending: THREE.NormalBlending
+    });
+  }
   function updateFog() {
     if (!camera || !D) return;
     var d = camera.position.distanceTo(controls.target), R = D.extent * 1.1;
@@ -291,33 +375,28 @@
   }
   function edgeColor(k) { return k === 'basis' ? VL.EDGE.basis.color : k === 'citation' ? VL.EDGE.citation.color : VL.CHANGE[k].color; }
   function buildEdges(k) {
-    var pairs = D.edges[k], m = pairs.length / 2;
-    var pos = new Float32Array(m * 6), col = new Float32Array(m * 6), al = new Float32Array(m * 2);
-    var c0 = rgb(edgeColor(k)), f = TH.dark ? 0.62 : 0.8;
-    var c = { r: c0[0], g: c0[1], b: c0[2] }, c2 = TH.dark ? { r: c0[0] * f, g: c0[1] * f, b: c0[2] * f } :
-      { r: 1 - (1 - c0[0]) * f, g: 1 - (1 - c0[1]) * f, b: 1 - (1 - c0[2]) * f };
+    var pairs = D.edges[k], m = pairs.length / 2, S = segsFor(k);
+    var A = new Float32Array(m * 3), B = new Float32Array(m * 3), al = new Float32Array(m);
     for (var e = 0; e < m; e++) {
       var s = pairs[2 * e], t = pairs[2 * e + 1];
-      pos[6 * e] = D.pos[3 * s]; pos[6 * e + 1] = D.pos[3 * s + 1]; pos[6 * e + 2] = D.pos[3 * s + 2];
-      pos[6 * e + 3] = D.pos[3 * t]; pos[6 * e + 4] = D.pos[3 * t + 1]; pos[6 * e + 5] = D.pos[3 * t + 2];
-      col[6 * e] = c.r; col[6 * e + 1] = c.g; col[6 * e + 2] = c.b;
-      col[6 * e + 3] = c2.r; col[6 * e + 4] = c2.g; col[6 * e + 5] = c2.b;
-      al[2 * e] = 1; al[2 * e + 1] = 1;
+      A[3 * e] = D.pos[3 * s]; A[3 * e + 1] = D.pos[3 * s + 1]; A[3 * e + 2] = D.pos[3 * s + 2];
+      B[3 * e] = D.pos[3 * t]; B[3 * e + 1] = D.pos[3 * t + 1]; B[3 * e + 2] = D.pos[3 * t + 2];
+      al[e] = 1;
     }
-    var g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    g.setAttribute('aColor', new THREE.BufferAttribute(col, 3));
-    g.setAttribute('aAlpha', new THREE.BufferAttribute(al, 1));
-    g.computeBoundingSphere();
-    var mat = new THREE.ShaderMaterial({
-      uniforms: { uOpacity: { value: edgeOpacity(k) }, uFog: FOG }, vertexShader: LN_VS, fragmentShader: LN_FS,
-      transparent: true, depthWrite: false, blending: THREE.NormalBlending
-    });
-    var obj = new THREE.LineSegments(g, mat);
+    /* colour gradient along the link: its kind's colour at the source, 20 % toward the ground at the target */
+    var c0 = rgb(edgeColor(k)), f = TH.dark ? 0.62 : 0.8;
+    var c2 = TH.dark ? [c0[0] * f, c0[1] * f, c0[2] * f] : [1 - (1 - c0[0]) * f, 1 - (1 - c0[1]) * f, 1 - (1 - c0[2]) * f];
+    var mat = curveMaterial(false, edgeOpacity(k));
+    mat.uniforms.uColA.value.setRGB(c0[0], c0[1], c0[2]);
+    mat.uniforms.uColB.value.setRGB(c2[0], c2[1], c2[2]);
+    var obj = new THREE.LineSegments(curveGeometry(S, A, B, al, null), mat);
+    obj.frustumCulled = false;
     obj.renderOrder = KINDS.indexOf(k) >= 0 ? 4 : 1;
     obj.visible = !!state.edges[k];
     scene.add(obj);
-    edgeObjs[k] = { obj: obj, m: m };
+    edgeObjs[k] = { obj: obj, m: m, seg: S };
+    M.edgeSegments = M.edgeSegments || {};
+    M.edgeSegments[k] = S;
   }
   function buildLayers() {
     layerGroup = new THREE.Group();
@@ -340,7 +419,7 @@
   }
 
   /* ------------------------------------------------------------------ labels (constant pixel size, culled) */
-  var labels = [];
+  var labels = [], labelGen = 0;
   function worldPerPx() { return VL.spriteWpp(camera, host.clientHeight); }
   /* paper call-out: lines of parts (js/paper3d.js VL.paperLines), px = height of a one-line box in CSS px (text is about
      px / 1.68); node call-outs stand on a thin grey leader above their point, layer call-outs sit at the layer corner */
@@ -350,6 +429,7 @@
     o.px = opts.px || 22;
     o.weight = opts.weight || '400';
     var s = VL.TextSprite(lines[0].map(function (p) { return p.text; }).join(''), o);
+    labelGen++;
     s.__pri = opts.pri || 0;
     s.__layer = !!opts.layer;
     s.__id = opts.id || ('label-' + labels.length);
@@ -395,7 +475,7 @@
      thin leaders in clear space, never over each other or over the highlighted ink (the selection, its neighbours,
      the chain and their links; the faded cloud behind them is background). The selection, the documents of the
      replacement chain and a hovered neighbour always keep their call-outs; layer names sit at the layer corner. */
-  var callouts = null;
+  var callouts = null, lastPlacement = '';
   function layerOffset(w) { return [w / 2 + 2, 0]; }
   function calloutItems() {
     return labels.map(function (s) {
@@ -411,8 +491,8 @@
     disc(state.sel);
     chainIdx.forEach(function (i) { if (i !== state.sel) disc(i); });
     for (var i = 0; i < D.N && discs.length < 5000; i++) if (D.ego[i] && i !== state.sel && chainIdx.indexOf(i) < 0) disc(i);
-    for (var e = 0; e < egoInc.length && e < 6000; e++) paths.push([ptOf(egoInc[e][0]), ptOf(egoInc[e][1])]);
-    if (chainIdx.length > 1) paths.push(chainIdx.map(ptOf));
+    for (var e = 0; e < egoInc.length && e < 3000; e++) paths.push(curvePts(ptOf(egoInc[e][0]), ptOf(egoInc[e][1]), 4));
+    if (chainIdx.length > 1) paths.push(chainCurve(chainIdx, 8));
     return { discs: discs, paths: paths };
   }
   function scheduleCull() {
@@ -423,9 +503,16 @@
         size: function () { return { w: host.clientWidth, h: host.clientHeight }; },
         items: calloutItems, ink: calloutInk, ui: obstacles,
         leaderColor: function () { return P.leader; },
-        discMaxPx: 28 / Math.min(window.devicePixelRatio || 1, 2),
+        discMaxPx: 28 / Math.min(window.devicePixelRatio || 1, 2), segCap: 16000,
         metrics: M, key: 'callouts',
-        onDone: function (st) { M.labelsShown = st.shown; M.labelsTotal = labels.length; needsRender = true; }
+        onDone: function (st) {
+          M.labelsShown = st.shown; M.labelsTotal = labels.length;
+          /* a frame only when the call-outs changed: new sprites (labelGen) or other boxes; an idle tail run after the
+             camera stopped costs no frame (a full frame is slow on a software renderer) */
+          var sig = labelGen + '#' + st.placed.map(function (q) { return q.id + ':' + q.box.join(','); }).join('|');
+          if (sig !== lastPlacement) { lastPlacement = sig; needsRender = true; M.calloutFrames = (M.calloutFrames || 0) + 1; }
+          else M.calloutIdleRuns = (M.calloutIdleRuns || 0) + 1;
+        }
       });
     }
     callouts.schedule();
@@ -457,7 +544,7 @@
       var eo = edgeObjs[k], pairs = D.edges[k], al = eo.obj.geometry.attributes.aAlpha.array, shownE = 0;
       for (var e = 0; e < eo.m; e++) {
         var v = vis[pairs[2 * e]] && vis[pairs[2 * e + 1]] ? 1 : 0;
-        al[2 * e] = v; al[2 * e + 1] = v; shownE += v;
+        al[e] = v; shownE += v;
       }
       eo.shown = shownE;
       eo.obj.geometry.attributes.aAlpha.needsUpdate = true;
@@ -499,7 +586,7 @@
     /* highlighted edges inside the neighbourhood: the selection's own links are thin lines in their link-type colours
        (only the replacement chain and a hovered link are traced, as in the paper, where only the traced path is dark);
        with 2 hops the links of its neighbours stay fainter pastel lines */
-    var paths = [], pcol = [], pos = [], col = [];
+    var pcol = [], A2 = [], B2 = [], col = [];
     egoInc = [];
     kinds.forEach(function (k) {
       var pairs = D.edges[k], c = rgb(edgeColor(k)), hex = TH.dark ? edgeColor(k) : VL.shade(edgeColor(k), 0.9);
@@ -507,33 +594,33 @@
         var s = pairs[e], t = pairs[e + 1];
         if (!ego[s] || !ego[t]) continue;
         if (ego[s] === 3 || ego[t] === 3) {
-          if (paths.length < 30000) { paths.push([ptOf(s), ptOf(t)]); pcol.push(hex); egoInc.push([s, t, k]); }
-        } else if (state.hops > 1 && (ego[s] === 1 || ego[t] === 1) && pos.length < 6 * 30000) {
-          pos.push(D.pos[3 * s], D.pos[3 * s + 1], D.pos[3 * s + 2], D.pos[3 * t], D.pos[3 * t + 1], D.pos[3 * t + 2]);
-          col.push(c[0], c[1], c[2], c[0], c[1], c[2]);
+          if (egoInc.length < 30000) { pcol.push(hex); egoInc.push([s, t, k]); }
+        } else if (state.hops > 1 && (ego[s] === 1 || ego[t] === 1) && A2.length < 3 * 30000) {
+          A2.push(D.pos[3 * s], D.pos[3 * s + 1], D.pos[3 * s + 2]);
+          B2.push(D.pos[3 * t], D.pos[3 * t + 1], D.pos[3 * t + 2]);
+          col.push(c[0], c[1], c[2]);
         }
       }
     });
-    var n = paths.length;
+    /* the selection's links on their curves, with fewer segments when there are many */
+    var n = egoInc.length, segs = n > 2000 ? 4 : (n > 400 ? 8 : 12);
     egoLines.setStyle({ width: n > 400 ? 1.1 : (n > 120 ? 1.3 : 1.6) });
-    egoLines.setPaths(paths, pcol);
+    egoLines.setPaths(egoInc.map(function (e) { return curvePts(ptOf(e[0]), ptOf(e[1]), segs); }), pcol);
     hoverIdx = -1;
     trace.setPaths([]);
     M.hoverDoc = null;
     if (hlObj) { scene.remove(hlObj); hlObj.geometry.dispose(); hlObj.material.dispose(); hlObj = null; }
-    if (pos.length) {
-      var g = new THREE.BufferGeometry();
-      g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
-      g.setAttribute('aColor', new THREE.Float32BufferAttribute(col, 3));
-      var al = new Float32Array(pos.length / 3); al.fill(1);
-      g.setAttribute('aAlpha', new THREE.BufferAttribute(al, 1));
-      hlObj = new THREE.LineSegments(g, new THREE.ShaderMaterial({ uniforms: { uOpacity: { value: 0.9 }, uFog: FOG }, vertexShader: LN_VS, fragmentShader: LN_FS, transparent: true, depthWrite: false, blending: THREE.NormalBlending }));
+    if (A2.length) {
+      var al = new Float32Array(A2.length / 3);
+      al.fill(1);
+      hlObj = new THREE.LineSegments(curveGeometry(CURVES ? 6 : 1, new Float32Array(A2), new Float32Array(B2), al, new Float32Array(col)), curveMaterial(true, 0.9));
+      hlObj.frustumCulled = false;
       hlObj.renderOrder = 5;
       scene.add(hlObj);
     }
     var cnt = [0, 0, 0];
     for (var i = 0; i < D.N; i++) if (ego[i] === 1) cnt[1]++; else if (ego[i] === 2) cnt[2]++;
-    M.egoHop1 = cnt[1]; M.egoHop2 = cnt[2]; M.egoEdges = n + pos.length / 6;
+    M.egoHop1 = cnt[1]; M.egoHop2 = cnt[2]; M.egoEdges = n + A2.length / 3;
     M.egoLines = egoLines.count();
     M.traceSegments = trace.count();
     applyAlpha();
@@ -561,10 +648,19 @@
     });
     if (pts.length < 2) chainIdx = [];
     chainTrace.setStyle(VL.traceStyle(P, 1));
-    chainTrace.setPaths(pts.length > 1 ? [pts] : []);
+    chainTrace.setPaths(pts.length > 1 ? [chainCurve(chainIdx, 24)] : []);
     M.chainTraceDocs = pts.length > 1 ? pts.length : 0;
     if (state.sel >= 0) egoLabels();
     needsRender = true;
+  }
+  /* the chain as one polyline along the link curves from document to document */
+  function chainCurve(idx, n) {
+    var out = [];
+    for (var c = 0; c + 1 < idx.length; c++) {
+      var seg = curvePts(ptOf(idx[c]), ptOf(idx[c + 1]), n);
+      out = out.concat(c ? seg.slice(1) : seg);
+    }
+    return out;
   }
   /* hovering a neighbour of the selection traces the link(s) between them and keeps the neighbour's call-out */
   function setHover(i) {
@@ -572,7 +668,7 @@
     if (i === hoverIdx) return;
     hoverIdx = i;
     var paths = [];
-    if (i >= 0) egoInc.forEach(function (e) { if ((e[0] === i && e[1] === state.sel) || (e[1] === i && e[0] === state.sel)) paths.push([ptOf(e[0]), ptOf(e[1])]); });
+    if (i >= 0) egoInc.forEach(function (e) { if ((e[0] === i && e[1] === state.sel) || (e[1] === i && e[0] === state.sel)) paths.push(curvePts(ptOf(e[0]), ptOf(e[1]), 24)); });
     trace.setStyle(VL.traceStyle(P, 0.85));
     trace.setPaths(paths);
     M.traceSegments = trace.count();
@@ -673,7 +769,7 @@
       setTimeout(function () {
         var fps = Math.round((frames - f0) * 10000 / (performance.now() - t0)) / 10;
         controls.autoRotate = was;
-        M.fpsSamples = (M.fpsSamples || []).concat([{ dataset: D.name, fps: fps }]);
+        M.fpsSamples = (M.fpsSamples || []).concat([{ dataset: D.name, fps: fps, edges: edgeCost() }]);
         resolve(fps);
       }, ms);
     });
@@ -1013,13 +1109,21 @@
     }
     return s;
   }
+  /* link swatches drawn as the links are: the S-curve between two levels (vertical tangents, control points at 45 % of the
+     height difference); the trace as its navy core on the gold halo */
+  var SWATCH_PATH = 'M3 11C3 6.5 19 5.5 19 1';
+  function curveSwatch(color) {
+    return '<svg class="swatch-curve' + (color ? '' : ' trace') + '" viewBox="0 0 22 12" aria-hidden="true">' + (color ?
+      '<path d="' + SWATCH_PATH + '" style="stroke:' + color + '"/>' :
+      '<path class="halo" d="' + SWATCH_PATH + '"/><path class="core" d="' + SWATCH_PATH + '"/>') + '</svg>';
+  }
   function renderEdgeToggles() {
     var host2 = VL.$('#edge-toggles');
     var h = EDGE_KEYS.map(function (k) {
       var lab = k === 'basis' ? VL.EDGE.basis : k === 'citation' ? VL.EDGE.citation : VL.CHANGE[k];
       var eo = edgeObjs[k], tip = k === 'citation' ? ' title="' + VL.esc(citationNote()) + '"' : '';
       return '<label class="check"' + tip + '><input type="checkbox" data-edge="' + k + '"' + (state.edges[k] ? ' checked' : '') + '>' +
-        '<span class="swatch line" style="background:' + edgeColor(k) + '"></span><span class="lbl">' + VL.esc(lab.en) +
+        curveSwatch(edgeColor(k)) + '<span class="lbl">' + VL.esc(lab.en) +
         (lab.qual ? ' <span class="qual">(' + VL.esc(lab.qual) + ')</span>' : '') + '</span><span class="count">' + (eo ? VL.fmt(eo.m) : '') + '</span></label>';
     }).join('');
     host2.innerHTML = h + '<p class="side-note" id="citation-note">' + VL.esc(citationNote()) + '</p>';
@@ -1119,8 +1223,8 @@
     var ek = enabledKinds();
     h += '<div class="legend-sub"><ul>' + ek.map(function (k) {
       var lab = k === 'basis' ? VL.EDGE.basis : k === 'citation' ? VL.EDGE.citation : VL.CHANGE[k];
-      return '<li><span class="swatch line" style="background:' + edgeColor(k) + '"></span>' + bi(lab.vi, lab.en) + '</li>';
-    }).join('') + '<li><span class="swatch trace" aria-hidden="true"></span>' + bi('đường truy vết', 'traced chain, hovered link') + '</li></ul></div>';
+      return '<li>' + curveSwatch(edgeColor(k)) + bi(lab.vi, lab.en) + '</li>';
+    }).join('') + '<li>' + curveSwatch(null) + bi('đường truy vết', 'traced chain, hovered link') + '</li></ul></div>';
     legendEl.innerHTML = h;
     M.legendEntries = VL.$$('li', legendEl).length;
   }
@@ -1186,6 +1290,7 @@
       M.dataset = name;
       M.nodes = D.N;
       M.edges = EDGE_KEYS.reduce(function (s, k) { return s + edgeObjs[k].m; }, 0);
+      M.edgeCost = edgeCost();
       M.loadMs = Math.round(t1 - t0);
       M.buildMs = Math.round(t2 - t1);
       if (!switchDataset.fitted) { fitAll(0); switchDataset.fitted = true; }

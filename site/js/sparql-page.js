@@ -91,11 +91,23 @@
         resultEl.innerHTML = '<p style="padding:12px 14px;margin:0">The pattern ' + (res.boolean ? 'matches' : 'does not match') + ' the dataset.</p>';
         csvBtn.disabled = true;
       } else {
-        setStatus('✓ ' + VL.fmt(res.count) + ' triple' + (res.count === 1 ? '' : 's') + ' in ' + res.ms + ' ms · drawn in 3D below · ' + head, 'ok');
-        titleEl.textContent = 'Graph result · ' + VL.fmt(res.count) + ' triples';
-        S.renderTable(resultEl, res, { max: 500 });
-        csvBtn.disabled = !res.count;
-        if (res.count) drawGraph(ctx, res);
+        /* release scope (js/common.js): triples that name a term populated from a later release are not shown */
+        var sc = VL.scopeQuads(ctx, res.quads), view = res;
+        M.lastQuery.hiddenLater = sc.hidden;
+        if (sc.hidden) {
+          view = {};
+          Object.keys(res).forEach(function (k) { view[k] = res[k]; });
+          view.quads = sc.quads;
+          view.count = sc.quads.length;
+          last = view;
+        }
+        var later = sc.hidden ? ' · ' + VL.fmt(sc.hidden) + ' triple' + (sc.hidden === 1 ? '' : 's') + ' about terms populated from v' +
+          (+VL.VERSION.split('.')[0] + 1) + ' (the judiciary module) not shown' : '';
+        setStatus('✓ ' + VL.fmt(view.count) + ' triple' + (view.count === 1 ? '' : 's') + ' in ' + res.ms + ' ms · drawn in 3D below · ' + head + later, 'ok');
+        titleEl.textContent = 'Graph result · ' + VL.fmt(view.count) + ' triples';
+        S.renderTable(resultEl, view, { max: 500 });
+        csvBtn.disabled = !view.count;
+        if (view.count) drawGraph(ctx, view);
       }
       return res;
     }).catch(function (e) { setStatus('Could not run the query: ' + (e && e.message ? e.message : e), 'err'); return null; });

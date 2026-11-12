@@ -16,6 +16,78 @@
      <span data-vl-version> placeholders that VL.chrome() fills in; scripts/site/build_site.py reads VL.VERSION from here. */
   VL.VERSION = '1.0.0';
   VL.releaseLabel = function () { return 'VLOnto v' + VL.VERSION.split('.')[0]; };
+  /* ------------------------------------------------------------------ release scope
+     The ontology defines every term, but a release's knowledge graph has data for only some of them. A term whose scope
+     note says that it is populated from a later release ("Populated from VLOnto 2.0 ...", "... which are populated from
+     VLOnto 2.0 ...") is left out of the views of this release (3D playground, its query overlay, the CONSTRUCT view);
+     the ontology page and its pyLODE reference keep it, with that note. release: major version (default: this site's). */
+  VL.laterRelease = function (note, release) {
+    var m = /populated from VLOnto (\d+)/i.exec(String(note || ''));
+    var r = release != null ? release : +VL.VERSION.split('.')[0];
+    return m && +m[1] > r ? +m[1] : 0;
+  };
+  /* the ontology graph (data/ontology_graph.js) as this release shows it: without the terms of a later release, the links
+     that touch them and external terms left without any link; modules whose terms all come later, with their release */
+  VL.releaseScope = function (g) {
+    var rel = +((/(\d+)/.exec(String(g.release || g.version || VL.VERSION)) || [0, 1])[1]);
+    var hidden = {}, from = {}, linked = {}, deg = {}, gone = [];
+    g.nodes.forEach(function (n) { var r = VL.laterRelease(n.scope_note_en, rel); if (r) { hidden[n.id] = true; from[n.id] = r; } });
+    var links = g.links.filter(function (l) {
+      linked[l.source] = linked[l.target] = true;
+      if (hidden[l.source] || hidden[l.target] || VL.laterRelease(l.scope_note_en, rel)) { gone.push(l); return false; }
+      deg[l.source] = (deg[l.source] || 0) + 1;
+      deg[l.target] = (deg[l.target] || 0) + 1;
+      return true;
+    });
+    g.nodes.forEach(function (n) { if (!hidden[n.id] && n.kind === 'external' && linked[n.id] && !deg[n.id]) hidden[n.id] = true; });
+    var nodes = g.nodes.filter(function (n) { return !hidden[n.id]; }), kept = {}, later = {}, attrs = 0;
+    nodes.forEach(function (n) { kept[n.module] = true; });
+    /* datatype properties of a later release on the classes that stay (a copy of the node; the data stays as it is) */
+    nodes = nodes.map(function (n) {
+      var at = n.attributes || [], keep = at.filter(function (a) { return !VL.laterRelease(a.scope_note_en, rel); });
+      if (keep.length === at.length) return n;
+      var o = {};
+      Object.keys(n).forEach(function (k) { o[k] = n[k]; });
+      o.attributes = keep;
+      attrs += at.length - keep.length;
+      return o;
+    });
+    g.nodes.forEach(function (n) { if (from[n.id] && !kept[n.module]) later[n.module] = Math.min(later[n.module] || 99, from[n.id]); });
+    return { release: rel, nodes: nodes, links: links, laterModules: later,
+      hidden: g.nodes.filter(function (n) { return hidden[n.id]; }).map(function (n) { return n.id; }),
+      hiddenProperties: gone.filter(function (l) { return l.type === 'property'; }).map(function (l) { return l.id; }), hiddenLinks: gone.length,
+      hiddenAttributes: attrs };
+  };
+  /* the same scope in a SPARQL store (js/sparql-core.js context): the IRIs of the terms of a later release (scope note),
+     of the resources typed by them and of the concepts of their schemes; cached on the context */
+  VL.laterReleaseIris = function (ctx) {
+    if (ctx.__later) return ctx.__later;
+    var out = {}, terms = [], P = 'PREFIX skos: <http://www.w3.org/2004/02/skos/core#>\n';
+    var r = VL.Sparql.run(ctx, P + 'SELECT ?t ?n WHERE { ?t skos:scopeNote ?n }');
+    (r.rows || []).forEach(function (b) {
+      if (b.t && b.t.type === 'uri' && !out[b.t.value] && VL.laterRelease(b.n && b.n.value)) { out[b.t.value] = true; terms.push(b.t.value); }
+    });
+    if (terms.length) {
+      var r2 = VL.Sparql.run(ctx, P + 'SELECT DISTINCT ?x WHERE { VALUES ?h { ' + terms.map(function (t) { return '<' + t + '>'; }).join(' ') +
+        ' } { ?x a ?h } UNION { ?x skos:inScheme ?h } UNION { ?x skos:topConceptOf ?h } }');
+      (r2.rows || []).forEach(function (b) { if (b.x && b.x.type === 'uri') out[b.x.value] = true; });
+    }
+    ctx.__later = out;
+    return out;
+  };
+  /* CONSTRUCT quads without those that name a term of a later release (subject, predicate or object) */
+  VL.scopeQuads = function (ctx, quads) {
+    var L = VL.laterReleaseIris(ctx), kept = [];
+    function named(t) { return t && t.termType === 'NamedNode' && L[t.value]; }
+    quads.forEach(function (q) { if (!named(q.subject) && !named(q.predicate) && !named(q.object)) kept.push(q); });
+    return { quads: kept, hidden: quads.length - kept.length };
+  };
+  /* "Tư pháp (tòa án) · Judiciary: from v2" for each module of a later release (release scope above) */
+  VL.laterModulesNote = function (later) {
+    return VL.MODULES.filter(function (m) { return later[m.id]; }).map(function (m) {
+      return '<span lang="vi">' + VL.esc(VL.cap(m.vi) + (m.scope_vi ? ' (' + m.scope_vi + ')' : '')) + '</span> · ' + VL.esc(VL.cap(m.en)) + ': from v' + later[m.id];
+    }).join('<br>');
+  };
   VL.NS = {
     vlo: 'https://tmquan.github.io/VLOnto/ontology#',
     id: 'https://tmquan.github.io/VLOnto/id/'
@@ -58,7 +130,7 @@
     { id: 'validity-change', en: 'validity and change', vi: 'hiệu lực và thay đổi', color: '#FF8A3D' },
     { id: 'citation-basis', en: 'citation and legal basis', vi: 'trích dẫn và căn cứ', color: '#FFC83D' },
     { id: 'agents', en: 'agents', vi: 'chủ thể', color: '#A78BFA' },
-    { id: 'judiciary', en: 'judiciary', vi: 'tư pháp', color: '#F472B6' },
+    { id: 'judiciary', en: 'judiciary', vi: 'tư pháp', scope_vi: 'tòa án', color: '#F472B6' },
     { id: 'qa', en: 'legal Q&A', vi: 'hỏi đáp pháp luật', color: '#4ADE80' },
     { id: 'terminology', en: 'terminology', vi: 'thuật ngữ', color: '#B5E853' },
     { id: 'news', en: 'news', vi: 'tin tức', color: '#F87171' },
@@ -276,7 +348,9 @@
       b.setAttribute('title', dark ? 'Switch to light theme' : 'Switch to dark theme');
     });
   }
-  function postTheme(win, t) { try { if (win) win.postMessage({ type: 'vlonto-theme', theme: t }, '*'); } catch (e) { /* cross-origin frame */ } }
+  function postTheme(win, t) {
+    try { if (win) { win.postMessage({ type: 'vlonto-theme', theme: t }, '*'); M.themePosts = (M.themePosts || 0) + 1; } } catch (e) { /* cross-origin frame */ }
+  }
   /* opts.store: remember the choice (toggle); opts.fromFrame: the change came from an embedded document */
   VL.setTheme = function (t, opts) {
     opts = opts || {};
@@ -328,9 +402,13 @@
     });
     window.addEventListener('message', function (e) {
       var d = e.data;
-      if (!d || d.type !== 'vlonto-theme' || (d.theme !== 'light' && d.theme !== 'dark')) return;
+      if (!d || (d.type !== 'vlonto-theme' && d.type !== 'vlonto-theme-request')) return;
       var fromChild = VL.$$('iframe').some(function (f) { return f.contentWindow === e.source; });
-      if (fromChild && d.theme !== VL.theme()) VL.setTheme(d.theme, { store: true, fromFrame: true });
+      if (!fromChild) return;
+      /* an embedded document whose listener is now in place asks for the theme: a change made while it was still
+         loading (before its script ran) would otherwise wait for its load event */
+      if (d.type === 'vlonto-theme-request') { M.themeRequests = (M.themeRequests || 0) + 1; postTheme(e.source, VL.theme()); return; }
+      if ((d.theme === 'light' || d.theme === 'dark') && d.theme !== VL.theme()) VL.setTheme(d.theme, { store: true, fromFrame: true });
     });
     /* internal links carry the theme where storage does not (see above) */
     document.addEventListener('click', function (e) {

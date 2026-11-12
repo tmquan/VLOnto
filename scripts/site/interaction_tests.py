@@ -35,6 +35,7 @@ import functools
 import hashlib
 import http.server
 import json
+import math
 import os
 import re
 import sys
@@ -198,7 +199,7 @@ def t_ontology(c: Ctx):
         pg.click("#btn-reset2")
         pg.wait_for_timeout(1600)
         tried = []
-        cands = ["vlo:Law", "vlo:Decree", "vlo:Circular", "vlo:Article", "vlo:LegalDocument", "vlo:CourtDecision", "vlo:Provision", "vlo:LegalChange", "vlo:Code"]
+        cands = ["vlo:Law", "vlo:Decree", "vlo:Circular", "vlo:Article", "vlo:LegalDocument", "vlo:LegalArea", "vlo:Provision", "vlo:LegalChange", "vlo:Code"]
         for cid in cands:
             p = pg.evaluate("id => window.VLApp.screenPos(id)", cid)
             if not (p and p["inside"]):
@@ -234,6 +235,42 @@ def t_ontology(c: Ctx):
             return {"clicked": cid, "x": round(p["x"]), "y": round(p["y"]), "panel_starts": label, "tried": tried, "shot": c.shot(pg, "ontology3d_click_class")}
         raise RuntimeError(f"no class node could be clicked: {tried}")
     check("click a class on the canvas -> panel", click_class)
+
+    # release v1 (js/common.js VL.releaseScope): the terms whose scope note says they are populated from VLOnto 2.0 are
+    # left out of the playground (the ontology page and its pyLODE reference keep them)
+    V2_TERMS = {"vlo:Court", "vlo:JudicialDocument", "vlo:CourtDecision", "vlo:Judgment", "vlo:CourtRuling", "vlo:Precedent", "vlo:CourtLevel",
+                "vlo:InstanceLevel", "vlo:CaseCategory", "vlo:CourtLevelScheme", "vlo:InstanceLevelScheme", "vlo:CaseCategoryScheme"}
+    V2_PROPS = {"vlo:decidedBy", "vlo:instanceLevel", "vlo:caseCategory", "vlo:selectedFrom", "vlo:appliesProvision", "vlo:appliesDocument",
+                "vlo:citesCase", "vlo:appliesPrecedent"}
+
+    def release_scope():
+        r = pg.evaluate("""() => { const S = (window.__VLONTO_METRICS || {}).releaseScope || {};
+            return { scope: S, chips: Array.from(document.querySelectorAll('#module-chips [data-mod]')).map(b => b.getAttribute('data-mod')),
+              note: ((document.querySelector('#module-later') || {}).textContent || '').trim(),
+              drawn: ['vlo:CourtDecision', 'vlo:Court', 'vlo:CaseCategoryScheme'].filter(id => window.VLApp.screenPos(id)),
+              search: ['tòa án', 'court', 'bản án', 'judgment', 'precedent', 'án lệ', 'decided by'].map(q => window.VLApp.searchIds(q)).flat() }; }""")
+        sc, hidden = r["scope"], set(r["scope"].get("hidden") or [])
+        bad = []
+        if not V2_TERMS <= hidden:
+            bad.append(f"not left out: {sorted(V2_TERMS - hidden)}")
+        if set(sc.get("hiddenProperties") or []) != V2_PROPS:
+            bad.append(f"properties left out {sc.get('hiddenProperties')}")
+        if sc.get("laterModules") != {"judiciary": 2} or "judiciary" in r["chips"]:
+            bad.append(f"modules: later {sc.get('laterModules')}, chips {r['chips']}")
+        if r["note"] != "Tư pháp (tòa án) · Judiciary: from v2":
+            bad.append(f"module note {r['note']!r}")
+        if r["drawn"]:
+            bad.append(f"drawn: {r['drawn']}")
+        leaked = sorted(set(x for x in r["search"] if x in hidden or x in V2_PROPS))
+        if leaked:
+            bad.append(f"search suggests {leaked}")
+        if sc.get("nodes") != 75 - len(hidden) or sc.get("links", 0) + sc.get("hiddenLinks", 0) != 104:
+            bad.append(f"counts: {sc.get('nodes')} nodes + {len(hidden)} left out (75), {sc.get('links')} links + {sc.get('hiddenLinks')} left out (104)")
+        if bad:
+            raise RuntimeError("; ".join(bad))
+        return {"left_out": sorted(hidden), "properties": len(V2_PROPS), "nodes": sc.get("nodes"), "links": sc.get("links"),
+                "chips": len(r["chips"]), "note": r["note"]}
+    check("release v1: terms populated from v2 (judiciary module, vlo:Court) left out; the module note", release_scope)
 
     def construct():
         pg.keyboard.press("Escape")
@@ -483,6 +520,19 @@ def t_sparql(c: Ctx, examples):
             raise RuntimeError(f"no clear syntax error: {msg}")
         return {"message": msg}
     check("syntax error message with line and column", error)
+
+    def construct_scope():
+        # release v1: a CONSTRUCT over the ontology shows no term populated from v2 (js/common.js VL.scopeQuads)
+        q = "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nCONSTRUCT { ?c rdfs:subClassOf ?d } WHERE { ?c rdfs:subClassOf ?d }"
+        lq = pg.evaluate("(q) => window.VLApp.run(q, 'ontology')", q)
+        pg.wait_for_function("window.__VLONTO_METRICS.constructDrawn && window.__VLONTO_METRICS.constructDrawn.nodes > 0", timeout=T_(60000))
+        ids = pg.evaluate("window.VLApp.constructNodes().map(n => n.id)")
+        court = [i for i in ids if any(w in i for w in ("Court", "Judicial", "Judgment", "Precedent", "CaseCategory", "InstanceLevel"))]
+        status = pg.inner_text("#status")
+        if lq.get("error") or not lq.get("hiddenLater") or court or "not shown" not in status:
+            raise RuntimeError(f"CONSTRUCT scope: hidden {lq.get('hiddenLater')}, court nodes {court[:6]}, status {status[:200]!r}, error {lq.get('error')}")
+        return {"triples": lq.get("count"), "not_shown": lq.get("hiddenLater"), "nodes_drawn": len(ids)}
+    check("release v1: CONSTRUCT results leave out the terms populated from v2", construct_scope)
 
     def csv():
         pg.evaluate("window.VLApp.runExample('s1')")
@@ -1032,17 +1082,53 @@ def t_theme(c: Ctx):
     check("?theme=dark forces the theme and travels on links", query)
 
     def iframe():
+        """The frame is a 680 kB document whose theme script (js/doc-theme.js) runs at its very end; the page is ready
+        earlier. Under file:// the frame is cross-origin, and Chromium throttles the rendering (requestAnimationFrame)
+        of cross-origin frames outside the viewport, so a wait in the frame polls by interval, not per animation frame
+        (Playwright's default), and starts once the frame's script is in place. A failing step reports the page and
+        frame state (theme, readyState, messages sent and received, frame position)."""
         ctx, pg, log = c.open("ontology.html", scheme="light")
+        steps, holder = [], {}
+        is_theme = "(t) => document.documentElement.getAttribute('data-theme') === t"
+
+        def state():
+            out = {"done": steps[:]}
+            try:
+                out["page"] = pg.evaluate("""() => { const M = window.__VLONTO_METRICS || {}, f = document.querySelector('#doc-frame');
+                    const r = f ? f.getBoundingClientRect() : null;
+                    return { theme: document.documentElement.getAttribute('data-theme'), posts: M.themePosts || 0,
+                      requests: M.themeRequests || 0, frame_top_bottom_vh: r ? [Math.round(r.top), Math.round(r.bottom), innerHeight] : null }; }""")
+            except Exception as e:  # noqa
+                out["page"] = str(e)[:160]
+            if "f" in holder:
+                try:
+                    out["frame"] = holder["f"].evaluate("""() => ({ theme: document.documentElement.getAttribute('data-theme'),
+                        ready: document.readyState, script: window.__VLONTO_DOC_THEME ? window.__VLONTO_DOC_THEME.stats || true : null })""")
+                except Exception as e:  # noqa
+                    out["frame"] = str(e)[:160]
+            return out
+
+        def step(name, fn):
+            try:
+                fn()
+            except Exception as e:  # noqa
+                first = (str(e).strip().splitlines() or [""])[0][:200]
+                raise RuntimeError(f"step '{name}': {first}; state {json.dumps(state(), ensure_ascii=False)}")
+            steps.append(name)
+
         try:
-            f = doc_frame(pg)
-            f.wait_for_function("document.documentElement.getAttribute('data-theme') === 'light'", timeout=T_(15000))
-            click_theme(pg, "dark")
-            f.wait_for_function("document.documentElement.getAttribute('data-theme') === 'dark'", timeout=T_(15000))
+            step("find the frame", lambda: holder.setdefault("f", doc_frame(pg)))
+            f = holder["f"]
+            step("frame loaded", lambda: f.wait_for_load_state("load", timeout=T_(60000)))
+            step("frame script ready", lambda: f.wait_for_function("() => !!window.__VLONTO_DOC_THEME", timeout=T_(15000), polling=100))
+            step("frame light at start", lambda: f.wait_for_function(is_theme, arg="light", timeout=T_(15000), polling=100))
+            step("header toggle: page dark", lambda: click_theme(pg, "dark"))
+            step("frame follows: dark", lambda: f.wait_for_function(is_theme, arg="dark", timeout=T_(15000), polling=100))
             bg = f.evaluate("getComputedStyle(document.body).backgroundColor")
-            f.locator(".vl-theme-btn").click()
-            pg.wait_for_function("document.documentElement.getAttribute('data-theme') === 'light'", timeout=T_(15000))
-            f.wait_for_function("document.documentElement.getAttribute('data-theme') === 'light'", timeout=T_(15000))
-            return {"frame_dark_bg": bg, "frame_toggle_switched_page": True}
+            step("frame toggle", lambda: f.locator(".vl-theme-btn").click())
+            step("page follows the frame: light", lambda: pg.wait_for_function(is_theme, arg="light", timeout=T_(15000)))
+            step("frame light", lambda: f.wait_for_function(is_theme, arg="light", timeout=T_(15000), polling=100))
+            return {"frame_dark_bg": bg, "frame_toggle_switched_page": True, "state": state()}
         finally:
             merge(log)
             ctx.close()
@@ -1247,14 +1333,37 @@ JS_PAPER = """(sel) => { const el = sel ? document.querySelector(sel) : document
   return { scope: el.getAttribute('data-style'), theme: document.documentElement.getAttribute('data-theme'), scene_bg: t('--scene-bg'),
     core: t('--paper-trace-core'), halo: t('--paper-trace-halo'), work: t('--cls-work'), callout_line: t('--paper-callout-line'),
     font_paper: t('--vlo-font-paper'), libertinus: lib, paperStyle: !!M.paperStyle }; }"""
-# pixels of the canvas within a tolerance of each target colour (decoded in the page, like JS_MODE)
-JS_COUNT = """async (arg) => { const img = new Image(); img.src = arg.src; await img.decode();
-  const cv = document.createElement('canvas'); cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+# pixels of the traced path in a screenshot, decoded in the page (like JS_MODE): the raw counts of core- and halo-coloured
+# pixels (within a colour tolerance), and two counts that leave out the call-out boxes (the selected node's call-out uses
+# the core colour for its border on the light theme and the halo colour on the dark one): core pixels, and gold pixels
+# (R >= G >= B, R - B >= 40: the halo family, i.e. halo, outer halo and their blends with the ground or the core) within
+# `radius` device px of a core pixel, i.e. the halo band that flanks the core whatever the trace width, antialiasing or
+# the view behind it
+JS_TRACE_PX = """async (arg) => { const img = new Image(); img.src = arg.src; await img.decode();
+  const W = img.naturalWidth, H = img.naturalHeight, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(img, 0, 0);
-  const d = cx.getImageData(0, 0, cv.width, cv.height).data, out = arg.targets.map(() => 0);
-  for (let i = 0; i < d.length; i += 4) arg.targets.forEach((t, k) => { const dr = d[i] - t[0], dg = d[i + 1] - t[1], db = d[i + 2] - t[2];
-    if (dr * dr + dg * dg + db * db <= t[3] * t[3]) out[k]++; });
-  return out; }"""
+  const d = cx.getImageData(0, 0, W, H).data, n = W * H, skip = new Uint8Array(n), core = new Uint8Array(n), s = W / arg.cssW;
+  for (const b of arg.boxes) {
+    const x0 = Math.max(0, Math.floor((b[0] + arg.ox - 3) * s)), y0 = Math.max(0, Math.floor((b[1] + arg.oy - 3) * s));
+    const x1 = Math.min(W - 1, Math.ceil((b[2] + arg.ox + 3) * s)), y1 = Math.min(H - 1, Math.ceil((b[3] + arg.oy + 3) * s));
+    for (let y = y0; y <= y1; y++) skip.fill(1, y * W + x0, y * W + x1 + 1); }
+  const [cr, cg, cb, ct] = arg.core, [hr, hg, hb, ht] = arg.halo;
+  let rawCore = 0, rawHalo = 0, coreOut = 0, near = 0;
+  for (let p = 0, i = 0; p < n; p++, i += 4) {
+    const r = d[i], g = d[i + 1], b = d[i + 2]; let dr = r - cr, dg = g - cg, db = b - cb;
+    if (dr * dr + dg * dg + db * db <= ct * ct) { rawCore++; if (!skip[p]) { core[p] = 1; coreOut++; } }
+    dr = r - hr; dg = g - hg; db = b - hb; if (dr * dr + dg * dg + db * db <= ht * ht) rawHalo++; }
+  const R = arg.radius, row = new Uint8Array(n), ps = new Int32Array(Math.max(W, H) + 1);
+  for (let y = 0; y < H; y++) { const o = y * W; for (let x = 0; x < W; x++) ps[x + 1] = ps[x] + core[o + x];
+    for (let x = 0; x < W; x++) row[o + x] = ps[Math.min(W, x + R + 1)] - ps[Math.max(0, x - R)] > 0 ? 1 : 0; }
+  for (let x = 0; x < W; x++) { for (let y = 0; y < H; y++) ps[y + 1] = ps[y] + row[y * W + x];
+    for (let y = 0; y < H; y++) { const p = y * W + x; if (skip[p] || core[p] || ps[Math.min(H, y + R + 1)] === ps[Math.max(0, y - R)]) continue;
+      const i = 4 * p, r = d[i], g = d[i + 1], b = d[i + 2];
+      if (r >= g && g >= b && r - b >= 40 && g - b >= 0.3 * (r - b)) near++; } }
+  return [rawCore, rawHalo, coreOut, near]; }"""
+JS_TRACE_PX_GEOM = """(sel) => { const el = document.querySelector(sel), co = (window.__VLONTO_METRICS || {}).callouts || {};
+  return { cssW: el.getBoundingClientRect().width, ox: el.clientLeft, oy: el.clientTop, dpr: window.devicePixelRatio || 1,
+    boxes: (co.placed || []).map(p => p.box) }; }"""
 
 
 # call-out placement of the 3D views (js/paper3d.js VL.Callouts -> window.__VLONTO_METRICS.callouts) and the cap of the
@@ -1302,18 +1411,23 @@ def hex_rgb(h):
 
 def trace_pixels(pg, sel, theme):
     """navy (light) or off-white (dark) core pixels and gold halo pixels in the element's screenshot; the overlays (details
-    panel, hint, tooltip and the legend with its own trace swatch) are hidden while capturing, so only WebGL is counted"""
+    panel, hint, tooltip and the legend with its own trace swatch) are hidden while capturing, so only WebGL is counted.
+    core / halo: raw counts; core_out: core pixels outside the call-out boxes; halo_near_core: gold pixels next to those
+    (within the trace's half width at the cap, 3.2 CSS px, plus 2 device px), outside the call-out boxes (JS_TRACE_PX)"""
     e = PAPER_EXPECT[theme]
     hide = "#panel, #hint, #tip, .legend, .vl-footbar"
     pg.evaluate("(q) => document.querySelectorAll(q).forEach(e => { e.dataset.ccVis = e.style.visibility; e.style.visibility = 'hidden'; })", hide)
     pg.wait_for_timeout(120)
     try:
         png = pg.locator(sel).first.screenshot()
+        geo = pg.evaluate(JS_TRACE_PX_GEOM, sel)
     finally:
         pg.evaluate("(q) => document.querySelectorAll(q).forEach(e => { e.style.visibility = e.dataset.ccVis || ''; delete e.dataset.ccVis; })", hide)
-    core, halo = pg.evaluate(JS_COUNT, {"src": "data:image/png;base64," + base64.b64encode(png).decode(),
-                                        "targets": [hex_rgb(e["core"]) + [12], hex_rgb(e["halo"]) + [16]]})
-    return {"core": core, "halo": halo}
+    radius = math.ceil(TRACE_CAP["halo2"] / 2 * geo["dpr"] - TRACE_CAP["core"] / 2 * geo["dpr"]) + 2
+    core, halo, core_out, near = pg.evaluate(JS_TRACE_PX, {
+        "src": "data:image/png;base64," + base64.b64encode(png).decode(), "cssW": geo["cssW"], "ox": geo["ox"], "oy": geo["oy"],
+        "boxes": geo["boxes"], "radius": radius, "core": hex_rgb(e["core"]) + [12], "halo": hex_rgb(e["halo"]) + [16]})
+    return {"core": core, "halo": halo, "core_out": core_out, "halo_near_core": near, "callout_boxes": len(geo["boxes"])}
 
 
 def t_paper_style(c: Ctx):
@@ -1389,8 +1503,14 @@ def t_paper_style(c: Ctx):
                 m = pg.evaluate("window.__VLONTO_METRICS")
                 if m.get("highlightChain", 0) < 1:
                     raise RuntimeError(f"no superclass chain in the highlight: {m.get('highlightChain')}")
-                if after["core"] - before["core"] < 30 or after["halo"] - before["halo"] < 60:
-                    raise RuntimeError(f"traced path not drawn: core/halo pixels {before} -> {after}")
+                # the trace's own pixels: its core outside the call-out boxes, and the gold halo band flanking that core
+                # (a raw count of gold pixels also follows pastel nodes that leave the view when the camera flies in)
+                d_core = after["core_out"] - before["core_out"]
+                d_halo = after["halo_near_core"] - before["halo_near_core"]
+                need_halo = max(60, d_core // 2)
+                if d_core < 30 or d_halo < need_halo:
+                    raise RuntimeError(f"traced path not drawn: core pixels +{d_core} (need 30), halo pixels next to the core "
+                                       f"+{d_halo} (need {need_halo}); {before} -> {after}")
                 shot_article = shot(pg, "playground_article", theme)
                 # a class with more than 6 links (NormativeLegalDocument: 11): only its chain up the hierarchy is traced, the
                 # other links are thin coloured lines; hovering a neighbour traces its link and keeps its call-out
@@ -1474,9 +1594,18 @@ def t_paper_style(c: Ctx):
                 legend = pg.evaluate("document.getElementById('legend').textContent") if not c.mobile else ""
                 if not c.mobile and "Đường truy vết" not in legend:
                     raise RuntimeError(f"legend: {legend[:200]}")
+                # links are curves drawn on the GPU (several segments per link), and the swatches of the legend and of the
+                # link toggles are curves too; the trace swatch keeps its navy core over the gold halo
+                cost = pg.evaluate("window.__VLONTO_METRICS.edgeCost") or {}
+                sw = pg.evaluate("""() => ({ legend: document.querySelectorAll('#legend svg.swatch-curve').length,
+                    trace: document.querySelectorAll('#legend svg.swatch-curve.trace path').length,
+                    toggles: document.querySelectorAll('#edge-toggles svg.swatch-curve').length })""")
+                if not cost.get("curves") or cost.get("vertices", 0) < 3 * cost.get("links", 1) or not sw["toggles"] \
+                        or (not c.mobile and (sw["legend"] < 2 or sw["trace"] != 2)):
+                    raise RuntimeError(f"curved links: cost {cost}, swatches {sw}")
                 return {"chain_docs": m.get("chainTraceDocs"), "ego_edges": m.get("egoEdges"), "ego_lines": m.get("egoLines"), "hover_trace_segments": hovered,
                         "pixels_before": before, "pixels_after": after, "callouts_selected": callout_summary(co1), "callouts_hover": callout_summary(co2),
-                        "shot": shot(pg, "network_45_2019", theme)}
+                        "edge_cost": cost, "curve_swatches": sw, "shot": shot(pg, "network_45_2019", theme)}
             finally:
                 merge(log)
                 ctx.close()
