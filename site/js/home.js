@@ -26,7 +26,7 @@
     ['index.html', 'cube', '3D ontology playground', 'Classes, properties, concept schemes and external alignments in an interactive 3D scene, with search, module filters and SPARQL CONSTRUCT results drawn in 3D.', true],
     ['network-3d.html', 'network', '3D legal network', 'All ' + VL.fmt(S.documents) + ' documents layered by legal force, with replacement, amendment, legal-basis and citation links and a validity panel.'],
     ['sparql.html', 'code', 'SPARQL playground', 'Ten bilingual example queries and a free editor over the core subset (' + VL.fmt(S.core_ttl_triples) + ' triples), running offline in WebAssembly.'],
-    ['traces.html', 'trace', 'Question traces', 'For each of 27 legal areas, the 20 articles its answers cite most, each with one published question traced from the answer up to the law, drawn like the figures of the paper.'],
+    ['traces.html', 'trace', 'Question traces', 'For each of 27 legal areas, the 20 articles its answers cite most, each with one published question traced from the answer up to the law, all in one 3D graph drawn like the figures of the paper.'],
     ['dashboard.html', 'chart', 'Dashboard', 'Documents by type, year, issuer and area, validity, change relations, most-cited documents and articles, Q&As, terms and news.'],
     ['ontology.html', 'docs', 'Ontology documentation', 'Modules, alignments and the full pyLODE reference of every class and property, with Turtle, SHACL and JSON-LD downloads.'],
     ['playbook.html', 'book', 'Playbook', 'How VLOnto is built and how to use it: sources and licences, the ontology design, the pipeline, validation and the website.'],
