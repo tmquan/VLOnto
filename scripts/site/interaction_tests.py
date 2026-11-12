@@ -15,9 +15,9 @@ Checks (each records pass/fail, details, console errors, page errors, failed and
   downloads     every listed download exists and its sha256 matches the page
   about         navigation has the 9 pages (index.html first, traces.html among them) + the Paper link; tool cards link to
                 existing pages; paper card
-  traces        traces.html: 27 area tabs (ARIA, keyboard), lazy area files, 20 cards per tab in < 200 ms (desktop), deep link
-                #area=&q=, focus view by keyboard (Enter / Tab trap / Esc), legend, call-out boxes clear of node and link
-                boxes and holding their text, no overflow; screenshots light / dark
+  traces        traces.html: one 3D scene of all 540 traces; 27 area tabs (ARIA, keyboard, scrolling inside their box),
+                lazy area files, a question in each of three areas lights its trace (core / halo pixels), call-outs clean,
+                Fig. 5 hop panel; node click; Escape; deep link #area=&q= per theme and the theme switch; no overflow
   redirect      ontology-3d.html#class=... (old playground address) forwards to index.html and keeps the hash
   theme         toggle on every page re-renders canvas / charts / CONSTRUCT view / pyLODE frame; persistence (storage and
                 ?theme= carry), system preference, ?theme=dark
@@ -856,7 +856,7 @@ PAPER_BIBTEX = ("@misc{bui2026vietnamese,\n"
                 "}")
 SITE_PAGES = ["index.html", "about.html", "network-3d.html", "sparql.html", "dashboard.html", "ontology.html",
               "playbook.html", "downloads.html", "traces.html"]
-SCENES = ("index.html", "network-3d.html")       # pages with a full-screen WebGL scene
+SCENES = ("index.html", "network-3d.html", "traces.html")       # pages with a full-screen WebGL scene
 JS_THEME = """() => { const r = document.documentElement, b = document.querySelector('.vl-header .vl-theme-btn'), M = window.__VLONTO_METRICS || {};
   let ls = null; try { ls = window.localStorage.getItem('vlonto.theme'); } catch (e) { ls = 'blocked'; }
   return { theme: r.getAttribute('data-theme'), pressed: b ? b.getAttribute('aria-pressed') : null, label: b ? b.getAttribute('aria-label') : null,
@@ -1680,59 +1680,36 @@ def t_paper_style(c: Ctx):
 # ------------------------------------------------------------------ question traces (traces.html)
 # geometry of the trace drawings as rendered: every call-out box against the boxes of the nodes (circles) and of the
 # links and traced segments (paths, widened by half their stroke); each text line inside its box; boxes inside the view
-JS_TRACE_GEOM = """(sel) => {
-  const out = { figs: 0, boxes: 0, texts: 0, ink: 0, inkHits: [], textOut: [], outside: [] };
-  const hit = (a, b, tol) => a.x < b.x + b.width - tol && a.x + a.width > b.x + tol && a.y < b.y + b.height - tol && a.y + a.height > b.y + tol;
-  const r1 = (b) => [b.x, b.y, b.width, b.height].map(v => Math.round(v * 10) / 10);
-  document.querySelectorAll(sel).forEach((svg, fi) => {
-    out.figs++;
-    const vb = svg.viewBox.baseVal, ink = [];
-    // faded background nodes and links (class bg) may sit behind a call-out, as in the paper: not ink
-    svg.querySelectorAll('circle.tn:not(.bg)').forEach(e => ink.push(['node', e.getBBox()]));
-    svg.querySelectorAll('path.tl:not(.bg), path.th2, path.th, path.tc').forEach(e => {
-      const b = e.getBBox(), w = (parseFloat(getComputedStyle(e).strokeWidth) || 0) / 2;
-      ink.push(['link', { x: b.x - w, y: b.y - w, width: b.width + 2 * w, height: b.height + 2 * w }]);
-    });
-    out.ink += ink.length;
-    svg.querySelectorAll('g.tr-co').forEach(g => {
-      const r = g.querySelector('rect.tr-box').getBBox();
-      out.boxes++;
-      if (r.x < -0.5 || r.y < -0.5 || r.x + r.width > vb.width + 0.5 || r.y + r.height > vb.height + 0.5) out.outside.push({ fig: fi, box: r1(r) });
-      ink.forEach(([kind, b]) => { if (hit(r, b, 0.5) && out.inkHits.length < 12) out.inkHits.push({ fig: fi, kind, box: r1(r), ink: r1(b) }); });
-      g.querySelectorAll('text').forEach(t => {
-        const b = t.getBBox();
-        out.texts++;
-        if (b.x < r.x - 0.75 || b.y < r.y - 0.75 || b.x + b.width > r.x + r.width + 0.75 || b.y + b.height > r.y + r.height + 0.75)
-          out.textOut.push({ fig: fi, text: t.textContent.slice(0, 40), text_box: r1(b), box: r1(r) });
-      });
-    });
-  });
-  return out;
-}"""
-JS_TRACE_STATE = """() => { const M = window.__VLONTO_METRICS || {}, T = M.traces || {}, tabs = Array.from(document.querySelectorAll('#tr-tabs [role=tab]'));
-  const sel = tabs.filter(t => t.getAttribute('aria-selected') === 'true');
-  return { available: T.available, area: T.area, loaded: (T.loaded || []).slice(), cards: document.querySelectorAll('#tr-panel .tr-card').length,
-    renderMs: T.renderMs, focus: T.focus, tabs: tabs.length, tablist: (document.getElementById('tr-tabs') || {}).getAttribute ? document.getElementById('tr-tabs').getAttribute('role') : null,
-    selected: sel.map(t => t.getAttribute('data-area')), tabindex0: tabs.filter(t => t.tabIndex === 0).length,
-    controls: tabs.every(t => t.getAttribute('aria-controls') === 'tr-panel'), labelledby: (document.getElementById('tr-panel') || {}).getAttribute ?
-      document.getElementById('tr-panel').getAttribute('aria-labelledby') : null,
+JS_TRACES = """() => { const M = window.__VLONTO_METRICS || {}, T = M.traces || {}, tabs = Array.from(document.querySelectorAll('#tr-tabs [role=tab]'));
+  const tl = document.getElementById('tr-tabs'), tp = document.getElementById('tr-panel'), pn = document.getElementById('panel'), l = document.getElementById('tr-list');
+  return { available: T.available, webgl: T.webgl, fallback: T.fallback, graph: T.graph, area: T.area, loaded: (T.loaded || []).slice(),
+    listItems: l.querySelectorAll('.tr-item').length, listArea: l.getAttribute('data-area'),
+    current: Array.from(l.querySelectorAll('.tr-item[aria-current="true"]')).map(b => +b.getAttribute('data-rank')),
+    selected: T.selected, segments: T.traceSegments, verified: T.traceVerified, structural: T.traceStructural, hops: T.hops, edgeCost: T.edgeCost || null,
+    labels: T.labels, flights: T.flights, fps: T.fps, themeRenders: T.themeRenders, linksShown: T.linksShown, clicked: T.clicked || null,
+    tabs: tabs.length, tablist: tl.getAttribute('role'), selTabs: tabs.filter(t => t.getAttribute('aria-selected') === 'true').map(t => t.getAttribute('data-area')),
+    tabindex0: tabs.filter(t => t.tabIndex === 0).length, controls: tabs.every(t => t.getAttribute('aria-controls') === 'tr-panel'),
+    labelledby: tp.getAttribute('aria-labelledby'), strip: { scroll: tl.scrollWidth, client: tl.clientWidth, overflowX: getComputedStyle(tl).overflowX },
+    panelOpen: !pn.classList.contains('hidden'), panelHops: pn.querySelectorAll('.hop').length, hash: location.hash,
     active: document.activeElement ? (document.activeElement.id || document.activeElement.className || document.activeElement.tagName) : null,
-    hash: location.hash, areaScripts: Array.from(document.scripts).map(s => s.getAttribute('src') || '').filter(s => s.indexOf('data/traces/') === 0) }; }"""
-JS_TAB_TIME = """async (id) => { const T = window.__VLONTO_METRICS.traces, n0 = T.renders || 0, t0 = performance.now();
-  document.getElementById('tr-tab-' + id).click();
-  while ((T.renders || 0) === n0) { if (performance.now() - t0 > 60000) return { timeout: true }; await new Promise(r => setTimeout(r, 5)); }
-  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-  return { total_ms: Math.round(performance.now() - t0), render_ms: T.renderMs, area: T.area }; }"""
-JS_CARD_OVERFLOW = """() => Array.from(document.querySelectorAll('#tr-panel .tr-card')).flatMap(c =>
-  [c].concat(Array.from(c.querySelectorAll('.tc-head, .tc-q, .tc-g, .tc-prov, .tc-fig'))).filter(e => e.scrollWidth > e.clientWidth + 1)
-    .map(e => ({ card: c.id, el: e.className, scroll: e.scrollWidth, client: e.clientWidth })))"""
+    areaScripts: Array.from(document.scripts).map(s => s.getAttribute('src') || '').filter(s => s.indexOf('data/traces/') === 0).sort() }; }"""
+# a selection is complete when the camera has arrived and a call-out run newer than `runs` shows the question's call-out
+JS_TRACE_DONE = """(a) => { const M = window.__VLONTO_METRICS, T = M.traces, S = T.selected, C = M.callouts;
+  return !!S && S.area === a.area && S.rank === a.rank && T.traceSegments > 0 && T.hops === 5 && window.VLApp.traces.settle() &&
+    !!C && C.runs > a.runs && C.placed.some(p => p.id === S.q && p.sel); }"""
+JS_AREA_DONE = """(id) => { const T = window.__VLONTO_METRICS.traces, l = document.getElementById('tr-list');
+  return T.area === id && l.getAttribute('data-area') === id && l.querySelectorAll('.tr-item').length === 20 && window.VLApp.traces.settle(); }"""
+TRACE_PICKS = [("lao-dong-tien-luong", 3), ("thue-phi-le-phi", 5), ("bao-hiem", 8)]
 
 
 def t_traces(c: Ctx):
-    """traces.html: 27 area tabs (ARIA tablist, keyboard), lazy loading of the area files, 20 cards per tab rendered
-    fast, deep links #area=<id>&q=<rank>, the focus view opened and closed by keyboard (legend, five hops), call-out
-    boxes clear of node and link boxes and holding their text in cards and focus view, no text overflow, no console
-    errors; screenshots of the page and the focus view in both themes."""
+    """traces.html: the 540 traced answers in one 3D scene (js/traces3d.js, data/traces/graph.js). 27 area tabs in an ARIA
+    tablist that scrolls inside its own box (keyboard: arrows, Home, End), the open area's 20 questions in the list (lazy
+    area files), three areas opened and one question selected in each: the trace lit in the canvas (core and halo pixels),
+    the question, provision, law, term and area call-outs placed with no overlap and no node centre covered, the Fig. 5
+    hop panel with five boxes, the list entry marked; a click on a node opens its details; Escape clears the selection;
+    the deep link #area=lao-dong-tien-luong&q=3 per theme, and the theme switch keeps the trace; no page wider than the
+    screen, no console errors; screenshots."""
     res = {"test": "traces", "checks": []}
     logs = {"console_errors": [], "page_errors": [], "failed_requests": [], "external_requests": []}
 
@@ -1748,139 +1725,191 @@ def t_traces(c: Ctx):
             det = fail_details(e, c, pg, name) if pg is not None else {"error": str(e)[:1200]}
             res["checks"].append({"name": name, "pass": False, "details": det, "s": round(time.time() - t0, 2)})
 
-    def geom(pg, sel, where):
-        g = pg.evaluate(JS_TRACE_GEOM, sel)
-        if not g["figs"] or not g["boxes"] or g["inkHits"] or g["textOut"] or g["outside"]:
-            raise RuntimeError(f"{where}: {json.dumps(g, ensure_ascii=False)[:900]}")
-        return {k: g[k] for k in ("figs", "boxes", "texts", "ink")}
+    def runs(pg):
+        return (pg.evaluate(JS_CALLOUTS) or {}).get("runs", 0)
 
-    ctx, pg, log = c.open("traces.html", ready_timeout=T_(180000))
+    def open_area(pg, area):
+        pg.locator(f"#tr-tab-{area}").click()
+        pg.wait_for_function(JS_AREA_DONE, arg=area, timeout=T_(90000))
+
+    def select(pg, area, rank):
+        r0 = runs(pg)
+        if c.mobile and not pg.evaluate("() => document.getElementById('app').classList.contains('side-open')"):
+            pg.locator("#btn-list-m").click()
+        pg.locator(f'#tr-list .tr-item[data-rank="{rank}"]').click()
+        pg.wait_for_function(JS_TRACE_DONE, arg={"area": area, "rank": rank, "runs": r0}, timeout=T_(90000))
+        pg.wait_for_timeout(400)
+        return pg.evaluate(JS_TRACES), pg.evaluate(JS_CALLOUTS)
+
+    def judge(s, co, where):
+        """the selected trace: drawn, five hops, list entry marked, call-outs clean (the question's never forced on desktop)"""
+        S = s["selected"] or {}
+        faults = callout_faults(co)
+        q = [p for p in co.get("placed", []) if p["id"] == S.get("q")]
+        if not q or (q[0]["forced"] and not c.mobile):
+            faults.append(f"question call-out {'forced' if q else 'missing'}")
+        if co.get("shown", 0) < (2 if c.mobile else 3):
+            faults.append(f"only {co.get('shown')} call-outs shown")
+        if s["segments"] < 3 or s["panelHops"] != 5 or not s["panelOpen"] or s["current"] != [S.get("rank")] or f"q={S.get('rank')}" not in s["hash"]:
+            faults.append(f"segments {s['segments']}, hops {s['panelHops']}, panel {s['panelOpen']}, list {s['current']}, hash {s['hash']}")
+        if faults:
+            raise RuntimeError(f"{where}: {'; '.join(faults)}; call-outs {callout_summary(co)}")
+        return {"selected": {k: S.get(k) for k in ("q", "provision", "law", "term", "areaNode", "fg", "segments")},
+                "verified_segments": s["verified"], "structural_segments": s["structural"], "callouts": callout_summary(co),
+                "placed": [p["id"] for p in co["placed"]]}
+
+    ctx, pg, log = c.open("traces.html", ready_timeout=T_(240000))
     try:
+        if pg.evaluate("() => { const h = document.getElementById('hint'); return !!h && !h.classList.contains('hidden'); }"):
+            pg.locator("#hint-close").click()             # the first-visit hint: dismissed like a visitor would
         def tabs():
-            s = pg.evaluate(JS_TRACE_STATE)
-            ok = (s["available"] and s["tabs"] == 27 and s["tablist"] == "tablist" and len(s["selected"]) == 1 and s["tabindex0"] == 1
-                  and s["controls"] and s["labelledby"] == "tr-tab-" + s["selected"][0])
+            s = pg.evaluate(JS_TRACES)
+            ok = (s["available"] and s["webgl"] and not s["fallback"] and s["tabs"] == 27 and s["tablist"] == "tablist" and len(s["selTabs"]) == 1
+                  and s["tabindex0"] == 1 and s["controls"] and s["labelledby"] == "tr-tab-" + s["selTabs"][0]
+                  and (s["graph"] or {}).get("traces") == 540 and (s["graph"] or {}).get("nodes", 0) > 10000
+                  and (s["edgeCost"] or {}).get("curves") and s["edgeCost"]["segments"] > s["edgeCost"]["links"])
             if not ok:
-                raise RuntimeError(f"tab state {s}")
-            return {"tabs": s["tabs"], "selected": s["selected"]}
-        check("27 area tabs in an ARIA tablist, one selected, roving tabindex", tabs, pg)
+                raise RuntimeError(f"state {json.dumps(s, ensure_ascii=False)[:900]}")
+            return {"tabs": s["tabs"], "selected": s["selTabs"], "graph": s["graph"], "fps": s["fps"], "links_shown": s["linksShown"],
+                    "edge_cost": s["edgeCost"]}
+        check("one WebGL scene of all traces (540 traces, > 10,000 nodes, links drawn as curves); 27 area tabs in an ARIA tablist, "
+              "one selected, roving tabindex", tabs, pg)
+
+        def strip():
+            s = pg.evaluate(JS_TRACES)
+            last = pg.evaluate("Array.from(document.querySelectorAll('#tr-tabs [role=tab]')).pop().getAttribute('data-area')")
+            pg.locator(f"#tr-tab-{last}").scroll_into_view_if_needed()
+            pg.wait_for_timeout(200)
+            box = pg.evaluate("""(id) => { const t = document.getElementById('tr-tab-' + id).getBoundingClientRect(), s = document.getElementById('tr-tabs').getBoundingClientRect();
+                return { inside: t.left >= s.left - 1 && t.right <= s.right + 1, tab: [Math.round(t.left), Math.round(t.right)], strip: [Math.round(s.left), Math.round(s.right)] }; }""", last)
+            w = no_hscroll(c, pg, "traces")
+            if s["strip"]["overflowX"] not in ("auto", "scroll") or s["strip"]["scroll"] <= s["strip"]["client"] or not box["inside"]:
+                raise RuntimeError(f"tab strip {s['strip']}, last tab {box}")
+            return {"strip": s["strip"], "last_tab": box, "page_width": w}
+        check("the tab strip scrolls inside its own box (the last tab reachable); the page is no wider than the screen", strip, pg)
 
         def lazy():
-            s = pg.evaluate(JS_TRACE_STATE)
-            if s["cards"] != 20 or len(s["loaded"]) != 1 or sorted(s["areaScripts"]) != sorted(["data/traces/index.js", "data/traces/" + s["area"] + ".js"]):
-                raise RuntimeError(f"cards {s['cards']}, loaded {s['loaded']}, scripts {s['areaScripts']}")
-            return {"area": s["area"], "cards": s["cards"], "scripts": s["areaScripts"], "render_ms": s["renderMs"]}
-        check("only the open area's data file is loaded; it shows 20 cards", lazy, pg)
-
-        def keyboard():
-            s0 = pg.evaluate(JS_TRACE_STATE)
-            ids = pg.evaluate("Array.from(document.querySelectorAll('#tr-tabs [role=tab]')).map(t => t.getAttribute('data-area'))")
-            i = ids.index(s0["selected"][0])
-            pg.focus(f"#tr-tab-{s0['selected'][0]}")
-            pg.keyboard.press("ArrowRight")
-            nxt = ids[(i + 1) % len(ids)]
-            pg.wait_for_function("(id) => { const T = window.__VLONTO_METRICS.traces; return T.area === id && document.querySelectorAll('#tr-panel .tr-card').length === 20; }",
-                                 arg=nxt, timeout=T_(60000))
-            s1 = pg.evaluate(JS_TRACE_STATE)
-            pg.keyboard.press("End")
-            pg.wait_for_function("(id) => window.__VLONTO_METRICS.traces.area === id", arg=ids[-1], timeout=T_(60000))
-            pg.keyboard.press("Home")
-            pg.wait_for_function("(id) => window.__VLONTO_METRICS.traces.area === id && document.querySelectorAll('#tr-panel .tr-card').length === 20",
-                                 arg=ids[0], timeout=T_(60000))
-            s2 = pg.evaluate(JS_TRACE_STATE)
-            if s1["active"] != f"tr-tab-{nxt}" or s1["selected"] != [nxt] or len(s1["loaded"]) < 2 or s2["active"] != f"tr-tab-{ids[0]}" or "#area=" not in s2["hash"]:
-                raise RuntimeError(f"after ArrowRight {s1}; after End/Home {s2}")
-            return {"arrow_right": nxt, "loaded": len(s2["loaded"]), "hash": s2["hash"]}
-        check("keyboard: ArrowRight / End / Home select and lazy-load areas; the hash follows", keyboard, pg)
-
-        def timing():
-            ids = pg.evaluate("Array.from(document.querySelectorAll('#tr-tabs [role=tab]')).map(t => t.getAttribute('data-area'))")
-            cur = pg.evaluate("window.__VLONTO_METRICS.traces.area")
-            out = []
-            for a in [x for x in ids if x != cur][:3]:
-                out.append(pg.evaluate(JS_TAB_TIME, a))
-            slow = [t for t in out if t.get("timeout") or (not c.mobile and t["render_ms"] > 200)]
-            if slow:
-                raise RuntimeError(f"rendering 20 cards took more than 200 ms on desktop: {out}")
-            return {"tabs": out}
-        check("a tab renders its 20 cards in under 200 ms (desktop; total incl. loading and paint recorded)", timing, pg)
-
-        def drawings():
-            pg.evaluate("() => window.scrollTo(0, 0)")
-            return geom(pg, "#tr-panel svg.trv-card", "cards")
-        check("cards: call-out boxes clear of node and link boxes, text inside its box, boxes inside the drawing", drawings, pg)
-
-        def overflow():
-            bad = pg.evaluate(JS_CARD_OVERFLOW)
-            if bad:
-                raise RuntimeError(f"text wider than its card: {bad[:6]}")
-            return {"cards_checked": pg.evaluate("document.querySelectorAll('#tr-panel .tr-card').length"), "page_width": no_hscroll(c, pg, "traces")}
-        check("no text overflow in the cards; no horizontal page scroll", overflow, pg)
+            s = pg.evaluate(JS_TRACES)
+            want = sorted(["data/traces/index.js", "data/traces/graph.js", "data/traces/" + s["area"] + ".js"])
+            if s["listItems"] != 20 or s["listArea"] != s["area"] or s["areaScripts"] != want:
+                raise RuntimeError(f"list {s['listItems']} ({s['listArea']}), scripts {s['areaScripts']}")
+            return {"area": s["area"], "list": s["listItems"], "scripts": s["areaScripts"]}
+        check("only the graph and the open area's file are loaded; the list shows the area's 20 questions", lazy, pg)
 
         def legend():
+            if c.mobile:
+                pg.locator("#btn-legend").click()
             L = pg.evaluate("""() => { const l = document.querySelector('[data-legend]'); if (!l) return null; const r = l.getBoundingClientRect();
                 return { entries: l.querySelectorAll('li').length, text: l.textContent.replace(/\\s+/g, ' '), visible: r.width > 0 && r.height > 0,
                   flat: Array.from(l.querySelectorAll('.swatch:not(.trace)')).every(s => getComputedStyle(s).backgroundImage === 'none') }; }""")
+            if c.mobile:
+                pg.locator("#btn-legend").click()
             need = ("Văn bản", "Work", "Điều", "Article", "Đường truy vết", "Traced answer", "Structure only")
             if not L or not L["visible"] or L["entries"] < 14 or not L["flat"] or any(n not in L["text"] for n in need):
                 raise RuntimeError(f"legend {L}")
             return {"entries": L["entries"], "flat_swatches": L["flat"]}
         check("flat bilingual legend with the traced and the structural path", legend, pg)
 
-        def focus_keyboard():
-            pg.focus("#tr-panel .tr-card .tc-open")
+        def three():
+            out = []
+            for area, rank in TRACE_PICKS:
+                open_area(pg, area)
+                before = trace_pixels(pg, "#canvas-host", "light")
+                s, co = select(pg, area, rank)
+                d = judge(s, co, f"{area} #{rank}")
+                after = trace_pixels(pg, "#canvas-host", "light")
+                if after["core"] - before["core"] < 30 or after["halo"] - before["halo"] < 60:
+                    raise RuntimeError(f"{area} #{rank}: trace pixels {before} -> {after}")
+                d.update({"area": area, "rank": rank, "pixels": [before, after]})
+                if area == TRACE_PICKS[0][0]:
+                    d["shot"] = c.shot(pg, "traces_selected")
+                out.append(d)
+            return {"traces": out, "page_width": no_hscroll(c, pg, "traces with a trace selected")}
+        check("three areas: tab -> 20 questions -> a question lights its trace (core / halo pixels), call-outs clean, five hops", three, pg)
+
+        def node_click():
+            S = pg.evaluate("window.__VLONTO_METRICS.traces.selected")
+            # the first of provision, law, term, area node whose projected centre is on the canvas itself (not under an overlay)
+            hit = pg.evaluate("""(ids) => { const host = document.getElementById('canvas-host'), b = host.getBoundingClientRect();
+                for (const id of ids) { if (!id) continue; const p = window.VLApp.traces.project(id);
+                  if (!p || !p.inside) continue; const e = document.elementFromPoint(b.left + p.x, b.top + p.y);
+                  if (e && e.tagName === 'CANVAS' && host.contains(e)) return { id, x: b.left + p.x, y: b.top + p.y }; }
+                return null; }""", [S["provision"], S["law"], S["term"], S["areaNode"]])
+            if not hit:
+                raise RuntimeError(f"no node of the trace is clickable on the canvas: {S}")
+            pg.mouse.click(hit["x"], hit["y"])
+            pg.wait_for_function("() => !!window.__VLONTO_METRICS.traces.clicked && !!document.querySelector('#panel .kv')", timeout=T_(30000))
+            s = pg.evaluate(JS_TRACES)
+            return {"target": hit["id"], "clicked": s["clicked"], "same": s["clicked"] == hit["id"]}
+        check("a click on a node of the trace opens its details", node_click, pg)
+
+        def keyboard():
+            ids = pg.evaluate("Array.from(document.querySelectorAll('#tr-tabs [role=tab]')).map(t => t.getAttribute('data-area'))")
+            cur = pg.evaluate("window.__VLONTO_METRICS.traces.area")
+            i = ids.index(cur)
+            pg.focus(f"#tr-tab-{cur}")
+            pg.keyboard.press("ArrowRight")
+            nxt = ids[(i + 1) % len(ids)]
+            pg.wait_for_function(JS_AREA_DONE, arg=nxt, timeout=T_(90000))
+            s1 = pg.evaluate(JS_TRACES)
+            pg.keyboard.press("End")
+            pg.wait_for_function("(id) => window.__VLONTO_METRICS.traces.area === id", arg=ids[-1], timeout=T_(90000))
+            pg.keyboard.press("Home")
+            pg.wait_for_function(JS_AREA_DONE, arg=ids[0], timeout=T_(90000))
+            s2 = pg.evaluate(JS_TRACES)
+            if s1["active"] != f"tr-tab-{nxt}" or s1["selTabs"] != [nxt] or s2["active"] != f"tr-tab-{ids[0]}" or "#area=" + ids[0] not in s2["hash"]:
+                raise RuntimeError(f"after ArrowRight {s1['active']} {s1['selTabs']}; after End/Home {s2['active']} {s2['hash']}")
+            if c.mobile:
+                pg.locator("#btn-list-m").click()
+            pg.focus('#tr-list .tr-item[data-rank="1"]')
+            pg.keyboard.press("ArrowDown")
+            down = pg.evaluate("() => document.activeElement && document.activeElement.id")
+            r0 = runs(pg)
             pg.keyboard.press("Enter")
-            pg.wait_for_function("() => { const f = window.__VLONTO_METRICS.traces.focus; return f && f.open; }", timeout=T_(30000))
-            st = pg.evaluate("""() => { const d = document.getElementById('tr-focus-dialog'), w = document.getElementById('tr-focus');
-                return { visible: !w.hidden && d.getBoundingClientRect().height > 0, role: d.getAttribute('role'), modal: d.getAttribute('aria-modal'),
-                  closeFocused: document.activeElement && document.activeElement.classList.contains('tf-close'), hops: d.querySelectorAll('.hop').length,
-                  legend: !!d.querySelector('.tr-legend'), view: (d.querySelector('svg.tr-fig') || {}).getAttribute ? d.querySelector('svg.tr-fig').getAttribute('data-view') : null,
-                  title: (document.getElementById('tf-title') || {}).textContent || '', hash: location.hash }; }""")
-            want_view = "tall" if c.vp[0] < 760 else "wide"
-            if not (st["visible"] and st["role"] == "dialog" and st["modal"] == "true" and st["closeFocused"] and st["hops"] == 5 and st["legend"]
-                    and st["view"] == want_view and "q=" in st["hash"]):
-                raise RuntimeError(f"focus view {st}")
-            g = geom(pg, "#tr-focus-dialog svg.tr-fig", "focus view")
-            shot = c.shot(pg, "traces_focus_keyboard")
-            for _ in range(25):                     # Tab cycles inside the dialog
-                pg.keyboard.press("Tab")
-            inside = pg.evaluate("() => !!document.activeElement.closest('#tr-focus-dialog')")
+            pg.wait_for_function(JS_TRACE_DONE, arg={"area": ids[0], "rank": 2, "runs": r0}, timeout=T_(90000))
             pg.keyboard.press("Escape")
-            pg.wait_for_function("() => { const f = window.__VLONTO_METRICS.traces.focus; return f && !f.open; }", timeout=T_(10000))
-            after = pg.evaluate("() => ({ hidden: document.getElementById('tr-focus').hidden, active: document.activeElement && document.activeElement.className, hash: location.hash })")
-            if not inside or not after["hidden"] or "tc-open" not in (after["active"] or "") or "q=" in after["hash"]:
-                raise RuntimeError(f"focus trap {inside}; after Escape {after}")
-            return {"view": st["view"], "title": st["title"][:60], "geometry": g, "after_escape": after, "shot": shot}
-        check("focus view: Enter on a card opens it (dialog, legend, five hops), Tab stays inside, Esc closes", focus_keyboard, pg)
+            pg.wait_for_function("() => !window.__VLONTO_METRICS.traces.selected && document.getElementById('panel').classList.contains('hidden')", timeout=T_(15000))
+            s3 = pg.evaluate(JS_TRACES)
+            if down != "tr-item-2" or s3["segments"] != 0 or "q=" in s3["hash"] or s3["current"]:
+                raise RuntimeError(f"list ArrowDown -> {down}; after Escape {s3['segments']} segments, hash {s3['hash']}, list {s3['current']}")
+            return {"arrow_right": nxt, "loaded": len(s2["loaded"]), "list_arrow_down": down, "after_escape": s3["hash"]}
+        check("keyboard: ArrowRight / End / Home on the tabs, ArrowDown + Enter in the list select, Escape clears", keyboard, pg)
     finally:
         merge(log)
         ctx.close()
 
-    # deep link and screenshots, per theme (emulated system setting)
+    # deep link per theme (emulated system setting), then the header switch to the other theme keeps the trace
     for theme in c.themes:
         def deep(theme=theme):
-            ctx, pg, log = c.open("traces.html#area=lao-dong-tien-luong&q=3", scheme=theme, ready_timeout=T_(180000))
+            area, rank = TRACE_PICKS[0]
+            ctx, pg, log = c.open(f"traces.html#area={area}&q={rank}", scheme=theme, ready_timeout=T_(240000))
             try:
-                pg.wait_for_function("() => { const f = window.__VLONTO_METRICS.traces.focus; return f && f.open; }", timeout=T_(60000))
-                f = pg.evaluate("window.__VLONTO_METRICS.traces.focus")
+                pg.wait_for_function(JS_TRACE_DONE, arg={"area": area, "rank": rank, "runs": 0}, timeout=T_(120000))
+                pg.wait_for_timeout(400)
                 applied = pg.evaluate("document.documentElement.getAttribute('data-theme')")
-                if f["area"] != "lao-dong-tien-luong" or f["rank"] != 3 or applied != theme:
-                    raise RuntimeError(f"deep link opened {f} in theme {applied}")
-                g = geom(pg, "#tr-focus-dialog svg.tr-fig", "focus view (deep link)")
-                focus_shot = c.shot(pg, f"traces_focus__{theme}")
-                pg.keyboard.press("Escape")
-                pg.wait_for_function("() => !window.__VLONTO_METRICS.traces.focus.open", timeout=T_(10000))
-                pg.evaluate("() => window.scrollTo(0, 0)")
-                pg.wait_for_timeout(300)
-                top_shot = c.shot(pg, f"traces_top__{theme}")
-                pg.evaluate("() => document.getElementById('tr-panel').scrollIntoView()")
-                pg.wait_for_timeout(300)
-                cards_shot = c.shot(pg, f"traces_cards__{theme}")
-                return {"focus": f, "geometry": g, "shots": [focus_shot, top_shot, cards_shot]}
+                if applied != theme:
+                    raise RuntimeError(f"theme {applied}, expected {theme}")
+                d1 = judge(pg.evaluate(JS_TRACES), pg.evaluate(JS_CALLOUTS), f"deep link ({theme})")
+                px1 = trace_pixels(pg, "#canvas-host", theme)
+                if px1["core"] < 30 or px1["halo"] < 60:
+                    raise RuntimeError(f"deep link ({theme}): trace pixels {px1}")
+                shot1 = c.shot(pg, f"traces_deep__{theme}")
+                other = "dark" if theme == "light" else "light"
+                r0, n0 = runs(pg), pg.evaluate("window.__VLONTO_METRICS.themeRenders || 0")
+                click_theme(pg, other)
+                pg.wait_for_function("(n) => (window.__VLONTO_METRICS.themeRenders || 0) > n", arg=n0, timeout=T_(30000))
+                pg.wait_for_function(JS_TRACE_DONE, arg={"area": area, "rank": rank, "runs": r0}, timeout=T_(60000))
+                pg.wait_for_timeout(400)
+                d2 = judge(pg.evaluate(JS_TRACES), pg.evaluate(JS_CALLOUTS), f"after switching to {other}")
+                px2 = trace_pixels(pg, "#canvas-host", other)
+                if px2["core"] < 30 or px2["halo"] < 60:
+                    raise RuntimeError(f"after switching to {other}: trace pixels {px2}")
+                shot2 = c.shot(pg, f"traces_deep__{theme}_to_{other}")
+                return {"theme": [d1["callouts"], px1, shot1], "switched": [d2["callouts"], px2, shot2], "page_width": no_hscroll(c, pg, "traces deep link")}
             finally:
                 merge(log)
                 ctx.close()
-        check(f"deep link #area=lao-dong-tien-luong&q=3 opens the focus view ({theme}); screenshots", deep)
+        check(f"deep link #area=lao-dong-tien-luong&q=3 lights the trace ({theme}); the theme switch keeps it", deep)
     res["log"] = logs
     return res
 

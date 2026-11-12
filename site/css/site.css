@@ -1223,11 +1223,11 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
 [data-style="paper"] .legend .lg-note { margin: 5px 0 0; font-size: 11.5px; line-height: 1.35; color: var(--paper-ink-2); white-space: normal; max-width: 60ch; }
 
 /* ------------------------------------------------------------------ question traces (traces.html)
-   One tab per legal area, 20 traced answers per tab drawn like the panels of the paper's Fig. 6, and a focus view in
-   the manner of Fig. 1 with the hop-by-hop provenance of Fig. 5. The drawings are SVG built from build-time geometry
-   (scripts/site/trace_layout.py, js/trace-draw.js); every colour comes from the paper-style tokens above (class palette
-   --cls-*, call-out greys, the traced path) plus the sphere shading below, so the theme switch needs no redraw. Light =
-   the paper's white figure ground; dark = the same palette on the paper-style dark ground with the light trace core. */
+   All traced answers in one 3D scene (js/traces3d.js, data/traces/graph.js); the 2D drawing below (js/trace-draw.js,
+   build-time geometry from scripts/site/trace_layout.py) is the fallback without WebGL. Every colour comes from the
+   paper-style tokens above (class palette --cls-*, call-out greys, the traced path) plus the sphere shading below, so a
+   theme switch needs no redraw of the 2D drawing. Light = the paper's white figure ground; dark = the same palette on
+   the paper-style dark ground with the light trace core. */
 [data-style="paper"] {
   /* sphere shading: highlight = class colour mixed 50 % with white, rim = 0.84 x class colour (as the 3D views) */
   --trs-work-hi: #bedec6; --trs-work-rim: #69a077; --trs-record-hi: #d1e9d6; --trs-record-rim: #89b192;
@@ -1249,7 +1249,7 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
   --trs-area-hi: #cfcfde; --trs-area-rim: #828290;
   --tr-shadow: #000000; --tr-shadow-a: .55; --tr-link-opacity: .8;
 }
-/* --- the drawing (card = Fig. 6 panel; wide / tall = focus view) */
+/* --- the 2D drawing of a trace (no-WebGL fallback; card = Fig. 6 panel, wide / tall = Fig. 1 view) */
 .tr-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
 .tr-fig { display: block; width: 100%; height: auto; font-family: var(--vlo-font-paper); }
 .tr-shadows ellipse { fill: url(#trg-shadow); }
@@ -1299,88 +1299,72 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
 .tr-vi { fill: var(--paper-ink); } .tr-en { fill: var(--paper-ink-2); }
 .tr-fig text { font-family: var(--vlo-font-paper); font-weight: 400; font-style: normal; }
 .trv-card text { font-size: 13.5px; } .trv-wide text { font-size: 15px; } .trv-tall text { font-size: 12.5px; }
-/* --- the page: header notes, flat legend, area tabs (wrap on wide screens, one scrolling row on phones), card grid */
-.traces-page { max-width: 1400px; }
-.traces-page .page-head { padding-bottom: 4px; }
-.traces-page .lead .vi, .tr-notes .vi { display: block; color: var(--fg-2); }
-.tr-notes { max-width: 980px; margin: 4px 0 0; font-size: 14px; line-height: 1.5; color: var(--fg-2); }
-.tr-notes summary { cursor: pointer; font-weight: 600; color: var(--fg); padding: 4px 0; }
-.tr-notes ul { margin: 6px 0 4px; padding-left: 20px; }
-.tr-notes li { margin: 0 0 6px; }
-.tr-notes li .vi { font-size: 13.5px; }
-.tr-revs { font-size: 12.5px; color: var(--fg-2); }
-.tr-legend { font: 400 13.5px/1.35 var(--vlo-font-paper); color: var(--paper-legend-fg); margin: 14px 0 0; padding: 8px 12px 9px;
-  background: var(--tr-card-bg); border: 1px solid var(--paper-legend-line); border-radius: 2px; }
-.tr-legend ul { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 4px 16px; }
-.tr-legend li { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
-.tr-legend .swatch { width: 12px; height: 12px; border-radius: 50%; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .14); }
-.tr-legend .swatch.small { width: 8px; height: 8px; margin: 0 2px; }
-.tr-legend .swatch.trace { width: 22px; height: 8px; border-radius: 4px; background: var(--paper-trace-halo); box-shadow: none; position: relative; }
-.tr-legend .swatch.trace::after { content: ""; position: absolute; left: 2px; right: 2px; top: 3px; height: 2px; border-radius: 1px; background: var(--paper-trace-core); }
-.tr-legend .swatch.trace.s { background: color-mix(in srgb, var(--paper-trace-halo) 45%, transparent); }
-.tr-legend .swatch.trace.s::after { height: 1.5px; top: 3.25px; background: repeating-linear-gradient(90deg, var(--paper-trace-core) 0 3.5px, transparent 3.5px 6px); }
-.tr-legend .lg-note { margin: 5px 0 0; font-size: 12.5px; color: var(--paper-ink-2); }
-.tr-tabs { display: flex; flex-wrap: wrap; gap: 5px; margin: 14px 0 0; padding: 2px; }
-.tr-tabs [role="tab"] { font: 500 13px/1.25 var(--vlo-font-sans); color: var(--fg-2); background: var(--surface); border: 1px solid var(--line-2);
-  border-radius: 7px; padding: 6px 9px; cursor: pointer; white-space: nowrap; display: inline-flex; align-items: baseline; gap: 6px; }
-.tr-tabs [role="tab"] .n { font: 400 11.5px/1 var(--vlo-font-mono); color: var(--fg-2); }
-.tr-tabs [role="tab"][aria-selected="true"] { background: var(--primary-bg); border-color: var(--primary-bg); color: var(--primary-fg); }
-.tr-tabs [role="tab"][aria-selected="true"] .n { color: var(--primary-fg); }
+/* --- the page: one 3D scene like network-3d.html (js/traces3d.js). The area tabs run in one row over the scene and scroll
+   inside their own box (min-width: 0 all the way up, so the page never grows wider than the screen); the open area's
+   questions at the left; the scene with legend and tools; the selected trace hop by hop (Fig. 5) in the panel at the
+   right. Phones: the question list and the panel are bottom sheets over the scene. */
+.tr-app { flex-direction: column; }
+.tr-bar { flex: 0 0 auto; display: flex; align-items: center; gap: 12px; min-width: 0; max-width: 100%;
+  padding: 5px 12px; background: var(--scene-side); border-bottom: 1px solid var(--scene-line); }
+.tr-title { flex: 0 0 auto; margin: 0; font: 400 17px/1.2 var(--vlo-font-paper); color: var(--scene-strong); white-space: nowrap; }
+.tr-tabs { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: nowrap; gap: 5px; overflow-x: auto;
+  padding: 4px 3px 6px; scrollbar-width: thin; scrollbar-color: var(--scene-scroll) transparent; -webkit-overflow-scrolling: touch; }
+.tr-tabs [role="tab"] { flex: 0 0 auto; display: inline-flex; align-items: baseline; gap: 5px; white-space: nowrap; cursor: pointer;
+  font: 500 12.5px/1.25 var(--vlo-font-sans); color: var(--scene-fg-2); background: var(--scene-surface-2);
+  border: 1px solid var(--scene-ctl-line); border-radius: 7px; padding: 5px 9px; }
+.tr-tabs [role="tab"] .sep, .tr-tabs [role="tab"] .n { color: var(--scene-muted); }
+.tr-tabs [role="tab"] .n { font: 400 11px/1 var(--vlo-font-mono); }
+.tr-tabs [role="tab"]:hover { background: var(--scene-hover); color: var(--scene-strong); }
+.tr-tabs [role="tab"][aria-selected="true"] { background: var(--scene-primary); border-color: var(--scene-primary); color: #ffffff; }
+.tr-tabs [role="tab"][aria-selected="true"] .sep, .tr-tabs [role="tab"][aria-selected="true"] .n { color: #ffffff; }
 .tr-tabs [role="tab"]:focus-visible { position: relative; z-index: 1; }
-.tr-panel { margin: 16px 0 8px; }
-.tr-panel:focus-visible { outline-offset: 4px; }
-.tr-area-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin: 0 0 12px; }
-.tr-area-head h2 { font: 400 24px/1.25 var(--vlo-font-paper); }
-.tr-area-head h2 .en { color: var(--fg-2); }
-.tr-area-head p { margin: 0; font-size: 14px; color: var(--fg-2); }
-.tr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr)); gap: 18px; }
-.tr-status { font-size: 14px; color: var(--fg-2); padding: 18px 0; }
-.tr-nodata { margin: 18px 0; }
-/* --- a card = one panel of Fig. 6 */
-.tr-card { position: relative; background: var(--tr-card-bg); border: 1px solid var(--tr-card-line); border-radius: 2px; padding: 12px 14px 10px;
-  font-family: var(--vlo-font-paper); color: var(--paper-ink); cursor: pointer; min-width: 0; }
-.tr-card:hover { border-color: var(--paper-leader); }
-.tc-head { display: flex; gap: 10px; align-items: baseline; font: 400 17px/1.3 var(--vlo-font-paper); margin: 0 0 3px; }
-.tc-rank { font-weight: 700; min-width: 16px; flex: 0 0 auto; }
-.tc-open { color: var(--paper-ink); text-decoration: none; overflow-wrap: break-word; min-width: 0; }
-.tc-open:hover { text-decoration: underline; }
-.tc-open .num { white-space: nowrap; }
-.tc-body { padding-left: 26px; }
-.tc-q { font: italic 400 15.5px/1.32 var(--vlo-font-paper); margin: 0 0 3px; color: var(--paper-ink); }
-.tc-g { font: 400 14.5px/1.32 var(--vlo-font-paper); margin: 0 0 4px; color: var(--paper-ink-2); }
-.tc-fig { margin: 4px 0 2px; }
-.tc-prov { font: 400 12.5px/1.4 var(--vlo-font-paper); color: var(--paper-ink-2); margin: 2px 0 0; overflow-wrap: break-word; }
-.tc-prov .ok { color: var(--paper-ink); }
-.tc-prov a { color: var(--paper-ink-2); }
-/* --- focus view (Fig. 1 + Fig. 5): modal dialog over the page */
-.tr-focus { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-start; justify-content: center; padding: 28px 18px; overflow-y: auto; }
-.tr-focus[hidden] { display: none; }
-.tr-focus-backdrop { position: fixed; inset: 0; background: rgba(9, 13, 22, .55); }
-.tr-focus-dialog { position: relative; width: min(1180px, 100%); background: var(--tr-card-bg); color: var(--paper-ink); border: 1px solid var(--tr-card-line);
-  border-radius: 3px; padding: 16px 20px 18px; font-family: var(--vlo-font-paper); box-shadow: 0 18px 50px rgba(0, 0, 0, .3); }
-.tr-focus-dialog:focus { outline: none; }
-.tf-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; align-items: start; }
-.tf-head h2 { font: 400 22px/1.3 var(--vlo-font-paper); color: var(--paper-ink); }
-.tf-head h2 .num, .tf-head h2 .vi { color: var(--paper-ink-2); }
-.tf-area { font-size: 13.5px; color: var(--paper-ink-2); margin: 0 0 2px; }
-.tf-q { font: italic 400 17px/1.35 var(--vlo-font-paper); margin: 6px 0 2px; }
-.tf-g { font-size: 15.5px; color: var(--paper-ink-2); margin: 0 0 6px; }
-.tf-close { font: 600 13px/1 var(--vlo-font-sans); }
-.tf-fig { margin: 8px 0 6px; }
-.tf-fig .trv-tall { max-width: 520px; margin: 0 auto; }
-.tf-links { font-size: 13.5px; color: var(--paper-ink-2); margin: 8px 0 0; }
-.tf-links a { color: var(--paper-ink); }
+.tr-body { flex: 1 1 auto; display: flex; min-height: 0; min-width: 0; position: relative; }
+.tr-side { flex: 0 0 340px; width: 340px; padding: 0 0 12px; }
+.tr-side-head { padding: 12px 14px 8px; border-bottom: 1px solid var(--scene-line-2); }
+.tr-area-title { font: 400 19px/1.25 var(--vlo-font-paper); margin: 0; color: var(--scene-strong); }
+.tr-area-title .en { color: var(--scene-fg-2); }
+.tr-area-note { margin: 4px 0 0; font-size: 12.5px; color: var(--scene-muted); }
+#tr-panel:focus-visible { outline-offset: -3px; }
+.tr-list { list-style: none; margin: 0; padding: 6px 8px; }
+.tr-list li { margin: 0; }
+.tr-item { display: flex; gap: 9px; width: 100%; text-align: left; background: none; border: 1px solid transparent; border-radius: 8px;
+  padding: 7px 8px; cursor: pointer; color: var(--scene-fg); font: inherit; }
+.tr-item:hover { background: var(--scene-hover); }
+.tr-item[aria-current="true"] { background: var(--paper-sel-bg); border-color: var(--paper-sel-line); }
+.tr-rank { flex: 0 0 20px; font: 700 14px/1.35 var(--vlo-font-paper); color: var(--scene-strong); }
+.tr-item-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.tr-law { font: 400 12px/1.3 var(--vlo-font-sans); color: var(--scene-muted); overflow-wrap: break-word; }
+.tr-q { font: italic 400 15px/1.3 var(--vlo-font-paper); color: var(--scene-strong); overflow-wrap: break-word; }
+.tr-g { font: 400 13.5px/1.3 var(--vlo-font-paper); color: var(--scene-fg-2); overflow-wrap: break-word; }
+.tr-badge { align-self: flex-start; margin-top: 3px; font: 500 11px/1.2 var(--vlo-font-sans); border-radius: 999px; padding: 2px 7px;
+  border: 1px solid var(--scene-badge-line); background: var(--scene-badge-bg); color: var(--scene-fg-2); white-space: nowrap; }
+.tr-badge.ok { border-color: var(--scene-ok-line); background: var(--scene-ok-bg); color: var(--scene-ok-fg); }
+.tr-status { list-style: none; font-size: 13.5px; color: var(--scene-fg-2); padding: 12px 6px; }
+.tr-about { padding: 8px 14px 10px; }
+.tr-notes { font-size: 12.5px; line-height: 1.45; color: var(--scene-fg-2); }
+.tr-notes summary { cursor: pointer; font-weight: 600; color: var(--scene-strong); padding: 4px 0; }
+.tr-notes ul { margin: 6px 0 4px; padding-left: 16px; }
+.tr-notes li { margin: 0 0 6px; }
+.tr-notes .vi { display: block; color: var(--scene-muted); }
+.tr-revs { color: var(--scene-muted); }
+.tr-about .side-about { font-size: 12.5px; line-height: 1.45; color: var(--scene-fg-2); margin: 8px 0 0; }
+/* the selected trace in the panel: law, question and gloss, verdict, then Fig. 5 hop by hop in one column */
+.scene-panel .tf-area { font-size: 12.5px; color: var(--scene-muted); margin: 0 40px 2px 0; }
+.scene-panel #tp-title { font: 400 20px/1.25 var(--vlo-font-paper); color: var(--scene-strong); margin: 2px 30px 4px 0; padding: 0; }
+.scene-panel #tp-title .vi, .scene-panel #tp-title .num { color: var(--scene-fg-2); font-size: inherit; margin: 0; }
+.scene-panel .tf-q { font: italic 400 16px/1.35 var(--vlo-font-paper); margin: 6px 0 2px; color: var(--scene-strong); }
+.scene-panel .tf-g { font-size: 14px; color: var(--scene-fg-2); margin: 0 0 6px; }
+.scene-panel .tf-links { font-size: 12.5px; line-height: 1.6; color: var(--scene-fg-2); margin: 6px 0 12px; }
+.scene-panel .tf-links a { color: var(--scene-accent); }
 /* Fig. 5: the trace hop by hop, boxes tinted with their class colour and a left accent bar */
-.tr-hops { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 26px; font-size: 13.5px; line-height: 1.42; }
-.tr-hops .col { display: flex; flex-direction: column; gap: 0; min-width: 0; position: relative; }
-.tr-hops .col + .col::before { content: "\2192"; position: absolute; left: -21px; top: 22px; color: var(--paper-ink-2); font-size: 18px; }
-.hop { border-left: 4px solid var(--hop-c); background: var(--tr-card-bg); background: color-mix(in srgb, var(--hop-c) 26%, var(--tr-card-bg));
-  padding: 9px 11px 10px; border-radius: 2px; min-width: 0; overflow-wrap: break-word; }
-:root[data-theme="dark"] .hop { background: color-mix(in srgb, var(--hop-c) 15%, var(--tr-card-bg)); }
+.tr-hops { display: flex; flex-direction: column; margin: 0; padding: 0; font: 400 13px/1.45 var(--vlo-font-paper); color: var(--paper-ink); }
+.hop { border-left: 4px solid var(--hop-c); background: var(--scene-surface); background: color-mix(in srgb, var(--hop-c) 26%, var(--scene-surface));
+  padding: 8px 10px 9px; border-radius: 2px; min-width: 0; overflow-wrap: break-word; margin: 0 0 6px; }
+:root[data-theme="dark"] .hop { background: color-mix(in srgb, var(--hop-c) 15%, var(--scene-surface)); }
 /* secondary text on the tinted boxes: a darker grey on the light ground keeps 4.5:1 on every tint (paper ink-2 gives 4.40) */
 .hop { --hop-ink-2: var(--paper-ink-2); }
 :root:not([data-theme="dark"]) .hop { --hop-ink-2: #5b6168; }
-.hop h3 { font: 400 13.5px/1.35 var(--vlo-font-paper); color: var(--hop-ink-2); margin: 0 0 4px; }
+.hop h3 { font: 400 13.5px/1.35 var(--vlo-font-paper); color: var(--hop-ink-2); margin: 0 0 4px; text-transform: none; letter-spacing: 0; }
 .hop h3 b { font-size: 16px; font-weight: 700; color: var(--paper-ink); margin-right: 4px; }
 .hop p { margin: 0 0 4px; }
 .hop .strong { font-weight: 700; }
@@ -1391,18 +1375,33 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
 .hop a { color: var(--paper-ink); }
 .hop-q { --hop-c: var(--cls-question); } .hop-a { --hop-c: var(--cls-answer); } .hop-p { --hop-c: var(--cls-article); }
 .hop-l { --hop-c: var(--cls-work); } .hop-t { --hop-c: var(--cls-term); }
-.hop-arrow { text-align: center; color: var(--paper-ink-2); font-size: 13px; padding: 3px 0 4px; }
-.tr-hops .col + .col::before { color: var(--paper-ink-2); }
-@media (max-width: 900px) {
-  .tr-hops { grid-template-columns: minmax(0, 1fr); gap: 0; }
-  .tr-hops .col + .col::before { content: "\2193"; position: static; display: block; text-align: center; padding: 3px 0 4px; }
-}
+.hop-arrow { text-align: center; color: var(--paper-ink-2); font-size: 12.5px; padding: 0 0 6px; }
+/* legend: the traced path as the scene draws it (the links' S-curve, navy core over the gold halo); structural = the
+   same at 60 % with a thinner core (WebGL lines cannot be dashed) */
+[data-style="paper"] .tr-sw { width: 22px; height: 12px; flex: 0 0 auto; overflow: visible; }
+[data-style="paper"] .tr-sw path { fill: none; stroke-linecap: round; }
+[data-style="paper"] .tr-sw .halo { stroke: var(--paper-trace-halo); stroke-width: 6; }
+[data-style="paper"] .tr-sw .core { stroke: var(--paper-trace-core); stroke-width: 2.2; }
+[data-style="paper"] .tr-sw.s { opacity: .6; }
+[data-style="paper"] .tr-sw.s .core { stroke-width: 1.4; }
+.tr-notes a, .tr-about a { color: var(--scene-accent); }
+/* no WebGL: the selected trace drawn in 2D (js/trace-draw.js) over the stage; the 3D tools and hint have nothing to act on */
+.tr-fallback { position: absolute; inset: 0; z-index: 4; overflow: auto; padding: 14px 16px; background: var(--scene-bg); }
+.tr-fallback.hidden { display: none; }
+.tr-no-webgl .stage-tools, .tr-no-webgl .hint, .tr-no-webgl .legend { display: none; }
+.tr-fb-note { font-size: 13px; color: var(--scene-fg-2); margin: 0 0 8px; }
+.tr-fb-fig { max-width: 1000px; margin: 0 auto; }
+.tr-fb-fig .trv-tall { max-width: 520px; margin: 0 auto; }
+.tr-nodata { position: absolute; left: 20px; right: 20px; top: 20px; z-index: 30; }
+.stage-tools .btn svg { display: block; }
 @media (max-width: 760px) {
-  .tr-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; padding: 7px 7px 9px; margin: 8px -7px 0; -webkit-overflow-scrolling: touch; }
-  .tr-focus { padding: 0; }
-  .tr-focus-dialog { min-height: 100%; border: 0; border-radius: 0; padding: 12px 12px 16px; }
-  .tf-head h2 { font-size: 19px; }
-  .tc-body { padding-left: 0; }
-  .tr-card { padding: 10px 11px 9px; }
+  .tr-bar { padding: 3px 6px; gap: 6px; }
+  .tr-title { display: none; }
+  .tr-tabs { padding: 5px 2px 7px; }
+  .tr-tabs [role="tab"] { padding: 7px 9px; font-size: 12px; }
+  .tr-toolbar .tr-toolbar-area { flex: 1 1 auto; min-width: 0; font-size: 13px; line-height: 1.2; color: var(--scene-fg-2); overflow-wrap: anywhere; }
+  .tr-side { top: auto; bottom: 0; height: 62%; border-top: 1px solid var(--scene-line); border-radius: 14px 14px 0 0; padding: 0 0 10px; }
+  .tr-side .tr-about { display: none; }
+  .tr-app .scene-panel { max-height: 46%; }
+  .tr-fallback { padding: 10px; }
 }
-body.tr-modal-open { overflow: hidden; }

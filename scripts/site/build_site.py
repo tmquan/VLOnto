@@ -7,6 +7,7 @@ Steps (idempotent; re-run after the KG or Playbook tracks change their outputs):
   1. data twins: copy $V/build/site_data/js/*.js to site/data/ (sha256 checked against the KG track's manifest.json)
   2. website data: convert $V/build/site_extra/*.json (derive_site_data.py) to site/data/*.js with tools/json2js.py
      question traces (traces.html): $V/build/traces/{index.json,<area>.json} (scripts/traces/) -> site/data/traces/*.js
+     (index, graph.js = the 3D embedding of all traces, one file per area)
      with the build-time drawings (scripts/site/trace_site.py, trace_layout.py); without build/traces/index.json the
      page gets an index that says "no trace data in this build"
   3. downloads: ontology files, the core Turtle subset, the site JSON bundles, the data dictionary, the licence policy,

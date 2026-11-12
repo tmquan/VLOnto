@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""trace_layout.py - build-time drawings of the question traces of traces.html (stdlib only, deterministic).
+"""trace_layout.py - build-time 2D drawings of the question traces of traces.html (stdlib only, deterministic); the page
+shows them when the browser has no WebGL (the 3D scene: scripts/site/trace_global.py, site/js/traces3d.js).
 
 Each trace of build/traces/<area>.json (question -> answer -> cited provision -> ... -> law, terms, other answers citing
 the same law) is drawn like the figures of the paper (arXiv:2611.11426).

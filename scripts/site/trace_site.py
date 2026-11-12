@@ -7,7 +7,10 @@
 Input: index.json and one <area id>.json per legal area, as written by scripts/traces/ (schema in its README). Output:
 site/data/traces/index.js and one <area id>.js per area, made with tools/json2js.py (window.VLONTO["traces_index"] and
 window.VLONTO["traces_<area id>"]; the page loads an area's file when its tab is first opened). Each area file holds,
-per trace, what the page shows plus the build-time drawing (scripts/site/trace_layout.py).
+per trace, what the page shows plus the build-time 2D drawing (scripts/site/trace_layout.py; the page's fallback without
+WebGL). site/data/traces/graph.js (window.VLONTO["traces_graph"], loaded first) is the global 3D embedding of all traces
+(scripts/site/trace_global.py): every node once with id, class, position and, for the law side, terms and areas, its
+labels and source link; the edges by kind; per trace its node, foreground and edge lists and its call-out nodes.
 
 Published (licence policy, docs/licence_policy.md): question titles as published on thuvienphapluat.vn and their
 machine-assisted English glosses for the traced questions, law and provision labels, term names, dates, record ids,
@@ -33,6 +36,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import trace_layout as TL  # noqa: E402
+import trace_global as TGL  # noqa: E402
 
 CLASSES = TL.CLASSES
 NO_DATA_REASON = "no build/traces/index.json in this build"
@@ -222,9 +226,11 @@ def build(traces: Path | None, site: Path) -> dict:
         layout = {"traces": 0, "callouts_dropped": 0, "ink_hits": 0, "crossings": 0, "leaders_over_trace": 0,
                   "card_callouts": 0, "card_callouts_at_edge": 0, "variants": {},
                   "arms": {"single": 0, "v_w": 0, "dark_single": 0, "dark_v_w": 0, "with_term_arm": 0, "strokes": {}}}
+        srcs = {}
         for a in src_index["areas"]:
             raw = (traces / a["file"]).read_bytes()
             src = json.loads(raw.decode("utf-8"))
+            srcs[a["id"]] = src
             problems += [f"{a['id']}: {x}" for x in check_area(src, a["id"])]
             traces_out = []
             for tr in src["traces"]:
@@ -254,10 +260,20 @@ def build(traces: Path | None, site: Path) -> dict:
             rep["files"].append({"file": f"data/traces/{a['id']}.js", "bytes": size})
         if problems:
             raise SystemExit("trace data problems: " + "; ".join(problems[:10]))
+        # the global 3D scene of all traces (scripts/site/trace_global.py): every node once, the areas as regions
+        graph, gstats = TGL.build_graph([a["id"] for a in src_index["areas"]], srcs)
+        graph = nfc(graph)
+        bad = licence_scan(graph)
+        if bad:
+            raise SystemExit(f"graph: keys that may carry source text: {bad[:5]}")
+        gsize = write_js(j2j, graph, "traces_graph", out / "graph.js", tmp, "graph.json")
+        rep["files"].append({"file": "data/traces/graph.js", "bytes": gsize})
+        rep["graph"] = gstats | {"bytes": gsize}
         index = {"v": 1, "available": True, "version": src_index.get("version"), "generated": src_index.get("generated"),
                  "source_revisions": src_index.get("source_revisions"), "method": src_index.get("method"),
                  "classes": src_index.get("classes"), "totals": src_index.get("totals"), "areas": areas,
-                 "index_sha256": hashlib.sha256((traces / "index.json").read_bytes()).hexdigest()}
+                 "index_sha256": hashlib.sha256((traces / "index.json").read_bytes()).hexdigest(),
+                 "graph": {"file": "graph.js", "bytes": gsize, "nodes": gstats["nodes"], "links": gstats["links"]}}
         size = write_js(j2j, nfc(index), "traces_index", out / "index.js", tmp, "index.json")
         rep["files"].insert(0, {"file": "data/traces/index.js", "bytes": size})
         rep.update({"available": True, "areas": len(areas), "traces": layout["traces"], "layout": layout,
