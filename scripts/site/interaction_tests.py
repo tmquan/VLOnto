@@ -1033,17 +1033,53 @@ def t_theme(c: Ctx):
     check("?theme=dark forces the theme and travels on links", query)
 
     def iframe():
+        """The frame is a 680 kB document whose theme script (js/doc-theme.js) runs at its very end; the page is ready
+        earlier. Under file:// the frame is cross-origin, and Chromium throttles the rendering (requestAnimationFrame)
+        of cross-origin frames outside the viewport, so a wait in the frame polls by interval, not per animation frame
+        (Playwright's default), and starts once the frame's script is in place. A failing step reports the page and
+        frame state (theme, readyState, messages sent and received, frame position)."""
         ctx, pg, log = c.open("ontology.html", scheme="light")
+        steps, holder = [], {}
+        is_theme = "(t) => document.documentElement.getAttribute('data-theme') === t"
+
+        def state():
+            out = {"done": steps[:]}
+            try:
+                out["page"] = pg.evaluate("""() => { const M = window.__VLONTO_METRICS || {}, f = document.querySelector('#doc-frame');
+                    const r = f ? f.getBoundingClientRect() : null;
+                    return { theme: document.documentElement.getAttribute('data-theme'), posts: M.themePosts || 0,
+                      requests: M.themeRequests || 0, frame_top_bottom_vh: r ? [Math.round(r.top), Math.round(r.bottom), innerHeight] : null }; }""")
+            except Exception as e:  # noqa
+                out["page"] = str(e)[:160]
+            if "f" in holder:
+                try:
+                    out["frame"] = holder["f"].evaluate("""() => ({ theme: document.documentElement.getAttribute('data-theme'),
+                        ready: document.readyState, script: window.__VLONTO_DOC_THEME ? window.__VLONTO_DOC_THEME.stats || true : null })""")
+                except Exception as e:  # noqa
+                    out["frame"] = str(e)[:160]
+            return out
+
+        def step(name, fn):
+            try:
+                fn()
+            except Exception as e:  # noqa
+                first = (str(e).strip().splitlines() or [""])[0][:200]
+                raise RuntimeError(f"step '{name}': {first}; state {json.dumps(state(), ensure_ascii=False)}")
+            steps.append(name)
+
         try:
-            f = doc_frame(pg)
-            f.wait_for_function("document.documentElement.getAttribute('data-theme') === 'light'", timeout=T_(15000))
-            click_theme(pg, "dark")
-            f.wait_for_function("document.documentElement.getAttribute('data-theme') === 'dark'", timeout=T_(15000))
+            step("find the frame", lambda: holder.setdefault("f", doc_frame(pg)))
+            f = holder["f"]
+            step("frame loaded", lambda: f.wait_for_load_state("load", timeout=T_(60000)))
+            step("frame script ready", lambda: f.wait_for_function("() => !!window.__VLONTO_DOC_THEME", timeout=T_(15000), polling=100))
+            step("frame light at start", lambda: f.wait_for_function(is_theme, arg="light", timeout=T_(15000), polling=100))
+            step("header toggle: page dark", lambda: click_theme(pg, "dark"))
+            step("frame follows: dark", lambda: f.wait_for_function(is_theme, arg="dark", timeout=T_(15000), polling=100))
             bg = f.evaluate("getComputedStyle(document.body).backgroundColor")
-            f.locator(".vl-theme-btn").click()
-            pg.wait_for_function("document.documentElement.getAttribute('data-theme') === 'light'", timeout=T_(15000))
-            f.wait_for_function("document.documentElement.getAttribute('data-theme') === 'light'", timeout=T_(15000))
-            return {"frame_dark_bg": bg, "frame_toggle_switched_page": True}
+            step("frame toggle", lambda: f.locator(".vl-theme-btn").click())
+            step("page follows the frame: light", lambda: pg.wait_for_function(is_theme, arg="light", timeout=T_(15000)))
+            step("frame light", lambda: f.wait_for_function(is_theme, arg="light", timeout=T_(15000), polling=100))
+            return {"frame_dark_bg": bg, "frame_toggle_switched_page": True, "state": state()}
         finally:
             merge(log)
             ctx.close()

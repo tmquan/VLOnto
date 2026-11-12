@@ -276,7 +276,9 @@
       b.setAttribute('title', dark ? 'Switch to light theme' : 'Switch to dark theme');
     });
   }
-  function postTheme(win, t) { try { if (win) win.postMessage({ type: 'vlonto-theme', theme: t }, '*'); } catch (e) { /* cross-origin frame */ } }
+  function postTheme(win, t) {
+    try { if (win) { win.postMessage({ type: 'vlonto-theme', theme: t }, '*'); M.themePosts = (M.themePosts || 0) + 1; } } catch (e) { /* cross-origin frame */ }
+  }
   /* opts.store: remember the choice (toggle); opts.fromFrame: the change came from an embedded document */
   VL.setTheme = function (t, opts) {
     opts = opts || {};
@@ -328,9 +330,13 @@
     });
     window.addEventListener('message', function (e) {
       var d = e.data;
-      if (!d || d.type !== 'vlonto-theme' || (d.theme !== 'light' && d.theme !== 'dark')) return;
+      if (!d || (d.type !== 'vlonto-theme' && d.type !== 'vlonto-theme-request')) return;
       var fromChild = VL.$$('iframe').some(function (f) { return f.contentWindow === e.source; });
-      if (fromChild && d.theme !== VL.theme()) VL.setTheme(d.theme, { store: true, fromFrame: true });
+      if (!fromChild) return;
+      /* an embedded document whose listener is now in place asks for the theme: a change made while it was still
+         loading (before its script ran) would otherwise wait for its load event */
+      if (d.type === 'vlonto-theme-request') { M.themeRequests = (M.themeRequests || 0) + 1; postTheme(e.source, VL.theme()); return; }
+      if ((d.theme === 'light' || d.theme === 'dark') && d.theme !== VL.theme()) VL.setTheme(d.theme, { store: true, fromFrame: true });
     });
     /* internal links carry the theme where storage does not (see above) */
     document.addEventListener('click', function (e) {

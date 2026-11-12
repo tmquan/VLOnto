@@ -12,7 +12,7 @@
   try { stored = localStorage.getItem(KEY); } catch (e) { stored = null; }
   var chosen = !!fromUrl || stored === 'light' || stored === 'dark';
   var embedded = window.parent && window.parent !== window;
-  var btn = null;
+  var btn = null, stats = { received: 0, storage: 0, requests: 0 };
   function cur() { return root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; }
   function sync() {
     if (!btn) return;
@@ -44,11 +44,15 @@
   window.addEventListener('message', function (e) {
     var d = e.data;
     if (e.source !== window.parent || !d || d.type !== 'vlonto-theme') return;
+    stats.received++;
     apply(d.theme, false, false);
   });
   window.addEventListener('storage', function (e) {
-    if (e.key === KEY && (e.newValue === 'light' || e.newValue === 'dark')) { chosen = true; apply(e.newValue, false, false); }
+    if (e.key === KEY && (e.newValue === 'light' || e.newValue === 'dark')) { chosen = true; stats.storage++; apply(e.newValue, false, false); }
   });
+  /* embedded: ask the page for its theme now that the listener is in place (the page may have changed it while this
+     long document was still loading; its message would have been missed) */
+  if (embedded) { try { window.parent.postMessage({ type: 'vlonto-theme-request' }, '*'); stats.requests++; } catch (e) { /* ignore */ } }
   try {
     var mq = window.matchMedia('(prefers-color-scheme: dark)');
     var onSystem = function (e) { if (!chosen && !embedded) apply(e.matches ? 'dark' : 'light', false, false); };
@@ -68,5 +72,5 @@
     parts.push('theme=' + cur());
     a.setAttribute('href', h + '?' + parts.join('&') + hash);
   }, true);
-  window.__VLONTO_DOC_THEME = { theme: cur, embedded: embedded };
+  window.__VLONTO_DOC_THEME = { theme: cur, embedded: embedded, stats: stats };
 })();
