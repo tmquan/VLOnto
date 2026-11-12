@@ -368,7 +368,7 @@ Output:
 6,963,753 triples in vlonto-store/
 ```
 
-The build loaded the same dump into Oxigraph in 7.8 s (6,963,753
+The build loaded the same dump into Oxigraph in 8.0 s (6,963,753
 triples). Afterwards open the store with `Store("vlonto-store")` and
 query it as above; section~7 runs every SPARQL recipe against this
 store.
@@ -834,10 +834,10 @@ work on v2 and is not part of VLOnto v1.
     [`export`], [`build/rdf/vlonto-kg.nt.gz`], [6,963,753 triples, 48.2
     MB], [7 s],
     [`core`], [`build/rdf/vlonto-core.ttl`], [49,846 triples, 1,781
-    documents], [1.0 s],
+    documents], [0.9 s],
     [`validate`], [`build/reports/validation.json`,
     `build/oxigraph/`], [32 integrity checks, 6,963,753 triples
-    loaded], [36 s],
+    loaded], [37 s],
     [`site`], [`build/site_data/*.json`, `js/*.js`], [15 bundles and
     twins, all within 20 MB], [-],
     [`check-ontology`], [`build/reports/ontology_check.json`,
@@ -949,7 +949,7 @@ pass in the build of 2026-11-12.
     [6], [SHACL on fixtures (positive conforms, all planted errors
     reported)], [pass], [`positive results 0; planted found ['bad-article:inDocument', 'bad-article:provisionNumber', 'bad-change:actingDocument', 'bad-change:evidenceText', 'bad-doc:documentType', 'bad-term:definition'], missed []`],
     [7], [pyLODE documentation renders with no broken internal
-    links], [pass], [`680473 bytes, 971 internal links, broken 0`],
+    links], [pass], [`680464 bytes, 971 internal links, broken 0`],
     [8], [Referential integrity of every parquet edge and foreign
     key], [pass], [`32 checks, orphans 0`],
     [9], [Reconciliation with the processed-corpus data
@@ -2373,10 +2373,10 @@ files (relative to the repository). The first 16 hexadecimal digits are:
     [`kg/terms.parquet`], [481 kB], [`9a4a119e87567e5e`],
     [`ontology/vlonto-context.jsonld`], [7 kB], [`a7d3f1b413e398a9`],
     [`ontology/vlonto-shapes.ttl`], [13 kB], [`8aec3dc3d0462985`],
-    [`ontology/vlonto.html`], [680 kB], [`efc8c549794dd5fd`],
-    [`ontology/vlonto.ttl`], [122 kB], [`5c376a367adcb77e`],
-    [`rdf/vlonto-core.ttl`], [2.6 MB], [`c422b80209ecbcb9`],
-    [`rdf/vlonto-kg.nt.gz`], [48.2 MB], [`4bae225735434342`],
+    [`ontology/vlonto.html`], [680 kB], [`b57be5456912b0c5`],
+    [`ontology/vlonto.ttl`], [122 kB], [`5c49e90eac33eb0d`],
+    [`rdf/vlonto-core.ttl`], [2.6 MB], [`b7c503b0dc5cbd36`],
+    [`rdf/vlonto-kg.nt.gz`], [48.2 MB], [`781db886ced8468d`],
   )]
   , kind: table
   )
@@ -2489,12 +2489,17 @@ From the build report of 2026-11-12:
   news items (87 of 681).
 - Glossary: English labels of terms are mostly machine-translated in the
   source; definitions are not republished (licence).
-- Texts: article texts are not in the publishable tables (they stay in
-  the build's local-only article-text table); no judgment text and no
-  person names from court records are stored. Titles and article
-  headings of public legal documents can name officials or award
-  recipients (a pattern scan finds such names in 206 article headings
-  and 6 document titles); they are kept as published by the source.
+- Texts: the knowledge-graph tables and dumps hold no article or
+  document bodies (article texts stay in the build's local-only
+  article-text table), no question, answer or news text, no glossary
+  definitions and no person-name fields (signers, authors, editors);
+  they keep document titles, headings of at most 200 characters and
+  change-evidence quotes of at most 300 characters. The website's Traces
+  page shows the titles of the questions it traces (licence policy,
+  section~2.2). Titles and article headings of public legal documents
+  can name officials or award recipients (a pattern scan finds such
+  names in 206 article headings and 6 document titles); they are kept as
+  published by the source.
 - Spot checks are small samples (10 per edge type); they catch
   systematic errors but give only coarse precision estimates.
 
@@ -2899,10 +2904,10 @@ repeal or terminate them.
   domain `vlo:LegalChange`\; range `xsd:date`. The issue date of the
   affected document as stated in the evidence sentence, when given; used
   to disambiguate numbers without a year.
-- #strong[`vlo:ruleVersion`] · rule version · #emph[phiên bản bộ luật
+- #strong[`vlo:ruleVersion`] · rule version · #emph[phiên bản quy tắc
   trích xuất]. domain `vlo:LegalChange`\; range `xsd:string`. The
-  version of the extraction rules that produced a legal change (v7 in
-  VLOnto 0.1.0).
+  version of the extraction rules that produced a legal change, for
+  example v7.
 - #strong[`vlo:sourceStatus`] · source status · #emph[tình trạng theo
   nguồn]. range `rdfs:Literal`. The validity status string as published
   by the source, in Vietnamese (for example 'Hết hiệu lực: 01/07/2025').
@@ -3344,9 +3349,9 @@ Concept schemes for legal areas, document types and legal-force ranks.
 
 ]
 - #strong[`vlo:DocumentTypeScheme`] · Document types · #emph[Loại văn
-  bản]. The ten types of normative legal documents in scope of VLOnto
-  0.1.0. Concepts: Circular; Code; Constitution; Decision; Decree; Joint
-  circular; Joint resolution; Law; Ordinance; Resolution.
+  bản]. The ten types of normative legal documents in the scope of
+  VLOnto. Concepts: Circular; Code; Constitution; Decision; Decree;
+  Joint circular; Joint resolution; Law; Ordinance; Resolution.
 - #strong[`vlo:LegalAreaScheme`] · Legal areas (documents and Q&A) ·
   #emph[Lĩnh vực pháp luật (văn bản và hỏi đáp)]. The 27 legal areas
   used by the document and Q&A datasets; populated by the knowledge

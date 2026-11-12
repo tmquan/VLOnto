@@ -424,7 +424,7 @@
    "result": "pass"
   },
   {
-   "evidence": "680473 bytes, 971 internal links, broken 0",
+   "evidence": "680464 bytes, 971 internal links, broken 0",
    "name": "pyLODE documentation renders with no broken internal links",
    "result": "pass"
   },
@@ -621,24 +621,24 @@
    "sha256": "8aec3dc3d0462985f6dcdd167531b6ce85ae24661111718a32d09e29d8f2d2b0"
   },
   {
-   "bytes": 680473,
+   "bytes": 680464,
    "path": "ontology/vlonto.html",
-   "sha256": "efc8c549794dd5fdd12ecf0076bf3d72e1059b39e19fc7c0680006e775aaecf3"
+   "sha256": "b57be5456912b0c530a154d1923b2a69ce9d965ba37a217cb14ef07bdea11fc8"
   },
   {
-   "bytes": 121601,
+   "bytes": 121592,
    "path": "ontology/vlonto.ttl",
-   "sha256": "5c376a367adcb77e86ec4659b607d90ce4f91bc4b67cc1de5e439985c0047150"
+   "sha256": "5c49e90eac33eb0d2dd55c5c29b50ad6c7b0e764b06b33d3bbc20fbf1ecf1b84"
   },
   {
-   "bytes": 2623123,
+   "bytes": 2623114,
    "path": "rdf/vlonto-core.ttl",
-   "sha256": "c422b80209ecbcb9a2f093326c9333f5b2e5eb27dadda109dbc45bbb35ee44cb"
+   "sha256": "b7c503b0dc5cbd36e4d768d610728a4d9a1d295e66bb95645b2b889260ac27b6"
   },
   {
-   "bytes": 48202374,
+   "bytes": 48202351,
    "path": "rdf/vlonto-kg.nt.gz",
-   "sha256": "4bae2257354343421b752b0f7ad17c4e6f9bb58e6bf8dabfbe0797b1624d4aec"
+   "sha256": "781db886ced8468d8a95798e73977a1188072501d54054e60679fa69cc39b991"
   }
  ],
  "config": {
@@ -709,7 +709,7 @@
    "documents": 1781,
    "instance_triples": 47785
   },
-  "bytes": 2623123,
+  "bytes": 2623114,
   "changes": 612,
   "chosen_max_rank": 2,
   "citation_edges_doc_level": 6198,
@@ -717,7 +717,7 @@
   "legal_basis_edges": 4997,
   "ontology_triples": 2061,
   "triples": 49846,
-  "wall_s": 1.0
+  "wall_s": 0.9
  },
  "dashboard": {
   "changes_by_kind_year": [
@@ -3839,13 +3839,13 @@
   }
  },
  "export": {
-  "nt_gz_bytes": 48202374,
+  "nt_gz_bytes": 48202351,
   "part_wall_s": {
    "areas": 0.0,
-   "articles": 6.5,
-   "changes": 0.6,
-   "documents": 1.9,
-   "edges_citation": 0.6,
+   "articles": 6.9,
+   "changes": 0.7,
+   "documents": 2.2,
+   "edges_citation": 0.7,
    "edges_legal_basis": 0.2,
    "edges_news_document": 0.0,
    "edges_qa_article": 0.1,
@@ -3854,10 +3854,10 @@
    "issuers": 0.0,
    "news": 0.0,
    "news_categories": 0.0,
-   "provisions_ref": 0.6,
-   "qas": 2.4,
-   "structure": 1.2,
-   "terms": 0.4
+   "provisions_ref": 0.7,
+   "qas": 2.7,
+   "structure": 1.4,
+   "terms": 0.5
   },
   "parts": {
    "areas": 327,
@@ -3904,7 +3904,7 @@
    "version": "1.0.0"
   },
   "triples_total": 6963753,
-  "wall_s": 6.9,
+  "wall_s": 7.2,
   "workers": 8
  },
  "guide": {
@@ -3932,7 +3932,7 @@
   "Issuers: 57 curated issuing bodies; 1,750 documents have no issuer and 1,204 only symbols without a curated code; joint issuers without a curated code are not linked.",
   "News: the source gives a publication date for only a small part of the news items (87 of 681).",
   "Glossary: English labels of terms are mostly machine-translated in the source; definitions are not republished (licence).",
-  "Texts: article texts are not in the publishable tables (they stay in the build's local-only article-text table); no judgment text and no person names from court records are stored. Titles and article headings of public legal documents can name officials or award recipients (a pattern scan finds such names in 206 article headings and 6 document titles); they are kept as published by the source.",
+  "Texts: the knowledge-graph tables and dumps hold no article or document bodies (article texts stay in the build's local-only article-text table), no question, answer or news text, no glossary definitions and no person-name fields (signers, authors, editors); they keep document titles, headings of at most 200 characters and change-evidence quotes of at most 300 characters. The website's Traces page shows the titles of the questions it traces (licence policy, section 2.2). Titles and article headings of public legal documents can name officials or award recipients (a pattern scan finds such names in 206 article headings and 6 document titles); they are kept as published by the source.",
   "Spot checks are small samples (10 per edge type); they catch systematic errors but give only coarse precision estimates."
  ],
  "licence": {
@@ -3958,31 +3958,31 @@
    {
     "bytes": 9889490,
     "file": "legal_network.json",
-    "sha256": "8414ee2c705032ceb0a64c27e227399a3320679808d8df6d1cd9497f213bf307",
+    "sha256": "91d797ef11ae193ab80afd86e46dce553e6bce04a6b1f203dafccfbb26c7a7e8",
     "within_20MB": true
    },
    {
     "bytes": 1875595,
     "file": "legal_network_lite.json",
-    "sha256": "d48aeefdbcd575494b054a1607be08e23f80065edcf5b0b9fec5d9d80c65a69f",
+    "sha256": "d44bfdae8b41f4a256213e3ada1d9d7b51f64b2107c503d4676589fa5e6f6e6d",
     "within_20MB": true
    },
    {
-    "bytes": 117749,
+    "bytes": 117740,
     "file": "ontology_graph.json",
-    "sha256": "8bceaf7bbf94c2fdd868109fd7d6d7710b52b167ae20cd19b16f74b6371c49a5",
+    "sha256": "2023dd9e873fc897f2e219d284583c86940fa5c7334c0e8a93b57616a320873c",
     "within_20MB": true
    },
    {
     "bytes": 6596,
     "file": "sparql_examples.json",
-    "sha256": "bb90c7339b74bb2c3e6cef37620fd6cca1dbe308a0386212a051348d2b5cd3db",
+    "sha256": "cd5a24805c04ec3ae59108c6dd03cb03efe81c85ede5431b104915c467df2a9c",
     "within_20MB": true
    },
    {
     "bytes": 1856,
     "file": "stats.json",
-    "sha256": "4bd6645052626c065343a83202ee4bfaea31bf992624c15f95e2dcb2bf439214",
+    "sha256": "5ef64500e5f10af59c0730f59abc78be4ab7b9bc168af8796ea2d9310a6e8e52",
     "within_20MB": true
    },
    {
@@ -3994,13 +3994,13 @@
    {
     "bytes": 9889562,
     "file": "js/legal_network.js",
-    "sha256": "49a4051b0f1799664a97f2f488de4b25d7d171e533045f186aff6fd4859705ee",
+    "sha256": "00db76e6cc0f355c32ccecd926e90914c5eef6a7959cbbc206336a08753dad05",
     "within_20MB": true
    },
    {
     "bytes": 1875672,
     "file": "js/legal_network_lite.js",
-    "sha256": "2f962440f8d2e6590a2d62cbd0408246b01b93b20ee9054ac3120c0120df81d7",
+    "sha256": "4b09658c61d39dfc95cb7a9ab6a6fd691d77a8f137c588d1722838d422632285",
     "within_20MB": true
    },
    {
@@ -4010,33 +4010,33 @@
     "within_20MB": true
    },
    {
-    "bytes": 117822,
+    "bytes": 117813,
     "file": "js/ontology_graph.js",
-    "sha256": "c2314f786aafa86153ef8e66aad94803fa9d8d3e3cc8417e046c1ea0596134ee",
+    "sha256": "351588a06c6fd1d00ec2eee1b91c12316fffb28f2881947581001e7a183eb7bb",
     "within_20MB": true
    },
    {
     "bytes": 6670,
     "file": "js/sparql_examples.js",
-    "sha256": "497200c1d979bd060073a1686ffa9313a6ae6f5fdf1e10c12370675e94bb72eb",
+    "sha256": "78c4b2ed656d30a117d9967afae41de66e2c14f3b9ed04a9dd6a323690bb85fa",
     "within_20MB": true
    },
    {
     "bytes": 1920,
     "file": "js/stats.js",
-    "sha256": "8b11273a871bcfaa8e49e640bdca7ec7df0595b0e246e824607620364ae67c33",
+    "sha256": "0315b8d42ff78145d4cc1bff5f7a37cd6e6bcf92d186860821e6efe19a9769e4",
     "within_20MB": true
    },
    {
-    "bytes": 2715433,
+    "bytes": 2715424,
     "file": "js/vlonto_core_ttl.js",
-    "sha256": "64eb2eed2191279ecbc78931a001831f22bf0655b3fe6a702f76059831e74190",
+    "sha256": "0e8a4483d2333e6da4103aad5bfe411cebd94eda1c51980ca308807a95910e74",
     "within_20MB": true
    },
    {
-    "bytes": 124882,
+    "bytes": 124873,
     "file": "js/vlonto_ontology_ttl.js",
-    "sha256": "27f2f142e732640a783b9f48fa5ba7b682b3a73d945ac7238672a87ae58549b3",
+    "sha256": "795945bd0634e1166975617c3f28fc732f8c409188325f19c7b8a41234b7c682",
     "within_20MB": true
    }
   ],
@@ -4869,7 +4869,7 @@
      }
     ],
     "curie": "vlo:DocumentTypeScheme",
-    "definition_en": "The ten types of normative legal documents in scope of VLOnto 0.1.0.",
+    "definition_en": "The ten types of normative legal documents in the scope of VLOnto.",
     "label_en": "Document types",
     "label_vi": "Loại văn bản",
     "module": "classification",
@@ -8256,7 +8256,7 @@
     "characteristics": [],
     "comment_en": null,
     "curie": "vlo:ruleVersion",
-    "definition_en": "The version of the extraction rules that produced a legal change (v7 in VLOnto 0.1.0).",
+    "definition_en": "The version of the extraction rules that produced a legal change, for example v7.",
     "definition_vi": null,
     "disjoint": [],
     "domain": [
@@ -8266,7 +8266,7 @@
     "inverse": [],
     "kind": "datatype_property",
     "label_en": "rule version",
-    "label_vi": "phiên bản bộ luật trích xuất",
+    "label_vi": "phiên bản quy tắc trích xuất",
     "local": "ruleVersion",
     "module": "validity-change",
     "range": [
@@ -8634,7 +8634,7 @@
     "triples_after": 2539,
     "triples_before": 813
    },
-   "wall_s": 0.4
+   "wall_s": 0.3
   },
   "parse": {
    "ontology_iri_typed": true,
@@ -8646,7 +8646,7 @@
   "pass": true,
   "pylode": {
    "broken_internal_links": [],
-   "bytes": 680473,
+   "bytes": 680464,
    "concept_schemes": 13,
    "concepts_listed": 75,
    "has_vietnamese": true,
@@ -8997,24 +8997,24 @@
   "$V/build/playbook/inputs/data_report.md": "1635fa70cb768011d2030764142ff55d4ca415af2523baaf80554c27100a795e",
   "$V/build/playbook/inputs/vn_legal_agent_guide.md": "75eef44980837904e309ba1cf33be5fc72832a85f7c1788bde6af5ef07f8a72c",
   "$V/build/reports/build_report.json": "4190287a70fd608c03c0312e32f205421d87c73325c0a1fa5bd43c37a145db7d",
-  "$V/build/reports/checks.json": "20d4adc901cf54d1a353356231187904a80f30f8d283dabe0e944ba8e410ae64",
-  "$V/build/reports/core_report.json": "f0e0cef75c977c7a2dc94fec4ab729d04ecf06d3f68ba3ee96b24a54ee72ad6a",
-  "$V/build/reports/export_report.json": "98f5a2ad89efed64b00f9291c08dc91869df55e974e0d24659553c0de87fd40f",
-  "$V/build/reports/kg_report.md": "282eebef141da97402a814e82dd95636c5da11dbf27f18793f01d092a7d1b390",
-  "$V/build/reports/ontology_check.json": "e009c8bfc3ca27c2ecbe3f34da6de1f64e134423c7b7733c7c7c99ad3040947d",
-  "$V/build/reports/validation.json": "9edd90a9a781f71453fdc07b6bc0d47d1d128ada4fd40225e696074ed764a973",
+  "$V/build/reports/checks.json": "d5e674e9c60d7d6869b0fffce72e2ec2a8e682c2d03e07606208ff0b4b589ca4",
+  "$V/build/reports/core_report.json": "2a78a185cc5d909ef9476b9161132217f961776ca0278e9ecf6caf8b4845a9a5",
+  "$V/build/reports/export_report.json": "7e38f6e29c4c80d234acf5ee8fc9813f9af4e3ab62bea21a48c214e51c3340e5",
+  "$V/build/reports/kg_report.md": "8d65ff0c19d806d130671c9e1c785c5d443a04cb408480de6d44154e18de493c",
+  "$V/build/reports/ontology_check.json": "fba92b6e0532f5d6214d6f49710112ca4d5159926404d556d596436ade9d2b91",
+  "$V/build/reports/validation.json": "31f30e75f2ac252d1e7ef457308fdce0adbddae02ebdb02109b256fa293f9c7a",
   "$V/build/site_data/dashboard.json": "717fce1459c470f6e49d18484a06bca914073b3bec83837b8b3ad8fe192c416c",
-  "$V/build/site_data/legal_network.json": "8414ee2c705032ceb0a64c27e227399a3320679808d8df6d1cd9497f213bf307",
-  "$V/build/site_data/legal_network_lite.json": "d48aeefdbcd575494b054a1607be08e23f80065edcf5b0b9fec5d9d80c65a69f",
-  "$V/build/site_data/manifest.json": "1e3a34b0c572a9b86619f52dea32fa871831119f9cfd6b4d005eadfb185821cb",
-  "$V/build/site_data/ontology_graph.json": "8bceaf7bbf94c2fdd868109fd7d6d7710b52b167ae20cd19b16f74b6371c49a5",
-  "$V/build/site_data/sparql_examples.json": "bb90c7339b74bb2c3e6cef37620fd6cca1dbe308a0386212a051348d2b5cd3db",
-  "$V/build/site_data/stats.json": "4bd6645052626c065343a83202ee4bfaea31bf992624c15f95e2dcb2bf439214",
+  "$V/build/site_data/legal_network.json": "91d797ef11ae193ab80afd86e46dce553e6bce04a6b1f203dafccfbb26c7a7e8",
+  "$V/build/site_data/legal_network_lite.json": "d44bfdae8b41f4a256213e3ada1d9d7b51f64b2107c503d4676589fa5e6f6e6d",
+  "$V/build/site_data/manifest.json": "1eaa4f935b5f9139eeaa06b8b33b093b30ab174e5de0d670acead5852116f9e4",
+  "$V/build/site_data/ontology_graph.json": "2023dd9e873fc897f2e219d284583c86940fa5c7334c0e8a93b57616a320873c",
+  "$V/build/site_data/sparql_examples.json": "cd5a24805c04ec3ae59108c6dd03cb03efe81c85ede5431b104915c467df2a9c",
+  "$V/build/site_data/stats.json": "5ef64500e5f10af59c0730f59abc78be4ab7b9bc168af8796ea2d9310a6e8e52",
   "$V/build/traces/index.json": "e8ed286bd43291a86e7422b7c1eaad50086903ba191b9404cfb670c040deb4e5",
   "$V/repo/docs/licence_policy.md": "04ee4df52639c3bfebe3181c225a888012d5c529777e415a946eef4c270270ac",
-  "$V/repo/docs/spot_check_review.json": "acdc61a0c82d79ae7b63ab9da44e4f86c49c0166abee0e4431a7f00acf9fc822",
+  "$V/repo/docs/spot_check_review.json": "a8f41275cbf074755d46789ccdfeb62d67d2c12fea323b127e7a75d4233f22b2",
   "$V/repo/ontology/vlonto-shapes.ttl": "8aec3dc3d0462985f6dcdd167531b6ce85ae24661111718a32d09e29d8f2d2b0",
-  "$V/repo/ontology/vlonto.ttl": "5c376a367adcb77e86ec4659b607d90ce4f91bc4b67cc1de5e439985c0047150",
+  "$V/repo/ontology/vlonto.ttl": "5c49e90eac33eb0d2dd55c5c29b50ad6c7b0e764b06b33d3bbc20fbf1ecf1b84",
   "$V/repo/playbook/examples/agent_demo.py": "18431f0925687fef925eb84a6aafc27fbc5573cdc8e37f9bf78f1f2498a52b0d",
   "$V/repo/playbook/examples/load_full_dump.py": "d45957261dee1b5bdd217075e21a79398bf4867f77a5022480b2f6dd65a34fe8",
   "$V/repo/playbook/examples/quickstart_duckdb.py": "b80093faf871d279c85258462ba5798fb9c2046fc6b32be304408666b630a01e",
@@ -9905,7 +9905,7 @@
    "layout": {
     "algo": "drl",
     "isolated_documents": 8033,
-    "layout_seconds": 29.8,
+    "layout_seconds": 30.8,
     "linked_documents": 32783,
     "seed": 7,
     "undirected_links": 156442,
@@ -9995,7 +9995,7 @@
    "layout": {
     "algo": "drl",
     "isolated_documents": 8033,
-    "layout_seconds": 29.8,
+    "layout_seconds": 30.8,
     "linked_documents": 32783,
     "seed": 7,
     "subset": "rank <= 2 plus top-degree documents, 6000 nodes",
@@ -10036,7 +10036,7 @@
    "subsetting": "Node rows are arrays in the order of 'fields'; type/issuer/area/validity are indexes into the lookup lists (-1 = none). To subset in the browser, filter nodes (e.g. rank <= 3, a type, an area, degree >= k) and keep edges whose two endpoint indexes survive, re-indexing them; legal_network_lite.json is such a subset (all documents of rank <= 2 plus the highest-degree documents up to the node budget)."
   },
   "ontology_graph": {
-   "bytes": 117749,
+   "bytes": 117740,
    "counts": {
     "classes_vlo": 47,
     "datatype_properties": 35,
@@ -10164,7 +10164,7 @@
       "number": "45/2019/QH14"
      }
     ],
-    "ms": 5.6,
+    "ms": 3.4,
     "query": "PREFIX vlo: <https://tmquan.github.io/VLOnto/ontology#>\nSELECT ?new ?number ?date ?evidence WHERE {\n  ?old vlo:documentNumber \"10/2012/QH13\" .\n  ?change vlo:affectedDocument ?old ; vlo:changeKind vlo:change-replaced ; vlo:actingDocument ?new ; vlo:evidenceText ?evidence .\n  OPTIONAL { ?change vlo:changeEffectiveDate ?date }\n  ?new vlo:documentNumber ?number .\n}",
     "rows_on_core": 1,
     "title_en": "What replaced the 2012 Labour Code?",
@@ -10191,7 +10191,7 @@
       "laws": "15"
      }
     ],
-    "ms": 1.0,
+    "ms": 0.6,
     "query": "PREFIX vlo: <https://tmquan.github.io/VLOnto/ontology#>\nPREFIX skos: <http://www.w3.org/2004/02/skos/core#>\nSELECT ?area (COUNT(?d) AS ?laws) WHERE {\n  ?d a vlo:Law ; vlo:isInForce true ; vlo:legalArea ?a .\n  ?a skos:prefLabel ?area FILTER(lang(?area) = \"en\")\n} GROUP BY ?area ORDER BY DESC(?laws)",
     "rows_on_core": 27,
     "title_en": "Laws in force by area",
@@ -10219,7 +10219,7 @@
       "title": "Bộ luật 35-L/CTN"
      }
     ],
-    "ms": 0.2,
+    "ms": 0.1,
     "query": "PREFIX vlo: <https://tmquan.github.io/VLOnto/ontology#>\nPREFIX skos: <http://www.w3.org/2004/02/skos/core#>\nSELECT ?title ?number ?status WHERE {\n  ?d a vlo:Code ; vlo:title ?title ; vlo:validityStatus ?v .\n  OPTIONAL { ?d vlo:documentNumber ?number }\n  ?v skos:prefLabel ?status FILTER(lang(?status) = \"en\")\n} ORDER BY ?title",
     "rows_on_core": 30,
     "title_en": "Codes and their validity",
@@ -10248,7 +10248,7 @@
       "title": "Luật Đất đai"
      }
     ],
-    "ms": 0.4,
+    "ms": 0.3,
     "query": "PREFIX vlo: <https://tmquan.github.io/VLOnto/ontology#>\nSELECT ?title ?number (COUNT(?by) AS ?amendments) WHERE {\n  ?by vlo:amends ?d . ?d vlo:title ?title . OPTIONAL { ?d vlo:documentNumber ?number }\n} GROUP BY ?title ?number ORDER BY DESC(?amendments) LIMIT 20",
     "rows_on_core": 20,
     "title_en": "Most amended laws",
@@ -10359,7 +10359,7 @@
       "super": "https://schema.org/Legislation"
      }
     ],
-    "ms": 0.1,
+    "ms": 0.0,
     "query": "PREFIX vlo: <https://tmquan.github.io/VLOnto/ontology#>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nSELECT ?super WHERE { vlo:Law rdfs:subClassOf+ ?super }",
     "rows_on_core": 4,
     "title_en": "Superclasses of a Law (ontology)",
@@ -10403,7 +10403,7 @@
  "spot_checks": {
   "checked": 130,
   "correct": 127,
-  "method": "For every edge type and resolution method, 10 edges were drawn at random (seed 11) from the final 0.1.0 build and judged by reading the document numbers, titles, dates and the raw citation text stored with the edge. 'correct' means the target is the document or article the source text refers to; 'wrong' means it is not; the rest could not be decided from the record (for example truncated evidence). The full sample is in spot_checks.md. Earlier builds of the same day were sampled too (see the notes).",
+  "method": "For every edge type and resolution method, 10 edges were drawn at random (seed 11) from the final build and judged by reading the document numbers, titles, dates and the raw citation text stored with the edge. 'correct' means the target is the document or article the source text refers to; 'wrong' means it is not; the rest could not be decided from the record (for example truncated evidence). The full sample is in spot_checks.md. Some notes also report samples of earlier 0.1.0 builds.",
   "not_verifiable": 2,
   "release_note": "Release v1 (1.0.0) has no court data: the court edge types and court limitations (edge_types_courts, limitations_courts) were judged on the 0.1.0 build and apply again from v2. For the 12 other edge types the v1 samples are the same edges as the judged 0.1.0 samples (compared item by item with the 0.1.0 spot_checks.md; the random draws of the court samples are skipped but still consumed). The change sample differs, because the change relations now have a fixed row order, and was judged again for v1.",
   "rows": [
@@ -10532,7 +10532,7 @@
    "Clause": 35476,
    "Point": 12555
   },
-  "core_ttl_bytes": 2623123,
+  "core_ttl_bytes": 2623114,
   "core_ttl_triples": 49846,
   "documents": 40816,
   "documents_by_type": {
@@ -10566,7 +10566,7 @@
   },
   "qa_article_links": 34869,
   "qa_document_links": 119683,
-  "rdf_nt_gz_bytes": 48202374,
+  "rdf_nt_gz_bytes": 48202351,
   "rdf_triples": 6963753,
   "rdf_triples_loaded": 6963753,
   "release": "v1",
@@ -10627,7 +10627,7 @@
    "pass": true,
    "typed_vlid_subjects": 850711,
    "vlid_objects": 312524,
-   "wall_s": 11.3
+   "wall_s": 11.5
   },
   "owlrl_sample": {
    "closure_triples": 91886,
@@ -10639,10 +10639,10 @@
    "owl_nothing": [],
    "pass": true,
    "sameAs_between_distinct": [],
-   "wall_s": 5.9
+   "wall_s": 6.1
   },
   "oxigraph": {
-   "load_s": 7.8,
+   "load_s": 8.0,
    "store": "$V/build/oxigraph",
    "triples_loaded": 6963753
   },
@@ -11294,10 +11294,10 @@
    },
    "sample_nodes": 3066,
    "sample_triples": 42857,
-   "seconds": 2.8,
+   "seconds": 2.9,
    "violation_kinds": {},
    "violations": [],
-   "wall_s": 4.4
+   "wall_s": 4.5
   },
   "spot_checks": {
    "changes": 10,
@@ -11314,6 +11314,6 @@
    "qa_document": 10,
    "term_related": 10
   },
-  "wall_s": 36.2
+  "wall_s": 37.0
  }
 }

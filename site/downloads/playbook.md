@@ -201,7 +201,7 @@ Output:
 6,963,753 triples in vlonto-store/
 ```
 
-The build loaded the same dump into Oxigraph in 7.8 s (6,963,753 triples). Afterwards open the store with `Store("vlonto-store")` and query it as above; section 7 runs every SPARQL recipe against this store.
+The build loaded the same dump into Oxigraph in 8.0 s (6,963,753 triples). Afterwards open the store with `Store("vlonto-store")` and query it as above; section 7 runs every SPARQL recipe against this store.
 
 ## 3. Architecture
 
@@ -374,8 +374,8 @@ Options: `--workers N` (worker processes of the RDF export), `--core-max-rank N`
 |:----------------|:--------------------------------------|:--------------------------------------------|-------------:|
 | `build` | `build/kg/*.parquet`, `build/kg_local/` | 40,816 documents, 436,309 articles, 15,035 change events, 556,287 edges | 33 s |
 | `export` | `build/rdf/vlonto-kg.nt.gz` | 6,963,753 triples, 48.2 MB | 7 s |
-| `core` | `build/rdf/vlonto-core.ttl` | 49,846 triples, 1,781 documents | 1.0 s |
-| `validate` | `build/reports/validation.json`, `build/oxigraph/` | 32 integrity checks, 6,963,753 triples loaded | 36 s |
+| `core` | `build/rdf/vlonto-core.ttl` | 49,846 triples, 1,781 documents | 0.9 s |
+| `validate` | `build/reports/validation.json`, `build/oxigraph/` | 32 integrity checks, 6,963,753 triples loaded | 37 s |
 | `site` | `build/site_data/*.json`, `js/*.js` | 15 bundles and twins, all within 20 MB | - |
 | `check-ontology` | `build/reports/ontology_check.json`, `ontology/vlonto.html` | 131 terms checked, 971 documentation links | - |
 | `report` | `build/reports/kg_report.md`, `checks.json` | 20 of 20 checks pass | - |
@@ -424,7 +424,7 @@ Every edge table keeps a `method` column (how the edge was found: `docnum-key`, 
 | 4 | ELI terms used by VLOnto exist in the ELI ontology | pass | `124 ELI terms defined; missing []` |
 | 5 | OWL-RL on fixtures (expected inferences present, planted disjointness and functional clash detected) | pass | `27 expected inferences, missing []; negative: 2 inconsistencies` |
 | 6 | SHACL on fixtures (positive conforms, all planted errors reported) | pass | `positive results 0; planted found ['bad-article:inDocument', 'bad-article:provisionNumber', 'bad-change:actingDocument', 'bad-change:evidenceText', 'bad-doc:documentType', 'bad-term:definition'], missed []` |
-| 7 | pyLODE documentation renders with no broken internal links | pass | `680473 bytes, 971 internal links, broken 0` |
+| 7 | pyLODE documentation renders with no broken internal links | pass | `680464 bytes, 971 internal links, broken 0` |
 | 8 | Referential integrity of every parquet edge and foreign key | pass | `32 checks, orphans 0` |
 | 9 | Reconciliation with the processed-corpus data report | pass | `21/21 items match` |
 | 10 | Full RDF dump parses strictly and loads into Oxigraph | pass | `6,963,753 N-Triples lines written, 6,963,753 distinct triples loaded` |
@@ -1350,10 +1350,10 @@ Typst runs with `--font-path typst/fonts --ignore-system-fonts --ignore-embedded
 | `kg/terms.parquet` | 481 kB | `9a4a119e87567e5e` |
 | `ontology/vlonto-context.jsonld` | 7 kB | `a7d3f1b413e398a9` |
 | `ontology/vlonto-shapes.ttl` | 13 kB | `8aec3dc3d0462985` |
-| `ontology/vlonto.html` | 680 kB | `efc8c549794dd5fd` |
-| `ontology/vlonto.ttl` | 122 kB | `5c376a367adcb77e` |
-| `rdf/vlonto-core.ttl` | 2.6 MB | `c422b80209ecbcb9` |
-| `rdf/vlonto-kg.nt.gz` | 48.2 MB | `4bae225735434342` |
+| `ontology/vlonto.html` | 680 kB | `b57be5456912b0c5` |
+| `ontology/vlonto.ttl` | 122 kB | `5c49e90eac33eb0d` |
+| `rdf/vlonto-core.ttl` | 2.6 MB | `b7c503b0dc5cbd36` |
+| `rdf/vlonto-kg.nt.gz` | 48.2 MB | `781db886ced8468d` |
 
 The ontology files, `rdf/vlonto-core.ttl` and the data dictionary on the website's downloads page are these files; check a download with `sha256sum` against this list. `bash scripts/build_pdf.sh --check-files` (`playbook/tools/check_files.py`) compares every size and sha256 printed in this playbook, and the triple counts of section 5.3, with the files of the build folder, the repository and the downloads page. A local rebuild is checked by its counts (section 6.2) rather than by these bytes: byte equality of rebuilt tables and dumps is not tested.
 
@@ -1398,7 +1398,7 @@ From the build report of 2026-11-12:
 - Issuers: 57 curated issuing bodies; 1,750 documents have no issuer and 1,204 only symbols without a curated code; joint issuers without a curated code are not linked.
 - News: the source gives a publication date for only a small part of the news items (87 of 681).
 - Glossary: English labels of terms are mostly machine-translated in the source; definitions are not republished (licence).
-- Texts: article texts are not in the publishable tables (they stay in the build's local-only article-text table); no judgment text and no person names from court records are stored. Titles and article headings of public legal documents can name officials or award recipients (a pattern scan finds such names in 206 article headings and 6 document titles); they are kept as published by the source.
+- Texts: the knowledge-graph tables and dumps hold no article or document bodies (article texts stay in the build's local-only article-text table), no question, answer or news text, no glossary definitions and no person-name fields (signers, authors, editors); they keep document titles, headings of at most 200 characters and change-evidence quotes of at most 300 characters. The website's Traces page shows the titles of the questions it traces (licence policy, section 2.2). Titles and article headings of public legal documents can name officials or award recipients (a pattern scan finds such names in 206 article headings and 6 document titles); they are kept as published by the source.
 - Spot checks are small samples (10 per edge type); they catch systematic errors but give only coarse precision estimates.
 
 ### 12.2 Limitations of the website and this playbook
@@ -1555,7 +1555,7 @@ Validity status of documents and the dated events that replace, amend, repeal or
 - **`vlo:expiryDate`** · expiry date · *ngày hết hiệu lực*. Sub-property of `eli:date_no_longer_in_force`; domain `vlo:LegalDocument`; range `xsd:date`. The date from which a legal document is no longer in force, from the source status or from the effective date of the replacing or repealing act.
 - **`vlo:isInForce`** · is in force · *còn hiệu lực*. range `xsd:boolean`. True if the document or term is known to be in force, false if known not to be in force; absent when unknown.
 - **`vlo:mentionedDate`** · mentioned date · *ngày được nêu*. domain `vlo:LegalChange`; range `xsd:date`. The issue date of the affected document as stated in the evidence sentence, when given; used to disambiguate numbers without a year.
-- **`vlo:ruleVersion`** · rule version · *phiên bản bộ luật trích xuất*. domain `vlo:LegalChange`; range `xsd:string`. The version of the extraction rules that produced a legal change (v7 in VLOnto 0.1.0).
+- **`vlo:ruleVersion`** · rule version · *phiên bản quy tắc trích xuất*. domain `vlo:LegalChange`; range `xsd:string`. The version of the extraction rules that produced a legal change, for example v7.
 - **`vlo:sourceStatus`** · source status · *tình trạng theo nguồn*. range `rdfs:Literal`. The validity status string as published by the source, in Vietnamese (for example 'Hết hiệu lực: 01/07/2025').
 - **`vlo:statusTextConflict`** · status-text conflict · *mâu thuẫn trạng thái và văn bản*. domain `vlo:LegalDocument`; range `xsd:boolean`. True when the source status says in force but an extracted relation says the document was replaced or repealed; such documents must be verified.
 - **`vlo:validityEvidenceSource`** · validity evidence source · *nguồn căn cứ hiệu lực*. domain `vlo:LegalDocument`; range `xsd:string`. Which evidence determined the validity status: status, text, status+text or none.
@@ -1704,7 +1704,7 @@ Concept schemes for legal areas, document types and legal-force ranks.
 
 **Concept schemes**
 
-- **`vlo:DocumentTypeScheme`** · Document types · *Loại văn bản*. The ten types of normative legal documents in scope of VLOnto 0.1.0. Concepts: Circular; Code; Constitution; Decision; Decree; Joint circular; Joint resolution; Law; Ordinance; Resolution.
+- **`vlo:DocumentTypeScheme`** · Document types · *Loại văn bản*. The ten types of normative legal documents in the scope of VLOnto. Concepts: Circular; Code; Constitution; Decision; Decree; Joint circular; Joint resolution; Law; Ordinance; Resolution.
 - **`vlo:LegalAreaScheme`** · Legal areas (documents and Q&A) · *Lĩnh vực pháp luật (văn bản và hỏi đáp)*. The 27 legal areas used by the document and Q&A datasets; populated by the knowledge graph.
 - **`vlo:LegalForceRankScheme`** · Legal-force ranks · *Thứ bậc hiệu lực pháp lý*. Six levels of legal force used by the validity rules (rule 5) and as the vertical layer of the 3D legal network. Concepts: Constitution; Codes, laws and National Assembly resolutions; Ordinances and Standing Committee resolutions; Decrees, joint resolutions and other resolutions; Prime Minister decisions; Circulars, joint circulars and other decisions.
 - **`vlo:TermAreaScheme`** · Legal areas (terminology) · *Lĩnh vực pháp luật (thuật ngữ)*. The legal areas used by the terminology dataset; areas with the same name as a document area are the same concept. Populated by the knowledge graph.
