@@ -3,7 +3,7 @@
 *Ontology và đồ thị tri thức pháp luật Việt Nam*
 
 [3D Ontology Playground](https://tmquan.github.io/VLOnto/) · [3D Legal Network](https://tmquan.github.io/VLOnto/network-3d.html) ·
-[SPARQL Playground](https://tmquan.github.io/VLOnto/sparql.html) · [Dashboard](https://tmquan.github.io/VLOnto/dashboard.html) · [Playbook (PDF)](https://tmquan.github.io/VLOnto/downloads/VLOnto-playbook.pdf)
+[SPARQL Playground](https://tmquan.github.io/VLOnto/sparql.html) · [Question Traces](https://tmquan.github.io/VLOnto/traces.html) · [Dashboard](https://tmquan.github.io/VLOnto/dashboard.html) · [Playbook (PDF)](https://tmquan.github.io/VLOnto/downloads/VLOnto-playbook.pdf)
 
 **Paper:** [Vietnamese Legal Ontology: Every legal answer, traced to the article that grounds it](https://arxiv.org/abs/2611.11426)
 (Khac-Hoai Nam Bui, Quan Tran Minh; arXiv:2611.11426, 2026). The approach is described in the paper; the numbers below
@@ -44,6 +44,7 @@ embedded, so nothing is fetched from the internet.
 | `site/about.html` | overview of VLOnto, release numbers, paper and citation, licences |
 | `site/network-3d.html` | 3D legal network: every document layered by legal force, with change, legal-basis and citation links and validity colours |
 | `site/sparql.html` | SPARQL playground over the ontology and the browser subset of the graph, with bilingual example queries |
+| `site/traces.html` | question traces: for each of the 27 legal areas of the Q&A dataset, the 20 articles its answers cite most, each with one published question traced from the answer through the cited provision up to the law, drawn like the paper's figures, with a focus view and the provenance of every hop |
 | `site/dashboard.html` | dashboard with linked filters |
 | `site/ontology.html` | ontology modules and reference documentation |
 | `site/playbook.html` | the playbook; PDF in `site/downloads/VLOnto-playbook.pdf` |
@@ -66,6 +67,7 @@ N-Triples dump) is rebuilt from the six source datasets with `python -m vlonto.c
 | `vlonto/` | Python package and CLI that builds the knowledge graph, exports RDF, validates it and writes the site data |
 | `pipeline/` | upstream corpus pipeline (download, cleaning, article chunking, validity map, Q&A citation labels) that `vlonto` reads |
 | `site/` | the website |
+| `scripts/site/`, `scripts/traces/` | site build and checks; build of the question traces shown on the Traces page (`scripts/traces/README.md`) |
 | `playbook/`, `typst/`, `scripts/build_pdf.sh` | playbook sources and the reproducible Typst build of the PDF |
 | `tools/` | pinned toolchain (`setup_tools.sh`, `versions.lock`), vendored-library build, site and PDF checks |
 | `docs/` | licence and inclusion policy, spot-check review, README images |
@@ -90,7 +92,9 @@ The playbook (sections 5, 6 and 10) gives every command with its expected output
   `thuvienphapluat-vn-hdpl`, `-tnpl` and `-htpl` datasets contain only identifiers, links, dates, categories, term names
   and derived links, and remain subject to the terms of thuvienphapluat.vn.
 - No document bodies, article texts, Q&A or news texts, glossary definitions, judgment texts or person names are
-  redistributed; every document and provision keeps its source URL. Details: `docs/licence_policy.md`.
+  redistributed; every document and provision keeps its source URL. One exception: the Traces page shows the titles of
+  the 538 questions it traces, as published on thuvienphapluat.vn, with machine-assisted English glosses, and no answer
+  text. Details: `docs/licence_policy.md`.
 - Fonts: SIL Open Font License 1.1 (licence files next to the fonts). JavaScript libraries: MIT or Apache-2.0
   (`site/vendor/THIRD_PARTY_LICENSES.md`).
 

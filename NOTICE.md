@@ -19,6 +19,18 @@ Vietnamese:
 | [`tmquan/anle-toaan-gov-vn`](https://huggingface.co/datasets/tmquan/anle-toaan-gov-vn) | `d6124923dd` | cc-by-4.0 |
 | [`tmquan/cbba-toaan-gov-vn`](https://huggingface.co/datasets/tmquan/cbba-toaan-gov-vn) | `8ace3afc9c` | cc-by-4.0 |
 
+## Question titles on the Traces page
+
+The Traces page (`site/traces.html`, data in `site/data/traces/`) shows the titles of the 538 questions it traces, as
+published on thuvienphapluat.vn (`thuvienphapluat-vn-hdpl`, revision `e814ecbfa1`), each with a link to its source
+and a machine-assisted English gloss. It shows no answer text. The titles remain subject to the terms of
+thuvienphapluat.vn.
+
+Trang Truy vết (`site/traces.html`, dữ liệu trong `site/data/traces/`) hiển thị tiêu đề của 538 câu hỏi được truy vết,
+như đăng trên thuvienphapluat.vn (`thuvienphapluat-vn-hdpl`, phiên bản `e814ecbfa1`), kèm liên kết tới nguồn và bản
+dịch tiếng Anh có sự hỗ trợ của máy. Trang không hiển thị nội dung câu trả lời. Các tiêu đề vẫn tuân theo điều khoản
+của thuvienphapluat.vn.
+
 ## Third-party components
 
 - Fonts in `site/fonts/` and `typst/fonts/` (Be Vietnam Pro, Noto Serif, JetBrains Mono NL, Noto Sans Symbols 2,

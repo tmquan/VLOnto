@@ -20,7 +20,7 @@ This is a reading of the cards by the build agent, not legal advice. Items marke
 General rules, all sources:
 
 1. **No person names.** Fields that hold names of people are never read into KG tables: `vbpl.signer`, `hdpl.author`, `tnpl.updated_by_vi/_en`, and the judgment bodies (`markdown`) of `anle`/`cbba`, which contain names of judges, prosecutors, clerks and (anonymised) parties. Court and issuing-body names are institution names and are kept.
-2. **No body text from `other`-licensed sources.** For `hdpl`, `tnpl` and `htpl` the KG keeps identifiers, URLs, dates, categories/areas and derived edges only.
+2. **No body text from `other`-licensed sources.** For `hdpl`, `tnpl` and `htpl` the KG keeps identifiers, URLs, dates, categories/areas and derived edges only. One exception outside the KG: the website's Traces page shows the titles of the questions it traces (see 2.2).
 3. **Derived edges are VLOnto's own work.** Resolved citation, legal-basis, change and mention edges, with the method that produced them, are released with VLOnto.
 4. **Full statutory text is not redistributed** (see 2.1). Each document and provision keeps its source URL so that users read the text at the source.
 
@@ -44,6 +44,8 @@ General rules, all sources:
 | Q&A id, source URL, published date, category slug, legal area | `question`, `answer`, `answer_html`, `summary` (text, © thuvienphapluat.vn) |
 | derived citation edges: Q&A → document, Q&A → article (+ clause/point), with the resolution method and the short reference string (e.g. *Điều 50 Luật Việc làm*) | `keywords` (derived from the text) |
 | | `author` (person name), `content_flags` (contain text snippets) |
+
+**Traces page (website only).** The Traces page (`site/traces.html`, data `site/data/traces/`, built by `scripts/traces/` and `scripts/site/trace_site.py`) shows 540 traces in 27 legal areas. For the 538 questions it traces it shows the `summary` field (the question's title as published on thuvienphapluat.vn) with the source URL and a machine-assisted English gloss of at most 15 words, marked as machine-assisted on the page; and VLOnto's derived scores (word 5-gram containment between the answer and the cited provision). It shows no `question`, `answer` or `answer_html` text, no `keywords`, `author` or `content_flags`. The build reads answer texts in memory to compute the scores and writes only the scores; the citations as written in the answers are dropped, and the other answers of an area are shown by their id (*Câu hỏi #id · Question #id*). Titles that hold a person name are not selected (regular expressions and a model check; the one title the model flagged is kept in the build cache only as a SHA-256 hash). The titles remain subject to the source terms of thuvienphapluat.vn.
 
 ### 2.3 `tnpl` — legal terms (`other`, community-authored)
 
@@ -75,7 +77,7 @@ Judgment text could be redistributed under the cards, but VLOnto does not need i
 ## 3. Licence of VLOnto outputs
 
 * Ontology (`vlonto.ttl`, `vlonto-shapes.ttl`, documentation): **CC BY 4.0**, creator tmquan.
-* Knowledge-graph tables and RDF dumps: VLOnto's own contributions (resolution, structure, derived edges, validity) are released under **CC BY 4.0**; records derived from the `other`-licensed sources (`hdpl`, `tnpl`, `htpl`) contain only identifiers, links, dates, categories, short labels and derived edges, and remain subject to the source terms of thuvienphapluat.vn.
+* Knowledge-graph tables and RDF dumps: VLOnto's own contributions (resolution, structure, derived edges, validity) are released under **CC BY 4.0**; records derived from the `other`-licensed sources (`hdpl`, `tnpl`, `htpl`) contain only identifiers, links, dates, categories, short labels and derived edges, and remain subject to the source terms of thuvienphapluat.vn. The Traces page data (`site/data/traces/`) also holds the titles of 538 questions (see 2.2).
 * Every source dataset is described in the graph as a `vlo:SourceDataset` with revision, licence IRI and attribution text, and every node carries `vlo:sourceDataset`.
 
 ## 4. Attribution text (use on the website, in the GitHub repository and in the playbook)

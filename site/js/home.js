@@ -30,6 +30,7 @@
     ['index.html', 'cube', '3D ontology playground', 'Classes, properties, concept schemes and external alignments in an interactive 3D scene, with search, module filters and SPARQL CONSTRUCT results drawn in 3D.', true],
     ['network-3d.html', 'network', '3D legal network', 'All ' + VL.fmt(S.documents) + ' documents layered by legal force, with replacement, amendment, legal-basis and citation links and a validity panel.'],
     ['sparql.html', 'code', 'SPARQL playground', 'Ten bilingual example queries and a free editor over the core subset (' + VL.fmt(S.core_ttl_triples) + ' triples), running offline in WebAssembly.'],
+    ['traces.html', 'trace', 'Question traces', 'For each of 27 legal areas, the 20 articles its answers cite most, each with one published question traced from the answer up to the law, drawn like the figures of the paper.'],
     ['dashboard.html', 'chart', 'Dashboard', 'Documents by type, year, issuer and area, validity, change relations, most-cited documents and articles, court decisions, Q&As and terms.'],
     ['ontology.html', 'docs', 'Ontology documentation', 'Modules, alignments and the full pyLODE reference of every class and property, with Turtle, SHACL and JSON-LD downloads.'],
     ['playbook.html', 'book', 'Playbook', 'How VLOnto is built and how to use it: sources and licences, the ontology design, the pipeline, validation and the website.'],
@@ -42,7 +43,7 @@
 
   var SRC = [
     ['thuvienphapluat-vn-vbpl', 'Legal documents: identity, type, number, dates, issuer, area, status, structure, change, legal-basis and citation links (thuvienphapluat.vn).'],
-    ['thuvienphapluat-vn-hdpl', 'Legal Q&As: identifiers, URLs, dates, areas and the documents and articles they cite (no question or answer text).'],
+    ['thuvienphapluat-vn-hdpl', 'Legal Q&As: identifiers, URLs, dates, areas and the documents and articles they cite (no question or answer text; the Traces page shows the titles of the questions it traces).'],
     ['thuvienphapluat-vn-tnpl', 'Legal terminology: term names in Vietnamese and English (machine-translated), areas, status and related terms (no definitions).'],
     ['thuvienphapluat-vn-htpl', 'Legal news: identifiers, URLs, categories, dates and the documents they mention (no titles or text).'],
     ['anle-toaan-gov-vn', 'Precedents and selected judgments of the Supreme People’s Court: metadata, courts and applied provisions.'],

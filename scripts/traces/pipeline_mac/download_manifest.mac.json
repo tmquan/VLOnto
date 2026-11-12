@@ -1,0 +1,75 @@
+{
+ "huggingface_hub": "2.4.0",
+ "hf_xet": "installed",
+ "HF_HOME": "(Mac rebuild: shards downloaded with download.py into $HF/<repo>/)",
+ "datasets": {
+  "tmquan/thuvienphapluat-vn-vbpl": {
+   "revision": "705ade585384108ded5fc30f40a06fe110bdff22",
+   "local_dir": "$HF/thuvienphapluat-vn-vbpl",
+   "n_files": 96,
+   "bytes": 2960639635,
+   "rows": 573851,
+   "wall_s": 16.4,
+   "MB_per_s": 180.0,
+   "remote_documents_files": 96,
+   "remote_documents_bytes": 2960639635
+  },
+  "tmquan/thuvienphapluat-vn-hdpl": {
+   "revision": "e814ecbfa1a1c0c32727c2f2ad2498d52f04b8bd",
+   "local_dir": "$HF/thuvienphapluat-vn-hdpl",
+   "n_files": 4,
+   "bytes": 351311916,
+   "rows": 109543,
+   "wall_s": 2.7,
+   "MB_per_s": 132.1,
+   "remote_documents_files": 4,
+   "remote_documents_bytes": 351311916
+  },
+  "tmquan/thuvienphapluat-vn-tnpl": {
+   "revision": "f94d1e24852f233e85330c6d5093f43adbddde29",
+   "local_dir": "$HF/thuvienphapluat-vn-tnpl",
+   "n_files": 1,
+   "bytes": 3829980,
+   "rows": 17091,
+   "wall_s": 1.1,
+   "MB_per_s": 3.4,
+   "remote_documents_files": 1,
+   "remote_documents_bytes": 3829980
+  },
+  "tmquan/thuvienphapluat-vn-htpl": {
+   "revision": "043c8f2988e248f1123ead53a54e3cbf83a02e44",
+   "local_dir": "$HF/thuvienphapluat-vn-htpl",
+   "n_files": 1,
+   "bytes": 1288961,
+   "rows": 681,
+   "wall_s": 1.1,
+   "MB_per_s": 1.2,
+   "remote_documents_files": 1,
+   "remote_documents_bytes": 1288961
+  },
+  "tmquan/anle-toaan-gov-vn": {
+   "revision": "d6124923ddcba618811644f433de7c748a291e22",
+   "local_dir": "$HF/anle-toaan-gov-vn",
+   "n_files": 1,
+   "bytes": 14933282,
+   "rows": 1844,
+   "wall_s": 0.9,
+   "MB_per_s": 16.4,
+   "remote_documents_files": 1,
+   "remote_documents_bytes": 14933282
+  },
+  "tmquan/cbba-toaan-gov-vn": {
+   "revision": "8ace3afc9c974afd51e12dccbefd4b3ba54ce1ec",
+   "local_dir": "$HF/cbba-toaan-gov-vn",
+   "n_files": 1,
+   "bytes": 304629852,
+   "rows": 100000,
+   "wall_s": 3.3,
+   "MB_per_s": 92.5,
+   "remote_documents_files": 16,
+   "remote_documents_bytes": 4712276659
+  }
+ },
+ "total_wall_s": 26.4,
+ "total_bytes": 3636633626
+}

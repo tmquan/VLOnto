@@ -1,0 +1,2696 @@
+{
+ "10369": {
+  "title_vi": "Quy định của pháp luật về tội vi phạm các quy định về quản lý nhà ở",
+  "title_en": "Legal regulations on the crime of violating housing management rules",
+  "has_person_name": false
+ },
+ "10381": {
+  "title_vi": "Các trường hợp phạm tội chiếm đoạt, mua bán, tiêu hủy con dấu, tài liệu của cơ quan nhà nước, tổ chức xã hội",
+  "title_en": "Cases of crime of appropriating, trading, or destroying seals/documents of state agencies, social organizations",
+  "has_person_name": false
+ },
+ "10886": {
+  "title_vi": "Giúp người bệnh uống thuốc ngủ liều cao là phạm tội",
+  "title_en": "Helping a patient take a high dose of sleeping pills is a crime",
+  "has_person_name": false
+ },
+ "10941": {
+  "title_vi": "Tòa án sẽ giải quyết tranh chấp đòi nhà cho ở nhờ",
+  "title_en": "Court to resolve dispute over reclaiming a borrowed/lent house",
+  "has_person_name": false
+ },
+ "11093": {
+  "title_vi": "Quy định sử dụng chứng cứ ghi âm",
+  "title_en": "Regulations on using audio recordings as evidence",
+  "has_person_name": false
+ },
+ "11209": {
+  "title_vi": "Nhận tiền của người tình không cấu thành tội 'lạm dụng'",
+  "title_en": "Receiving money from a lover doesn't constitute 'abuse of trust' crime",
+  "has_person_name": false
+ },
+ "11300": {
+  "title_vi": "Có thể kiện đòi nợ bất cứ lúc nào",
+  "title_en": "Can you sue to collect a debt at any time?",
+  "has_person_name": false
+ },
+ "11834": {
+  "title_vi": "Trường hợp được thực hiện đăng ký lần đầu, trường hợp nào được thực hiện đăng ký biến động đối với đất đai, nhà ở và tài sản gắn liền với đất",
+  "title_en": "When is first-time registration required vs. change registration for land, housing and attached assets?",
+  "has_person_name": false
+ },
+ "11859": {
+  "title_vi": "Bà có được nhận cháu làm con nuôi?",
+  "title_en": "Can a grandmother adopt her grandchild?",
+  "has_person_name": false
+ },
+ "11931": {
+  "title_vi": "Giai đoạn ly thân chia tài sản thế nào",
+  "title_en": "How is property divided during a period of marital separation?",
+  "has_person_name": false
+ },
+ "120": {
+  "title_vi": "Hết thời hiệu kiện chia thừa kế, toà vẫn nhận đơn?",
+  "title_en": "Will courts still accept a lawsuit after the inheritance claim deadline expires?",
+  "has_person_name": false
+ },
+ "12374": {
+  "title_vi": "Xử lý đối với hóa đơn lập sai nhưng chưa giao cho người mua.",
+  "title_en": "Handling an incorrectly issued invoice not yet given to the buyer",
+  "has_person_name": false
+ },
+ "12571": {
+  "title_vi": "Xin giấy phép xây dựng như thế nào?",
+  "title_en": "How to apply for a construction permit?",
+  "has_person_name": false
+ },
+ "12651": {
+  "title_vi": "Thẩm định đối với các công trình sửa chữa nhỏ với tổng mức đầu tư dưới 50 triệu đồng",
+  "title_en": "Appraisal of minor repair works with total investment under VND 50 million",
+  "has_person_name": false
+ },
+ "12666": {
+  "title_vi": "Thủ tục kiện tụng đối với người vay tiền không trả chỉ có giấy viết tay",
+  "title_en": "Lawsuit procedure for a borrower who won't repay a handwritten loan agreement",
+  "has_person_name": false
+ },
+ "12834": {
+  "title_vi": "Thiết kế bản vẽ thi công",
+  "title_en": "Construction drawing design",
+  "has_person_name": false
+ },
+ "13292": {
+  "title_vi": "Căn cứ phát sinh, xác lập quyền sở hữu trí tuệ",
+  "title_en": "Grounds for establishing intellectual property rights",
+  "has_person_name": false
+ },
+ "13712": {
+  "title_vi": "Đối tượng áp dụng biện pháp giáo dục tại xã, phường, thị trấn",
+  "title_en": "Who is subject to commune-level reform education measures?",
+  "has_person_name": false
+ },
+ "13748": {
+  "title_vi": "Các thu nhập chịu thuế thu nhập cá nhân của người lao động",
+  "title_en": "What incomes are subject to employees' personal income tax?",
+  "has_person_name": false
+ },
+ "138000042": {
+  "title_vi": "Giấy chứng nhận vùng an toàn dịch bệnh động vật được cấp lại trong những trường hợp nào?",
+  "title_en": "In which cases is an animal disease-free zone certificate reissued?",
+  "has_person_name": false
+ },
+ "138000044": {
+  "title_vi": "Trong công tác công nhận vùng an toàn dịch bệnh động vật thì Cục thú y có trách nhiệm như thế nào?",
+  "title_en": "What are the Veterinary Department's responsibilities in recognizing disease-free animal zones?",
+  "has_person_name": false
+ },
+ "138000774": {
+  "title_vi": "Đề nghị lập hồ sơ đề nghị áp dụng biện pháp giáo dục tại xã, phường, thị trấn sẽ được gửi đến cơ quan nào?",
+  "title_en": "Which agency should receive the proposal to apply commune-level education measures?",
+  "has_person_name": false
+ },
+ "138000838": {
+  "title_vi": "Thời hạn áp dụng biện pháp giáo dục tại xã là bao lâu? Cơ quan nào có thẩm quyền lập hồ sơ đề nghị áp dụng biện pháp giáo dục tại xã?",
+  "title_en": "How long does commune-level education apply? Which agency prepares the application dossier?",
+  "has_person_name": false
+ },
+ "138001543": {
+  "title_vi": "Công ty đại chúng được phép chào bán cổ phiếu riêng lẻ với giá thấp hơn mệnh giá không?",
+  "title_en": "Can a public company privately issue shares below par value?",
+  "has_person_name": false
+ },
+ "138001548": {
+  "title_vi": "Chứng khoán phái sinh giao dịch trên thị trường chứng khoán phái sinh bao gồm gì?",
+  "title_en": "What does derivative securities traded on the derivatives market include?",
+  "has_person_name": false
+ },
+ "138002304": {
+  "title_vi": "Thời điểm có hiệu lực của hợp đồng xây dựng được xác định như thế nào? Điều kiện để hợp đồng xây dựng có hiệu lực pháp lý?",
+  "title_en": "When does a construction contract take effect? Conditions for its legal validity?",
+  "has_person_name": false
+ },
+ "138002481": {
+  "title_vi": "Mẫu đơn đề nghị gia hạn giấy phép thăm dò nước dưới đất mới nhất 2023? Hồ sơ đề nghị gia hạn giấy phép thăm dò nước dưới đất có những thành phần gì?",
+  "title_en": "Latest 2023 form to request extension of groundwater exploration license? What documents are required?",
+  "has_person_name": false
+ },
+ "138002578": {
+  "title_vi": "Ngoài có mức vốn điều lệ từ 30 tỷ, cần đáp ứng thêm điều kiện gì để được chào bán trái phiếu ra công chúng?",
+  "title_en": "Besides 30 billion VND charter capital, what else is needed for a public bond offering?",
+  "has_person_name": false
+ },
+ "138002848": {
+  "title_vi": "Tổng hợp mức phạt nồng độ cồn năm 2023? Trong người có nồng độ cồn bao nhiêu thì bị tạm giữ xe?",
+  "title_en": "Summary of 2023 alcohol-level fines? What BAC level leads to vehicle impoundment?",
+  "has_person_name": false
+ },
+ "138002888": {
+  "title_vi": "Công ty có được giảm lương của người lao động không? Công ty tự ý giảm lương của người lao động bị xử phạt hành chính như thế nào?",
+  "title_en": "Can a company cut an employee's salary? What's the fine for doing so unilaterally?",
+  "has_person_name": false
+ },
+ "138002907": {
+  "title_vi": "Biện pháp giáo dục tại xã, phường, thị trấn có áp dụng đối với người nước ngoài không?",
+  "title_en": "Does the commune-level education measure apply to foreigners?",
+  "has_person_name": false
+ },
+ "138003342": {
+  "title_vi": "Trang thông tin điện tử bán hàng phải đảm bảo các yêu cầu nào? Cá nhân không cung cấp chính xác thông tin về tên của tổ chức quản lý trang thông tin điện tử bị phạt bao nhiêu tiền?",
+  "title_en": "What must a sales website meet? Fine for individual inaccurately naming the site's managing organization?",
+  "has_person_name": false
+ },
+ "138003840": {
+  "title_vi": "12 loại hình tác phẩm được bảo hộ quyền tác giả theo hướng dẫn của Chính phủ?",
+  "title_en": "What are the 12 types of copyright-protected works under Government guidance?",
+  "has_person_name": false
+ },
+ "138003892": {
+  "title_vi": "Hướng dẫn thủ tục cấp Giấy chứng nhận đăng ký quyền tác giả, quyền liên quan?",
+  "title_en": "Guidance on procedures for copyright and related rights registration certificates?",
+  "has_person_name": false
+ },
+ "138004273": {
+  "title_vi": "Doanh nghiệp được xem xét bán nợ khi vay của Quỹ đổi mới công nghệ quốc gia trong trường hợp nào?",
+  "title_en": "In what cases may a business sell debt owed to the National Technology Innovation Fund?",
+  "has_person_name": false
+ },
+ "138004644": {
+  "title_vi": "Các nguyên tắc nào phải đảm bảo khi thực hiện việc giám sát, giáo dục người dưới 18 tuổi phạm tội được miễn trách nhiệm hình sự?",
+  "title_en": "What principles must be ensured when supervising, educating under-18 offenders exempted from criminal liability?",
+  "has_person_name": false
+ },
+ "138005156": {
+  "title_vi": "Những chức danh Cán bộ cấp xã mới nhất năm 2023?",
+  "title_en": "What are the latest titles of commune-level officials in 2023?",
+  "has_person_name": false
+ },
+ "138005220": {
+  "title_vi": "Các bước tiếp nhận, kiểm tra hồ sơ đề nghị xác định trước xuất xứ hàng hóa như thế nào?",
+  "title_en": "What are the steps for receiving and checking dossiers for advance origin determination of goods?",
+  "has_person_name": false
+ },
+ "138005808": {
+  "title_vi": "Thế chấp tàu bay có bắt buộc phải đăng ký biện pháp bảo đảm? Hồ sơ đăng ký biện pháp bảo đảm gồm những gì?",
+  "title_en": "Is aircraft mortgage required to register a security measure? What documents are needed?",
+  "has_person_name": false
+ },
+ "138006644": {
+  "title_vi": "Các khoản phụ cấp không phải đóng BHXH bắt buộc năm 2025?",
+  "title_en": "Which allowances are exempt from mandatory social insurance contributions in 2025?",
+  "has_person_name": false
+ },
+ "138006903": {
+  "title_vi": "Không thực hiện kê khai chứng từ chất thải nguy hại thì bị xử lý như thế nào?",
+  "title_en": "What is the penalty for not declaring hazardous waste documents?",
+  "has_person_name": false
+ },
+ "138007011": {
+  "title_vi": "Mẫu đơn khiếu nại hành chính năm 2026?",
+  "title_en": "What is the 2026 template for an administrative complaint form?",
+  "has_person_name": false
+ },
+ "138007534": {
+  "title_vi": "Mẫu tờ khai đề nghị hỗ trợ kinh phí chăm sóc, nuôi dưỡng hàng tháng người khuyết tật nặng?",
+  "title_en": "What is the form for requesting monthly care funding for severely disabled people?",
+  "has_person_name": false
+ },
+ "138007766": {
+  "title_vi": "Đăng ký mã định danh điện tử mức 2 ở đâu? Kích hoạt định danh điện tử mức 2 tại nhà được không?",
+  "title_en": "Where to register level-2 electronic ID? Can it be activated at home?",
+  "has_person_name": false
+ },
+ "138007831": {
+  "title_vi": "Một số điện thoại có thể kích hoạt được bao nhiều tài khoản định danh điện tử?",
+  "title_en": "How many electronic identification accounts can one phone number activate?",
+  "has_person_name": false
+ },
+ "138008551": {
+  "title_vi": "Thu hồi thẻ giám định viên sở hữu công nghiệp trong trường hợp nào?",
+  "title_en": "In what cases is an industrial property assessor's card revoked?",
+  "has_person_name": false
+ },
+ "138008556": {
+  "title_vi": "Lập hồ sơ đăng ký chào bán chứng khoán ra công chúng có thông tin sai sự thật bị xử phạt như thế nào?",
+  "title_en": "What is the penalty for false information in a public securities offering registration file?",
+  "has_person_name": false
+ },
+ "138008735": {
+  "title_vi": "Room tín dụng là gì? Ngân hàng hết room tín dụng trong trường hợp nào?",
+  "title_en": "What is credit room? When does a bank run out of credit room?",
+  "has_person_name": false
+ },
+ "138009207": {
+  "title_vi": "Người từ đủ 15 tuổi đến dưới 18 tuổi đăng ký xe phải đáp ứng yêu cầu gì?",
+  "title_en": "What requirements apply to vehicle registration by people aged 15 to under 18?",
+  "has_person_name": false
+ },
+ "138009469": {
+  "title_vi": "Hướng dẫn phản ánh về an toàn giao thông trên tài khoản định danh điện tử (app VNeID)?",
+  "title_en": "How to report traffic safety issues via the VNeID electronic ID app?",
+  "has_person_name": false
+ },
+ "138009540": {
+  "title_vi": "Các loại chứng khoán nào phải đăng ký tại Tổng công ty lưu ký và bù trừ chứng khoán Việt Nam?",
+  "title_en": "Which securities must be registered with Vietnam Securities Depository and Clearing Corporation?",
+  "has_person_name": false
+ },
+ "138009720": {
+  "title_vi": "Phí thành viên của Liên đoàn Luật sư Việt Nam và Đoàn Luật sư hiện nay là bao nhiêu?",
+  "title_en": "What are the current membership fees for the Vietnam Bar Federation and Bar Association?",
+  "has_person_name": false
+ },
+ "138009740": {
+  "title_vi": "Mẫu Bản đăng ký người phụ thuộc (mẫu 07/ĐK-NPT-TNCN) chuẩn pháp lý năm 2023?",
+  "title_en": "Legally correct 2023 form 07/ĐK-NPT-TNCN for registering dependents for personal income tax?",
+  "has_person_name": false
+ },
+ "138009748": {
+  "title_vi": "Đầu tư trong khu công nghiệp sẽ được hưởng ưu đãi thuế thu nhập doanh nghiệp như thế nào?",
+  "title_en": "What corporate income tax incentives apply to investment in industrial parks?",
+  "has_person_name": false
+ },
+ "138009981": {
+  "title_vi": "Vợ sinh mổ chồng được nghỉ mấy ngày 2025?",
+  "title_en": "How many days of leave for a husband when wife has C-section in 2025?",
+  "has_person_name": false
+ },
+ "138010130": {
+  "title_vi": "Mẫu bổ nhiệm kế toán trưởng mới nhất năm 2025?",
+  "title_en": "What is the latest 2025 template for chief accountant appointment decision?",
+  "has_person_name": false
+ },
+ "138010241": {
+  "title_vi": "Mẫu bảng kê thu mua hàng hóa dịch vụ mua vào không có hóa đơn mới nhất hiện nay?",
+  "title_en": "What is the latest template for a list of purchased goods/services without invoices?",
+  "has_person_name": false
+ },
+ "138010472": {
+  "title_vi": "Mẫu Tờ khai đăng ký quyền tác giả đối với tác phẩm kiến trúc năm 2023?",
+  "title_en": "2023 copyright registration declaration form for architectural works?",
+  "has_person_name": false
+ },
+ "138010570": {
+  "title_vi": "Thay đổi biển số vàng sang trắng hoặc ngược lại thì có được giữ nguyên biển số xe hay không?",
+  "title_en": "When switching yellow to white plates or vice versa, is the plate number kept?",
+  "has_person_name": false
+ },
+ "138011153": {
+  "title_vi": "Các khoản thu nhập từ lĩnh vực ưu đãi đầu tư của doanh nghiệp có được hưởng ưu đãi thuế TNDN hay không?",
+  "title_en": "Is income from investment-incentive sectors eligible for corporate income tax incentives?",
+  "has_person_name": false
+ },
+ "138011249": {
+  "title_vi": "Người tập sự hành nghề công chứng nghỉ chế độ thai sản thì có được tạm ngừng tập sự không?",
+  "title_en": "Can a notary trainee suspend training while on maternity leave?",
+  "has_person_name": false
+ },
+ "138011295": {
+  "title_vi": "Chi phí cho hoạt động tiếp khách của doanh nghiệp có được đưa vào chi phí được trừ khi tính thuế TNDN hay không?",
+  "title_en": "Is business client entertainment expense deductible for corporate income tax?",
+  "has_person_name": false
+ },
+ "138011347": {
+  "title_vi": "Người lao động không được giải quyết chế độ ốm đau trong trường hợp nào?",
+  "title_en": "In what cases is an employee denied sick leave benefits?",
+  "has_person_name": false
+ },
+ "138011537": {
+  "title_vi": "Thủ tục sang tên xe máy trong trường hợp cho tặng được thực hiện như thế nào?",
+  "title_en": "How is the motorbike ownership transfer procedure done in case of a gift?",
+  "has_person_name": false
+ },
+ "138011655": {
+  "title_vi": "Kênh cung cấp thông tin của học viện, trường Công an nhân dân, bệnh viện trực thuộc Bộ Công an trên môi trường mạng phải đáp ứng những yêu cầu gì?",
+  "title_en": "What requirements must online information channels of Police academies, schools and hospitals meet?",
+  "has_person_name": false
+ },
+ "138011841": {
+  "title_vi": "Giám đốc có được cấp tín dụng từ ngân hàng mình điều hành không?",
+  "title_en": "Can a director get credit from the bank they manage?",
+  "has_person_name": false
+ },
+ "138011972": {
+  "title_vi": "Bảng tính tuổi nghỉ hưu năm 2026 theo năm sinh như thế nào?",
+  "title_en": "What is the 2026 retirement age table by birth year?",
+  "has_person_name": false
+ },
+ "138012768": {
+  "title_vi": "Học phí học công chứng viên là bao nhiêu? Học công chứng viên ở đâu?",
+  "title_en": "How much is notary training tuition? Where to study to become a notary?",
+  "has_person_name": false
+ },
+ "138012862": {
+  "title_vi": "Voucher là gì? Giá trị tối đa của voucher được tặng kèm khi mua hàng là bao nhiêu?",
+  "title_en": "What is a voucher? What's the max value of a free gift voucher?",
+  "has_person_name": false
+ },
+ "138013072": {
+  "title_vi": "Chương trình khuyến mại tặng quà dưới 100 triệu được miễn thông báo với Sở Công thương không?",
+  "title_en": "Is a gift promotion under 100 million exempt from notifying the Industry and Trade Dept?",
+  "has_person_name": false
+ },
+ "138013375": {
+  "title_vi": "Lãi thu được từ tiền vàng được miễn thuế TNCN trong trường hợp nào?",
+  "title_en": "When is interest from gold deposits exempt from personal income tax?",
+  "has_person_name": false
+ },
+ "138013561": {
+  "title_vi": "Mẫu lời chứng chứng thực chữ ký, chứng thực hợp đồng mới nhất hiện nay?",
+  "title_en": "What is the latest template for signature and contract authentication certifications?",
+  "has_person_name": false
+ },
+ "138013586": {
+  "title_vi": "Doanh nghiệp không phát sinh chi trả thu nhập có cần khai thuế TNCN không?",
+  "title_en": "Must a company file personal income tax if it paid no income?",
+  "has_person_name": false
+ },
+ "138013894": {
+  "title_vi": "Phạm nhân bị bệnh hiểm nghèo bỏ trốn bị truy nã ra đầu thú thì có chấp hành án phạt tù nữa không?",
+  "title_en": "Must a critically ill escaped prisoner who surrenders still serve the prison term?",
+  "has_person_name": false
+ },
+ "138013912": {
+  "title_vi": "Đối tượng nào không được tăng lương hưu 2024 sau cải cách tiền lương?",
+  "title_en": "Who won't get a pension increase in 2024 after salary reform?",
+  "has_person_name": false
+ },
+ "138014219": {
+  "title_vi": "Khi nào đơn vị có hoạt động biểu diễn nghệ thuật bị dừng có thể tiếp tục tổ chức hoạt động biểu diễn?",
+  "title_en": "When can a suspended arts performance unit resume performances?",
+  "has_person_name": false
+ },
+ "138014372": {
+  "title_vi": "Các quyền nhân thân theo pháp luật dân sự và pháp luật về sở hữu trí tuệ hiện nay là gì?",
+  "title_en": "What are moral rights under civil law and intellectual property law today?",
+  "has_person_name": false
+ },
+ "138014434": {
+  "title_vi": "Mẫu tờ khai hàng hóa xuất khẩu tại chỗ áp dụng năm 2024 như thế nào?",
+  "title_en": "What is the 2024 declaration form for on-the-spot export goods?",
+  "has_person_name": false
+ },
+ "138014499": {
+  "title_vi": "Khi thực hiện các giao dịch có giá trị lớn phải báo cáo thì cần báo cáo với cơ quan nào?",
+  "title_en": "Which authority should be notified for large-value transactions requiring reporting?",
+  "has_person_name": false
+ },
+ "138014533": {
+  "title_vi": "Cha mẹ khác dân tộc nhau, con sinh ra xác định dân tộc như thế nào?",
+  "title_en": "If parents have different ethnicities, how is the child's ethnicity determined?",
+  "has_person_name": false
+ },
+ "138015654": {
+  "title_vi": "Thời hạn bảo hộ đối với quyền công bố tác phẩm điện ảnh chấm dứt vào thời điểm nào?",
+  "title_en": "When does the protection term for a cinematic work's publication right end?",
+  "has_person_name": false
+ },
+ "138015661": {
+  "title_vi": "Luật Thuế giá trị gia tăng mới nhất và các văn bản hướng dẫn thi hành?",
+  "title_en": "What is the latest Value-Added Tax Law and its guiding documents?",
+  "has_person_name": false
+ },
+ "138015881": {
+  "title_vi": "Doanh nghiệp có phải khấu trừ, kê khai nộp thuế thay cho nhà cung cấp nước ngoài khi họ đã thực hiện đăng ký nộp thuế tại Việt Nam?",
+  "title_en": "Must a business withhold and declare tax for a foreign supplier already tax-registered in Vietnam?",
+  "has_person_name": false
+ },
+ "138015949": {
+  "title_vi": "Thủ tục mua bán xe máy cũ mới nhất năm 2025?",
+  "title_en": "What is the latest procedure for buying/selling a used motorbike in 2025?",
+  "has_person_name": false
+ },
+ "138016294": {
+  "title_vi": "Mẫu biên bản họp nhóm về việc thành lập hộ kinh doanh 2025?",
+  "title_en": "What is the 2025 template for a group meeting minutes on establishing a household business?",
+  "has_person_name": false
+ },
+ "138016364": {
+  "title_vi": "Hồ sơ xin nghỉ hưu trước tuổi năm 2024 gồm những giấy tờ gì?",
+  "title_en": "What documents are required in a 2024 early retirement application dossier?",
+  "has_person_name": false
+ },
+ "138016486": {
+  "title_vi": "Mẫu hợp đồng giao khoán thi công hạng mục san lấp mặt bằng chuẩn, mới nhất 2025?",
+  "title_en": "What is the standard, newest 2025 contract template for site-leveling construction work?",
+  "has_person_name": false
+ },
+ "138016547": {
+  "title_vi": "Đề minh họa thi tốt nghiệp THPT năm 2025 môn Tiếng Nhật?",
+  "title_en": "What is the illustrative 2025 high school graduation exam for Japanese?",
+  "has_person_name": false
+ },
+ "138016664": {
+  "title_vi": "23 tháng Chạp là ngày gì? 23 tháng Chạp 2024 là ngày mấy dương lịch?",
+  "title_en": "What is the 23rd of the 12th lunar month? Its 2024 solar date?",
+  "has_person_name": false
+ },
+ "138016929": {
+  "title_vi": "Thủ tục đăng ký xe tạm thời để được lưu thông năm 2025 thực hiện như thế nào?",
+  "title_en": "How to complete temporary vehicle registration procedures for circulation in 2025?",
+  "has_person_name": false
+ },
+ "138017189": {
+  "title_vi": "Mẫu đơn khởi kiện đòi nợ mới nhất năm 2025 và cách viết?",
+  "title_en": "What is the latest 2025 debt-collection lawsuit petition form and how to fill it out?",
+  "has_person_name": false
+ },
+ "138017338": {
+  "title_vi": "Doanh nghiệp FDI có được thuê kho ngoại quan không?",
+  "title_en": "Can FDI enterprises lease bonded warehouses?",
+  "has_person_name": false
+ },
+ "138017797": {
+  "title_vi": "Người lao động khám bệnh ở nước ngoài có được hưởng chế độ ốm đau không?",
+  "title_en": "Is an employee treated abroad eligible for sick-leave social insurance benefits?",
+  "has_person_name": false
+ },
+ "138018586": {
+  "title_vi": "Mẫu vi bằng mua bán nhà đất mới nhất 2025?",
+  "title_en": "What is the latest 2025 template for a notarized land/house sale record?",
+  "has_person_name": false
+ },
+ "138019046": {
+  "title_vi": "Số tiền thuế áp dụng phương pháp tính thuế tuyệt đối của hàng hóa xuất nhập khẩu được xác định căn cứ vào đâu?",
+  "title_en": "What basis determines the tax amount under the absolute tax method for exported/imported goods?",
+  "has_person_name": false
+ },
+ "138019110": {
+  "title_vi": "Bảng quy đổi và tính số giờ tín chỉ các hình thức cập nhật kiến thức y khoa liên tục trong khám bệnh, chữa bệnh 2024?",
+  "title_en": "2024 conversion table for credit hours of continuing medical education activities?",
+  "has_person_name": false
+ },
+ "138019225": {
+  "title_vi": "Luật Đất đai 2024: Người sử dụng đất không hoàn thành nghĩa vụ tài chính sẽ bị thu hồi đất từ 2025?",
+  "title_en": "2024 Land Law: Will land be recovered from 2025 if users fail financial obligations?",
+  "has_person_name": false
+ },
+ "138019609": {
+  "title_vi": "Hướng dẫn thực hiện lập hóa đơn hàng tặng không thu tiền năm 2024?",
+  "title_en": "How to issue invoices for free gifts/promotional goods in 2024?",
+  "has_person_name": false
+ },
+ "138019696": {
+  "title_vi": "Chuyển tiền ngoại tệ được tặng từ nước ngoài vào tài khoản ngoại tệ mở tại Việt Nam có chịu thuế TNCN không?",
+  "title_en": "Is foreign currency gifted from abroad to a Vietnam account subject to personal income tax?",
+  "has_person_name": false
+ },
+ "138019794": {
+  "title_vi": "Hướng dẫn thủ tục làm lại đăng ký xe máy bị mất mới nhất năm 2025?",
+  "title_en": "Latest 2025 guide: procedure to reissue a lost motorbike registration certificate?",
+  "has_person_name": false
+ },
+ "138019998": {
+  "title_vi": "Cách tính phụ cấp ưu đãi ngành y tế 2024 như thế nào?",
+  "title_en": "How to calculate the 2024 health sector preferential allowance?",
+  "has_person_name": false
+ },
+ "138020148": {
+  "title_vi": "Làm lộ bí mật đời tư của người khác trên mạng xã hội bị xử lý như thế nào?",
+  "title_en": "How is exposing someone's private secrets on social media handled?",
+  "has_person_name": false
+ },
+ "138020520": {
+  "title_vi": "Chi phí đóng bảo hiểm xã hội, bảo hiểm y tế của chủ công ty TNHH MTV có được trừ khi tính thuế thu nhập doanh nghiệp?",
+  "title_en": "Are single-member LLC owner's social/health insurance costs deductible for corporate income tax?",
+  "has_person_name": false
+ },
+ "138020675": {
+  "title_vi": "Tái hôn là gì? Tái hôn có cần đi đăng ký kết hôn không?",
+  "title_en": "What is remarriage? Is marriage registration required for remarriage?",
+  "has_person_name": false
+ },
+ "138021708": {
+  "title_vi": "Nhà đầu tư cá nhân có được phép mở tài khoản chứng khoán ở nhiều công ty chứng khoán không?",
+  "title_en": "Can an individual investor open securities accounts at multiple securities companies?",
+  "has_person_name": false
+ },
+ "138021710": {
+  "title_vi": "16 tuổi có đứng tên đăng ký xe 50cc được không? 16 tuổi là người thành niên hay chưa?",
+  "title_en": "Can a 16-year-old register a 50cc motorbike? Is 16 an adult or minor?",
+  "has_person_name": false
+ },
+ "138021715": {
+  "title_vi": "Hợp đồng mở tài khoản chứng khoán cần có những nội dung cơ bản nào?",
+  "title_en": "What basic contents must a securities trading account opening contract include?",
+  "has_person_name": false
+ },
+ "138021820": {
+  "title_vi": "Tờ khai đăng ký quyền tác giả năm 2024 theo mẫu số 05 như thế nào?",
+  "title_en": "What does the 2024 copyright registration declaration form No. 05 look like?",
+  "has_person_name": false
+ },
+ "138021987": {
+  "title_vi": "Thuế suất khi xuất hóa đơn quà tặng là vàng đã qua chế tác cho khách hàng là bao nhiêu?",
+  "title_en": "What tax rate applies when invoicing crafted gold gifts for customers?",
+  "has_person_name": false
+ },
+ "138022080": {
+  "title_vi": "Mẫu thông báo thay đổi người đại diện theo pháp luật mới nhất năm 2025?",
+  "title_en": "What is the newest 2025 template for notifying a change of legal representative?",
+  "has_person_name": false
+ },
+ "138022266": {
+  "title_vi": "Mẫu giấy đăng ký tham gia khóa đào tạo nghề thừa phát lại 2024?",
+  "title_en": "What is the 2024 registration form for the bailiff training course?",
+  "has_person_name": false
+ },
+ "138022538": {
+  "title_vi": "Luật chuyển nhượng đất đai mới nhất năm 2024 là luật nào?",
+  "title_en": "Which law is the latest land transfer law in 2024?",
+  "has_person_name": false
+ },
+ "138022559": {
+  "title_vi": "Khi hoàn trả hàng hóa có phát sinh hóa đơn điều chỉnh thì thực hiện kê khai bổ sung khi nào?",
+  "title_en": "When to file supplementary declaration for adjustment invoice on returned goods?",
+  "has_person_name": false
+ },
+ "138022675": {
+  "title_vi": "Điều kiện áp dụng tạm quản hàng hóa theo Công ước Istanbul gồm những gì?",
+  "title_en": "What are the conditions for temporary admission of goods under the Istanbul Convention?",
+  "has_person_name": false
+ },
+ "138022691": {
+  "title_vi": "Tài liệu xác định nhà đầu tư chứng khoán chuyên nghiệp đối với người có chứng chỉ hành nghề chứng khoán gồm những gì?",
+  "title_en": "What documents prove professional securities investor status for securities practice certificate holders?",
+  "has_person_name": false
+ },
+ "138022829": {
+  "title_vi": "Thừa phát lại không hành nghề bao lâu thì bị miễn nhiệm thừa phát lại?",
+  "title_en": "How long without practicing before a bailiff is dismissed from office?",
+  "has_person_name": false
+ },
+ "138022846": {
+  "title_vi": "Thuế giá trị gia tăng đối với hàng hóa nông lâm thủy sản của siêu thị bán lẻ cho khách hàng là bao nhiêu?",
+  "title_en": "What is the VAT rate on agro-forestry-fishery goods sold retail by supermarkets to customers?",
+  "has_person_name": false
+ },
+ "138023021": {
+  "title_vi": "Năm 2024, người chăm sóc người khuyết tật nặng được hỗ trợ kinh phí bao nhiêu?",
+  "title_en": "In 2024, how much funding support for caregivers of severely disabled people?",
+  "has_person_name": false
+ },
+ "138023551": {
+  "title_vi": "Thời gian tập sự hành nghề luật sư đối với thẩm tra viên chính ngành Tòa án là bao lâu?",
+  "title_en": "How long is the lawyer practice internship for chief examiners at Courts?",
+  "has_person_name": false
+ },
+ "138023835": {
+  "title_vi": "Hướng dẫn chi tiết thủ tục đăng ký tài khoản định danh điện tử đối với công dân Việt Nam?",
+  "title_en": "Detailed guide on registering an electronic identification account for Vietnamese citizens?",
+  "has_person_name": false
+ },
+ "138023867": {
+  "title_vi": "Phố đi bộ hồ Gươm có mở xuyên lễ 30/4 2024 không? Phố đi bộ hồ Gươm mở từ ngày nào?",
+  "title_en": "Is Hoan Kiem Lake walking street open through Apr 30, 2024 holiday? From what date?",
+  "has_person_name": false
+ },
+ "138024042": {
+  "title_vi": "Mẫu 01B Báo cáo thẩm định kế hoạch tổng thể lựa chọn nhà thầu theo Thông tư 06/2024/TT-BKHĐT?",
+  "title_en": "What is Form 01B appraisal report for overall bidder selection plan under Circular 06/2024/TT-BKHĐT?",
+  "has_person_name": false
+ },
+ "138024324": {
+  "title_vi": "Biển số xe 31 là của tỉnh nào? Biển số xe thu hồi trong trường hợp nào?",
+  "title_en": "Which province does license plate number 31 belong to? When are license plates revoked?",
+  "has_person_name": false
+ },
+ "138024697": {
+  "title_vi": "Xác định tư cách tham gia tố tụng khi doanh nghiệp có nhiều người đại diện theo pháp luật như thế nào?",
+  "title_en": "How to determine litigation status when a business has multiple legal representatives?",
+  "has_person_name": false
+ },
+ "138024722": {
+  "title_vi": "Hộ khẩu tỉnh có làm biển số xe thành phố được không? Hướng dẫn cách ghi mẫu giấy khai đăng ký xe?",
+  "title_en": "Can provincial registration get a city license plate? How to fill vehicle registration form?",
+  "has_person_name": false
+ },
+ "138025515": {
+  "title_vi": "Từ 01/7/2024, trường hợp nào phải đăng ký khai thác, sử dụng tài nguyên nước?",
+  "title_en": "From July 1, 2024, which cases must register water resource extraction and use?",
+  "has_person_name": false
+ },
+ "138025547": {
+  "title_vi": "Tải phiếu đánh giá xếp loại chất lượng viên chức giáo viên THCS mới nhất hiện nay?",
+  "title_en": "Where to download the latest quality rating form for secondary school teachers?",
+  "has_person_name": false
+ },
+ "138025556": {
+  "title_vi": "Mẫu bảng kê mua hàng áp dụng cho doanh nghiệp nhỏ và vừa mới nhất theo Thông tư 133?",
+  "title_en": "What is the latest purchase list form for SMEs under Circular 133?",
+  "has_person_name": false
+ },
+ "138025786": {
+  "title_vi": "Mức hưởng trợ cấp xã hội hàng tháng đối với người khuyết tật nặng là bao nhiêu?",
+  "title_en": "What is the monthly social allowance for severely disabled people?",
+  "has_person_name": false
+ },
+ "138025853": {
+  "title_vi": "Mẫu đơn đề nghị bổ nhiệm thừa phát lại mới nhất theo Thông tư 03?",
+  "title_en": "What is the latest application form to be appointed a bailiff under Circular 03?",
+  "has_person_name": false
+ },
+ "138025856": {
+  "title_vi": "Dọa ma trẻ em thường xuyên có thể bị xử phạt vi phạm hành chính lên đến 20 triệu đồng?",
+  "title_en": "Can repeatedly scaring children with ghost stories get a fine up to 20 million VND?",
+  "has_person_name": false
+ },
+ "138026012": {
+  "title_vi": "Giá trị pháp lý của vi bằng như thế nào? Thỏa thuận lập vi bằng có các nội dung gì?",
+  "title_en": "What is the legal value of a bailiff's record? Contents of agreement to create one?",
+  "has_person_name": false
+ },
+ "138026151": {
+  "title_vi": "Có phải cơ sở nào phát sinh chất thải nguy hại thì có trách nhiệm vận chuyển chất thải nguy hại đi xử lý?",
+  "title_en": "Must every hazardous waste generator transport it themselves for treatment?",
+  "has_person_name": false
+ },
+ "138026238": {
+  "title_vi": "Hộ gia đình dân tộc thiểu số được hỗ trợ 15.000.000 đồng/ha để mua cây giống trong đầu tư trồng rừng sản xuất từ 15/7/2024?",
+  "title_en": "Ethnic minority households get 15,000,000 VND/ha for seedlings in production forest planting from 15/7/2024?",
+  "has_person_name": false
+ },
+ "138026242": {
+  "title_vi": "Mẫu đơn tố cáo xúc phạm danh dự nhân phẩm chuẩn pháp lý 2025?",
+  "title_en": "What is the legally standard 2025 complaint form for honor/dignity defamation?",
+  "has_person_name": false
+ },
+ "138026256": {
+  "title_vi": "Năm 2024, mức đóng BHXH, BHYT của công chức viên chức là bao nhiêu?",
+  "title_en": "In 2024, what are social and health insurance contribution rates for civil servants?",
+  "has_person_name": false
+ },
+ "138026342": {
+  "title_vi": "Hồ sơ rút BHXH 1 lần cho người nước ngoài 2024? Cách tính tiền BHXH 1 lần cho người nước ngoài 2024?",
+  "title_en": "What documents and how to calculate 2024 lump-sum social insurance payout for foreigners?",
+  "has_person_name": false
+ },
+ "138027062": {
+  "title_vi": "Con có phải đi nghĩa vụ quân sự khi gia đình có cha hoặc mẹ không còn khả năng lao động?",
+  "title_en": "Must a child do military service if a parent can't work?",
+  "has_person_name": false
+ },
+ "138027248": {
+  "title_vi": "Đề xuất cấm đấu giá biển số xe ô tô đối với người trúng mà không trả tiền?",
+  "title_en": "Proposal to ban license plate auction winners who fail to pay from future bids?",
+  "has_person_name": false
+ },
+ "138027351": {
+  "title_vi": "Doanh nghiệp chế xuất có thể dùng hàng sản xuất xuất khẩu để tiêu dùng nội bộ không?",
+  "title_en": "Can an export-processing enterprise use its export goods for internal consumption?",
+  "has_person_name": false
+ },
+ "138027352": {
+  "title_vi": "Trẻ mồ côi dưới 16 tuổi có thuộc đối tượng hưởng trợ cấp xã hội hàng tháng không?",
+  "title_en": "Are orphans under 16 eligible for monthly social allowance?",
+  "has_person_name": false
+ },
+ "138027469": {
+  "title_vi": "Từ 01/7/2024, chồng của người nhờ mang thai hộ không được yêu cầu ly hôn khi người mang thai hộ đang có thai?",
+  "title_en": "From July 1, 2024, can a husband seeking divorce sue while the surrogate is pregnant?",
+  "has_person_name": false
+ },
+ "138027562": {
+  "title_vi": "Có phải tất cả dự án đầu tư đều phải thực hiện thủ tục cấp Giấy chứng nhận đăng ký đầu tư không?",
+  "title_en": "Must every investment project obtain an Investment Registration Certificate?",
+  "has_person_name": false
+ },
+ "138027775": {
+  "title_vi": "Hướng dẫn mới về thuận tình ly hôn của vợ chồng từ ngày 01/7/2024?",
+  "title_en": "What are the new guidelines on mutual consent divorce from July 1, 2024?",
+  "has_person_name": false
+ },
+ "138027882": {
+  "title_vi": "Người đang nuôi dưỡng trẻ em bị bỏ rơi có bắt buộc phải đi đăng ký khai sinh cho trẻ em đó hay không?",
+  "title_en": "Must the person raising an abandoned child register the child's birth?",
+  "has_person_name": false
+ },
+ "138027894": {
+  "title_vi": "Mẫu 07/PĐNKT/GSQL phiếu đề nghị kiểm tra thực tế hàng hóa 2025?",
+  "title_en": "What is Form 07/PĐNKT/GSQL, the 2025 request slip for actual goods inspection?",
+  "has_person_name": false
+ },
+ "138027943": {
+  "title_vi": "12 tháng 7 năm 2025 là ngày bao nhiêu âm? 12 tháng 7 là ngày gì? NLĐ có được nghỉ làm ngày 12/7 không?",
+  "title_en": "What lunar date is July 12, 2025? Is it a holiday with paid leave?",
+  "has_person_name": false
+ },
+ "138028240": {
+  "title_vi": "Hình thức, nội dung kiểm định đầu vào công chức như thế nào?",
+  "title_en": "What are the form and content of the civil servant entrance qualification test?",
+  "has_person_name": false
+ },
+ "138028318": {
+  "title_vi": "Cá nhân được cấp chứng chỉ hành nghề hoạt động xây dựng khi đáp ứng các điều kiện gì?",
+  "title_en": "What conditions must individuals meet to get a construction practice certificate?",
+  "has_person_name": false
+ },
+ "138028778": {
+  "title_vi": "Ban hành Thông tư 06/2024/TT-BTNMT quy định tiêu chuẩn, điều kiện xét thăng hạng chức danh nghề nghiệp viên chức chuyên ngành TNMT?",
+  "title_en": "Issuance of Circular 06/2024/TT-BTNMT on standards for promoting titles of environmental sector civil servants",
+  "has_person_name": false
+ },
+ "138028793": {
+  "title_vi": "Mẫu giấy đăng ký chào bán cổ phiếu lần đầu ra công chúng của công ty cổ phần mới nhất 2024?",
+  "title_en": "What is the latest 2024 template for an IPO registration of a joint-stock company?",
+  "has_person_name": false
+ },
+ "138029776": {
+  "title_vi": "Mẫu Quyết định tăng mức đóng BHXH 2025 cập nhập mới nhất?",
+  "title_en": "What is the latest 2025 template for a decision to increase social insurance contributions?",
+  "has_person_name": false
+ },
+ "138029886": {
+  "title_vi": "Ký hiệu nơi cấp chứng chỉ hành nghề, năng lực hoạt động xây dựng 63 tỉnh thành 2024?",
+  "title_en": "Issuing-place codes for construction practice certificates, 63 provinces 2024?",
+  "has_person_name": false
+ },
+ "138030558": {
+  "title_vi": "Công chức lãnh đạo, quản lý vi phạm lần đầu có bị cách chức không?",
+  "title_en": "Can a first-time violation by a managerial civil servant lead to dismissal?",
+  "has_person_name": false
+ },
+ "138031041": {
+  "title_vi": "Mẫu Thông báo về đơn giá thuê đất theo Nghị định 103 mới nhất 2024?",
+  "title_en": "What is the latest 2024 notice form for land rent unit price under Decree 103?",
+  "has_person_name": false
+ },
+ "138031044": {
+  "title_vi": "Dự án đầu tư phát sinh chất thải nguy hại đều phải xin cấp giấy phép môi trường?",
+  "title_en": "Must investment projects generating hazardous waste obtain an environmental license?",
+  "has_person_name": false
+ },
+ "138031286": {
+  "title_vi": "Cử nhân luật có thể trở thành Thư ký nghiệp vụ Thừa phát lại không?",
+  "title_en": "Can a law bachelor's degree holder become a bailiff's clerk?",
+  "has_person_name": false
+ },
+ "138032294": {
+  "title_vi": "Toàn văn Dự thảo Nghị định quy định về xử phạt vi phạm hành chính trong lĩnh vực kế hoạch và đầu tư lần 3?",
+  "title_en": "Full text of 3rd draft Decree on administrative penalties in planning and investment?",
+  "has_person_name": false
+ },
+ "138032510": {
+  "title_vi": "Mẫu Đơn xin chuyển từ viên chức sang công chức năm 2024?",
+  "title_en": "What is the 2024 application form to switch from public employee to civil servant?",
+  "has_person_name": false
+ },
+ "138032726": {
+  "title_vi": "Mẫu Giấy đăng ký chào bán thêm cổ phiếu ra công chúng mới nhất 2025?",
+  "title_en": "What is the newest 2025 template for public share offering registration form?",
+  "has_person_name": false
+ },
+ "138032907": {
+  "title_vi": "Người có hành vi lợi dụng chức vụ quyền hạn để can thiệp bất hợp pháp vào hoạt động đấu thầu bị cấm hoạt động trong vòng bao nhiêu năm?",
+  "title_en": "How many years is someone banned for abusing power to illegally interfere in bidding?",
+  "has_person_name": false
+ },
+ "138033366": {
+  "title_vi": "Có được thay đổi vị trí làm việc của người lao động sau khi nghỉ thai sản?",
+  "title_en": "Can an employer change an employee's job position after maternity leave?",
+  "has_person_name": false
+ },
+ "138034046": {
+  "title_vi": "Vợ có bắt buộc phải chuyển khẩu về nhà chồng sau khi kết hôn hay không?",
+  "title_en": "Is a wife required to transfer her household registration after marriage?",
+  "has_person_name": false
+ },
+ "138035157": {
+  "title_vi": "10 tháng 10 âm lịch là ngày gì? 10/10 âm lịch 2024 là ngày bao nhiêu dương?",
+  "title_en": "What is the 10th day of the 10th lunar month 2024? Its solar date?",
+  "has_person_name": false
+ },
+ "138035191": {
+  "title_vi": "Chưa đủ 16 tuổi chạy xe máy điện bị phạt bao nhiêu tiền?",
+  "title_en": "How much is the fine for riding an e-moped if under 16 years old?",
+  "has_person_name": false
+ },
+ "138035206": {
+  "title_vi": "Ly hôn ở nước ngoài có xin xác nhận tình trạng hôn nhân tại Việt Nam được không?",
+  "title_en": "Can one get a marital status certificate in Vietnam while divorcing abroad?",
+  "has_person_name": false
+ },
+ "138035308": {
+  "title_vi": "Danh mục hàng hóa, dịch vụ áp dụng mua sắm tập trung cấp quốc gia áp dụng từ ngày 15/11/2024?",
+  "title_en": "What is the list of goods/services for national centralized procurement from Nov 15, 2024?",
+  "has_person_name": false
+ },
+ "138035363": {
+  "title_vi": "Thời gian thực hiện chương trình khuyến mại giảm giá tối đa bao lâu?",
+  "title_en": "What is the maximum duration for a discount promotion program?",
+  "has_person_name": false
+ },
+ "138035417": {
+  "title_vi": "Trường hợp nào công chức đương nhiên thôi giữ chức vụ?",
+  "title_en": "In what cases does a civil servant automatically lose their position?",
+  "has_person_name": false
+ },
+ "138035507": {
+  "title_vi": "Lịch vạn niên 2025 - Xem Lịch âm dương 2025: Chi tiết lịch vạn niên các tháng, cả năm 2025?",
+  "title_en": "2025 Perpetual calendar - solar and lunar calendar for all months of 2025?",
+  "has_person_name": false
+ },
+ "138035523": {
+  "title_vi": "Mức thuế GTGT đối với doanh nghiệp chế xuất thuê nhà xưởng, văn phòng là bao nhiêu?",
+  "title_en": "What is the VAT rate for export processing firms renting factory/office space?",
+  "has_person_name": false
+ },
+ "138035558": {
+  "title_vi": "Có được giữ lại biển số xe ô tô trúng đấu giá khi bán xe không?",
+  "title_en": "Can you keep an auctioned car license plate number when selling the car?",
+  "has_person_name": false
+ },
+ "138035583": {
+  "title_vi": "Mức vốn góp xác lập tư cách thành viên quỹ tín dụng nhân dân tối thiểu là bao nhiêu?",
+  "title_en": "What is the minimum capital contribution to become a people's credit fund member?",
+  "has_person_name": false
+ },
+ "138035692": {
+  "title_vi": "Hạn mức giao đất ở, công nhận quyền sử dụng đất ở tỉnh Lâm Đồng từ ngày 15/10/2024?",
+  "title_en": "Residential land allocation limits, land use rights recognition in Lam Dong from 15/10/2024?",
+  "has_person_name": false
+ },
+ "138035808": {
+  "title_vi": "Nội dung đề án thành lập Hội đồng quản lý trong đơn vị sự nghiệp công lập thuộc lĩnh vực tài chính là gì?",
+  "title_en": "What must a management council establishment plan contain in public financial service units?",
+  "has_person_name": false
+ },
+ "138035898": {
+  "title_vi": "Từ 26/11/2024, quyết định cho phép thành lập hội hết hiệu lực trong trường hợp nào?",
+  "title_en": "From 26/11/2024, when does an association establishment decision expire?",
+  "has_person_name": false
+ },
+ "138036037": {
+  "title_vi": "Tổng hợp các biện pháp khắc phục hậu quả khi xử lý vi phạm hành chính trong lĩnh vực đất đai theo Nghị định 123?",
+  "title_en": "Summary of remedial measures for land administrative violations under Decree 123",
+  "has_person_name": false
+ },
+ "138036055": {
+  "title_vi": "Bán đất không sổ đỏ sẽ bị phạt bao nhiêu tiền?",
+  "title_en": "How much fine for selling land without a red book (land title)?",
+  "has_person_name": false
+ },
+ "138036411": {
+  "title_vi": "Có tính thuế TNCN các thu nhập từ chương trình bốc thăm trúng thưởng của công ty không?",
+  "title_en": "Is personal income tax charged on prizes from a company's lucky draw program?",
+  "has_person_name": false
+ },
+ "138036941": {
+  "title_vi": "Mẫu biên bản niêm phong tài sản thi hành án dân sự mới nhất năm 2024?",
+  "title_en": "What is the latest 2024 template for civil judgment enforcement asset seal-up minutes?",
+  "has_person_name": false
+ },
+ "138036958": {
+  "title_vi": "Khi áp dụng hình thức chiết khấu thương mại, có bắt buộc phải ghi rõ khoản chiết khấu trên hóa đơn không?",
+  "title_en": "Is it mandatory to state the trade discount amount on the invoice?",
+  "has_person_name": false
+ },
+ "138037011": {
+  "title_vi": "Mất căn cước có làm tài khoản ngân hàng được không?",
+  "title_en": "Can you open a bank account if you lost your ID card?",
+  "has_person_name": false
+ },
+ "138037849": {
+  "title_vi": "Nghĩa vụ quân sự 2025: Chú trọng tuyển chọn công dân tốt nghiệp đại học, cao đẳng?",
+  "title_en": "2025 military service: focus on recruiting university/college graduates?",
+  "has_person_name": false
+ },
+ "138037994": {
+  "title_vi": "Đơn giá bồi thường cây trồng khi Nhà nước thu hồi đất tại tỉnh Tiền Giang từ ngày 12/11/2024?",
+  "title_en": "What is the compensation price for crops when Tien Giang recovers land from 12/11/2024?",
+  "has_person_name": false
+ },
+ "138038007": {
+  "title_vi": "Ban hành Nghị định 147/2024/NĐ-CP quản lý, cung cấp, sử dụng dịch vụ Internet và thông tin trên mạng?",
+  "title_en": "Decree 147/2024/ND-CP on managing, providing, using Internet and online information services",
+  "has_person_name": false
+ },
+ "138038042": {
+  "title_vi": "Từ 25/12/2024, trẻ dưới 16 tuổi đăng ký tài khoản mạng xã hội bằng thông tin của cha, mẹ?",
+  "title_en": "From 25/12/2024, children under 16 register social media accounts via parents' info?",
+  "has_person_name": false
+ },
+ "138038221": {
+  "title_vi": "Quy định về báo cáo định kỳ của Sở giao dịch Chứng khoán Hà Nội trong chào bán trái phiếu doanh nghiệp từ 25/12/2024?",
+  "title_en": "Periodic reporting rules for Hanoi Stock Exchange in corporate bond offerings from 25/12/2024?",
+  "has_person_name": false
+ },
+ "138038419": {
+  "title_vi": "Thời hạn nộp phạt vi phạm giao thông được tính từ ngày nào?",
+  "title_en": "From what date is the deadline for paying traffic fines counted?",
+  "has_person_name": false
+ },
+ "138038767": {
+  "title_vi": "Gây tổn hại cho sức khỏe của người khác nhưng không bị truy cứu trách nhiệm hình sự bị xử phạt bao nhiêu tiền?",
+  "title_en": "What is the fine for harming another's health if not criminally prosecuted?",
+  "has_person_name": false
+ },
+ "138039007": {
+  "title_vi": "Bị sỏi thận có được tạm hoãn nghĩa vụ quân sự hay không?",
+  "title_en": "Can having kidney stones get military service deferred?",
+  "has_person_name": false
+ },
+ "138039160": {
+  "title_vi": "Ngày toàn dân phòng cháy chữa cháy là ngày nào? Tổ chức Ngày toàn dân phòng cháy chữa cháy như thế nào?",
+  "title_en": "What date is National Fire Prevention and Fighting Day? How is it organized?",
+  "has_person_name": false
+ },
+ "138039417": {
+  "title_vi": "Hồ sơ đăng ký tham gia bảo hiểm tai nạn lao động tự nguyện lần đầu gồm những giấy tờ gì?",
+  "title_en": "What documents are required for the first-time voluntary occupational accident insurance registration?",
+  "has_person_name": false
+ },
+ "138039423": {
+  "title_vi": "Mẫu công bố thông tin về kết quả chào bán trái phiếu đối với chào bán trái phiếu riêng lẻ tại thị trường trong nước mới nhất?",
+  "title_en": "What is the latest template for disclosing results of private domestic bond offerings?",
+  "has_person_name": false
+ },
+ "138039425": {
+  "title_vi": "Mẫu công bố thông tin về kết quả chào bán trái phiếu đối với chào bán trái phiếu ra thị trường quốc tế theo Thông tư 76 mới nhất?",
+  "title_en": "What is the latest disclosure form for international bond offering results under Circular 76?",
+  "has_person_name": false
+ },
+ "138039427": {
+  "title_vi": "Biểu mẫu báo cáo của tổ chức tư vấn hồ sơ chào bán trái phiếu riêng lẻ mới nhất?",
+  "title_en": "What is the latest report form for private bond offering advisory organizations?",
+  "has_person_name": false
+ },
+ "138039744": {
+  "title_vi": "Bảng tính tuổi theo 12 con giáp năm 2025? Năm sau là con giáp gì 2025?",
+  "title_en": "Age chart by 12 zodiac animals 2025? What is next year's zodiac animal?",
+  "has_person_name": false
+ },
+ "138039798": {
+  "title_vi": "Lịch âm tháng 11 năm 2024: Đầy đủ, chi tiết và những điểm nổi bật?",
+  "title_en": "Lunar calendar for November 2024: full details and highlights?",
+  "has_person_name": false
+ },
+ "138039927": {
+  "title_vi": "Cung cấp thông tin xúc phạm danh nhân anh hùng dân tộc bị xử phạt bao nhiêu tiền?",
+  "title_en": "What is the fine for spreading insulting information about national heroes?",
+  "has_person_name": false
+ },
+ "138040159": {
+  "title_vi": "Mẫu đơn đề nghị gia hạn giấy phép cung cấp dịch vụ mạng xã hội áp dụng từ ngày 25/12/2024?",
+  "title_en": "What is the application form for extending a social network service license, effective 25/12/2024?",
+  "has_person_name": false
+ },
+ "138040307": {
+  "title_vi": "Link Bình chọn Làn Sóng Xanh 2024? Cách bình chọn Làn Sóng Xanh 2024 như thế nào?",
+  "title_en": "What is the link to vote for Làn Sóng Xanh 2024? How to vote?",
+  "has_person_name": false
+ },
+ "138040333": {
+  "title_vi": "Việc kê khai giá và tiếp nhận kê khai giá được thực hiện như thế nào?",
+  "title_en": "How are price declarations and the receipt of price declarations carried out?",
+  "has_person_name": false
+ },
+ "138040432": {
+  "title_vi": "Hồ sơ, thủ tục xác định lại diện tích đất ở trong thửa đất có vườn ao 2025?",
+  "title_en": "2025: Dossier and procedure to redetermine residential land area in plots with garden/pond?",
+  "has_person_name": false
+ },
+ "138040854": {
+  "title_vi": "Mẫu công bố thông tin bất thường của doanh nghiệp phát hành trái phiếu riêng lẻ 2025?",
+  "title_en": "What is the 2025 form for disclosing unusual information by private bond issuers?",
+  "has_person_name": false
+ },
+ "138041092": {
+  "title_vi": "Hướng dẫn cách xác thực số điện thoại cho tài khoản Facebook nhanh nhất 2025?",
+  "title_en": "How to verify a phone number for a Facebook account fastest in 2025?",
+  "has_person_name": false
+ },
+ "138041161": {
+  "title_vi": "Thủ tướng: Kiên quyết loại bỏ tài khoản thanh toán không chính chủ?",
+  "title_en": "PM: Resolutely eliminate payment accounts not under the true owner's name?",
+  "has_person_name": false
+ },
+ "138041312": {
+  "title_vi": "Tiền lãi phát sinh từ tiền ký quỹ cải tạo, phục hồi môi trường đối với hoạt động khai thác khoáng sản và chôn lấp chất thải được sử dụng như thế nào?",
+  "title_en": "How is interest earned on environmental rehabilitation deposits for mining and waste burial used?",
+  "has_person_name": false
+ },
+ "138041722": {
+  "title_vi": "Thông tư 22 về đánh giá xếp loại học sinh THCS, THPT mới nhất năm 2026?",
+  "title_en": "What is the latest Circular 22 on grading secondary/high school students in 2026?",
+  "has_person_name": false
+ },
+ "138041949": {
+  "title_vi": "Mẫu đơn đề nghị cấp chuyển đổi chứng chỉ hành nghề hoạt động xây dựng mới nhất năm 2025?",
+  "title_en": "What is the newest 2025 application form for converting construction practice certificates?",
+  "has_person_name": false
+ },
+ "138041958": {
+  "title_vi": "Chi tiền học phí cho con người lao động có được đưa vào chi phí hợp lý khi tính thuế TNDN hay không?",
+  "title_en": "Is paying employees' children's tuition deductible as a reasonable expense for corporate income tax?",
+  "has_person_name": false
+ },
+ "138042121": {
+  "title_vi": "Bỏ yêu cầu giấy biên nhận thế chấp khi đăng kiểm ô tô từ 1/1/2025?",
+  "title_en": "Is mortgage receipt no longer required for car inspection from 1/1/2025?",
+  "has_person_name": false
+ },
+ "138042138": {
+  "title_vi": "Đối tượng miễn đăng ký môi trường từ ngày 14/02/2025? Nội dung đăng ký môi trường là gì?",
+  "title_en": "Who is exempt from environmental registration from 14/02/2025? What does environmental registration content include?",
+  "has_person_name": false
+ },
+ "138042254": {
+  "title_vi": "Nghĩa vụ bảo lãnh ngân hàng chấm dứt khi nào?",
+  "title_en": "When does a bank guarantee obligation terminate?",
+  "has_person_name": false
+ },
+ "138042354": {
+  "title_vi": "12 nội dung chính trong thỏa thuận cấp bảo lãnh ngân hàng từ 1/4/2025?",
+  "title_en": "What are the 12 main contents of a bank guarantee agreement from 1/4/2025?",
+  "has_person_name": false
+ },
+ "138042765": {
+  "title_vi": "Xem Táo Quân 2025 ở đâu? Đêm giao thừa 2025 là ngày bao nhiêu?",
+  "title_en": "Where to watch Táo Quân 2025? What date is New Year's Eve 2025?",
+  "has_person_name": false
+ },
+ "138042872": {
+  "title_vi": "Cách đổi tiền mới ở ngân hàng mới nhất năm 2025?",
+  "title_en": "How to exchange new banknotes at a bank in 2025 (latest guidance)?",
+  "has_person_name": false
+ },
+ "138042974": {
+  "title_vi": "Thay đổi tên cá nhân khai thác khoáng sản có phải điều chỉnh giấy phép không?",
+  "title_en": "Does changing the name of a mineral mining individual require amending the license?",
+  "has_person_name": false
+ },
+ "138044350": {
+  "title_vi": "Đất được giao không đúng đối tượng có bị thu hồi đất không?",
+  "title_en": "Can land allocated to the wrong recipient be recovered by the State?",
+  "has_person_name": false
+ },
+ "138044537": {
+  "title_vi": "Đi du lịch, thuê xe gắn máy tự lái có bị phạt lỗi xe không chính chủ?",
+  "title_en": "Will renting a motorbike for travel get fined for using someone else's vehicle?",
+  "has_person_name": false
+ },
+ "138044691": {
+  "title_vi": "UBND tỉnh có được thanh tra hoạt động dạy thêm, học thêm không?",
+  "title_en": "Can the Provincial People's Committee inspect extra-study tutoring activities?",
+  "has_person_name": false
+ },
+ "138045310": {
+  "title_vi": "19 tháng 3 âm lịch là ngày gì? 19 3 âm lịch là ngày mấy dương lịch 2025?",
+  "title_en": "What is March 19 on the lunar calendar? What solar date is it in 2025?",
+  "has_person_name": false
+ },
+ "138045663": {
+  "title_vi": "Đáp án cuộc thi trực tuyến Nâng cao nhận thức phòng tránh tai nạn bom mìn, vật nổ do chiến tranh để lại ở Việt Nam năm 2025?",
+  "title_en": "Answer key for 2025 online contest on landmine/explosive remnant awareness in Vietnam?",
+  "has_person_name": false
+ },
+ "138045955": {
+  "title_vi": "Điều kiện để cơ sở khám chữa bệnh được khám sức khỏe người lao động?",
+  "title_en": "What are the conditions for a medical facility to conduct worker health checkups?",
+  "has_person_name": false
+ },
+ "138046511": {
+  "title_vi": "Hồ sơ xin cấp giấy phép xây dựng sửa chữa, cải tạo công trình năm 2025?",
+  "title_en": "What documents are needed for a 2025 building repair/renovation permit application?",
+  "has_person_name": false
+ },
+ "138046698": {
+  "title_vi": "Tổ chức tín dụng có được bảo lãnh đối với khách hàng là người không cư trú?",
+  "title_en": "Can a credit institution issue guarantees for non-resident customers?",
+  "has_person_name": false
+ },
+ "138046916": {
+  "title_vi": "Ban hành Công điện chỉ đạo thực hiện công tác đặc xá 2025?",
+  "title_en": "Official telegram issued directing 2025 special amnesty work implementation?",
+  "has_person_name": false
+ },
+ "138047945": {
+  "title_vi": "Bổ sung một số tội người dưới 16 tuổi phải chịu trách nhiệm hình sự?",
+  "title_en": "Will more crimes be added that under-16s must bear criminal liability for?",
+  "has_person_name": false
+ },
+ "138048257": {
+  "title_vi": "Lịch nghỉ lễ 30 4 năm 2025 ngân hàng Vietcombank?",
+  "title_en": "What is Vietcombank's holiday schedule for April 30, 2025?",
+  "has_person_name": false
+ },
+ "138048283": {
+  "title_vi": "Lịch nghỉ lễ 30 4 và 1 5 năm 2025 ngân hàng LPBank từ ngày nào?",
+  "title_en": "When does LPBank's 2025 April 30 and May 1 holiday schedule start?",
+  "has_person_name": false
+ },
+ "138048323": {
+  "title_vi": "Lời bài hát Die with a Smile chuẩn nhất?",
+  "title_en": "What are the most accurate lyrics to 'Die with a Smile'?",
+  "has_person_name": false
+ },
+ "138048775": {
+  "title_vi": "Lời bài hát Hát mãi khúc quân hành? Hợp âm bài hát Hát mãi khúc quân hành?",
+  "title_en": "What are the lyrics and chords for the song 'Hat mai khuc quan hanh'?",
+  "has_person_name": false
+ },
+ "138049340": {
+  "title_vi": "Lễ Quốc Khánh 2025 có được tổ chức bắn pháo hoa nổ không?",
+  "title_en": "Will fireworks be allowed for National Day 2025 celebrations?",
+  "has_person_name": false
+ },
+ "138049487": {
+  "title_vi": "Xóa bỏ hình thức thuế khoán đối với hộ kinh doanh chậm nhất trong 2026?",
+  "title_en": "Will lump-sum tax for business households be abolished by 2026 at the latest?",
+  "has_person_name": false
+ },
+ "138049798": {
+  "title_vi": "Lời bài hát Nếp Nhà? Hợp âm bài hát Nếp Nhà?",
+  "title_en": "What are the lyrics to 'Nếp Nhà'? Chords for the song 'Nếp Nhà'?",
+  "has_person_name": false
+ },
+ "138050488": {
+  "title_sha256": "5b4a2adca299516d7b48b6afa469f50b682be2cafe8aaae15433f1a78145fa80",
+  "has_person_name": true
+ },
+ "138050976": {
+  "title_vi": "Tải mẫu biên bản bù trừ công nợ file word mới nhất 2025 ở đâu?",
+  "title_en": "Where to download the newest 2025 Word template for debt offset minutes?",
+  "has_person_name": false
+ },
+ "138051297": {
+  "title_vi": "Dịch vụ quản lý chợ có phải thực hiện kê khai giá không?",
+  "title_en": "Must market management services declare their prices?",
+  "has_person_name": false
+ },
+ "138051383": {
+  "title_vi": "Công chức bị xử lý kỷ luật hạ bậc lương khi nào?",
+  "title_en": "When is a civil servant disciplined with salary grade reduction?",
+  "has_person_name": false
+ },
+ "138051504": {
+  "title_vi": "Mùng 5 Tết Âm lịch 2026 là ngày mấy dương lịch?",
+  "title_en": "What is the solar calendar date for the 5th day of Lunar New Year 2026?",
+  "has_person_name": false
+ },
+ "138052568": {
+  "title_vi": "Nợ xấu có bị phong tỏa tài khoản không?",
+  "title_en": "Can a bad debt (overdue loan) lead to a frozen bank account?",
+  "has_person_name": false
+ },
+ "138052627": {
+  "title_vi": "Lộ trình hoàn thành việc chuyển đổi, giải thể Phòng công chứng tại các địa phương như thế nào?",
+  "title_en": "What is the timeline for converting or dissolving local notary offices?",
+  "has_person_name": false
+ },
+ "138053694": {
+  "title_vi": "Xuất hóa đơn đối với hàng đã xuất khẩu nhưng tạm nhập tái xuất như thế nào?",
+  "title_en": "How to issue invoices for exported goods under temporary import-re-export?",
+  "has_person_name": false
+ },
+ "138054126": {
+  "title_vi": "Từ 1/7/2025 đăng ký đất đai, tài sản gắn liền với đất lần đầu mất bao lâu?",
+  "title_en": "From 1/7/2025, how long does first-time land and land-attached asset registration take?",
+  "has_person_name": false
+ },
+ "138054407": {
+  "title_vi": "Bán hàng mẫu để thử nghiệm thì có phải lập hóa đơn không?",
+  "title_en": "Is an invoice required when selling sample goods for testing?",
+  "has_person_name": false
+ },
+ "138055688": {
+  "title_vi": "Biển số xe Cần Thơ là bao nhiêu sau sáp nhập tỉnh thành 2025?",
+  "title_en": "What will Can Tho's license plate code be after the 2025 provincial merger?",
+  "has_person_name": false
+ },
+ "138056072": {
+  "title_vi": "Trách nhiệm pháp lý của influencer, KOLs, người nổi tiếng trong hoạt động quảng cáo theo Luật mới có hiệu lực từ ngày 01/01/2026?",
+  "title_en": "Legal liability of influencers/KOLs in advertising under law effective 01/01/2026?",
+  "has_person_name": false
+ },
+ "138056283": {
+  "title_vi": "Toàn văn Nghị định 197 2025 NĐ CP về Hội đồng quản lý bảo hiểm xã hội thế nào?",
+  "title_en": "What is the full text of Decree 197/2025/ND-CP on the Social Insurance Management Council?",
+  "has_person_name": false
+ },
+ "138056692": {
+  "title_vi": "Thẩm quyền xử phạt vi phạm hành chính của Chủ tịch Ủy ban nhân dân xã từ 01/7/2025 chi tiết ra sao?",
+  "title_en": "What are the administrative penalty powers of Commune People's Committee Chairs from 1 July 2025?",
+  "has_person_name": false
+ },
+ "138056720": {
+  "title_vi": "Mẫu lời chứng chứng thực chữ ký người dịch Mẫu 08 PLII CT theo Thông tư 11 có dạng ra sao?",
+  "title_en": "What is Form No. 08/PLII-CT under Circular 11 for translator's signature certification?",
+  "has_person_name": false
+ },
+ "138059134": {
+  "title_vi": "Khoản 1 Điều 98 Luật Xây dựng 2014 quy định như thế nào?",
+  "title_en": "What does Clause 1, Article 98 of the 2014 Construction Law stipulate?",
+  "has_person_name": false
+ },
+ "138059723": {
+  "title_vi": "Thị thực là gì? Xin cấp giấy miễn thị thực đối với người Việt Nam định cư ở nước ngoài thì cần những gì?",
+  "title_en": "What is a visa? What's needed to apply for visa exemption for overseas Vietnamese?",
+  "has_person_name": false
+ },
+ "138059947": {
+  "title_vi": "Gà lôi trắng là gà gì? Gà lôi trắng có trong sách đỏ không?",
+  "title_en": "What is the white pheasant? Is it listed in the endangered species red book?",
+  "has_person_name": false
+ },
+ "138060181": {
+  "title_vi": "Ngân hàng có quyền thu giữ tài sản bảo đảm của khoản nợ xấu khi nào?",
+  "title_en": "When may a bank seize collateral securing a bad debt?",
+  "has_person_name": false
+ },
+ "138060330": {
+  "title_vi": "Khai thác tận dụng gỗ, thực vật rừng ngoài gỗ và trồng lại rừng đối với Dự án tạm sử dụng rừng được thực hiện như thế nào từ 16/8/2025?",
+  "title_en": "How are timber salvage harvesting and reforestation done for temporary forest-use projects from 16/8/2025?",
+  "has_person_name": false
+ },
+ "138060378": {
+  "title_vi": "Lịch tựu trường năm học 2025 2026 tỉnh Bắc Ninh (Bắc Ninh, Bắc Giang) là ngày nào?",
+  "title_en": "What is the school year start date for 2025-2026 in Bac Ninh province?",
+  "has_person_name": false
+ },
+ "138061266": {
+  "title_vi": "Tổng hợp link tra cứu kết quả trúng tuyển đại học 2025 CẦN THƠ mới nhất, chi tiết như thế nào?",
+  "title_en": "Where to find the latest 2025 Can Tho university admission results links?",
+  "has_person_name": false
+ },
+ "138061720": {
+  "title_vi": "Địa chỉ Bệnh viện 71 Trung Ương sau sáp nhập năm 2025 ở đâu?",
+  "title_en": "Where is the address of Hospital 71 Central after the 2025 merger?",
+  "has_person_name": false
+ },
+ "138062072": {
+  "title_vi": "Địa chỉ Bệnh viện đa khoa Hồng Đức III sau sáp nhập năm 2025 ở đâu?",
+  "title_en": "Where is Hong Duc III General Hospital located after the 2025 merger?",
+  "has_person_name": false
+ },
+ "138062107": {
+  "title_vi": "TOÀN VĂN Công văn 3495/CT-NVT ngày 28/8/2025 về tiếp tục đẩy mạnh triển khai HĐĐT khởi tạo từ máy tính tiền; đẩy mạnh tuyên truyền, hỗ trợ hộ kinh doanh ra sao?",
+  "title_en": "Full text of Official Dispatch 3495/CT-NVT (8/28/2025) on boosting cash-register e-invoices and supporting business households?",
+  "has_person_name": false
+ },
+ "138062457": {
+  "title_vi": "Điều 24 Luật Xử lý vi phạm hành chính 2012 đang áp dụng 2025 quy định về vấn đề gì?",
+  "title_en": "What does Article 24 of the 2012 Law on Handling Administrative Violations regulate?",
+  "has_person_name": false
+ },
+ "138062853": {
+  "title_vi": "Đề xuất thêm nhiều khoản thu nhập chịu thuế TNCN mới là những khoản thu nhập nào?",
+  "title_en": "What new types of income are proposed to be subject to personal income tax?",
+  "has_person_name": false
+ },
+ "138062956": {
+  "title_vi": "Lịch nghỉ lễ 2027 - Tổng hợp các ngày lễ 2027 ở Việt Nam chi tiết ra sao?",
+  "title_en": "What are the detailed 2027 holiday and vacation dates in Vietnam?",
+  "has_person_name": false
+ },
+ "138063070": {
+  "title_vi": "Xin giấy phép xây dựng nhà ở riêng lẻ ở đâu?",
+  "title_en": "Where to apply for a permit to build a private house?",
+  "has_person_name": false
+ },
+ "138063170": {
+  "title_vi": "Cách ghi giấy xác nhận thời gian thực hành dược hiện nay theo Nghị định 163 ra sao?",
+  "title_en": "How to fill out the pharmacy practice time certificate under Decree 163?",
+  "has_person_name": false
+ },
+ "138063431": {
+  "title_vi": "TOÀN VĂN Quyết định 2014/QĐ-TTg phê duyệt Đề án Nâng hạng thị trường chứng khoán Việt Nam như thế nào?",
+  "title_en": "What does Decision 2014/QD-TTg approving the Vietnam Stock Market Upgrade Scheme say?",
+  "has_person_name": false
+ },
+ "138063612": {
+  "title_vi": "Nội dung thông báo ngừng, giảm mức cung cấp điện bao gồm những gì?",
+  "title_en": "What must be included in a notice of power outage or supply reduction?",
+  "has_person_name": false
+ },
+ "138064205": {
+  "title_vi": "Cá nhân chuyển tiền trên 500 triệu phải báo cáo từ 1/11/2025 đúng không?",
+  "title_en": "Must individuals transferring over 500 million VND report it from 1/11/2025?",
+  "has_person_name": false
+ },
+ "138064223": {
+  "title_vi": "Điều 193 Bộ luật Hình sự quy định về tội sản xuất, buôn bán hàng giả là lương thực, thực phẩm, phụ gia thực phẩm như thế nào?",
+  "title_en": "What does Article 193 of the Criminal Code say on producing/trading fake food, food additives?",
+  "has_person_name": false
+ },
+ "138064279": {
+  "title_vi": "Điều 133 Bộ luật Hình sự quy định về tội đe dọa giết người như thế nào?",
+  "title_en": "How does Article 133 of the Criminal Code define the crime of death threats?",
+  "has_person_name": false
+ },
+ "138064388": {
+  "title_vi": "Giá trị giao dịch chuyển tiền điện tử trong nước phải được thu thập thông tin và báo cáo Cục Phòng chống rửa tiền từ 01/11/2025 là bao nhiêu?",
+  "title_en": "What transaction value triggers reporting domestic e-money transfers from Nov 1, 2025?",
+  "has_person_name": false
+ },
+ "138064410": {
+  "title_vi": "Điều 285 Bộ luật Hình sự quy định khung hình phạt tội sản xuất mua bán trao đổi hoặc tặng cho công cụ thiết bị phần mềm để sử dụng vào mục đích trái pháp luật ra sao?",
+  "title_en": "What are penalties under Article 285 Criminal Code for making/selling illegal-use software tools?",
+  "has_person_name": false
+ },
+ "138064503": {
+  "title_vi": "Điều 202 Bộ luật Hình sự quy định tội làm, buôn bán tem giả, vé giả thế nào?",
+  "title_en": "What does Article 202 of the Criminal Code say about counterfeit stamps/tickets crime?",
+  "has_person_name": false
+ },
+ "138064631": {
+  "title_vi": "Tiêu chuẩn đánh giá về năng lực và kinh nghiệm bắt buộc đối với gói thầu xây lắp tổ chức đấu thầu rộng rãi không qua mạng là gì?",
+  "title_en": "What are mandatory capacity/experience criteria for non-online open bidding construction packages?",
+  "has_person_name": false
+ },
+ "138064703": {
+  "title_vi": "Thanh tra viên không hoàn thành nhiệm vụ công tác thanh tra 01 năm có bị miễn nhiệm không?",
+  "title_en": "Is an inspector dismissed for failing inspection duties for 1 year?",
+  "has_person_name": false
+ },
+ "138064786": {
+  "title_vi": "Điều 140 Bộ luật Hình sự quy định về Tội hành hạ người khác thế nào?",
+  "title_en": "What does Article 140 of the Criminal Code say about the crime of ill-treatment?",
+  "has_person_name": false
+ },
+ "138064936": {
+  "title_vi": "Đối với đấu thầu qua mạng, trường hợp E-HSMT có yêu cầu cung cấp hàng mẫu, nhà thầu có thể nộp bổ sung hàng mẫu theo phương án nào?",
+  "title_en": "For e-bidding, how can bidders submit sample goods if the bid docs require them?",
+  "has_person_name": false
+ },
+ "138065067": {
+  "title_vi": "Điều 194 Bộ luật Hình sự quy định tội sản xuất, buôn bán hàng giả là thuốc chữa bệnh, thuốc phòng bệnh thế nào?",
+  "title_en": "What does Article 194 of the Criminal Code say about counterfeit medicine/drug offenses?",
+  "has_person_name": false
+ },
+ "138065379": {
+  "title_vi": "Nghị định hướng dẫn Luật giám định tư pháp mới nhất là nghị định nào?",
+  "title_en": "Which decree is the latest guiding the Law on Judicial Expertise?",
+  "has_person_name": false
+ },
+ "138065464": {
+  "title_vi": "Không lập hóa đơn hàng hóa trả thay lương cho người lao động bị phạt bao nhiêu từ 16/01/2026?",
+  "title_en": "What's the fine for not invoicing goods paid as wages to employees, from 16/01/2026?",
+  "has_person_name": false
+ },
+ "138065580": {
+  "title_vi": "Download tài liệu chuyên môn Hướng dẫn quy trình kỹ thuật về Giải phẫu bệnh ở đâu?",
+  "title_en": "Where to download technical guidance on Pathology procedure techniques?",
+  "has_person_name": false
+ },
+ "138066360": {
+  "title_vi": "Điều 112 Bộ luật Hình sự quy định tội bạo loạn như thế nào?",
+  "title_en": "How does Article 112 of the Criminal Code define the crime of rioting?",
+  "has_person_name": false
+ },
+ "138066560": {
+  "title_vi": "Lĩnh vực bản quyền tác giả có phương án cắt giảm, đơn giản hóa thủ tục hành chính như thế nào?",
+  "title_en": "What is the plan to cut and simplify administrative procedures in copyright?",
+  "has_person_name": false
+ },
+ "138066888": {
+  "title_vi": "Chính thức đã có lịch nghỉ lễ Quốc khánh 2/9/2026 cho người lao động?",
+  "title_en": "Is the 2026 National Day (Sept 2) holiday schedule for employees officially out?",
+  "has_person_name": false
+ },
+ "138067233": {
+  "title_vi": "Lịch tháng 11/2025 âm và dương đầy đủ, chi tiết nhất thế nào? Tháng 11 2025 dương lịch có ngày lễ nào NLĐ được nghỉ không?",
+  "title_en": "Full November 2025 lunar-solar calendar; any public holidays for employees?",
+  "has_person_name": false
+ },
+ "138067592": {
+  "title_vi": "Nội dung chi Quỹ giảm thiểu thiệt hại tai nạn giao thông đường bộ gồm những gì?",
+  "title_en": "What expenditures does the Road Traffic Accident Mitigation Fund cover?",
+  "has_person_name": false
+ },
+ "138068031": {
+  "title_vi": "Doanh nghiệp sa thải người lao động có bắt buộc phải tiến hành thông báo tình hình biến động lao động không?",
+  "title_en": "Must a company report labor fluctuations when dismissing an employee?",
+  "has_person_name": false
+ },
+ "138068313": {
+  "title_vi": "Một hành vi vi phạm hành chính thì bị xử phạt mấy lần?",
+  "title_en": "How many times can one administrative violation be penalized?",
+  "has_person_name": false
+ },
+ "138068660": {
+  "title_vi": "Thông báo 57/TB-ĐLS năm 2025 về việc nhận hồ sơ tập sự hành nghề luật sư đợt 45 mới nhất ra sao?",
+  "title_en": "What does Notice 57/TB-ĐLS 2025 on receiving law-practice trainee applications, batch 45, say?",
+  "has_person_name": false
+ },
+ "138069115": {
+  "title_vi": "Văn bản mới cập nhật dành cho Kế toán tuần từ 15/12 đến 21/12/2025 gồm những văn bản nào?",
+  "title_en": "What new documents updated for accountants for the week of 15-21 December 2025?",
+  "has_person_name": false
+ },
+ "138069246": {
+  "title_vi": "Các giấy tờ được chứng thực bản sao từ bản chính là giấy tờ nào?",
+  "title_en": "Which documents can have certified true copies made from the original?",
+  "has_person_name": false
+ },
+ "138069250": {
+  "title_vi": "Việc chuyển giao tài sản kết cấu hạ tầng hàng không về địa phương quản lý, xử lý được thực hiện trong trường hợp nào từ 01/01/2026?",
+  "title_en": "In what cases is aviation infrastructure transferred to local management from 01/01/2026?",
+  "has_person_name": false
+ },
+ "138070326": {
+  "title_vi": "Mức phạt xuất hóa đơn sai thời điểm mới nhất năm 2026 chi tiết như thế nào?",
+  "title_en": "What are the latest 2026 fines for issuing invoices at the wrong time, in detail?",
+  "has_person_name": false
+ },
+ "138070365": {
+  "title_vi": "Công văn 6361/DON-QLDN1 2025 về loại hóa đơn khi DNCX thanh lý xe ô tô thế nào?",
+  "title_en": "Official Letter 6361/DON-QLDN1 2025: which invoice type when EPE liquidates a car?",
+  "has_person_name": false
+ },
+ "138070466": {
+  "title_vi": "Điều 11 Luật Khiếu nại 2011 quy định khiếu nại không được thụ lý giải quyết ra sao?",
+  "title_en": "What does Article 11 of the 2011 Law on Complaints say about non-accepted complaints?",
+  "has_person_name": false
+ },
+ "138070821": {
+  "title_vi": "Phương thức tuyển sinh đại học năm 2026 Trường Đại học Kinh tế - Đại học Quốc gia Hà Nội dự kiến thế nào?",
+  "title_en": "What is the expected 2026 university admission method for VNU University of Economics and Business?",
+  "has_person_name": false
+ },
+ "138070884": {
+  "title_vi": "Từ 1/1/2026, nhóm thiết bị gia dụng nào bắt buộc phải dán nhãn năng lượng?",
+  "title_en": "From 1/1/2026, which household appliances must have energy labels?",
+  "has_person_name": false
+ },
+ "138070916": {
+  "title_vi": "Từ 1/1/2026, nhóm thiết bị văn phòng nào bắt buộc phải dán nhãn năng lượng?",
+  "title_en": "From Jan 1, 2026, which office equipment must bear energy labels?",
+  "has_person_name": false
+ },
+ "138070926": {
+  "title_vi": "Tải file lịch 2026 Excel âm và dương đầy đủ 365 ngày chi tiết nhất ở đâu?",
+  "title_en": "Where to download the full 2026 lunar-solar calendar Excel file, all 365 days?",
+  "has_person_name": false
+ },
+ "138071213": {
+  "title_vi": "Lời nhận xét môn Mĩ thuật lớp 7 học kì 1 năm học 2025 - 2026 thế nào?",
+  "title_en": "What should Grade 7 Fine Arts semester 1 comments look like for 2025-2026?",
+  "has_person_name": false
+ },
+ "138071355": {
+  "title_vi": "Lưu ý các quy định của Thông tư 200 tiếp tục áp dụng 2026 không bị thay thế bởi Thông tư 99/2025?",
+  "title_en": "Which Circular 200 provisions still apply in 2026, not replaced by Circular 99/2025?",
+  "has_person_name": false
+ },
+ "138071644": {
+  "title_vi": "Các khoản thu nhập chịu thuế TNCN từ trúng thưởng theo Luật số 109/2025 là khoản nào?",
+  "title_en": "What incomes from winning prizes are taxable under Law No. 109/2025 for personal income tax?",
+  "has_person_name": false
+ },
+ "138071900": {
+  "title_vi": "Lương tối thiểu vùng Phường Đông Hưng Thuận TP Hồ Chí Minh năm 2026 là bao nhiêu?",
+  "title_en": "What is the 2026 regional minimum wage in Dong Hung Thuan Ward, HCMC?",
+  "has_person_name": false
+ },
+ "138072240": {
+  "title_vi": "Quy trình dừng xe của Cảnh sát giao thông chi tiết năm 2026 thực hiện ra sao?",
+  "title_en": "What is the detailed 2026 procedure for traffic police to stop vehicles?",
+  "has_person_name": false
+ },
+ "138072607": {
+  "title_vi": "Bổ sung 41 cửa khẩu quốc tế áp dụng thị thực điện tử từ 2/12/2025 đúng không?",
+  "title_en": "Will 41 international border gates be added for e-visas from 2 Dec 2025?",
+  "has_person_name": false
+ },
+ "138072647": {
+  "title_vi": "Doanh nghiệp chế xuất thanh lý tài sản cố định vào thị trường nội địa có phải xuất hóa đơn không?",
+  "title_en": "Must export processing enterprises issue invoices when liquidating fixed assets domestically?",
+  "has_person_name": false
+ },
+ "138072806": {
+  "title_vi": "Sử dụng thông tin nội bộ để mua bán chứng khoán là gì?",
+  "title_en": "What is using insider information to trade securities?",
+  "has_person_name": false
+ },
+ "138073368": {
+  "title_vi": "Luật Quy hoạch (sửa đổi) chính thức được thông qua ngày 10/12/2025 đúng không?",
+  "title_en": "Was the amended Planning Law officially passed on 10 December 2025?",
+  "has_person_name": false
+ },
+ "138073605": {
+  "title_vi": "Đăng ký khai sinh cho con nếu cha mẹ là công dân Việt Nam sinh con ở nước ngoài thì làm thế nào?",
+  "title_en": "How to register birth for a child born abroad to Vietnamese citizen parents?",
+  "has_person_name": false
+ },
+ "138073778": {
+  "title_vi": "Lời nhận xét môn Tin học lớp 8 học kì 1 năm học 2025 - 2026 thế nào?",
+  "title_en": "What should Grade 8 Informatics semester 1 report card comments look like for 2025-2026?",
+  "has_person_name": false
+ },
+ "138073911": {
+  "title_vi": "Quy định về hóa đơn điện tử từ ngày 01/01/2026 chi tiết như thế nào?",
+  "title_en": "What are the detailed regulations on e-invoices from 01/01/2026?",
+  "has_person_name": false
+ },
+ "138073918": {
+  "title_vi": "Quy định tách thửa đất thổ cư 2026 chi tiết như thế nào?",
+  "title_en": "What are the detailed 2026 regulations on splitting residential land plots?",
+  "has_person_name": false
+ },
+ "138074436": {
+  "title_vi": "TOÀN VĂN Luật số 140 2025 QH15 Luật Giá sửa đổi 2025 chi tiết như thế nào?",
+  "title_en": "What are the full details of Law No. 140/2025/QH15 amending the 2025 Price Law?",
+  "has_person_name": false
+ },
+ "138074606": {
+  "title_vi": "Quy định quyền của viên chức từ 1/7/2026 chi tiết như thế nào?",
+  "title_en": "What are the detailed rights of public employees from July 1, 2026?",
+  "has_person_name": false
+ },
+ "138074767": {
+  "title_vi": "Xã Đăk Tờ Kan tỉnh Quảng Ngãi gồm những xã nào hình thành từ 01/7/2025?",
+  "title_en": "Which communes merged to form Đăk Tờ Kan commune, Quảng Ngãi, from 1 July 2025?",
+  "has_person_name": false
+ },
+ "138074780": {
+  "title_vi": "File PDF Luật Xây dựng 2025 (Luật số 135/2025/QH15) tải về ở đâu?",
+  "title_en": "Where can I download the PDF of the 2025 Construction Law (No. 135/2025/QH15)?",
+  "has_person_name": false
+ },
+ "138074847": {
+  "title_vi": "Luật Dân số 2025: Tỷ số giới tính khi sinh được tính như thế nào?",
+  "title_en": "2025 Population Law: How is the sex ratio at birth calculated?",
+  "has_person_name": false
+ },
+ "138074855": {
+  "title_vi": "Cân bằng giới tính khi sinh được hiểu như thế nào?",
+  "title_en": "How is \"sex ratio at birth balance\" defined?",
+  "has_person_name": false
+ },
+ "138074901": {
+  "title_vi": "Bác sĩ có được tiết lộ giới tính thai nhi không?",
+  "title_en": "Can doctors disclose a fetus's gender to parents?",
+  "has_person_name": false
+ },
+ "138075028": {
+  "title_vi": "Luật Chuyển đổi số mới nhất 2026 là Luật nào?",
+  "title_en": "Which Law is the latest 2026 Digital Transformation Law?",
+  "has_person_name": false
+ },
+ "138075032": {
+  "title_vi": "Các hành vi bị nghiêm cấm trong chuyển đổi số gồm những hành vi nào?",
+  "title_en": "What acts are prohibited in digital transformation?",
+  "has_person_name": false
+ },
+ "138075033": {
+  "title_vi": "Công dân số là gì? Đào tạo, phát triển nguồn nhân lực số như thế nào?",
+  "title_en": "What is a digital citizen? How to train and develop digital human resources?",
+  "has_person_name": false
+ },
+ "138075034": {
+  "title_vi": "Chuyển đổi số là gì theo Luật số 148/2025/QH15? Có những hoạt động chuyển đổi số nào?",
+  "title_en": "What is digital transformation under Law No. 148/2025/QH15? What activities does it include?",
+  "has_person_name": false
+ },
+ "138075091": {
+  "title_vi": "Tổng hợp danh mục mã chương nộp thuế mới từ 01/01/2026?",
+  "title_en": "What is the new list of tax payment chapter codes from 01/01/2026?",
+  "has_person_name": false
+ },
+ "138075195": {
+  "title_vi": "TOÀN VĂN Thông tư 122/2025/TT-BTC hướng dẫn về chứng quyền có bảo đảm chi tiết ra sao?",
+  "title_en": "What are the full details of Circular 122/2025/TT-BTC guiding covered warrants?",
+  "has_person_name": false
+ },
+ "138075248": {
+  "title_vi": "Nhà cấp 4 diện tích sàn dưới 500m2 được miễn giấy phép xây dựng từ 1/1/2026 đúng không?",
+  "title_en": "Is a grade-4 house under 500m2 floor area exempt from building permit from 1/1/2026?",
+  "has_person_name": false
+ },
+ "138075453": {
+  "title_vi": "Điều kiện chào bán trái phiếu chuyển đổi ra thị trường quốc tế theo Nghị định 153 là gì?",
+  "title_en": "What are conditions for offering convertible bonds internationally under Decree 153?",
+  "has_person_name": false
+ },
+ "138075479": {
+  "title_vi": "Hàng hóa của doanh nghiệp phá sản có được áp dụng hạn mức giảm giá tối đa khi thực hiện khuyến mại giảm giá không?",
+  "title_en": "Can bankrupt firm's goods exceed max discount cap in sales promotions?",
+  "has_person_name": false
+ },
+ "138075547": {
+  "title_vi": "Chỉ định thầu rút gọn có phải đấu thầu qua mạng không?",
+  "title_en": "Is abbreviated-procedure direct contractor appointment conducted via online bidding?",
+  "has_person_name": false
+ },
+ "138075742": {
+  "title_vi": "WHO viết tắt của từ gì?",
+  "title_en": "What does WHO stand for?",
+  "has_person_name": false
+ },
+ "138075883": {
+  "title_vi": "COUNTDOWN 2026 TP HCM diễn ra khi nào?",
+  "title_en": "When does Countdown 2026 in Ho Chi Minh City take place?",
+  "has_person_name": false
+ },
+ "138075922": {
+  "title_vi": "Đã có Công văn 20467/BTC-KTN về hướng dẫn địa phương tặng 400.000 đồng Tết Bính ngọ 2026 chi tiết thế nào?",
+  "title_en": "Official Dispatch 20467/BTC-KTN on guidance for localities' VND 400,000 Tet Binh Ngo 2026 gifts: details?",
+  "has_person_name": false
+ },
+ "138076027": {
+  "title_vi": "Mẫu bảng lương có thưởng KPI, doanh thu, hiệu suất 2026 là mẫu nào?",
+  "title_en": "What is the 2026 payroll template with KPI, revenue, and performance bonuses?",
+  "has_person_name": false
+ },
+ "138076365": {
+  "title_vi": "TOÀN VĂN Thông tư 135/2025/TT-BTC quy định về hành nghề chứng khoán chi tiết như thế nào?",
+  "title_en": "Full text of Circular 135/2025/TT-BTC: what are the detailed rules on securities practice?",
+  "has_person_name": false
+ },
+ "138076811": {
+  "title_vi": "Có được tập sự hành nghề luật sư tại công ty nước ngoài hay không?",
+  "title_en": "Can a lawyer trainee do their traineeship at a foreign company?",
+  "has_person_name": false
+ },
+ "138076822": {
+  "title_vi": "Học phí lớp đào tạo nghề luật sư khóa 28 lần 1 năm 2026 tại TP Hà Nội và TP Hồ Chí Minh là bao nhiêu?",
+  "title_en": "What is the tuition for lawyer training course 28, batch 1, 2026?",
+  "has_person_name": false
+ },
+ "138076860": {
+  "title_vi": "Hành vi chuẩn bị dao có tính sát thương cao nhằm gây thương tích cho người khác thì bị truy cứu trách nhiệm hình sự về tội gì?",
+  "title_en": "What crime applies to preparing a highly dangerous knife to injure another person?",
+  "has_person_name": false
+ },
+ "138077622": {
+  "title_vi": "Tải về Tài liệu giới thiệu nội dung cơ bản của Luật Thi hành án dân sự 2025 Luật số 106/2025/QH15 ở đâu?",
+  "title_en": "Where to download the summary document on the 2025 Civil Judgment Enforcement Law No. 106/2025/QH15?",
+  "has_person_name": false
+ },
+ "138077647": {
+  "title_vi": "Tài xế taxi không có đồng hồ tính tiền cước hoặc không sử dụng phần mềm tính tiền bị phạt bao nhiêu tiền?",
+  "title_en": "What is the fine for a taxi driver without a fare meter or fare software?",
+  "has_person_name": false
+ },
+ "138078733": {
+  "title_vi": "Thực hư thông tin tăng mức phạt vi phạm nồng độ cồn từ năm 2026 có đúng sự thật hay không?",
+  "title_en": "Is it true alcohol violation fines will increase from 2026?",
+  "has_person_name": false
+ },
+ "138079187": {
+  "title_vi": "Mùng 10 tháng Chạp là ngày gì, ngày bao nhiêu dương năm 2026? Có phải ngày lễ lớn không?",
+  "title_en": "What is 10th day of 12th lunar month in 2026, a major holiday?",
+  "has_person_name": false
+ },
+ "138079284": {
+  "title_vi": "Hội chợ mùa Xuân 2026 tổ chức ở đâu?",
+  "title_en": "Where will the 2026 Spring Festival be held?",
+  "has_person_name": false
+ },
+ "138079285": {
+  "title_vi": "Rằm tháng Giêng 2026 là ngày mấy dương lịch?",
+  "title_en": "What is the solar calendar date for Lunar New Year's 15th day 2026?",
+  "has_person_name": false
+ },
+ "138079288": {
+  "title_vi": "Tháng 2 năm 2026 có bao nhiêu ngày? Dương lịch tháng 2 2026 bắt đầu và kết thúc vào ngày mấy âm?",
+  "title_en": "How many days in February 2026? Lunar start and end dates of February 2026?",
+  "has_person_name": false
+ },
+ "138079366": {
+  "title_vi": "Từ 22/1/2026, phân cấp thẩm quyền kiểm tra chuyên ngành trong lĩnh vực dự trữ quốc gia ra sao?",
+  "title_en": "From 22/1/2026, how is decentralization of specialized inspection authority in national reserves?",
+  "has_person_name": false
+ },
+ "138079418": {
+  "title_vi": "Tết 2027 vào ngày nào? Tết 2027 năm con gì?",
+  "title_en": "What date is Tet 2027? What zodiac year is Tet 2027?",
+  "has_person_name": false
+ },
+ "138079425": {
+  "title_vi": "Cách đăng ký mã số thuế cho thuê tài sản trên Dịch vụ công (Mẫu 03-ĐK-TCT) chi tiết ra sao?",
+  "title_en": "How to register a property-lease tax code on the Public Service portal (Form 03-ĐK-TCT)?",
+  "has_person_name": false
+ },
+ "138079438": {
+  "title_vi": "Thực hiện việc đăng ký, lưu hành, thu hồi thuốc cổ truyền như thế nào? Chất lượng thuốc cổ truyền được quy định ra sao?",
+  "title_en": "How are traditional medicines registered, circulated, recalled? What quality rules apply?",
+  "has_person_name": false
+ },
+ "138079459": {
+  "title_vi": "24 tháng Chạp là ngày bao nhiêu Dương lịch 2026? Có phải ngày lễ lớn không?",
+  "title_en": "What is the 2026 solar date for 24th of lunar December? Major holiday?",
+  "has_person_name": false
+ },
+ "138079537": {
+  "title_vi": "Link xem trực tiếp lễ trao giải Làn Sóng Xanh 2026 là link nào?",
+  "title_en": "What is the live-stream link for the 2026 Làn Sóng Xanh awards ceremony?",
+  "has_person_name": false
+ },
+ "138080207": {
+  "title_vi": "Thực phẩm dinh dưỡng dùng cho mục đích y tế đặc biệt (Food for special Medical Purposes, Medical Food) là gì?",
+  "title_en": "What is food for special medical purposes (Medical Food)?",
+  "has_person_name": false
+ },
+ "138080211": {
+  "title_vi": "Tạm ngưng Nghị định 46/2026/NĐ-CP đến ngày 15/4/2026 theo đề xuất của Bộ Y tế đúng không?",
+  "title_en": "Is Decree 46/2026/ND-CP suspended until 15 April 2026 per Ministry of Health's proposal?",
+  "has_person_name": false
+ },
+ "138080325": {
+  "title_vi": "Các trường hợp bất khả kháng khi gia hạn sử dụng đất năm 2026 gồm những trường hợp nào?",
+  "title_en": "What are considered force majeure cases for land use extension in 2026?",
+  "has_person_name": false
+ },
+ "138080331": {
+  "title_vi": "Các khoản phụ cấp không phải đóng BHXH năm 2026 gồm những khoản nào?",
+  "title_en": "Which allowances are exempt from social insurance contributions in 2026?",
+  "has_person_name": false
+ },
+ "138080574": {
+  "title_vi": "Xã Định Mỹ tỉnh An Giang gồm những xã nào hình thành từ 01/7/2025?",
+  "title_en": "Which former communes merged to form Định Mỹ commune, An Giang, from 1 July 2025?",
+  "has_person_name": false
+ },
+ "138080790": {
+  "title_vi": "Lễ Vu Lan 2026 vào ngày nào dương lịch? Rằm tháng 7 âm lịch có phải ngày lễ lớn của Việt Nam không?",
+  "title_en": "When is Vu Lan 2026 in solar calendar? Is July 15 lunar a major holiday?",
+  "has_person_name": false
+ },
+ "138080892": {
+  "title_vi": "Địa điểm bắn pháo hoa Tết Âm lịch 2026 An Giang gồm các địa điểm nào?",
+  "title_en": "What are the firework display locations in An Giang for Lunar New Year 2026?",
+  "has_person_name": false
+ },
+ "138081176": {
+  "title_vi": "Nhà ở riêng lẻ thuộc trường hợp nào được miễn giấy phép xây dựng?",
+  "title_en": "In which cases are individual houses exempt from a construction permit?",
+  "has_person_name": false
+ },
+ "138081391": {
+  "title_vi": "Tháng 3 2026 có ngày lễ sự kiện gì? Tổng hợp các ngày lễ, sự kiện tháng 3/2026 trong nước và quốc tế ra sao?",
+  "title_en": "What holidays/events occur in March 2026? List of domestic and international observances for March 2026?",
+  "has_person_name": false
+ },
+ "138081430": {
+  "title_vi": "Xã Hra tỉnh Gia Lai gồm những xã nào hình thành từ 1/7/2025?",
+  "title_en": "Which communes merged to form Hra commune, Gia Lai, from July 1, 2025?",
+  "has_person_name": false
+ },
+ "138081724": {
+  "title_vi": "Danh mục 29 xã đặc biệt khó khăn tỉnh Lâm Đồng giai đoạn 2026 2030 gồm những xã nào?",
+  "title_en": "What are the 29 extremely disadvantaged communes in Lam Dong province for 2026-2030?",
+  "has_person_name": false
+ },
+ "138082102": {
+  "title_vi": "Công văn 443/CTH-QLDN2 hướng dẫn chính sách thuế cho thuê tài sản như thế nào?",
+  "title_en": "How does Official Letter 443/CTH-QLDN2 guide tax policy for property leasing?",
+  "has_person_name": false
+ },
+ "138082211": {
+  "title_vi": "Thủ tục khai bổ sung hồ sơ hải quan hàng hóa xuất nhập khẩu mới nhất từ 24/02/2026 thực hiện như thế nào?",
+  "title_en": "How to supplement customs declarations for export-import goods from 24/02/2026?",
+  "has_person_name": false
+ },
+ "138082414": {
+  "title_vi": "Hồ sơ dự thầu có được xem là hợp lệ nếu bảo đảm dự thầu không đúng tên người thụ hưởng?",
+  "title_en": "Is a bid valid if the bid security names the wrong beneficiary?",
+  "has_person_name": false
+ },
+ "138082502": {
+  "title_vi": "Có được lập hóa đơn theo kỳ quy ước đối với dịch vụ cung cấp suất ăn công nghiệp?",
+  "title_en": "Can invoices for industrial meal services be issued on a periodic basis?",
+  "has_person_name": false
+ },
+ "138083153": {
+  "title_vi": "Quỹ bảo hiểm tai nạn lao động tự nguyện được sử dụng để chi trả các chế độ bảo hiểm tai nạn lao động nào?",
+  "title_en": "Which occupational accident insurance benefits does the voluntary insurance fund cover?",
+  "has_person_name": false
+ },
+ "138083531": {
+  "title_vi": "Hàng hóa cho biếu tặng nhưng không đăng ký chương trình khuyến mãi có được tính vào chi phí được trừ không?",
+  "title_en": "Are gift goods without a registered promotion program deductible expenses?",
+  "has_person_name": false
+ },
+ "138083565": {
+  "title_vi": "Bảng đổi lịch dương sang âm 2026 đầy đủ, chi tiết từng tháng thế nào?",
+  "title_en": "What is the full detailed month-by-month 2026 solar-to-lunar calendar conversion table?",
+  "has_person_name": false
+ },
+ "138083810": {
+  "title_vi": "Từ 1/7/2026, tăng lương cơ sở lên 2.530.000 đồng/tháng (dự kiến) đúng không?",
+  "title_en": "Is the base salary expected to rise to 2,530,000 VND/month from 1 July 2026?",
+  "has_person_name": false
+ },
+ "138084111": {
+  "title_vi": "Thông tin tuyển sinh Trường Đại học Nông Lâm ĐH Thái Nguyên 2026 thế nào?",
+  "title_en": "What is the 2026 admission information for Thai Nguyen University of Agriculture and Forestry?",
+  "has_person_name": false
+ },
+ "138084333": {
+  "title_vi": "Trình tự, thủ tục cấp lại Chứng chỉ hành nghề luật sư như thế nào?",
+  "title_en": "What is the procedure for reissuing a lawyer's practicing certificate?",
+  "has_person_name": false
+ },
+ "138084580": {
+  "title_vi": "Mùng 1 tháng 4 âm lịch năm 2026 vào thứ mấy? 1 tháng 4 âm lịch 2026 là ngày mấy dương?",
+  "title_en": "What weekday is April 1, 2026 lunar? What's its solar calendar date?",
+  "has_person_name": false
+ },
+ "138084809": {
+  "title_vi": "Các trường hợp nào không được cấp chứng chỉ hành nghề Quản tài viên?",
+  "title_en": "What cases are ineligible for a bankruptcy trustee practicing certificate?",
+  "has_person_name": false
+ },
+ "138084917": {
+  "title_vi": "Tổ chức kinh doanh hóa chất chỉ được bán hóa cho tổ chức có GPKD hóa chất đối với hóa chất cần kiểm soát đặc biệt đúng không?",
+  "title_en": "Must chemical businesses sell specially controlled chemicals only to licensed chemical business entities?",
+  "has_person_name": false
+ },
+ "138085017": {
+  "title_vi": "Khi đấu thầu chào giá trực tuyến thông thường có được yêu cầu cụ thể về nhãn hiệu, xuất xứ hàng hóa không?",
+  "title_en": "Can standard online price-quotation bidding specify brand or origin of goods?",
+  "has_person_name": false
+ },
+ "138085120": {
+  "title_vi": "Các tổ chức xã hội được hỗ trợ kinh phí từ ngân sách nhà nước trong các trường hợp nào?",
+  "title_en": "In which cases are social organizations funded from the state budget?",
+  "has_person_name": false
+ },
+ "138085132": {
+  "title_vi": "Văn bản hợp nhất 17 BXD hướng dẫn Bộ hồ sơ nhà ở xã hội mới nhất 2026 gồm những gì?",
+  "title_en": "What does the newest 2026 social housing application file include, per Consolidated Document 17/VBHN-BXD?",
+  "has_person_name": false
+ },
+ "138085156": {
+  "title_vi": "Nhà thầu phụ không có trong hồ sơ dự thầu thì có được ký kết hợp đồng theo Nghị định 214 không?",
+  "title_en": "Can a subcontractor not listed in bid documents sign a contract under Decree 214?",
+  "has_person_name": false
+ },
+ "138085171": {
+  "title_vi": "Trường hợp nào khi chỉ định thầu phải tiết kiệm được tối thiểu 5% giá gói thầu?",
+  "title_en": "In which cases must contractor appointment save at least 5% of package price?",
+  "has_person_name": false
+ },
+ "138085961": {
+  "title_vi": "Quy định về ủy nhiệm xuất hóa đơn 2026 như thế nào?",
+  "title_en": "What are the 2026 regulations on authorizing invoice issuance?",
+  "has_person_name": false
+ },
+ "138086085": {
+  "title_vi": "Đăng ký tập sự hành nghề luật sư ở đâu?",
+  "title_en": "Where to register for the lawyer apprenticeship/internship?",
+  "has_person_name": false
+ },
+ "138086130": {
+  "title_vi": "Quy định về truy xuất nguồn gốc thực phẩm theo Nghị định 46 như thế nào?",
+  "title_en": "What are the food traceability rules under Decree 46?",
+  "has_person_name": false
+ },
+ "138087299": {
+  "title_vi": "Hướng dẫn về ghi nhận giá trị lô hàng trên tờ khai hải quan theo Công văn 15317/CHQ-NVTHQ 2026 thế nào?",
+  "title_en": "How to record shipment value on customs declarations per Official Dispatch 15317/CHQ-NVTHQ 2026?",
+  "has_person_name": false
+ },
+ "138087313": {
+  "title_vi": "Đổi điện thoại phải xác thực lại sinh trắc học từ ngày 15/6/2026 đúng không?",
+  "title_en": "Must biometric re-verification happen when changing phones from 15 June 2026?",
+  "has_person_name": false
+ },
+ "138087623": {
+  "title_vi": "Sửa lỗi không vào lập giấy nộp tiền trên Dịch vụ công được như thế nào?",
+  "title_en": "How to fix error of not entering payment slip on Public Service portal?",
+  "has_person_name": false
+ },
+ "138087677": {
+  "title_vi": "Khi chủ tài khoản qua đời số tiền trong tài khoản ngân hàng được trả cho ai?",
+  "title_en": "When an account holder dies, who gets the money in their bank account?",
+  "has_person_name": false
+ },
+ "138088182": {
+  "title_vi": "Chậm cung cấp thông tin lập Báo cáo tài chính nhà nước toàn quốc có thể bị tạm đình chỉ chi ngân sách đúng không?",
+  "title_en": "Can budget disbursement be suspended for late submission of national financial report data?",
+  "has_person_name": false
+ },
+ "138088416": {
+  "title_vi": "Dự kiến HKD được áp dụng ngưỡng xuất hóa đơn cuối ngày 200.000 đồng thay cho 50.000 đồng cụ thể thế nào?",
+  "title_en": "How will the end-of-day invoice threshold for household businesses rise from 50,000 to 200,000 VND?",
+  "has_person_name": false
+ },
+ "138088485": {
+  "title_vi": "Tiêu chuẩn đạo đức của giảng viên đại học là gì?",
+  "title_en": "What are the ethical standards for university lecturers?",
+  "has_person_name": false
+ },
+ "138088566": {
+  "title_vi": "Giá xăng chính thức 34 tỉnh thành ngày 27/4 Petrolimex cập nhật mới nhất ở mức bao nhiêu tiền?",
+  "title_en": "What is the official Petrolimex petrol price in 34 provinces/cities on April 27, latest update?",
+  "has_person_name": false
+ },
+ "138088690": {
+  "title_vi": "Diện tích tỉnh Điện Biên sau sáp nhập là bao nhiêu km2?",
+  "title_en": "What is the area in km2 of Dien Bien province after merger?",
+  "has_person_name": false
+ },
+ "138088881": {
+  "title_vi": "Năm 2026 hải quan có làm việc ngày nghỉ lễ không?",
+  "title_en": "Will customs offices work on public holidays in 2026?",
+  "has_person_name": false
+ },
+ "138088912": {
+  "title_vi": "Hộ kinh doanh nào phải mua BHXH bắt buộc?",
+  "title_en": "Which business households must pay compulsory social insurance?",
+  "has_person_name": false
+ },
+ "138088968": {
+  "title_vi": "Tài khoản 131 theo Thông tư 99 có số dư bên nào?",
+  "title_en": "Which side does Account 131 balance fall under Circular 99?",
+  "has_person_name": false
+ },
+ "138089008": {
+  "title_vi": "Chi tiết 10 Nhóm tên miền quốc gia Việt Nam .vn được bảo vệ từ 20/4/2026 thế nào?",
+  "title_en": "How are the 10 groups of protected Vietnamese \".vn\" domain names protected from 20/4/2026?",
+  "has_person_name": false
+ },
+ "138089273": {
+  "title_vi": "Trách nhiệm cung cấp thông tin tài chính để lập Báo cáo tài chính nhà nước tỉnh từ 16/4/2026 được quy định thế nào?",
+  "title_en": "What are the rules on providing financial info for provincial state financial reports from 16/4/2026?",
+  "has_person_name": false
+ },
+ "138089301": {
+  "title_vi": "Công văn 250/TANDTC-PC 2026 giải đáp 51 vướng mắc trong xét xử hình sự, dân sự và hành chính thế nào?",
+  "title_en": "What does Official Letter 250/TANDTC-PC 2026 answer on 51 issues in criminal, civil, administrative trials?",
+  "has_person_name": false
+ },
+ "138089480": {
+  "title_vi": "Kết dư ngân sách trung ương, ngân sách cấp tỉnh thì xử lý thế nào?",
+  "title_en": "How is the surplus of central and provincial budgets handled?",
+  "has_person_name": false
+ },
+ "138089666": {
+  "title_vi": "Bội chi ngân sách trung ương được bù đắp từ các nguồn nào theo Nghị định 73/2026?",
+  "title_en": "What sources cover the central budget deficit under Decree 73/2026?",
+  "has_person_name": false
+ },
+ "138089688": {
+  "title_vi": "Các đơn vị nào được phân bổ và giao dự toán ngân sách nhà nước?",
+  "title_en": "Which agencies are allocated and assigned the state budget estimate?",
+  "has_person_name": false
+ },
+ "138089750": {
+  "title_vi": "Quy trình chung giám định độc chất từ 1/5/2026 chi tiết thế nào?",
+  "title_en": "What is the detailed general toxicology examination process from 1 May 2026?",
+  "has_person_name": false
+ },
+ "138090547": {
+  "title_vi": "Mẫu quyết định phê duyệt kết quả chỉ định thầu rút gọn mới nhất 2026 là mẫu nào? Hướng dẫn lập mẫu ra sao?",
+  "title_en": "What is the latest 2026 template for shortened bid-award approval decision?",
+  "has_person_name": false
+ },
+ "138090728": {
+  "title_vi": "Mức giảm trừ gia cảnh từ 1/7/2026 là bao nhiêu?",
+  "title_en": "What is the personal income tax family deduction from July 1, 2026?",
+  "has_person_name": false
+ },
+ "138090742": {
+  "title_vi": "Hồ sơ phân loại rủi ro hệ thống trí tuệ nhân tạo bao gồm những gì?",
+  "title_en": "What must the AI system risk classification dossier include?",
+  "has_person_name": false
+ },
+ "138090747": {
+  "title_vi": "Phân loại hệ thống trí tuệ nhân tạo từ ngày 01/05/2026 được quy định như thế nào?",
+  "title_en": "How will AI systems be classified starting May 1, 2026?",
+  "has_person_name": false
+ },
+ "138090748": {
+  "title_vi": "Điều kiện tham gia cơ chế thử nghiệm có kiểm soát đối với trí tuệ nhân tạo năm 2026 là gì?",
+  "title_en": "What are the 2026 conditions to join the controlled AI sandbox mechanism?",
+  "has_person_name": false
+ },
+ "138090752": {
+  "title_vi": "Cổng thông tin điện tử một cửa về trí tuệ nhân tạo và Cơ sở dữ liệu quốc gia về hệ thống trí tuệ nhân tạo được quy định như thế nào?",
+  "title_en": "What are the rules for the AI one-stop e-portal and national AI systems database?",
+  "has_person_name": false
+ },
+ "138090831": {
+  "title_vi": "Mã định danh hệ thống trí tuệ nhân tạo là gì?",
+  "title_en": "What is the identification code for an artificial intelligence system?",
+  "has_person_name": false
+ },
+ "138090969": {
+  "title_vi": "Công văn 20154/TCS27-NVDTPC Đăng ký thông báo số tài khoản và số hiệu ví điện tử với hộ kinh doanh, CNKD thế nào?",
+  "title_en": "Official Letter 20154/TCS27-NVDTPC: How to register account and e-wallet numbers for household/individual businesses?",
+  "has_person_name": false
+ },
+ "138091010": {
+  "title_vi": "CHÍNH THỨC Miễn thuế TNDN cho doanh nghiệp có tổng doanh thu năm từ mức quy định của Chính phủ trở xuống?",
+  "title_en": "Officially, is corporate income tax exempt for firms with revenue below the Government's set threshold?",
+  "has_person_name": false
+ },
+ "138091113": {
+  "title_vi": "Sở Nội vụ TP Hải Phòng để nộp báo cáo tình hình sử dụng lao động 6 tháng đầu năm 2026 ở đâu?",
+  "title_en": "Where to submit H1 2026 labor use report in Hai Phong?",
+  "has_person_name": false
+ },
+ "138091127": {
+  "title_vi": "Công văn 3152/CTH-QLDN3 về điều kiện khoản chi mua hàng hóa của HKD có doanh thu dưới ngưỡng chịu thuế được trừ thuế TNDN như thế nào?",
+  "title_en": "Official Letter 3152/CTH-QLDN3: conditions to deduct CIT for purchases from household businesses below tax threshold?",
+  "has_person_name": false
+ },
+ "138091151": {
+  "title_vi": "CHÍNH THỨC giá xăng hôm nay 19/5 tăng giảm bao nhiêu tiền 1 lít? Dự kiến giá xăng ngày mai 20/5 tăng hay giảm?",
+  "title_en": "How much did petrol prices change today 19/5? Forecast for 20/5?",
+  "has_person_name": false
+ },
+ "138091212": {
+  "title_vi": "Danh mục mẫu văn bản, báo cáo liên quan đến hoạt động đầu tư và xúc tiến đầu tư từ 2026?",
+  "title_en": "What is the list of template documents/reports for investment and investment promotion activities from 2026?",
+  "has_person_name": false
+ },
+ "138091614": {
+  "title_vi": "Danh mục và quy trình ban hành hệ thống trí tuệ nhân tạo có rủi ro cao được quy định như thế nào?",
+  "title_en": "What are the list and issuance process for high-risk AI systems?",
+  "has_person_name": false
+ },
+ "138091946": {
+  "title_vi": "CHÍNH THỨC giá gas hôm nay 1/6/2026 bao nhiêu tiền một bình?",
+  "title_en": "Official: How much does a gas tank cost today, June 1, 2026?",
+  "has_person_name": false
+ },
+ "138092058": {
+  "title_vi": "Công văn 3581/QNG-QLDN1 2026 hướng dẫn áp dụng tỷ giá theo Thông tư 133/2016/TT-BTC như thế nào?",
+  "title_en": "How does Official Dispatch 3581/QNG-QLDN1 2026 guide exchange rate application under Circular 133/2016/TT-BTC?",
+  "has_person_name": false
+ },
+ "138092195": {
+  "title_vi": "CHỐT giá xăng dầu ngày 27/5/2026 từ 22h00 tăng giảm như thế nào?",
+  "title_en": "How will fuel prices change from 10:00 PM on May 27, 2026?",
+  "has_person_name": false
+ },
+ "138092358": {
+  "title_vi": "Báo cáo tình hình tài chính nhà nước có bao gồm các khoản nợ phải trả không?",
+  "title_en": "Does the state financial statement include payable debts?",
+  "has_person_name": false
+ },
+ "138092536": {
+  "title_vi": "Công văn 16887/CHQ-NVTHQ 2026 Hướng dẫn mã số HS cho các mặt hàng nhân sâm có nguồn gốc từ Hàn Quốc thế nào?",
+  "title_en": "What is the HS code for Korean-origin ginseng products, per Official Dispatch 16887/CHQ-NVTHQ 2026?",
+  "has_person_name": false
+ },
+ "138092647": {
+  "title_vi": "Từ 5/7/2026, quảng cáo sử dụng từ nhất, duy nhất, tốt nhất, số một phải có tài liệu chứng minh?",
+  "title_en": "From July 5, 2026, must ads using 'best', 'No.1', 'only' have proof documents?",
+  "has_person_name": false
+ },
+ "138092701": {
+  "title_vi": "Chính thức hoán đổi lịch nghỉ lễ 2/9 năm 2026 nghỉ 31/8 làm bù 22/8 chi tiết như thế nào?",
+  "title_en": "What are details of swapping Sep 2 2026 holiday to Aug 31, working Aug 22?",
+  "has_person_name": false
+ },
+ "138092776": {
+  "title_vi": "Hạn nộp báo cáo tình hình sử dụng lao động 2026 6 tháng đầu năm là trước hay hết ngày 05/6/2026?",
+  "title_en": "Is deadline for 2026 H1 labor use report before or on June 5, 2026?",
+  "has_person_name": false
+ },
+ "138092879": {
+  "title_vi": "Từ 1/7/2026 nghỉ thai sản mấy tháng?",
+  "title_en": "From July 1, 2026, how many months of maternity leave?",
+  "has_person_name": false
+ },
+ "138093071": {
+  "title_vi": "Doanh nghiệp thuê lao động thời vụ có đóng kinh phí công đoàn hay không?",
+  "title_en": "Must businesses pay trade union fees for seasonal workers?",
+  "has_person_name": false
+ },
+ "138093092": {
+  "title_vi": "Hướng dẫn tổ chức lựa chọn nhà thầu nội bộ mua sắm thuốc và thiết bị y tế theo Quyết định 1589 ra sao?",
+  "title_en": "How to organize internal bidding for drug and medical equipment procurement under Decision 1589?",
+  "has_person_name": false
+ },
+ "138093124": {
+  "title_vi": "Hướng dẫn tra cứu báo cáo tình hình sử dụng lao động đã nộp trên Dịch vụ công Quốc gia như thế nào?",
+  "title_en": "How to look up submitted labor use reports on the National Public Service Portal?",
+  "has_person_name": false
+ },
+ "138093211": {
+  "title_vi": "Mẫu Tờ khai đăng ký nhãn hiệu 2026 là mẫu nào?",
+  "title_en": "Which form is the 2026 trademark registration declaration form?",
+  "has_person_name": false
+ },
+ "138093264": {
+  "title_vi": "Lịch sát hạch lái xe Quảng Ngãi tháng 7 2026 dự kiến là khi nào?",
+  "title_en": "When is the expected driving test schedule for Quang Ngai in July 2026?",
+  "has_person_name": false
+ },
+ "138093298": {
+  "title_vi": "Định mức nhân lực trực trong lĩnh vực y tế từ 15/07/2026 là bao nhiêu?",
+  "title_en": "What is the staffing norm for medical duty shifts from 15/07/2026?",
+  "has_person_name": false
+ },
+ "138093429": {
+  "title_vi": "Trình tự thủ tục Cấp Giấy chứng nhận giáo viên dạy thực hành lái xe 2026 thực hiện thế nào?",
+  "title_en": "What is the 2026 procedure for issuing a driving instructor certificate (practical training)?",
+  "has_person_name": false
+ },
+ "138093686": {
+  "title_vi": "Cho mượn tài sản có phải xuất hóa đơn?",
+  "title_en": "Is an invoice required when lending an asset for use?",
+  "has_person_name": false
+ },
+ "138093704": {
+  "title_vi": "Danh mục Hồ sơ quản lý thi công xây dựng công trình từ 1/7/2026 như thế nào?",
+  "title_en": "What is the construction site management file list from 1/7/2026?",
+  "has_person_name": false
+ },
+ "138094001": {
+  "title_vi": "Điều kiện hưởng 100% chi phí KCB đối với người tham gia BHYT 5 năm liên tục là gì?",
+  "title_en": "What are conditions for 100% health insurance coverage after 5 continuous years?",
+  "has_person_name": false
+ },
+ "138094288": {
+  "title_vi": "Số hóa đơn giá trị gia tăng là bao nhiêu?",
+  "title_en": "What is the invoice number on a value-added tax invoice?",
+  "has_person_name": false
+ },
+ "138094330": {
+  "title_vi": "Tem XE NỘI BỘ dán ở đâu?",
+  "title_en": "Where should the \"Internal Vehicle\" sticker be affixed?",
+  "has_person_name": false
+ },
+ "138094347": {
+  "title_vi": "Quy định về Nội dung hóa đơn từ 01/7/2026 theo Nghị định 254 như thế nào?",
+  "title_en": "What are invoice content requirements from 1 July 2026 under Decree 254?",
+  "has_person_name": false
+ },
+ "138094384": {
+  "title_vi": "Có khám sức khỏe toàn dân thì công ty có phải khám sức khỏe định kỳ cho NLĐ nữa không?",
+  "title_en": "If there's a national health check, must companies still do periodic health checks for employees?",
+  "has_person_name": false
+ },
+ "138094398": {
+  "title_vi": "Số tài khoản nộp kinh phí công đoàn Hưng Yên 2026 cập nhật mới nhất là số nào?",
+  "title_en": "What is the latest 2026 account number for paying Hung Yen trade union fees?",
+  "has_person_name": false
+ },
+ "138094609": {
+  "title_vi": "Có phải đăng ký địa điểm kinh doanh nếu chỉ cho thuê 01 căn nhà?",
+  "title_en": "Must a business location be registered for leasing just one house?",
+  "has_person_name": false
+ },
+ "138094642": {
+  "title_vi": "Cách xác định tổng mức đầu tư xây dựng từ 01/7/2026 chi tiết như thế nào?",
+  "title_en": "How to determine the total construction investment in detail from July 1, 2026?",
+  "has_person_name": false
+ },
+ "138094779": {
+  "title_vi": "Hồ sơ thanh toán đối với hợp đồng xây dựng theo tỷ lệ phần trăm từ 01/7/2026 gồm những gì?",
+  "title_en": "What documents are needed for payment of percentage-rate construction contracts from 1 July 2026?",
+  "has_person_name": false
+ },
+ "138094983": {
+  "title_vi": "Lịch thi sát hạch lái xe tháng 7 2026 Đà Nẵng dự kiến là khi nào?",
+  "title_en": "What is the expected driving test schedule for July 2026 in Da Nang?",
+  "has_person_name": false
+ },
+ "138095199": {
+  "title_vi": "Công ty mua bảo hiểm sức khỏe cho nhân viên có được tính vào chi phí hợp lý không?",
+  "title_en": "Can a company count employee health insurance as deductible expenses?",
+  "has_person_name": false
+ },
+ "138095499": {
+  "title_vi": "Link tập huấn thay SGK mới ngày 25/6 môn GDTC 12 Phòng 7 truy cập ở đâu?",
+  "title_en": "Where to access Room 7 link for June 25 new textbook training, PE grade 12?",
+  "has_person_name": false
+ },
+ "138095509": {
+  "title_vi": "Link tập huấn thay SGK mới ngày 25/6 môn Hóa học 12 Phòng 6 truy cập ở đâu?",
+  "title_en": "Where to access Room 6 link for June 25 new textbook training, Chemistry 12?",
+  "has_person_name": false
+ },
+ "138095640": {
+  "title_vi": "Toàn văn Tờ trình 6414/TTr-BNV 2026 về chính sách tinh giản biên chế đối với người hoạt động không chuyên trách ở thôn, tổ dân phố thế nào?",
+  "title_en": "Full text of Submission 6414/TTr-BNV 2026 on staff downsizing policy for non-full-time village/residential-group workers?",
+  "has_person_name": false
+ },
+ "138095698": {
+  "title_vi": "Điểm chuẩn vào lớp 10 THPT Marie Curie TPHCM năm 2026 2027 chi tiết ra sao?",
+  "title_en": "What are the detailed 2026-2027 grade 10 admission scores for Marie Curie High School, HCMC?",
+  "has_person_name": false
+ },
+ "138095917": {
+  "title_vi": "Giá Gas tháng 7/2026 cập nhật liên tục bao nhiêu tiền?",
+  "title_en": "What is the continuously updated gas price for July 2026?",
+  "has_person_name": false
+ },
+ "138096244": {
+  "title_vi": "Chính thức XE BÁN TẢI được lưu thông như ô tô con từ ngày 1/7/2026?",
+  "title_en": "Will pickup trucks officially be treated like passenger cars from July 1, 2026?",
+  "has_person_name": false
+ },
+ "138096541": {
+  "title_vi": "07 hình thức khuyến mại không phải thông báo đến Sở Công Thương từ 26/6/2026?",
+  "title_en": "What are the 7 promotion types exempt from notifying Industry and Trade Dept from 26/6/2026?",
+  "has_person_name": false
+ },
+ "138096683": {
+  "title_vi": "Nghị định 123/2020/NĐ-CP quy định về hóa đơn chứng từ còn hiệu lực không?",
+  "title_en": "Is Decree 123/2020/ND-CP on invoices and documents still in effect?",
+  "has_person_name": false
+ },
+ "138096887": {
+  "title_vi": "Cập nhật THAY ĐỔI HÓA ĐƠN ĐIỆN TỬ từ 1/7/2026? Chính sách mới hóa đơn điện tử có hiệu lực từ 1/7/2026?",
+  "title_en": "What are the updated e-invoice changes and new policy effective from 1/7/2026?",
+  "has_person_name": false
+ },
+ "138096996": {
+  "title_vi": "Từ 15/8/2026 Trưởng Công an xã được phạt vi phạm giao thông đến 37.5 triệu đồng đúng không?",
+  "title_en": "Can commune police chiefs fine traffic violations up to VND 37.5 million from 15/8/2026?",
+  "has_person_name": false
+ },
+ "138097360": {
+  "title_vi": "Link tập huấn sách giáo khoa mới ngày 10/7 Tiếng Việt 3 Phòng 2 truy cập ở đâu?",
+  "title_en": "Where to access the July 10 training link, Vietnamese 3, Room 2, new textbooks?",
+  "has_person_name": false
+ },
+ "138097498": {
+  "title_vi": "Link tập huấn SGK mới Phòng 3 ngày 13/7/2026 môn Toán 8 là link nào?",
+  "title_en": "What is the link for the new Grade 8 Math textbook training, Room 3, 13/7/2026?",
+  "has_person_name": false
+ },
+ "138097891": {
+  "title_vi": "LINK XEM TRỰC TIẾP World Cup hôm nay 15/7/2026 Pháp vs Tây Ban Nha lúc 2h sáng chi tiết ra sao?",
+  "title_en": "Where to watch live: France vs Spain World Cup match on 15/7/2026 at 2am, details?",
+  "has_person_name": false
+ },
+ "138097938": {
+  "title_vi": "Tải về Mẫu đăng ký tạm trú 2026 file word và cách ghi?",
+  "title_en": "Download 2026 temporary residence registration form (Word) and how to fill it out",
+  "has_person_name": false
+ },
+ "138098241": {
+  "title_vi": "Thời gian tổ chức lựa chọn nhà thầu chỉ định thầu rút gọn là khi nào?",
+  "title_en": "When is the selection process for simplified direct contractor appointment held?",
+  "has_person_name": false
+ },
+ "138098274": {
+  "title_vi": "Link tải VNeGP 2.0.1 Hệ thống mạng đấu thầu quốc gia theo chuẩn mới muasamcong là link nào?",
+  "title_en": "What is the download link for VNeGP 2.0.1 national e-procurement network system (muasamcong)?",
+  "has_person_name": false
+ },
+ "138098301": {
+  "title_vi": "Link tập huấn thay sách giáo khoa mới ngày 20/7 MĨ THUẬT 9 Phòng 7 truy cập ở đâu?",
+  "title_en": "Where to access the link for Room 7, Art 9, July 20 new-textbook training?",
+  "has_person_name": false
+ },
+ "138098357": {
+  "title_vi": "Chính sách mới về ĐẤT ĐAI có hiệu lực tháng 8/2026 chi tiết thế nào?",
+  "title_en": "What are the details of the new land policy effective August 2026?",
+  "has_person_name": false
+ },
+ "138098359": {
+  "title_vi": "Hóa đơn bỏ sót, điều chỉnh, thay thế kê khai kỳ nào theo quy định mới nhất 2026?",
+  "title_en": "Which period to declare omitted, adjusted, or replacement invoices under the newest 2026 rules?",
+  "has_person_name": false
+ },
+ "138098365": {
+  "title_vi": "Mẫu Biên bản điều chỉnh hóa đơn mới nhất 2026 theo Thông tư 91 là mẫu nào?",
+  "title_en": "What is the newest 2026 invoice adjustment minutes template under Circular 91?",
+  "has_person_name": false
+ },
+ "138098417": {
+  "title_vi": "Thực hư ngân hàng đóng tài khoản có số dư dưới 20000 đồng có đúng sự thật không?",
+  "title_en": "Is it true banks close accounts with balances under 20,000 VND?",
+  "has_person_name": false
+ },
+ "138098429": {
+  "title_vi": "Link tập huấn thay sách giáo khoa mới ngày 21/7 Công nghệ 9 Phòng 4 truy cập ở đâu?",
+  "title_en": "Where to access the July 21 training link for new Technology 9 textbook, Room 4?",
+  "has_person_name": false
+ },
+ "138098647": {
+  "title_vi": "Hướng dẫn khai điều chỉnh tăng giảm hàng hóa trả chậm trả góp trên 5 triệu theo mẫu tờ khai 01/GTGT?",
+  "title_en": "How to declare increase/decrease for installment goods over 5 million VND on VAT form 01/GTGT?",
+  "has_person_name": false
+ },
+ "138098673": {
+  "title_vi": "ĐÃ CÓ bảng lương tối thiểu vùng từ 1/1/2027 cho người lao động theo dự thảo Nghị định thay thế Nghị định 293 cụ thể là bao nhiêu?",
+  "title_en": "What are the new regional minimum wages from Jan 1, 2027?",
+  "has_person_name": false
+ },
+ "138098677": {
+  "title_vi": "CNKD không đăng ký hộ kinh doanh có được sử dụng hóa đơn điện tử không?",
+  "title_en": "Can a business household without business registration use e-invoices?",
+  "has_person_name": false
+ },
+ "138098736": {
+  "title_vi": "Mẫu Giấy khám sức khỏe tâm thần mới nhất từ 15/8/2026?",
+  "title_en": "What is the newest mental health check-up form from 15/8/2026?",
+  "has_person_name": false
+ },
+ "138098778": {
+  "title_vi": "Chuyển người lao động làm công việc khác so với hợp đồng lao động không đúng lý do bị xử phạt ra sao từ ngày 10/9/2026?",
+  "title_en": "What is the penalty for reassigning an employee without valid reason from 10 September 2026?",
+  "has_person_name": false
+ },
+ "138098779": {
+  "title_vi": "Hình thức tổ chức biểu diễn nghệ thuật được quy định chi tiết như thế nào?",
+  "title_en": "What are the detailed regulations on forms of performing arts organization?",
+  "has_person_name": false
+ },
+ "138098780": {
+  "title_vi": "Hoạt động biểu diễn nghệ thuật được quy định như thế nào mới nhất 2026?",
+  "title_en": "What are the newest 2026 regulations on performing arts activities?",
+  "has_person_name": false
+ },
+ "138098957": {
+  "title_vi": "Doanh nghiệp ngừng hoạt động kinh doanh 01 năm mà không thông báo với Cơ quan đăng ký kinh doanh và cơ quan thuế bị phạt bao nhiêu tiền?",
+  "title_en": "What fine applies for a business suspending operations 1 year without notifying authorities?",
+  "has_person_name": false
+ },
+ "138099016": {
+  "title_vi": "Từ 10/9/2026, buộc người lao động tăng ca khi không được đồng ý bị phạt đến 50 triệu đồng?",
+  "title_en": "From Sept 10, 2026, forcing overtime without consent fined up to 50 million VND?",
+  "has_person_name": false
+ },
+ "138099045": {
+  "title_vi": "Điều kiện ghi ký hiệu R trên nhãn hàng hóa chưa được bảo hộ tại Việt Nam ra sao theo Công văn 19363?",
+  "title_en": "What are conditions to label goods \"R\" symbol unprotected in Vietnam, per Official Letter 19363?",
+  "has_person_name": false
+ },
+ "138099118": {
+  "title_vi": "Cục Thuế giải đáp từ 1/7/2026 tỷ giá xuất hóa đơn hàng hóa dịch vụ xuất khẩu sẽ áp dụng tỷ giá nào?",
+  "title_en": "From July 1, 2026, which exchange rate applies to invoices for exported goods/services?",
+  "has_person_name": false
+ },
+ "138099324": {
+  "title_vi": "Trường hợp nào đăng ký tạm trú không phải cung cấp giấy tờ chứng minh chỗ ở hợp pháp theo Thông tư 116?",
+  "title_en": "When is proof of lawful residence not required for temporary residence registration under Circular 116?",
+  "has_person_name": false
+ },
+ "138099361": {
+  "title_vi": "Hệ số K điều chỉnh giá đất tỉnh Vĩnh Long theo Nghị quyết 254 là bao nhiêu?",
+  "title_en": "What is the land price adjustment factor K for Vinh Long under Resolution 254?",
+  "has_person_name": false
+ },
+ "138099479": {
+  "title_vi": "Hà Nội hỗ trợ tiền ăn bán trú cho học sinh tiểu học cao nhất 40000 đồng/ngày năm học 2026 2027 theo Nghị quyết 84 đúng không?",
+  "title_en": "Does Hanoi support max 40,000 VND/day for primary students' lunch meals, 2026-2027, under Resolution 84?",
+  "has_person_name": false
+ },
+ "138099483": {
+  "title_vi": "Công văn 19564/CHQ-GSQL 2026 Hướng dẫn khai và xác định xuất xứ hàng hóa xuất khẩu thế nào?",
+  "title_en": "How to declare and determine origin of exported goods per Official Dispatch 19564/CHQ-GSQL 2026?",
+  "has_person_name": false
+ },
+ "138099512": {
+  "title_vi": "Dân số và Diện tích Phường Văn Giang tỉnh Hưng Yên sau sắp xếp là bao nhiêu?",
+  "title_en": "What are the population and area of Van Giang Ward, Hung Yen Province after reorganization?",
+  "has_person_name": false
+ },
+ "138099523": {
+  "title_vi": "Không cho phép người nước ngoài nhận chuyển nhượng, chuyển nhượng quyền sử dụng đất dưới mọi hình thức đúng không?",
+  "title_en": "Is it true foreigners can't receive or transfer land use rights at all?",
+  "has_person_name": false
+ },
+ "138099590": {
+  "title_vi": "Nghỉ phép năm chưa dùng hết có được quy đổi thành tiền không?",
+  "title_en": "Can unused annual leave be converted into cash payment?",
+  "has_person_name": false
+ },
+ "138099664": {
+  "title_vi": "Mức tạm ứng tối thiểu hợp đồng PC từ 1/7/2026 theo Nghị định 210 chi tiết thế nào?",
+  "title_en": "What is the minimum advance payment for PPP contracts from 1/7/2026 under Decree 210?",
+  "has_person_name": false
+ },
+ "138099671": {
+  "title_vi": "Mức phạt vi phạm quy định về giao kết hợp đồng lao động từ 10/9/2026 là bao nhiêu?",
+  "title_en": "What is the fine for labor contract violations from 10 September 2026?",
+  "has_person_name": false
+ },
+ "138099692": {
+  "title_vi": "Chính thức ĐIỂM CHUẨN Trường đại học Thể dục thể thao TP HCM 2026 bao nhiêu điểm?",
+  "title_en": "What is the official 2026 admission score for HCMC University of Sports?",
+  "has_person_name": false
+ },
+ "138099780": {
+  "title_vi": "Cách tính ưu đãi trong đấu thầu 2026 chi tiết như thế nào?",
+  "title_en": "How is the 2026 bid evaluation preference calculated in detail?",
+  "has_person_name": false
+ },
+ "138099783": {
+  "title_vi": "ĐIỂM CHUẨN Khoa Kỹ thuật và Công nghệ Đại học Huế 2026 lấy bao nhiêu?",
+  "title_en": "What is the 2026 admission score for Hue University's Faculty of Engineering and Technology?",
+  "has_person_name": false
+ },
+ "138099820": {
+  "title_vi": "Thi thực hành lái xe A1 bao nhiêu phút từ 1/3/2027?",
+  "title_en": "How many minutes is the A1 motorbike license practical driving test from 1/3/2027?",
+  "has_person_name": false
+ },
+ "138099910": {
+  "title_vi": "Công văn 6917/CTH-QLDN1 về thời điểm xuất hóa đơn giao hàng nhiều lần, bán hàng, cung cấp hoạt động xây dựng, lắp đặt như thế nào?",
+  "title_en": "Official Letter 6917/CTH-QLDN1: when to issue invoices for multiple deliveries, sales, construction/installation services?",
+  "has_person_name": false
+ },
+ "138100040": {
+  "title_vi": "Khoản kinh phí ngân sách cấp bù miễn, giảm học phí có chịu thuế GTGT không?",
+  "title_en": "Is the state budget subsidy for tuition fee exemptions/reductions subject to VAT?",
+  "has_person_name": false
+ },
+ "138100103": {
+  "title_vi": "Thủ tục cho thuê, cho thuê mua nhà ở xã hội do Nhà nước xây dựng bằng vốn đầu tư công từ 03/8/2026 như thế nào?",
+  "title_en": "What is the procedure for leasing/lease-purchasing public-investment-funded state social housing from Aug 3, 2026?",
+  "has_person_name": false
+ },
+ "138100133": {
+  "title_vi": "Công văn 6866/CTH-QLDN1 ngày 3/8/2026 hướng dẫn thủ tục thanh toán không dùng tiền mặt và hồ sơ cần bổ sung để lập Bảng kê 02 khi mua hàng của nông dân thế nào?",
+  "title_en": "How to handle non-cash payment and documents for Form 02 when buying goods from farmers?",
+  "has_person_name": false
+ },
+ "138100176": {
+  "title_vi": "Sửa lỗi hệ thống mới ECOSYS không vào khai báo C/O được chi tiết như thế nào?",
+  "title_en": "How to fix the new ECOSYS system error preventing C/O declaration access?",
+  "has_person_name": false
+ },
+ "138100283": {
+  "title_vi": "Nội dung bắt buộc phải có trong quyết định phê duyệt kết quả lựa chọn nhà đầu tư trúng thầu gồm những gì?",
+  "title_en": "What must be included in a decision approving the winning investor selection results?",
+  "has_person_name": false
+ },
+ "138100323": {
+  "title_vi": "Các khoản hỗ trợ điện thoại, đi lại, nhà ở cố định có phải là căn cứ đóng BHXH bắt buộc không?",
+  "title_en": "Are fixed phone, travel and housing allowances used to calculate compulsory social insurance contributions?",
+  "has_person_name": false
+ },
+ "138100365": {
+  "title_vi": "Tác phẩm tuyển chọn là gì? Tác phẩm tuyển chọn có được bảo hộ quyền tác giả không?",
+  "title_en": "What is a selected/anthology work? Is it protected by copyright?",
+  "has_person_name": false
+ },
+ "138100459": {
+  "title_vi": "Quy định ký số trên hóa đơn điện tử sau ngày lập hoá đơn theo Nghị định 254 như thế nào?",
+  "title_en": "What are the rules on digital-signing e-invoices after issuance under Decree 254?",
+  "has_person_name": false
+ },
+ "138100462": {
+  "title_vi": "Công văn 6656/QNG-QLDN1 ngày 6/8/2026 hướng dẫn ghi thông tin người mua trên hóa đơn không có số định danh cá nhân theo Nghị định 254 ra sao?",
+  "title_en": "How to record buyer info on invoices lacking a personal ID number under Decree 254?",
+  "has_person_name": false
+ },
+ "138100528": {
+  "title_vi": "Mức phạt vi phạm quy định về giám sát hải quan chi tiết ra sao?",
+  "title_en": "What are the detailed penalties for violating customs supervision regulations?",
+  "has_person_name": false
+ },
+ "138100680": {
+  "title_vi": "Khoản tiền trợ cấp người lao động nghỉ việc nhận theo chính sách nội bộ phải tính thuế TNCN đúng không?",
+  "title_en": "Is severance paid per internal company policy subject to personal income tax?",
+  "has_person_name": false
+ },
+ "138100804": {
+  "title_vi": "Trình tự, thủ tục chuyển hình thức giao đất, cho thuê đất trên địa bàn TP Hà Nội gồm những hồ sơ nào?",
+  "title_en": "What documents are required to change land allocation/lease form in Hanoi?",
+  "has_person_name": false
+ },
+ "138100871": {
+  "title_vi": "Xuất hóa đơn quà tặng nhân viên để được tính chi phí hợp lý được trừ khi tính thuế TNDN như thế nào?",
+  "title_en": "How to issue invoices for employee gifts to deduct them as reasonable CIT expenses?",
+  "has_person_name": false
+ },
+ "138100906": {
+  "title_vi": "Có thay đổi Thành viên hộ gia đình đăng ký hộ kinh doanh được hay không?",
+  "title_en": "Can the household members registering a household business be changed?",
+  "has_person_name": false
+ },
+ "138100939": {
+  "title_vi": "Định mức dự toán xây dựng công trình là gì? Định mức dự toán để làm gì?",
+  "title_en": "What is a construction cost estimate norm? What is it used for?",
+  "has_person_name": false
+ },
+ "14296": {
+  "title_vi": "Làm giả nhãn hiệu hàng hóa",
+  "title_en": "Counterfeiting a product trademark/label",
+  "has_person_name": false
+ },
+ "14847": {
+  "title_vi": "Quy định về hạn mức giao đất ở mới; hạn mức công nhận đất ở đối với trường hợp thửa đất trong khu dân cư có đất ở và đất vườn, ao liền kề",
+  "title_en": "New land allocation limits; recognized residential land limits for mixed land plots with garden/pond",
+  "has_person_name": false
+ },
+ "16168": {
+  "title_vi": "Ghi đơn vị tính trên hóa đơn đầu ra khác so với đơn vị tính trên hóa đơn đầu vào",
+  "title_en": "Output invoice unit of measure differs from input invoice's unit",
+  "has_person_name": false
+ },
+ "16257": {
+  "title_vi": "Đăng ký bảo hộ nhãn hiệu",
+  "title_en": "Trademark registration protection",
+  "has_person_name": false
+ },
+ "16446": {
+  "title_vi": "Quyền và nghĩa vụ của Người giải quyết tố cáo",
+  "title_en": "Rights and obligations of the person who resolves a denunciation",
+  "has_person_name": false
+ },
+ "16877": {
+  "title_vi": "Quy định về thừa kế không theo di chúc?",
+  "title_en": "What are the regulations on inheritance without a will (intestate succession)?",
+  "has_person_name": false
+ },
+ "17603": {
+  "title_vi": "Di chúc không có chứng thực có hợp pháp hay không?",
+  "title_en": "Is an uncertified (unnotarized) will legally valid?",
+  "has_person_name": false
+ },
+ "17966": {
+  "title_vi": "Vợ bỏ nhà đi, làm sao ly hôn?",
+  "title_en": "Wife left home — how can I file for divorce?",
+  "has_person_name": false
+ },
+ "18247": {
+  "title_vi": "Đồng ý nghỉ việc ngay có được đền bù?",
+  "title_en": "If an employee agrees to resign immediately, is compensation owed?",
+  "has_person_name": false
+ },
+ "18255": {
+  "title_vi": "Cha mẹ buộc con đi ăn xin có bị xử lý hình sự?",
+  "title_en": "Can parents be criminally punished for forcing their child to beg?",
+  "has_person_name": false
+ },
+ "18287": {
+  "title_vi": "Khấu trừ thuế đầu vào đ/v hoạt động xay gia công lúa gạo cho các cơ sở kinh doanh và các hộ nông dân tự sản xuất.",
+  "title_en": "Input VAT deduction for rice milling services for businesses and self-producing farmer households",
+  "has_person_name": false
+ },
+ "18949": {
+  "title_vi": "Người hành nghề được phụ trách chuyên môn tại một cơ sở khám chữa bệnh trên một địa phương",
+  "title_en": "Can a practitioner head the professional department at one medical facility per locality?",
+  "has_person_name": false
+ },
+ "19109": {
+  "title_vi": "Trộm cáp viễn thông bị phạt gì?",
+  "title_en": "What is the penalty for stealing telecom cables?",
+  "has_person_name": false
+ },
+ "4302": {
+  "title_vi": "Buộc thi hành án khi bản án đang có kháng cáo?",
+  "title_en": "Can a judgment be enforced while still under appeal?",
+  "has_person_name": false
+ },
+ "4368": {
+  "title_vi": "Thủ tục xin con nuôi",
+  "title_en": "Procedures for adopting a child",
+  "has_person_name": false
+ },
+ "4507": {
+  "title_vi": "Chia tài sản thưuà kế trong trường hợp không có di chúc.",
+  "title_en": "Dividing inherited property when there is no will",
+  "has_person_name": false
+ },
+ "5184": {
+  "title_vi": "Việc thỏa thuận trước chọn Tòa án để giải quyết tranh chấp trong hợp đồng kinh tế",
+  "title_en": "Agreeing in advance on court jurisdiction to resolve economic contract disputes",
+  "has_person_name": false
+ },
+ "5317": {
+  "title_vi": "Không chia tài sản thừa kế cho con có được không?",
+  "title_en": "Is it allowed to not divide an inheritance among one's children?",
+  "has_person_name": false
+ },
+ "5401": {
+  "title_vi": "Rẽ không bật đèn tín hiệu bị phạt thế nào?",
+  "title_en": "What is the fine for turning without a signal light?",
+  "has_person_name": false
+ },
+ "549": {
+  "title_vi": "Đất dưới 30 m2 có được cấp sổ đỏ?",
+  "title_en": "Can land plots under 30 m2 be issued a red book (land title)?",
+  "has_person_name": false
+ },
+ "5604": {
+  "title_vi": "Trẻ em bị điện giật ở chung cư, ai phải chịu trách nhiệm",
+  "title_en": "Who is liable if a child gets an electric shock in an apartment building?",
+  "has_person_name": false
+ },
+ "5852": {
+  "title_vi": "Cầm cố giấy chứng nhận quyền sử dụng đất",
+  "title_en": "Pledging a land use right certificate (red book) as collateral",
+  "has_person_name": false
+ },
+ "6445": {
+  "title_vi": "Hành vi được coi là xâm phạm quyền tác giả",
+  "title_en": "Acts considered copyright infringement",
+  "has_person_name": false
+ },
+ "7076": {
+  "title_vi": "Phạm tội đánh bạc quy định tại khoản 2 Điều 248 và hình phạt bổ sung",
+  "title_en": "Gambling offense under Clause 2, Article 248 and additional penalties",
+  "has_person_name": false
+ },
+ "7080": {
+  "title_vi": "Thủ tục với kho bạc",
+  "title_en": "Procedures for dealing with the State Treasury",
+  "has_person_name": false
+ },
+ "7317": {
+  "title_vi": "Gia công xuất khẩu có ghi hóa đơn không?",
+  "title_en": "Does export processing require issuing an invoice?",
+  "has_person_name": false
+ },
+ "7586": {
+  "title_vi": "Phương pháp khấu trừ thuế GTGT",
+  "title_en": "VAT deduction method",
+  "has_person_name": false
+ },
+ "7748": {
+  "title_vi": "Về việc sử dụng tác phẩm nghệ thuật đã công bố",
+  "title_en": "On using a previously published work of art",
+  "has_person_name": false
+ },
+ "7999": {
+  "title_vi": "Cơ quan giải quyết kiến nghị về môi trường và sức khỏe người dân",
+  "title_en": "Which agency handles petitions on environment and public health?",
+  "has_person_name": false
+ },
+ "8172": {
+  "title_vi": "Các điều kiện nhận con nuôi",
+  "title_en": "What are the conditions for adopting a child?",
+  "has_person_name": false
+ },
+ "8459": {
+  "title_vi": "Vô ý tông xe vào cảnh sát giao thông có bị xử lý hình sự?",
+  "title_en": "Is accidentally hitting a traffic police officer with a car a crime?",
+  "has_person_name": false
+ },
+ "8637": {
+  "title_vi": "Đòi nợ với giấy tờ viết tay",
+  "title_en": "Claiming a debt based on a handwritten document",
+  "has_person_name": false
+ },
+ "8922": {
+  "title_vi": "Hành vi hành chính mang tính nội bộ của cơ quan nhà nước",
+  "title_en": "Internal administrative acts of state agencies",
+  "has_person_name": false
+ },
+ "9750": {
+  "title_vi": "Quy định về tội cưỡng dâm trong trường hợp biết mình bị nhiêm HIV mà vẫn phạm tội",
+  "title_en": "Regulations on coercive sexual intercourse when offender knowingly has HIV",
+  "has_person_name": false
+ },
+ "138034633": {
+  "title_vi": "Cơ quan nào có thẩm quyền cho phép tổ chức biểu diễn nghệ thuật?",
+  "title_en": "Which authority has power to permit performing arts shows?",
+  "has_person_name": false
+ }
+}

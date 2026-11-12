@@ -10,6 +10,7 @@
     {"path": "ontology.html", "ready": "window.__VLONTO_READY === true", "settle_ms": 1500},
     {"path": "playbook.html", "ready": "window.__VLONTO_READY === true", "settle_ms": 600},
     {"path": "downloads.html", "ready": "window.__VLONTO_READY === true", "settle_ms": 600},
+    {"path": "traces.html", "ready": "window.__VLONTO_READY === true", "ready_timeout_ms": 90000, "settle_ms": 800},
     {"path": "ontology/vlonto.html", "settle_ms": 800}
   ]
 }

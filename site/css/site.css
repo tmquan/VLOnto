@@ -607,10 +607,10 @@ kbd { font-size: 12px; border: 1px solid var(--line-2); border-bottom-width: 2px
   font: 600 14px/1.2 var(--vlo-font-sans); padding: 8px 12px; cursor: pointer;
 }
 .vl-menu-btn svg { width: 18px; height: 18px; }
-@media (max-width: 1340px) {
+@media (max-width: 1380px) {     /* the header needs about 1,352 px with the tag line and nine pages + Paper */
   .vl-brand .tag { display: none; }
 }
-@media (max-width: 1140px) {
+@media (max-width: 1290px) {     /* ... and about 1,263 px without it; below, the menu button */
   .vl-menu-btn { display: inline-flex; }
   .vl-tools { margin-left: auto; }
   .vl-nav {
@@ -1372,24 +1372,28 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
 .hop { border-left: 4px solid var(--hop-c); background: var(--tr-card-bg); background: color-mix(in srgb, var(--hop-c) 26%, var(--tr-card-bg));
   padding: 9px 11px 10px; border-radius: 2px; min-width: 0; overflow-wrap: break-word; }
 :root[data-theme="dark"] .hop { background: color-mix(in srgb, var(--hop-c) 15%, var(--tr-card-bg)); }
-.hop h3 { font: 400 13.5px/1.35 var(--vlo-font-paper); color: var(--paper-ink-2); margin: 0 0 4px; }
+/* secondary text on the tinted boxes: a darker grey on the light ground keeps 4.5:1 on every tint (paper ink-2 gives 4.40) */
+.hop { --hop-ink-2: var(--paper-ink-2); }
+:root:not([data-theme="dark"]) .hop { --hop-ink-2: #5b6168; }
+.hop h3 { font: 400 13.5px/1.35 var(--vlo-font-paper); color: var(--hop-ink-2); margin: 0 0 4px; }
 .hop h3 b { font-size: 16px; font-weight: 700; color: var(--paper-ink); margin-right: 4px; }
 .hop p { margin: 0 0 4px; }
 .hop .strong { font-weight: 700; }
-.hop .en { color: var(--paper-ink-2); font-style: italic; }
-.hop .pv { color: var(--paper-ink-2); font-size: 12.5px; margin-top: 5px; }
+.hop .en { color: var(--hop-ink-2); font-style: italic; }
+.hop .pv { color: var(--hop-ink-2); font-size: 12.5px; margin-top: 5px; }
 .hop ul { margin: 2px 0 4px; padding: 0 0 0 2px; list-style: none; }
 .hop li { margin: 0 0 2px; }
 .hop a { color: var(--paper-ink); }
 .hop-q { --hop-c: var(--cls-question); } .hop-a { --hop-c: var(--cls-answer); } .hop-p { --hop-c: var(--cls-article); }
 .hop-l { --hop-c: var(--cls-work); } .hop-t { --hop-c: var(--cls-term); }
 .hop-arrow { text-align: center; color: var(--paper-ink-2); font-size: 13px; padding: 3px 0 4px; }
+.tr-hops .col + .col::before { color: var(--paper-ink-2); }
 @media (max-width: 900px) {
   .tr-hops { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .tr-hops .col + .col::before { content: "\2193"; position: static; display: block; text-align: center; padding: 3px 0 4px; }
 }
 @media (max-width: 760px) {
-  .tr-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
+  .tr-tabs { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: thin; padding: 7px 7px 9px; margin: 8px -7px 0; -webkit-overflow-scrolling: touch; }
   .tr-focus { padding: 0; }
   .tr-focus-dialog { min-height: 100%; border: 0; border-radius: 0; padding: 12px 12px 16px; }
   .tf-head h2 { font-size: 19px; }

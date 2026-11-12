@@ -33,11 +33,13 @@
     ['vann', 'http://purl.org/vocab/vann/']
   ];
 
-  /* index.html is the 3D ontology playground (the landing page); about.html is the overview; ontology-3d.html redirects */
+  /* index.html is the 3D ontology playground (the landing page); about.html is the overview; ontology-3d.html redirects;
+     vi = a Vietnamese label shown before the English one ("Truy vết · Traces") */
   VL.PAGES = [
     { href: 'index.html', label: '3D Ontology' },
     { href: 'network-3d.html', label: '3D Legal Network' },
     { href: 'sparql.html', label: 'SPARQL' },
+    { href: 'traces.html', label: 'Traces', vi: 'Truy vết' },
     { href: 'dashboard.html', label: 'Dashboard' },
     { href: 'ontology.html', label: 'Ontology docs' },
     { href: 'playbook.html', label: 'Playbook' },
@@ -372,6 +374,7 @@
     book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 21H20v-3"/></svg>',
     docs: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/></svg>',
     copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
+    trace: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5.5" cy="18.5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="18.5" cy="5.5" r="2.2"/><circle cx="18.5" cy="18.5" r="1.5"/><path d="M7.1 16.9l3.3-3.3M13.6 10.4l3.3-3.3M13.6 13.6l3.8 3.8"/></svg>',
     layers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>'
   };
   var LOGO = '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#2b55d0"/>' +
@@ -394,7 +397,8 @@
     var here = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
     if (!/\.html$/.test(here)) here = 'index.html';
     var nav = VL.PAGES.map(function (p) {
-      return '<a href="' + p.href + '"' + (p.href === here ? ' aria-current="page"' : '') + '>' + VL.esc(p.label) + '</a>';
+      return '<a href="' + p.href + '"' + (p.href === here ? ' aria-current="page"' : '') + '>' +
+        (p.vi ? '<span lang="vi">' + VL.esc(p.vi) + '</span> · ' : '') + VL.esc(p.label) + '</a>';
     }).join('') +
       '<a class="ext" href="' + VL.PAPER.url + '" target="_blank" rel="noopener" data-paper-link="nav" title="' +
       VL.esc(VL.PAPER.title) + ' (arXiv:' + VL.PAPER.arxiv + ')">Paper' + VL.ICON.external + '<span class="sr-only"> (arXiv, opens in a new tab)</span></a>';

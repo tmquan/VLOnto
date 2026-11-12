@@ -6,6 +6,9 @@
 Steps (idempotent; re-run after the KG or Playbook tracks change their outputs):
   1. data twins: copy $V/build/site_data/js/*.js to site/data/ (sha256 checked against the KG track's manifest.json)
   2. website data: convert $V/build/site_extra/*.json (derive_site_data.py) to site/data/*.js with tools/json2js.py
+     question traces (traces.html): $V/build/traces/{index.json,<area>.json} (scripts/traces/) -> site/data/traces/*.js
+     with the build-time drawings (scripts/site/trace_site.py, trace_layout.py); without build/traces/index.json the
+     page gets an index that says "no trace data in this build"
   3. downloads: ontology files, the core Turtle subset, the site JSON bundles, the data dictionary, the licence policy,
      ATTRIBUTION.txt, copies of repo/playbook/figures/*.svg in downloads/figures/ (playbook.md links them; the build
      fails if a linked figure is missing) and SHA256SUMS.txt (regenerated from every file in downloads/ on each run)
@@ -330,6 +333,12 @@ def main(argv=None) -> int:
             raise SystemExit(f"json2js failed for {src}: {r.stdout}\n{r.stderr}")
         extra_js.append({"file": f"data/{out.name}", "bytes": out.stat().st_size})
     rep["steps"]["extra_js"] = extra_js
+
+    # 2b. question traces -> site/data/traces/*.js (scripts/site/trace_site.py; stdlib, deterministic)
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import trace_site
+    tr_dir = V / "build" / "traces"
+    rep["steps"]["traces"] = trace_site.build(tr_dir if (tr_dir / "index.json").exists() else None, site)
 
     # 3. downloads
     dl = site / "downloads"

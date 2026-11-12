@@ -54,8 +54,9 @@ New pages are picked up from `scripts/site/site_check_pages.json`: `site_check` 
 the contrast check run through `scripts/site/ci_pages.py`, which appends the config's pages to `GALLERY`, `SITE_PAGES`
 (pages with a `ready` condition outside `ontology/`) and contrast `PAGES`, leaving the scripts unchanged. With today's
 config nothing is added, so the checks are exactly the node's. Page-specific behaviour still lives in
-`interaction_tests.py`: when `traces.html` joins the header navigation, the about test's assertion of exactly 8 internal
-navigation links (`len(internal) == 8`) must be updated, and checks specific to the new page belong there too.
+`interaction_tests.py`: `traces.html` is in the header navigation, so the about test expects 9 internal navigation links
+(`len(internal) == 9`), and the Traces page has its own test (`traces`: tabs, lazy loading, keyboard, render time, card
+geometry, focus view and deep links), which `check.sh` and `ci_check.sh` run by default.
 
 ## Runtime
 
