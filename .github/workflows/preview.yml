@@ -8,6 +8,9 @@
 # summary table is shown on the run page. Toolchain from the repo's pins: CPython of tools/versions.lock, the test
 # packages of tools/requirements-web.lock (hash-checked), the pinned chrome-headless-shell (sha256) run through
 # tools/chrome.sh. Details: docs/ci_preview.md, scripts/site/ci_setup.sh, scripts/site/ci_check.sh.
+# A second job, reproduce-pdf, is the job of the same name in pages.yml: it rebuilds the playbook PDF from the committed
+# Typst sources with the pinned Linux Typst release and compares it byte for byte with site/downloads/VLOnto-playbook.pdf,
+# so a PDF built elsewhere (for example on macOS) is known to match before main publishes it.
 # Actions are pinned to the commit SHAs of the tags named in the comments.
 name: preview-site-check
 
@@ -72,3 +75,26 @@ jobs:
         env:
           ARTIFACT_URL: ${{ steps.upload.outputs.artifact-url }}
         run: python3 scripts/site/ci_summary.py --out "$SITE_CHECK_OUT" --append "$GITHUB_STEP_SUMMARY" --artifact-url "$ARTIFACT_URL"
+
+  reproduce-pdf:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Install the pinned Typst release (sha256-checked)
+        run: bash tools/fetch_typst.sh "$RUNNER_TEMP/typst"
+      - name: Rebuild the playbook PDF from the committed Typst sources
+        run: TY="$RUNNER_TEMP/typst/typst" bash scripts/build_pdf.sh --pdf-only --out "$RUNNER_TEMP/VLOnto-playbook.pdf"
+      - name: Compare with the committed PDF
+        run: |
+          sha256sum "$RUNNER_TEMP/VLOnto-playbook.pdf" site/downloads/VLOnto-playbook.pdf
+          cmp "$RUNNER_TEMP/VLOnto-playbook.pdf" site/downloads/VLOnto-playbook.pdf
+      - name: Upload the rebuilt PDF when it differs
+        if: failure()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: reproduce-pdf-${{ github.run_id }}
+          path: ${{ runner.temp }}/VLOnto-playbook.pdf
+          retention-days: 14
+          if-no-files-found: warn

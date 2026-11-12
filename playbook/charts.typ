@@ -153,7 +153,7 @@
     columns: (35mm, 4.5mm, 1fr, 4.5mm, 1fr, 4.5mm, 1fr, 4.5mm, 1fr),
     align: horizon,
     stack(spacing: 2.2pt,
-      align(center, text(size: 7.4pt, weight: "semibold", fill: accent)[Six source datasets]),
+      align(center, text(size: 7.4pt, weight: "semibold", fill: accent, A.sources_title)),
       ..A.sources.map(s => abox([#s.name · #s.what], [#s.n #s.unit]))),
     arrow,
     abox([Processed corpus], [vn-legal project: documents cleaned and scoped, #A.articles articles,

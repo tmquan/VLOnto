@@ -22,6 +22,7 @@ $endif$
   kicker: [$kicker$],
   author: "$author$",
   version: "$version$",
+  release: "$release$",
   date: "$date$",
   keywords: ($for(keywords)$"$keywords$", $endfor$),
   key-figures: ($for(keyfigures)$([$keyfigures.value$], [$keyfigures.label$]), $endfor$),

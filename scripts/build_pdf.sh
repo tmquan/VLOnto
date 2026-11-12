@@ -72,7 +72,9 @@ if [ "$MODE" = all ]; then
   mkdir -p playbook/figures "$V/build/playbook"
 fi
 BUILD_DATE=$(sed -n 's/^ *"date": "\([0-9-]*\)".*/\1/p' playbook/data/meta.json)
-export SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-$(date -u -d "$BUILD_DATE" +%s)}
+# midnight UTC of the build date, with GNU date (Linux) or BSD date (macOS): the same number on both
+epoch_of() { date -u -d "$1" +%s 2>/dev/null || date -u -j -f '%Y-%m-%d %H:%M:%S' "$1 00:00:00" +%s; }
+export SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH:-$(epoch_of "$BUILD_DATE")}
 
 if [ "$MODE" = all ]; then
   for f in $FIGS; do
@@ -88,7 +90,7 @@ fi
 
 mkdir -p "$(dirname "$OUT")"
 "$TY" compile "${TYF[@]}" playbook/playbook.typ "$OUT"
-echo "PDF: $OUT ($(stat -c %s "$OUT") bytes, SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH)"
+echo "PDF: $OUT ($(wc -c < "$OUT" | tr -d ' ') bytes, SOURCE_DATE_EPOCH=$SOURCE_DATE_EPOCH)"
 
 if [ "$MODE" = all ] && [ -z "$NOHTML" ]; then
   "$W/python" playbook/tools/make_html.py --pdf "$OUT" ${PREVIEW:+--preview "$PREVIEW"}

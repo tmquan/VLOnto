@@ -106,7 +106,12 @@ def machine_leftovers(text):
     marks = {socket.gethostname(), socket.gethostname().split(".")[0], getpass.getuser()}
     if str(Path.home().parent) != "/":
         marks.add(str(Path.home().parent) + "/")
-    return sorted(m for m in marks if m and m in text)
+    found = sorted(m for m in marks if m and m in text)
+    # paths of another machine or build folder that the substitutions could not map to $V or $R:
+    # home-relative (~/...) and absolute paths under the usual home and temporary folders
+    paths = r"(?<![\w$])~/[^\s\"']*|(?<![\w./:-])/(?:Users|home|localhome|private|var/folders)/[^\s\"']*"
+    found += sorted(set(re.findall(paths, text)))[:5]
+    return found
 
 
 def scrub(x, subs):
@@ -187,6 +192,9 @@ def gather_reports():
     f["build"] = read_json(REPORTS / "build_report.json")
     f["build"].pop("files", None)  # absolute paths; the data dictionary has the table list
     f["validation"] = read_json(REPORTS / "validation.json")
+    ox = f["validation"].get("oxigraph") or {}
+    if "store" in ox:   # absolute path of the machine that ran the build: keep only its place in the build folder
+        ox["store"] = "$V/build/oxigraph" if str(ox["store"]).rstrip("/").endswith("/build/oxigraph") else None
     f["checks"] = read_json(REPORTS / "checks.json")
     f["ontology_check"] = read_json(REPORTS / "ontology_check.json")
     f["export"] = read_json(REPORTS / "export_report.json")
@@ -200,7 +208,7 @@ def gather_reports():
         nv = r["checked"] - r["correct"] - r["wrong"]
         rows.append({"edge_type": name, "checked": r["checked"], "correct": r["correct"],
                      "wrong": r["wrong"], "not_verifiable": nv, "notes": r.get("notes", "")})
-    f["spot_checks"] = {"method": review["method"], "rows": rows,
+    f["spot_checks"] = {"method": review["method"], "release_note": review.get("release_note", ""), "rows": rows,
                         "checked": sum(r["checked"] for r in rows),
                         "correct": sum(r["correct"] for r in rows),
                         "wrong": sum(r["wrong"] for r in rows),
@@ -287,6 +295,7 @@ def gather_ontology():
                 "definition_en": lit(s, SKOS.definition, "en"),
                 "definition_vi": lit(s, SKOS.definition, "vi"),
                 "comment_en": lit(s, RDFS.comment, "en"), "module": module(s),
+                "scope_note_en": lit(s, SKOS.scopeNote, "en"), "scope_note_vi": lit(s, SKOS.scopeNote, "vi"),
                 "super": [x for x in sup if x != "(restriction)"],
                 "restrictions": sup.count("(restriction)"), "equivalent": eq,
                 "domain": refs(s, RDFS.domain), "range": refs(s, RDFS.range),
@@ -304,6 +313,7 @@ def gather_ontology():
         schemes.append({"curie": curie(s), "label_en": lit(s, RDFS.label, "en"),
                         "label_vi": lit(s, RDFS.label, "vi"),
                         "definition_en": lit(s, SKOS.definition, "en"), "module": module(s),
+                        "scope_note_en": lit(s, SKOS.scopeNote, "en"), "scope_note_vi": lit(s, SKOS.scopeNote, "vi"),
                         "concepts": concepts})
     modules = []
     ms = next(x for x in schemes if x["curie"] == "vlo:ModuleScheme")
@@ -313,7 +323,9 @@ def gather_ontology():
         cnt["concept_schemes"] = sum(1 for x in schemes if x["module"] == note)
         modules.append({"notation": note, "label_en": lit(c, SKOS.prefLabel, "en"),
                         "label_vi": lit(c, SKOS.prefLabel, "vi"),
-                        "definition_en": lit(c, SKOS.definition, "en"), "counts": cnt})
+                        "definition_en": lit(c, SKOS.definition, "en"),
+                        "scope_note_en": lit(c, SKOS.scopeNote, "en"), "scope_note_vi": lit(c, SKOS.scopeNote, "vi"),
+                        "counts": cnt})
     order = ["documents", "provisions", "agents", "validity-change", "citation-basis", "judiciary",
              "qa", "terminology", "news", "classification", "provenance"]
     modules.sort(key=lambda m: order.index(m["notation"]) if m["notation"] in order else 99)
@@ -330,6 +342,9 @@ def gather_ontology():
         "version": str(g.value(onto, OWL.versionInfo)), "version_iri": str(g.value(onto, OWL.versionIRI)),
         "license": str(g.value(onto, DCTERMS.license)), "created": str(g.value(onto, DCTERMS.created)),
         "modified": str(g.value(onto, DCTERMS.modified)),
+        "prior_version": str(g.value(onto, OWL.priorVersion) or ""),
+        "editorial_note_en": lit(onto, SKOS.editorialNote, "en"),
+        "editorial_note_vi": lit(onto, SKOS.editorialNote, "vi"),
         "description_en": lit(onto, DCTERMS.description, "en"),
         "triples": len(g), "iri": str(onto), "namespace": VLO, "instance_base": C.ID,
     }
@@ -354,7 +369,7 @@ RECIPES = [
     {"id": "r1", "title": "What replaced an act?", "base": "r1_replaced_by", "sparql_on": ["core", "full"]},
     {"id": "r2", "title": "Amendment history", "base": "r2_amendment_history", "sparql_on": ["core", "full"]},
     {"id": "r3", "title": "Legal-basis chain", "base": "r3_legal_basis_chain", "sparql_on": ["core", "full"]},
-    {"id": "r4", "title": "Articles most applied by courts", "base": "r4_court_articles", "sparql_on": ["full"]},
+    {"id": "r4", "title": "Articles most cited in Q&A answers", "base": "r4_qa_articles", "sparql_on": ["full"]},
     {"id": "r5", "title": "Q&As citing an article", "base": "r5_qa_citing_article", "sparql_on": ["full"]},
     {"id": "r6", "title": "Terms of a legal area", "base": "r6_terms_of_area", "sparql_on": ["full"]},
 ]
@@ -509,8 +524,22 @@ def gather_pins():
     pins["web_env"] = dict(sorted(m.groups() for m in re.finditer(r"^([A-Za-z0-9_.\-]+)==([^\s\\;]+)", req, re.M)))
     kg_pkgs = ["duckdb", "polars", "pyarrow", "pyoxigraph", "rdflib", "pyshacl", "owlrl", "pylode",
                "huggingface-hub", "igraph"]
-    pins["kg_env"] = {p: md.version(p) for p in kg_pkgs}
+    kg_env = {}
+    for p in kg_pkgs:
+        try:
+            kg_env[p] = md.version(p)
+        except md.PackageNotFoundError:   # not needed by the build (e.g. huggingface-hub: snapshots already on disk)
+            pass
+    # pyLODE: the release that wrote ontology/vlonto.html (it links its release page), which can differ from the
+    # package installed here (pyLODE 3.6.1 needs Python >= 3.12; the v1 build ran it from a separate install)
+    html = (REPO / "ontology" / "vlonto.html").read_text(encoding="utf-8")
+    m = re.search(r"pyLODE/release/([0-9][0-9A-Za-z.]*)", html)
+    if m:
+        kg_env["pylode"] = m.group(1)
+    pins["kg_env"] = kg_env
     pins["kg_python"] = sys.version.split()[0]
+    import platform
+    pins["platform"] = {"system": platform.system(), "machine": platform.machine()}
     rc, out, _ = run([str(V / "tools" / "typst" / "typst"), "--version"])
     pins["typst"] = out.strip()
     rc, out, _ = run([str(V / "envs" / "web" / "bin" / "pandoc"), "--version"])
@@ -539,8 +568,11 @@ RELEASE = [("rdf/vlonto-kg.nt.gz", RDF / "vlonto-kg.nt.gz"), ("rdf/vlonto-core.t
            ("ontology/vlonto-context.jsonld", REPO / "ontology" / "vlonto-context.jsonld"),
            ("ontology/vlonto.html", REPO / "ontology" / "vlonto.html"),
            ("kg/data_dictionary.json", KG / "data_dictionary.json"),
-           ("kg/data_dictionary.md", KG / "data_dictionary.md"),
-           ("code/vlonto-kg-code-0.1.0.tar.gz", BUILD / "release" / "vlonto-kg-code-0.1.0.tar.gz")]
+           ("kg/data_dictionary.md", KG / "data_dictionary.md")]
+# a code tarball of the build is listed only if the release step made one (the code itself is in the repository)
+CODE_TARBALL = BUILD / "release" / f"vlonto-kg-code-{C.VERSION}.tar.gz"
+if CODE_TARBALL.is_file():
+    RELEASE.append((f"code/{CODE_TARBALL.name}", CODE_TARBALL))
 
 
 def gather_checksums():
@@ -549,6 +581,19 @@ def gather_checksums():
     for name, p in sorted(files):
         out.append({"path": name, "bytes": p.stat().st_size, "sha256": sha256(p)})
     return out
+
+
+def gather_traces():
+    """Counts of the website's question traces ($V/build/traces/index.json, one trace per most-asked article of each
+    legal area), if the trace data is in the build folder; None otherwise. Counts only: no question or answer text."""
+    p = BUILD / "traces" / "index.json"
+    if not p.is_file():
+        return None
+    d = read_json(p)
+    per_area = sorted({a["n_traces"] for a in d["areas"]})
+    return {"areas": d["totals"]["areas"], "traces": d["totals"]["traces"],
+            "traces_verified": d["totals"].get("traces_verified"), "per_area": per_area,
+            "area_files": len(d["areas"])}
 
 
 def summarize_json(path):
@@ -623,16 +668,21 @@ def figure_data(facts, g):
              "datatype_properties": m["counts"]["datatype_property"],
              "other": m["counts"]["annotation_property"] + m["counts"]["concept_schemes"]}
             for m in facts["ontology"]["modules"]]
-    by_src = st["court_decisions_by_source"]
+    # the source datasets of this build only (C.SOURCES: the court datasets are read only when the build includes them)
+    by_src = st.get("court_decisions_by_source") or {}
+    box = {
+        "thuvienphapluat-vn-vbpl": ("vbpl", "legal documents", st["documents"], "documents in scope"),
+        "thuvienphapluat-vn-hdpl": ("hdpl", "legal Q&A", st["legal_questions"], "Q&As"),
+        "thuvienphapluat-vn-tnpl": ("tnpl", "legal terms", st["legal_terms"], "terms"),
+        "thuvienphapluat-vn-htpl": ("htpl", "legal news", st["news_articles"], "news items"),
+        "anle-toaan-gov-vn": ("anle", "precedents, decisions", by_src.get("anle", 0), "decisions"),
+        "cbba-toaan-gov-vn": ("cbba", "court judgments", by_src.get("cbba", 0), "decisions"),
+    }
+    words = {1: "One", 2: "Two", 3: "Three", 4: "Four", 5: "Five", 6: "Six", 7: "Seven", 8: "Eight"}
+    sources = [{"name": box[k][0], "what": box[k][1], "n": f"{box[k][2]:,}", "unit": box[k][3]} for k in C.SOURCES]
     arch = {
-        "sources": [
-            {"name": "vbpl", "what": "legal documents", "n": f"{st['documents']:,}", "unit": "documents in scope"},
-            {"name": "hdpl", "what": "legal Q&A", "n": f"{st['legal_questions']:,}", "unit": "Q&As"},
-            {"name": "tnpl", "what": "legal terms", "n": f"{st['legal_terms']:,}", "unit": "terms"},
-            {"name": "htpl", "what": "legal news", "n": f"{st['news_articles']:,}", "unit": "news items"},
-            {"name": "anle", "what": "precedents, decisions", "n": f"{by_src['anle']:,}", "unit": "decisions"},
-            {"name": "cbba", "what": "court judgments", "n": f"{by_src['cbba']:,}", "unit": "decisions"},
-        ],
+        "sources": sources,
+        "sources_title": f"{words.get(len(sources), len(sources))} source datasets",
         "articles": f"{st['articles']:,}", "changes": f"{st['change_events']:,}",
         "tables": len([t for t in facts["data_dictionary"] if not t["local_only"]]),
         "triples": f"{st['rdf_triples']:,}", "core_triples": f"{st['core_ttl_triples']:,}",
@@ -666,13 +716,17 @@ def main():
     facts["checksums"] = gather_checksums()
     facts["site_bundles"] = {n: summarize_json(SITE / f"{n}.json")
                              for n in ("ontology_graph", "legal_network", "legal_network_lite")}
+    facts["traces"] = gather_traces()
     facts["examples"] = gather_examples(a.reuse_store)
     from pyoxigraph import Store
     full = Store(str(WORK / "vlonto-store"))
     facts["recipes"] = gather_recipes(full)
     del full
-    facts["config"] = {"version": C.VERSION, "build_date": C.BUILD_DATE, "validity_as_of": C.VALIDITY_AS_OF,
-                       "sources": C.SOURCES, "namespace": C.VLO, "instance_base": C.ID,
+    facts["config"] = {"version": C.VERSION, "release": getattr(C, "RELEASE", C.VERSION), "build_date": C.BUILD_DATE,
+                       "validity_as_of": C.VALIDITY_AS_OF, "sources": C.SOURCES,
+                       "courts_included": bool(getattr(C, "INCLUDE_COURTS", True)),
+                       "deferred_sources": getattr(C, "DEFERRED_SOURCES", {}),
+                       "namespace": C.VLO, "instance_base": C.ID,
                        "processed": {k: rel(v) for k, v in C.PROCESSED.items()}}
     figures = figure_data(facts, g)
     facts["provenance"] = dict(sorted(PROV.items()))

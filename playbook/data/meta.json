@@ -1,6 +1,6 @@
 {
  "author": "tmquan",
- "date": "2026-11-11",
+ "date": "2026-11-12",
  "disclaimer": "Not legal advice and not an official legal text. Relations are extracted automatically and may be wrong; read the source documents.",
  "keyfigures": [
   {
@@ -12,8 +12,8 @@
    "value": "436,309"
   },
   {
-   "label": "court decisions",
-   "value": "1,544,091"
+   "label": "dated change events",
+   "value": "15,035"
   },
   {
    "label": "legal Q&As (metadata)",
@@ -21,11 +21,11 @@
   },
   {
    "label": "RDF triples",
-   "value": "31,516,606"
+   "value": "6,963,753"
   },
   {
    "label": "build checks passed",
-   "value": "18 / 18"
+   "value": "20 / 20"
   }
  ],
  "keywords": [
@@ -43,6 +43,7 @@
  "kicker": "Vietnamese legal ontology and knowledge graph",
  "lang": "en",
  "licence": "Ontology and documentation: CC BY 4.0, creator tmquan. Knowledge-graph data: see the licence and attribution appendix.",
+ "release": "v1",
  "subtitle": "Build, validate, query and use the Vietnamese legal knowledge graph",
- "version": "0.1.0"
+ "version": "1.0.0"
 }

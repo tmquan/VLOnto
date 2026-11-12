@@ -103,6 +103,16 @@ Any check exits 124 when it reaches the per-check limit (summary: TIMEOUT). `ci_
 exit 0 and the merged report says PASS; otherwise the job fails. The summary lists up to 60 failures, with the last log
 lines for a check that stopped without writing results.
 
+## Playbook PDF reproduction (job `reproduce-pdf`)
+
+The workflow also runs the `reproduce-pdf` job of `pages.yml` on the same preview branch: `tools/fetch_typst.sh`
+installs the Typst release pinned in `tools/versions.lock` (Linux musl build, sha256-checked),
+`scripts/build_pdf.sh --pdf-only` rebuilds the playbook PDF from the committed `playbook/playbook.typ`, and `cmp`
+compares it with `site/downloads/VLOnto-playbook.pdf`. The job fails on any byte difference and then uploads the
+rebuilt PDF as the artifact `reproduce-pdf-<run id>`. It runs in a few minutes, independently of the browser checks, so a
+PDF built on another machine (the v1 PDF was built on macOS with the macOS build of the same Typst release) is known to
+match the Linux build before `main` publishes it.
+
 ## Differences from the node's release job
 
 - Runner: GitHub-hosted ubuntu-24.04 (the standard runner for public repositories has 4 vCPUs and 16 GiB); frame rates in the report are lower
@@ -127,7 +137,7 @@ On the build node, `scripts/site/check.sh` stays the tool.
 ## Files
 
 - `.github/workflows/preview.yml` — the workflow (actions pinned to commit SHAs: checkout v7.0.1, setup-python v7.1.0,
-  upload-artifact v7.0.2)
+  upload-artifact v7.0.2); jobs `site-check` and `reproduce-pdf`
 - `scripts/site/ci_setup.sh` — toolchain installer and smoke test
 - `scripts/site/ci_requirements.py` — test-time subset of `tools/requirements-web.lock`, import coverage check
 - `scripts/site/ci_check.sh` — runs the checks and the report, decides PASS/FAIL

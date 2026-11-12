@@ -5,24 +5,25 @@ Three read-only functions over the VLOnto parquet tables (DuckDB, in process):
   check_validity(doc_number)                  validity, replacing acts and
                                               amendments with their evidence
   expand_citations(doc_number, article_no)    what an article cites, what cites
-                                              it, how often courts and Q&As use it
-  related_provisions(doc_number, article_no)  articles used together with it in
-                                              Q&A answers and court decisions
+                                              it, how many Q&A answers cite it
+  related_provisions(doc_number, article_no)  articles cited together with
+                                              it in Q&A answers
 
 Each function returns a plain dict; to_text() turns it into the short text an
 agent tool returns to the model. Co-citation is a usage signal, not a statement
-that two provisions are legally related.
+that two provisions are legally related. VLOnto v1 has no court decisions (they
+join in v2), so the usage signals come from the published Q&As.
 """
 import textwrap
 
 import duckdb
 
 TABLES = ("documents", "articles", "changes", "edges_citation",
-          "edges_qa_article", "edges_decision_provision")
+          "edges_qa_article")
 SUPERSEDING = ("replaced", "repealed")
 
-# co-citation: articles used in the same Q&A answers (or decisions) as article ?,
-# scored by shared * ln(N / df) so that articles cited almost everywhere rank low
+# co-citation: articles cited in the same Q&A answers as article ?, scored by
+# shared * ln(N / df) so that articles cited almost everywhere rank low
 RELATED_SQL = """
 WITH s AS (SELECT DISTINCT {unit} FROM {table} WHERE dst_article_id = ?),
 co AS (SELECT e.dst_article_id AS aid, count(DISTINCT e.{unit}) AS shared
@@ -126,25 +127,19 @@ class VLOntoTools:
             "cites": self._rows(CITES_SQL, [aid, limit]),
             "cited_by_count": len(cited_by),
             "cited_by": cited_by[:limit],
-            "court_decisions": self._count(
-                "edges_decision_provision", "decision_id", aid),
             "qas": self._count("edges_qa_article", "qa_id", aid),
         }
 
     def related_provisions(self, doc_number, article_no, limit=3,
                            min_shared=2):
-        """Articles cited in the same Q&A answers / applied in the same
-        decisions, ranked by shared * ln(N / df): the number of shared Q&As
-        (decisions) weighted by how rare the other article is, so that
-        boilerplate articles (court fees, enforcement) do not dominate."""
+        """Articles cited in the same Q&A answers, ranked by
+        shared * ln(N / df): the number of shared Q&As weighted by how rare
+        the other article is, so that articles cited in almost every answer
+        do not dominate."""
         aid = self._article(doc_number, article_no)["article_id"]
-        out = {"article": f"{doc_number} Điều {article_no}"}
-        sources = (("in_qas", "edges_qa_article", "qa_id"),
-                   ("in_decisions", "edges_decision_provision", "decision_id"))
-        for key, table, unit in sources:
-            sql = RELATED_SQL.format(table=table, unit=unit)
-            out[key] = self._rows(sql, [aid, aid, min_shared, limit])
-        return out
+        sql = RELATED_SQL.format(table="edges_qa_article", unit="qa_id")
+        return {"article": f"{doc_number} Điều {article_no}",
+                "in_qas": self._rows(sql, [aid, aid, min_shared, limit])}
 
 
 def _wrap(text, indent="    ", width=78):
@@ -182,17 +177,15 @@ def to_text(result):
         for c in result["cited_by"]:
             lines.append(f"    {c['doc_number']}{_art(c['article_no'])} "
                          f"(issued {c['issue_date']})")
-        lines.append(f"  applied in {result['court_decisions']:,} court "
-                     f"decisions; cited in {result['qas']:,} Q&A answers")
+        lines.append(f"  cited in {result['qas']:,} Q&A answers")
     else:
-        lines.append(f"{result['article']}: provisions used together with it")
-        for key, unit in (("in_qas", "Q&As"), ("in_decisions", "decisions")):
-            lines.append(f"  in {unit} (shared / all citing it / score):")
-            for r in result[key]:
-                head = textwrap.shorten(r["heading"] or "-", width=52,
-                                        placeholder=" …")
-                lines.append(f"    {r['doc_number']}{_art(r['article_no'])}: "
-                             f"{head}")
-                lines.append(f"      {r['shared']:,} / {r['df']:,} / "
-                             f"{r['score']}")
+        lines.append(f"{result['article']}: provisions cited together with it")
+        lines.append("  in Q&As (shared / all citing it / score):")
+        for r in result["in_qas"]:
+            head = textwrap.shorten(r["heading"] or "-", width=52,
+                                    placeholder=" …")
+            lines.append(f"    {r['doc_number']}{_art(r['article_no'])}: "
+                         f"{head}")
+            lines.append(f"      {r['shared']:,} / {r['df']:,} / "
+                         f"{r['score']}")
     return "\n".join(lines)

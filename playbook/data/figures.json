@@ -2,8 +2,8 @@
  "architecture": {
   "articles": "436,309",
   "changes": "15,035",
-  "checks": "18/18",
-  "core_triples": "49,923",
+  "checks": "20/20",
+  "core_triples": "49,846",
   "sources": [
    {
     "n": "40,816",
@@ -28,22 +28,11 @@
     "name": "htpl",
     "unit": "news items",
     "what": "legal news"
-   },
-   {
-    "n": "1,844",
-    "name": "anle",
-    "unit": "decisions",
-    "what": "precedents, decisions"
-   },
-   {
-    "n": "1,542,247",
-    "name": "cbba",
-    "unit": "decisions",
-    "what": "court judgments"
    }
   ],
-  "tables": 27,
-  "triples": "31,516,606"
+  "sources_title": "Four source datasets",
+  "tables": 21,
+  "triples": "6,963,753"
  },
  "changes": {
   "before_first_year": 99,

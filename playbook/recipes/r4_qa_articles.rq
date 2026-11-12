@@ -1,13 +1,14 @@
 PREFIX vlo:  <https://tmquan.github.io/VLOnto/ontology#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
-# Articles applied by the most decisions; a clause or point target is
+# Articles cited by the most Q&A answers; a clause or point target is
 # rolled up to its article with vlo:isPartOf*.
-SELECT ?label (COUNT(DISTINCT ?decision) AS ?decisions) WHERE {
-  ?decision vlo:appliesProvision ?target .
+SELECT ?label (COUNT(DISTINCT ?question) AS ?qas) WHERE {
+  ?question vlo:hasAnswer ?answer .
+  ?answer vlo:answerCitesProvision ?target .
   ?target vlo:isPartOf* ?article .
   ?article a vlo:Article ;
            rdfs:label ?label .
 }
-GROUP BY ?label
-ORDER BY DESC(?decisions) ?label
+GROUP BY ?article ?label
+ORDER BY DESC(?qas) ?label
 LIMIT 10
