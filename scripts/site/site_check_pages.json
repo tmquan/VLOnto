@@ -6,10 +6,11 @@
     {"path": "network-3d.html", "ready": "window.__VLONTO_READY === true", "ready_timeout_ms": 240000, "min_canvases": 1,
      "expect_webgl": true, "settle_ms": 1500, "fail_on_warning": ["Multiple instances of Three\\.js"]},
     {"path": "sparql.html", "ready": "window.__VLONTO_READY === true", "ready_timeout_ms": 90000, "settle_ms": 600},
-    {"path": "dashboard.html", "ready": "window.__VLONTO_READY === true", "ready_timeout_ms": 90000, "min_canvases": 13, "settle_ms": 1200},
+    {"path": "dashboard.html", "ready": "window.__VLONTO_READY === true", "ready_timeout_ms": 90000, "min_canvases": 10, "settle_ms": 1200},
     {"path": "ontology.html", "ready": "window.__VLONTO_READY === true", "settle_ms": 1500},
     {"path": "playbook.html", "ready": "window.__VLONTO_READY === true", "settle_ms": 600},
     {"path": "downloads.html", "ready": "window.__VLONTO_READY === true", "settle_ms": 600},
+    {"path": "traces.html", "ready": "window.__VLONTO_READY === true", "ready_timeout_ms": 90000, "settle_ms": 800},
     {"path": "ontology/vlonto.html", "settle_ms": 800}
   ]
 }

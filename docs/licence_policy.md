@@ -31,6 +31,8 @@ General rules, all sources:
 3. **Derived edges are VLOnto's own work.** Resolved citation, legal-basis, change and mention edges, with the method that produced them, are released with VLOnto.
 4. **Full statutory text is not redistributed** (see 2.1). Each document and provision keeps its source URL so that users read the text at the source.
 
+Exception to rule 2, on the website only (not in the KG tables or dumps): the Traces page shows the titles of the questions it traces (see 2.2).
+
 ### 2.1 `vbpl` — legal documents (CC BY 4.0 metadata)
 
 | Included | Excluded |
@@ -51,6 +53,8 @@ General rules, all sources:
 | Q&A id, source URL, published date, category slug, legal area | `question`, `answer`, `answer_html`, `summary` (text, © thuvienphapluat.vn) |
 | derived citation edges: Q&A → document, Q&A → article (+ clause/point), with the resolution method and the short reference string (e.g. *Điều 50 Luật Việc làm*) | `keywords` (derived from the text) |
 | | `author` (person name), `content_flags` (contain text snippets) |
+
+**Traces page (website only).** The Traces page (`site/traces.html`, data `site/data/traces/`, built by `scripts/traces/` and `scripts/site/trace_site.py`) shows 540 traces in 27 legal areas. For the 538 questions it traces it shows the `summary` field (the question's title as published on thuvienphapluat.vn) with the source URL and a machine-assisted English gloss of at most 15 words, marked as machine-assisted on the page; and VLOnto's derived scores (word 5-gram containment between the answer and the cited provision). It shows no `question`, `answer` or `answer_html` text, no `keywords`, `author` or `content_flags`. The build reads answer texts in memory to compute the scores and writes only the scores; the citations as written in the answers are dropped, and the other answers of an area are shown by their id (*Câu hỏi #id · Question #id*). Titles that hold a person name are not selected (regular expressions and a model check; the one title the model flagged is kept in the build cache only as a SHA-256 hash). The titles remain subject to the source terms of thuvienphapluat.vn.
 
 ### 2.3 `tnpl` — legal terms (`other`, community-authored)
 
@@ -84,6 +88,7 @@ Judgment text could be redistributed under the cards, but VLOnto does not need i
 ## 3. Licence of VLOnto outputs
 
 * Ontology (`vlonto.ttl`, `vlonto-shapes.ttl`, documentation): **CC BY 4.0**, creator tmquan.
+* Website Traces page data (`site/data/traces/`): VLOnto's traces, scores and drawings under **CC BY 4.0**; the titles of the 538 traced questions it holds remain subject to the source terms of thuvienphapluat.vn (see 2.2).
 * Knowledge-graph tables and RDF dumps: VLOnto's own contributions (resolution, structure, derived edges, validity) are released under **CC BY 4.0**; records derived from the `other`-licensed sources (`hdpl`, `tnpl`, `htpl`) contain only identifiers, links, dates, categories, short labels and derived edges, and remain subject to the source terms of thuvienphapluat.vn.
 * Every source dataset of the build is described in the graph as a `vlo:SourceDataset` with revision, licence IRI and attribution text, and every node carries `vlo:sourceDataset`. Release v1 describes the four thuvienphapluat.vn datasets; the court datasets appear from v2.
 

@@ -6,7 +6,7 @@
   M.page = 'ontology';
   var S = window.VLONTO.stats || {}, OG = window.VLONTO.ontology_graph;
   var O = S.ontology || {};
-  VL.$('#ver').textContent = OG.version || S.version || '0.1.0';
+  VL.$('#ver').textContent = OG.version || VL.VERSION;
 
   function size(path) { var f = VL.fileListed(path); return f ? ' · ' + (f.bytes > 1048576 ? (Math.round(f.bytes / 104857.6) / 10) + ' MB' : Math.round(f.bytes / 1024) + ' KB') : ''; }
   VL.$('#dl-buttons').innerHTML = [

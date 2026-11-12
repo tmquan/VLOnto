@@ -11,7 +11,11 @@
   M.t0 = Math.round(performance.now());
   window.__VLONTO_READY = false;
 
-  VL.VERSION = '0.1.0';
+  /* The release. VL.VERSION is the machine-readable version (stats.version of the v1 build); the site names the release
+     only through VL.releaseLabel() ('VLOnto v1' for every 1.x.y). Static pages carry <span data-vl-release> and
+     <span data-vl-version> placeholders that VL.chrome() fills in; scripts/site/build_site.py reads VL.VERSION from here. */
+  VL.VERSION = '1.0.0';
+  VL.releaseLabel = function () { return 'VLOnto v' + VL.VERSION.split('.')[0]; };
   VL.NS = {
     vlo: 'https://tmquan.github.io/VLOnto/ontology#',
     id: 'https://tmquan.github.io/VLOnto/id/'
@@ -33,11 +37,13 @@
     ['vann', 'http://purl.org/vocab/vann/']
   ];
 
-  /* index.html is the 3D ontology playground (the landing page); about.html is the overview; ontology-3d.html redirects */
+  /* index.html is the 3D ontology playground (the landing page); about.html is the overview; ontology-3d.html redirects;
+     vi = a Vietnamese label shown before the English one ("Truy vết · Traces") */
   VL.PAGES = [
     { href: 'index.html', label: '3D Ontology' },
     { href: 'network-3d.html', label: '3D Legal Network' },
     { href: 'sparql.html', label: 'SPARQL' },
+    { href: 'traces.html', label: 'Traces', vi: 'Truy vết' },
     { href: 'dashboard.html', label: 'Dashboard' },
     { href: 'ontology.html', label: 'Ontology docs' },
     { href: 'playbook.html', label: 'Playbook' },
@@ -129,7 +135,7 @@
   VL.typeVar = function (code) { return TYPE_KEY[code] ? 'var(--type-' + TYPE_KEY[code] + ')' : 'var(--hue-slate)'; };
 
   /* The paper. Cite it by title, authors, arXiv link and BibTeX only: its graph numbers come from a different build,
-     every number on this site is computed from this release (VLOnto 0.1.0). */
+     every number on this site is computed from this release (VL.releaseLabel()). */
   VL.PAPER = {
     title: 'Vietnamese Legal Ontology: Every legal answer, traced to the article that grounds it',
     authors: 'Khac-Hoai Nam Bui, Quan Tran Minh',
@@ -145,7 +151,7 @@
       '  primaryClass  = {cs.CL},\n' +
       '  url           = {https://arxiv.org/abs/2611.11426}\n' +
       '}',
-    note: 'The approach is described in the paper above; numbers here are computed from the VLOnto 0.1.0 release and can differ from the paper\u2019s.'
+    note: 'The approach is described in the paper above; numbers here are computed from the ' + VL.releaseLabel() + ' release and can differ from the paper\u2019s.'
   };
 
   /* ------------------------------------------------------------------ text helpers */
@@ -372,6 +378,7 @@
     book: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 21H20v-3"/></svg>',
     docs: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 13h7M9 17h7"/></svg>',
     copy: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>',
+    trace: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="5.5" cy="18.5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="18.5" cy="5.5" r="2.2"/><circle cx="18.5" cy="18.5" r="1.5"/><path d="M7.1 16.9l3.3-3.3M13.6 10.4l3.3-3.3M13.6 13.6l3.8 3.8"/></svg>',
     layers: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg>'
   };
   var LOGO = '<svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="8" fill="#2b55d0"/>' +
@@ -382,8 +389,8 @@
   VL.meta = function () { return window.VLONTO.site_meta || {}; };
   VL.attribution = function (lang) {
     var m = VL.meta();
-    var fb = 'VLOnto is derived from six datasets published on Hugging Face by TMQuan (sources thuvienphapluat.vn, ' +
-      'anle.toaan.gov.vn and congbobanan.toaan.gov.vn). Extracted relations are produced automatically and may be wrong. ' +
+    var fb = 'VLOnto is derived from four datasets published on Hugging Face by TMQuan (source thuvienphapluat.vn). ' +
+      'Extracted relations are produced automatically and may be wrong. ' +
       'VLOnto is not an official legal text and is not legal advice.';
     return VL.nfc(lang === 'vi' ? (m.attribution_vi || fb) : (m.attribution_en || fb));
   };
@@ -394,7 +401,8 @@
     var here = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
     if (!/\.html$/.test(here)) here = 'index.html';
     var nav = VL.PAGES.map(function (p) {
-      return '<a href="' + p.href + '"' + (p.href === here ? ' aria-current="page"' : '') + '>' + VL.esc(p.label) + '</a>';
+      return '<a href="' + p.href + '"' + (p.href === here ? ' aria-current="page"' : '') + '>' +
+        (p.vi ? '<span lang="vi">' + VL.esc(p.vi) + '</span> · ' : '') + VL.esc(p.label) + '</a>';
     }).join('') +
       '<a class="ext" href="' + VL.PAPER.url + '" target="_blank" rel="noopener" data-paper-link="nav" title="' +
       VL.esc(VL.PAPER.title) + ' (arXiv:' + VL.PAPER.arxiv + ')">Paper' + VL.ICON.external + '<span class="sr-only"> (arXiv, opens in a new tab)</span></a>';
@@ -428,7 +436,7 @@
         VL.esc(VL.PAPER.short) + ', arXiv:' + VL.PAPER.arxiv + '</a>';
       if (opts.scene) {
         ftr.outerHTML = '<footer class="vl-footbar"><strong>Not legal advice.</strong>' +
-          '<span class="grow">Data: <span class="fb-md">six public </span>datasets by TMQuan<span class="fb-lg"> (thuvienphapluat.vn, toaan.gov.vn)</span>' +
+          '<span class="grow">Data: <span class="fb-md">four public </span>datasets by TMQuan<span class="fb-lg"> (thuvienphapluat.vn)</span>' +
           '<span class="fb-xl">; relations are extracted automatically and may be wrong</span>.</span>' +
           citeLink + '<a href="about.html#licences">Attribution</a></footer>';
       } else {
@@ -439,11 +447,14 @@
           '<p>Validity is derived automatically (as of ' + VL.esc(S.validity_as_of || '2026-11-08') + ') and is unknown for many documents. ' +
           'Always read the document at its source before relying on it.</p>' +
           '<p>Ontology and VLOnto’s own data: CC BY 4.0. Fonts: SIL OFL 1.1. Libraries: MIT / Apache-2.0 (see Downloads).</p></div>' +
-          '<div class="meta">VLOnto ' + VL.esc(S.version || VL.VERSION) + ' · built ' + VL.esc(S.build_date || '2026-11-11') +
+          '<div class="meta">' + VL.esc(VL.releaseLabel()) + ' · built ' + VL.esc(S.build_date || '2026-11-11') +
           ' · <a href="downloads.html">Downloads and checksums</a> · <a href="about.html#cite">How to cite</a> · <a href="about.html#licences">Licences</a></div>' +
           '</div></footer>';
       }
     }
+    /* the release name and version wherever a page carries a placeholder */
+    VL.$$('[data-vl-release]').forEach(function (e) { e.textContent = VL.releaseLabel(); });
+    VL.$$('[data-vl-version]').forEach(function (e) { e.textContent = VL.VERSION; });
     VL.paperBlocks(document);
     /* embedded documents (pyLODE) follow this page's theme from their first load on */
     VL.$$('iframe').forEach(function (f) {

@@ -1,0 +1,90 @@
+{
+ "version": "0.1.0-traces.1",
+ "generated": "2026-11-12",
+ "source_revisions": {
+  "tmquan/thuvienphapluat-vn-hdpl": "e814ecbfa1a1c0c32727c2f2ad2498d52f04b8bd",
+  "tmquan/thuvienphapluat-vn-vbpl": "705ade585384108ded5fc30f40a06fe110bdff22",
+  "tmquan/thuvienphapluat-vn-tnpl": "f94d1e24852f233e85330c6d5093f43adbddde29"
+ },
+ "method": {
+  "links": "Q&A -> article links are the VLOnto 0.1.0 KG edges_qa_article (34,869 rows, 22,523 Q&As), rebuilt from the source datasets with the pipeline's clean, chunk, fix_docnums and eval_retrieval gold stages (v1 labels, as used by the KG).",
+  "areas": "The 27 hdpl areas; id = hdpl category slug; Vietnamese label from hdpl 'area'; English label from VLOnto's legal-area scheme (vlonto config AREA_LABELS).",
+  "ranking": "Per area, articles ranked by the number of distinct answers in the area that cite them; ties: more answers overall, then the newer law (issue date), then article id. Top 20 per area.",
+  "representative": "One answer per article from the same area: titles without person names first, then answers that quote the article word for word (match >= 0.5), then answers not already used for a higher-ranked article, then the most recent published date.",
+  "match": "Word 5-gram containment of the cited provision's text in the answer text (paper, Section 4 and Table 6): share of the provision's 5-grams found in the answer. Provision = the most specific cited unit found in the parsed article (point > clause > article). verified = match >= 0.5. match_4gram is given for reference.",
+  "trace": "Question, answer, every provision the answer cites that resolves to a parsed article (point -> clause -> article -> section -> chapter -> work), documents cited as a whole (work), the vbpl record of the ranked article's law, up to 3 tnpl terms named in the question title or text with the clause or point that defines them in the laws of the trace (pattern 'X là ...', match = tnpl definition 5-grams in that unit), the area, and up to 20 other answers in the same area that cite the same law (up to 3 on the ranked article, then one per article in turn). At most 60 nodes unless the answer's own sources need more.",
+  "highlight": "on_trace = on a verified path or on the primary path (the answer's citation of the ranked article). verified = on a verified path (drawn as the paper's dark navy path with golden halo). On 'cites' links of other answers, verified = that answer's citation matches >= 0.5.",
+  "labels": "Điều N / Art. N; Khoản K Điều N / Art. N(K); Điểm P khoản K Điều N / Art. N(K)(P); Chương / Chapter; Mục / Section; codes and laws as '<name> <year>', other documents as '<type> <number>'. English law names from the vbpl English records (normalised), else machine-assisted; English question glosses are machine-assisted (<= 15 words).",
+  "licence": "No answer text, no article, clause or point text, no person names. Question titles are shown for the traced questions (user decision 2026-11-12); other answers carry their title only when it is at most 70 characters and free of person names. refs are citations as written in the answer (<= 160 characters).",
+  "format": "Booleans on_trace and verified are present only when true; url only when known. Node ids follow the KG: <doc>::dieu-N[::khoan-K][::diem-P], <doc>::chuong-x[/muc-y]; q:/a:/oq:<hdpl id>, term:<tnpl id>, wk:<document number>, vbpl:<doc id>, area:<slug>. provenance.dataset: hdpl, vbpl or tnpl (see source_revisions)."
+ },
+ "classes": [
+  {
+   "cls": "work",
+   "vi": "Văn bản",
+   "en": "Work"
+  },
+  {
+   "cls": "record",
+   "vi": "Bản ghi",
+   "en": "Record"
+  },
+  {
+   "cls": "chapter",
+   "vi": "Chương",
+   "en": "Chapter"
+  },
+  {
+   "cls": "section",
+   "vi": "Mục",
+   "en": "Section"
+  },
+  {
+   "cls": "article",
+   "vi": "Điều",
+   "en": "Article"
+  },
+  {
+   "cls": "clause",
+   "vi": "Khoản",
+   "en": "Clause"
+  },
+  {
+   "cls": "point",
+   "vi": "Điểm",
+   "en": "Point"
+  },
+  {
+   "cls": "term",
+   "vi": "Thuật ngữ",
+   "en": "Term"
+  },
+  {
+   "cls": "question",
+   "vi": "Câu hỏi",
+   "en": "Question"
+  },
+  {
+   "cls": "answer",
+   "vi": "Trả lời",
+   "en": "Answer"
+  },
+  {
+   "cls": "area",
+   "vi": "Lĩnh vực",
+   "en": "Area"
+  },
+  {
+   "cls": "other_question",
+   "vi": "Câu hỏi khác",
+   "en": "Other question"
+  }
+ ],
+ "totals": {
+  "areas": 27,
+  "traces": 540,
+  "traces_verified": 310,
+  "nodes_median": 46.0,
+  "terms": 785
+ }
+}

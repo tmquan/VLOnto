@@ -793,7 +793,6 @@
       '<dt>Basis for</dt><dd>' + VL.fmt(C.basis_in[fi]) + ' documents</dd>' +
       '<dt>Citations</dt><dd>cites ' + VL.fmt(C.cite_out[fi]) + ' · cited by ' + VL.fmt(C.cite_in[fi]) + ' documents</dd>' +
       '<dt>Q&amp;As</dt><dd>' + VL.fmt(C.qa[fi]) + ' legal Q&amp;As cite it</dd>' +
-      '<dt>Court decisions</dt><dd>' + VL.fmt(C.decisions[fi]) + ' apply it</dd>' +
       '<dt>News</dt><dd>' + VL.fmt(C.news[fi]) + ' articles mention it</dd>' +
       '<dt>Articles</dt><dd>' + VL.fmt(C.n_articles[fi]) + '</dd></dl>';
     h += '<h3>Source and identifiers</h3><dl class="kv">';

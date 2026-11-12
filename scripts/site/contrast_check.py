@@ -35,7 +35,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 SCENES = ("index.html", "network-3d.html")   # WebGL pages (index.html is the 3D ontology playground)
 PAGES = ["index.html", "about.html", "network-3d.html", "sparql.html", "dashboard.html", "ontology.html",
-         "playbook.html", "downloads.html", "ontology/vlonto.html"]
+         "playbook.html", "downloads.html", "traces.html", "ontology/vlonto.html"]
 TOL = 0.05   # rounding / anti-aliasing tolerance on the ratio
 
 HIDE_ON = """() => { if (document.getElementById('cc-hide')) return; const s = document.createElement('style'); s.id = 'cc-hide';

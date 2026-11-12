@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script>/* theme before first paint: ?theme=, else stored choice, else system (css/site.css, js/common.js) */(function(d,w){var t=null,m=/[?&]theme=(light|dark)(?:&|$)/.exec(w.location.search);if(m)t=m[1];else{try{t=w.localStorage.getItem('vlonto.theme')}catch(e){}if(t!=='light'&&t!=='dark'){try{t=w.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}catch(e){t='light'}}}d.setAttribute('data-theme',t);d.style.colorScheme=t})(document.documentElement,window);</script>
 <title>Dashboard · VLOnto</title>
-<meta name="description" content="Interactive dashboard of the VLOnto knowledge graph of Vietnamese law: documents, validity, change relations, citations, court decisions, Q&As, terms and news.">
+<meta name="description" content="Interactive dashboard of the VLOnto knowledge graph of Vietnamese law: documents, validity, change relations, citations, Q&As, terms and news.">
 <link rel="stylesheet" href="css/fonts-web.css">
 <link rel="stylesheet" href="css/site.css">
 </head>
@@ -16,9 +16,10 @@
   <header class="page-head">
     <p class="eyebrow">Dashboard · Bảng điều khiển</p>
     <h1>The knowledge graph in numbers</h1>
-    <p class="lead">Documents, validity and change relations, citations, court decisions, legal Q&amp;As, terminology and news in
-      VLOnto. Filters apply to every chart that has the dimension; the year range uses each record's own date (issue year
-      of a document, effective year of a change, year of a court decision or Q&amp;A). Click a bar to filter by its type or area.</p>
+    <p class="lead">Documents, validity and change relations, citations, legal Q&amp;As, terminology and news in
+      <span data-vl-release>VLOnto v1</span>. Filters apply to every chart that has the dimension; the year range uses each record's own date (issue year
+      of a document, effective year of a change, year of a Q&amp;A). Click a bar to filter by its type or area.</p>
+    <p class="v2-note">Court decisions join in v2. <span lang="vi">Bản án và quyết định của tòa án sẽ có trong v2.</span></p>
   </header>
   <section aria-labelledby="kpi-sel">
     <h2 class="sr-only" id="kpi-sel">Key figures</h2>
@@ -67,27 +68,12 @@
       <h3>Most-cited documents</h3>
       <div class="tabs" role="tablist" aria-label="Citing source" id="tabs-docs"></div>
       <div class="table-wrap" id="t-docs" role="tabpanel"></div>
-      <p class="filter-note">Citing = distinct citing documents, Q&amp;As or court decisions. Filters apply to the cited document.</p>
+      <p class="filter-note">Citing = distinct citing documents or Q&amp;As. Filters apply to the cited document.</p>
     </section>
     <section class="chart-card wide">
       <h3>Most-cited articles</h3>
       <div class="tabs" role="tablist" aria-label="Citing source" id="tabs-arts"></div>
       <div class="table-wrap" id="t-arts" role="tabpanel"></div>
-    </section>
-    <section class="chart-card wide">
-      <h3>Court decisions by case category and year</h3>
-      <p class="sub" id="sub-dec-year">Decisions from anle.toaan.gov.vn and congbobanan.toaan.gov.vn; the year filter applies.</p>
-      <div class="chart" id="c-dec-year" role="img" aria-label="Court decisions by category and year"></div>
-    </section>
-    <section class="chart-card">
-      <h3>Court level</h3>
-      <p class="sub">Not affected by the filters.</p>
-      <div class="chart short" id="c-dec-level" role="img" aria-label="Court decisions by court level"></div>
-    </section>
-    <section class="chart-card">
-      <h3>Procedural instance</h3>
-      <p class="sub">Not affected by the filters.</p>
-      <div class="chart short" id="c-dec-inst" role="img" aria-label="Court decisions by instance"></div>
     </section>
     <section class="chart-card wide">
       <h3>Legal Q&amp;As by area and publication year</h3>

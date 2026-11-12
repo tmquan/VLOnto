@@ -13,7 +13,11 @@ Checks (each records pass/fail, details, console errors, page errors, failed and
   dashboard     type / area / year filters change the chart data and the counts; reset
   playbook      renders content or the placeholder without errors
   downloads     every listed download exists and its sha256 matches the page
-  about         navigation has the 8 pages (index.html first) + the Paper link; tool cards link to existing pages; paper card
+  about         navigation has the 9 pages (index.html first, traces.html among them) + the Paper link; tool cards link to
+                existing pages; paper card
+  traces        traces.html: 27 area tabs (ARIA, keyboard), lazy area files, 20 cards per tab in < 200 ms (desktop), deep link
+                #area=&q=, focus view by keyboard (Enter / Tab trap / Esc), legend, call-out boxes clear of node and link
+                boxes and holding their text, no overflow; screenshots light / dark
   redirect      ontology-3d.html#class=... (old playground address) forwards to index.html and keeps the hash
   theme         toggle on every page re-renders canvas / charts / CONSTRUCT view / pyLODE frame; persistence (storage and
                 ?theme= carry), system preference, ?theme=dark
@@ -503,8 +507,7 @@ def t_dashboard(c: Ctx, stats):
         t = pg.evaluate("window.VLApp.dashTotals()")
         kg, ch, k = t["kg"], t["charts"], t["kpis"]
         want = {"c-type-year": kg["documents"], "c-validity": kg["documents"], "c-ranks": kg["documents"], "c-areas": kg["documents"],
-                "c-changes": kg["change_events"], "c-dec-year": kg["court_decisions"], "c-dec-level": kg["court_decisions"],
-                "c-dec-inst": kg["court_decisions"], "c-qa": kg["legal_questions"], "c-terms": kg["legal_terms"], "c-news": kg["news_articles"]}
+                "c-changes": kg["change_events"], "c-qa": kg["legal_questions"], "c-terms": kg["legal_terms"], "c-news": kg["news_articles"]}
         bad = {cid: (round(ch[cid]), w) for cid, w in want.items() if round(ch[cid]) != w}
         if k["docs"] != kg["documents"]:
             bad["KPI documents"] = (k["docs"], kg["documents"])
@@ -520,6 +523,22 @@ def t_dashboard(c: Ctx, stats):
         return {"charts": {cid: round(v) for cid, v in ch.items()}, "kpis": k, "kg": kg, "caption": t["caption"]}
     check("unfiltered KPIs and chart totals equal the KG totals", totals)
 
+    def no_courts():
+        # release v1: no court chart, KPI or citing source, whether or not the data files still carry court fields
+        d = pg.evaluate("""() => ({ charts: Array.from(document.querySelectorAll('.chart')).map(e => e.id),
+            tabs: Array.from(document.querySelectorAll('#tabs-docs [data-src], #tabs-arts [data-src]')).map(b => b.getAttribute('data-src')),
+            kpis: Array.from(document.querySelectorAll('#kpis-all .kpi .k, #kpis-sel .kpi .k')).map(e => e.textContent),
+            note: (document.querySelector('.v2-note') || {}).textContent || '',
+            release: Array.from(document.querySelectorAll('[data-vl-release]')).map(e => e.textContent),
+            text: document.querySelector('main').textContent.toLowerCase() })""")
+        bad = [x for x in d["charts"] if x.startswith("c-dec")] + [x for x in d["tabs"] if "court" in x] + [k for k in d["kpis"] if "court" in k.lower()]
+        words = [w for w in ("anle", "cbba", "toaan", "precedent", "court level", "applied provision") if w in d["text"]]
+        if bad or words or not d["note"].startswith("Court decisions join in v2.") or len(d["charts"]) != 10 or set(d["release"]) != {"VLOnto v1"}:
+            raise RuntimeError(f"court content or release label: bad {bad}, words {words}, note {d['note']!r}, charts {len(d['charts'])}, "
+                               f"release {d['release']}")
+        return {"charts": len(d["charts"]), "tabs": d["tabs"], "kpis": d["kpis"], "note": d["note"], "release": d["release"]}
+    check("release v1: no court chart, KPI or citing source; the v2 note; the release named VLOnto v1", no_courts)
+
     def year_note():
         # a year range leaves undated records out and says so; reset brings the undated buckets back
         last2 = "echarts.getInstanceByDom(document.getElementById('{}')).getOption().xAxis[0].data.slice(-2)"
@@ -527,17 +546,17 @@ def t_dashboard(c: Ctx, stats):
         pg.wait_for_timeout(500)
         t = pg.evaluate("window.VLApp.dashTotals()")
         cap, lo = t["caption"], t["undatedLeftOut"]
-        subs = pg.evaluate("['sub-type-year', 'sub-changes', 'sub-dec-year'].map(id => document.getElementById(id).textContent)")
-        cats = {cid: pg.evaluate(last2.format(cid)) for cid in ("c-type-year", "c-changes", "c-dec-year")}
+        subs = pg.evaluate("['sub-type-year', 'sub-changes'].map(id => document.getElementById(id).textContent)")
+        cats = {cid: pg.evaluate(last2.format(cid)) for cid in ("c-type-year", "c-changes")}
         shot = c.shot(pg, "dashboard_year_range")
         pg.click("#f-reset")
         pg.wait_for_timeout(500)
         t2 = pg.evaluate("window.VLApp.dashTotals()")
-        cats2 = {cid: pg.evaluate(last2.format(cid)) for cid in ("c-type-year", "c-changes", "c-dec-year")}
+        cats2 = {cid: pg.evaluate(last2.format(cid)) for cid in ("c-type-year", "c-changes")}
         problems = []
-        if not (lo["docs"] > 0 and lo["changes"] > 0 and lo["decisions"] > 0):
+        if not (lo["docs"] > 0 and lo["changes"] > 0):
             problems.append(f"undated counts {lo}")
-        for key, words, sub in (("docs", "without an issue year", 0), ("changes", "without an effective date", 1), ("decisions", "without a year", 2)):
+        for key, words, sub in (("docs", "without an issue year", 0), ("changes", "without an effective date", 1)):
             n = lo[key]
             if n and (f"{n:,}" not in cap or words not in cap):
                 problems.append(f"filter caption lacks the {key}: {cap!r}")
@@ -545,7 +564,7 @@ def t_dashboard(c: Ctx, stats):
                 problems.append(f"chart caption lacks the {key}: {subs[sub]!r}")
         if any(v[-1] in ("no year", "no date") for v in cats.values()):
             problems.append(f"undated bucket still drawn with a year range: {cats}")
-        if [v[-1] for v in cats2.values()] != ["no year", "no date", "no year"]:
+        if [v[-1] for v in cats2.values()] != ["no year", "no date"]:
             problems.append(f"undated buckets missing after reset: {cats2}")
         if any(t2["undatedLeftOut"].values()):
             problems.append("undated records still left out after reset")
@@ -618,13 +637,26 @@ def t_simple(c: Ctx, root: Path):
     card = pg.evaluate("""() => { const c = document.querySelector('#paper .paper-card, #paper [data-vl-paper]');
         return { title: (document.querySelector('#paper .paper-title') || {}).textContent || '', copy: !!document.querySelector('#paper [data-copy-bib]'),
                  bib: ((document.querySelector('#paper pre.bibtex') || {}).textContent || '').slice(0, 30), brand: (document.querySelector('.vl-brand') || {}).getAttribute('href') }; }""")
+    rel = pg.evaluate("""() => ({ release: Array.from(document.querySelectorAll('[data-vl-release]')).map(e => e.textContent),
+        version: Array.from(document.querySelectorAll('[data-vl-version]')).map(e => e.textContent),
+        note: (document.getElementById('numbers-note') || {}).textContent || '', footer: (document.querySelector('.vl-footer .meta') || {}).textContent || '',
+        kpis: Array.from(document.querySelectorAll('#kpis .kpi .k')).map(e => e.textContent),
+        sources: Array.from(document.querySelectorAll('#sources tr td:first-child a')).map(a => a.textContent),
+        v2: (document.querySelector('.v2-note') || {}).textContent || '', bib: (document.getElementById('bibtex') || {}).textContent || '' })""")
+    four = ["thuvienphapluat-vn-vbpl", "thuvienphapluat-vn-hdpl", "thuvienphapluat-vn-tnpl", "thuvienphapluat-vn-htpl"]
     out.append({"test": "about", "checks": [
-        {"name": "navigation (3D Ontology = index.html first, 8 pages + Paper) and tool cards link to existing pages",
-         "pass": len(internal) == 8 and internal[0] == "index.html" and internal[-1] == "about.html" and external == [PAPER_URL] and not missing,
+        {"name": "navigation (3D Ontology = index.html first, 9 pages incl. traces.html + Paper) and tool cards link to existing pages",
+         "pass": len(internal) == 9 and internal[0] == "index.html" and internal[-1] == "about.html" and "traces.html" in internal
+                 and external == [PAPER_URL] and not missing,
          "details": {"nav": nav, "tools": tools, "missing": missing}},
         {"name": "about.html renders the paper card with BibTeX and Copy; the logo links to index.html",
          "pass": card["title"].startswith("Vietnamese Legal Ontology") and card["copy"] and card["bib"].startswith("@misc{bui2026vietnamese") and card["brand"] == "index.html",
-         "details": card}], "log": log})
+         "details": card},
+        {"name": "release v1: named VLOnto v1 (version 1.0.0), four source datasets, no court KPI, the v2 note",
+         "pass": set(rel["release"]) == {"VLOnto v1"} and set(rel["version"]) == {"1.0.0"} and rel["note"].startswith("VLOnto v1 (this release)")
+                 and "VLOnto v1" in rel["footer"] and rel["sources"] == four and not [k for k in rel["kpis"] if "court" in k.lower()]
+                 and rel["v2"].startswith("Court decisions join in v2.") and "version = {1.0.0}" in rel["bib"],
+         "details": rel}], "log": log})
     ctx.close()
     # the old playground address forwards to index.html, keeping the #hash (deep link to a class). Opened from about.html
     # with wait_until=commit: the stub replaces itself while it loads, which would interrupt a goto waiting for 'load'.
@@ -761,7 +793,7 @@ PAPER_BIBTEX = ("@misc{bui2026vietnamese,\n"
                 "  url           = {https://arxiv.org/abs/2611.11426}\n"
                 "}")
 SITE_PAGES = ["index.html", "about.html", "network-3d.html", "sparql.html", "dashboard.html", "ontology.html",
-              "playbook.html", "downloads.html"]
+              "playbook.html", "downloads.html", "traces.html"]
 SCENES = ("index.html", "network-3d.html")       # pages with a full-screen WebGL scene
 JS_THEME = """() => { const r = document.documentElement, b = document.querySelector('.vl-header .vl-theme-btn'), M = window.__VLONTO_METRICS || {};
   let ls = null; try { ls = window.localStorage.getItem('vlonto.theme'); } catch (e) { ls = 'blocked'; }
@@ -1373,8 +1405,215 @@ def t_paper_style(c: Ctx):
     return res
 
 
+# ------------------------------------------------------------------ question traces (traces.html)
+# geometry of the trace drawings as rendered: every call-out box against the boxes of the nodes (circles) and of the
+# links and traced segments (paths, widened by half their stroke); each text line inside its box; boxes inside the view
+JS_TRACE_GEOM = """(sel) => {
+  const out = { figs: 0, boxes: 0, texts: 0, ink: 0, inkHits: [], textOut: [], outside: [] };
+  const hit = (a, b, tol) => a.x < b.x + b.width - tol && a.x + a.width > b.x + tol && a.y < b.y + b.height - tol && a.y + a.height > b.y + tol;
+  const r1 = (b) => [b.x, b.y, b.width, b.height].map(v => Math.round(v * 10) / 10);
+  document.querySelectorAll(sel).forEach((svg, fi) => {
+    out.figs++;
+    const vb = svg.viewBox.baseVal, ink = [];
+    svg.querySelectorAll('circle.tn').forEach(e => ink.push(['node', e.getBBox()]));
+    svg.querySelectorAll('path.tl, path.th2, path.th, path.tc').forEach(e => {
+      const b = e.getBBox(), w = (parseFloat(getComputedStyle(e).strokeWidth) || 0) / 2;
+      ink.push(['link', { x: b.x - w, y: b.y - w, width: b.width + 2 * w, height: b.height + 2 * w }]);
+    });
+    out.ink += ink.length;
+    svg.querySelectorAll('g.tr-co').forEach(g => {
+      const r = g.querySelector('rect.tr-box').getBBox();
+      out.boxes++;
+      if (r.x < -0.5 || r.y < -0.5 || r.x + r.width > vb.width + 0.5 || r.y + r.height > vb.height + 0.5) out.outside.push({ fig: fi, box: r1(r) });
+      ink.forEach(([kind, b]) => { if (hit(r, b, 0.5) && out.inkHits.length < 12) out.inkHits.push({ fig: fi, kind, box: r1(r), ink: r1(b) }); });
+      g.querySelectorAll('text').forEach(t => {
+        const b = t.getBBox();
+        out.texts++;
+        if (b.x < r.x - 0.75 || b.y < r.y - 0.75 || b.x + b.width > r.x + r.width + 0.75 || b.y + b.height > r.y + r.height + 0.75)
+          out.textOut.push({ fig: fi, text: t.textContent.slice(0, 40), text_box: r1(b), box: r1(r) });
+      });
+    });
+  });
+  return out;
+}"""
+JS_TRACE_STATE = """() => { const M = window.__VLONTO_METRICS || {}, T = M.traces || {}, tabs = Array.from(document.querySelectorAll('#tr-tabs [role=tab]'));
+  const sel = tabs.filter(t => t.getAttribute('aria-selected') === 'true');
+  return { available: T.available, area: T.area, loaded: (T.loaded || []).slice(), cards: document.querySelectorAll('#tr-panel .tr-card').length,
+    renderMs: T.renderMs, focus: T.focus, tabs: tabs.length, tablist: (document.getElementById('tr-tabs') || {}).getAttribute ? document.getElementById('tr-tabs').getAttribute('role') : null,
+    selected: sel.map(t => t.getAttribute('data-area')), tabindex0: tabs.filter(t => t.tabIndex === 0).length,
+    controls: tabs.every(t => t.getAttribute('aria-controls') === 'tr-panel'), labelledby: (document.getElementById('tr-panel') || {}).getAttribute ?
+      document.getElementById('tr-panel').getAttribute('aria-labelledby') : null,
+    active: document.activeElement ? (document.activeElement.id || document.activeElement.className || document.activeElement.tagName) : null,
+    hash: location.hash, areaScripts: Array.from(document.scripts).map(s => s.getAttribute('src') || '').filter(s => s.indexOf('data/traces/') === 0) }; }"""
+JS_TAB_TIME = """async (id) => { const T = window.__VLONTO_METRICS.traces, n0 = T.renders || 0, t0 = performance.now();
+  document.getElementById('tr-tab-' + id).click();
+  while ((T.renders || 0) === n0) { if (performance.now() - t0 > 60000) return { timeout: true }; await new Promise(r => setTimeout(r, 5)); }
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  return { total_ms: Math.round(performance.now() - t0), render_ms: T.renderMs, area: T.area }; }"""
+JS_CARD_OVERFLOW = """() => Array.from(document.querySelectorAll('#tr-panel .tr-card')).flatMap(c =>
+  [c].concat(Array.from(c.querySelectorAll('.tc-head, .tc-q, .tc-g, .tc-prov, .tc-fig'))).filter(e => e.scrollWidth > e.clientWidth + 1)
+    .map(e => ({ card: c.id, el: e.className, scroll: e.scrollWidth, client: e.clientWidth })))"""
+
+
+def t_traces(c: Ctx):
+    """traces.html: 27 area tabs (ARIA tablist, keyboard), lazy loading of the area files, 20 cards per tab rendered
+    fast, deep links #area=<id>&q=<rank>, the focus view opened and closed by keyboard (legend, five hops), call-out
+    boxes clear of node and link boxes and holding their text in cards and focus view, no text overflow, no console
+    errors; screenshots of the page and the focus view in both themes."""
+    res = {"test": "traces", "checks": []}
+    logs = {"console_errors": [], "page_errors": [], "failed_requests": [], "external_requests": []}
+
+    def merge(log):
+        for k in logs:
+            logs[k] += log.get(k, [])
+
+    def check(name, fn, pg=None):
+        t0 = time.time()
+        try:
+            res["checks"].append({"name": name, "pass": True, "details": fn(), "s": round(time.time() - t0, 2)})
+        except Exception as e:  # noqa
+            det = fail_details(e, c, pg, name) if pg is not None else {"error": str(e)[:1200]}
+            res["checks"].append({"name": name, "pass": False, "details": det, "s": round(time.time() - t0, 2)})
+
+    def geom(pg, sel, where):
+        g = pg.evaluate(JS_TRACE_GEOM, sel)
+        if not g["figs"] or not g["boxes"] or g["inkHits"] or g["textOut"] or g["outside"]:
+            raise RuntimeError(f"{where}: {json.dumps(g, ensure_ascii=False)[:900]}")
+        return {k: g[k] for k in ("figs", "boxes", "texts", "ink")}
+
+    ctx, pg, log = c.open("traces.html", ready_timeout=180000)
+    try:
+        def tabs():
+            s = pg.evaluate(JS_TRACE_STATE)
+            ok = (s["available"] and s["tabs"] == 27 and s["tablist"] == "tablist" and len(s["selected"]) == 1 and s["tabindex0"] == 1
+                  and s["controls"] and s["labelledby"] == "tr-tab-" + s["selected"][0])
+            if not ok:
+                raise RuntimeError(f"tab state {s}")
+            return {"tabs": s["tabs"], "selected": s["selected"]}
+        check("27 area tabs in an ARIA tablist, one selected, roving tabindex", tabs, pg)
+
+        def lazy():
+            s = pg.evaluate(JS_TRACE_STATE)
+            if s["cards"] != 20 or len(s["loaded"]) != 1 or sorted(s["areaScripts"]) != sorted(["data/traces/index.js", "data/traces/" + s["area"] + ".js"]):
+                raise RuntimeError(f"cards {s['cards']}, loaded {s['loaded']}, scripts {s['areaScripts']}")
+            return {"area": s["area"], "cards": s["cards"], "scripts": s["areaScripts"], "render_ms": s["renderMs"]}
+        check("only the open area's data file is loaded; it shows 20 cards", lazy, pg)
+
+        def keyboard():
+            s0 = pg.evaluate(JS_TRACE_STATE)
+            ids = pg.evaluate("Array.from(document.querySelectorAll('#tr-tabs [role=tab]')).map(t => t.getAttribute('data-area'))")
+            i = ids.index(s0["selected"][0])
+            pg.focus(f"#tr-tab-{s0['selected'][0]}")
+            pg.keyboard.press("ArrowRight")
+            nxt = ids[(i + 1) % len(ids)]
+            pg.wait_for_function("(id) => { const T = window.__VLONTO_METRICS.traces; return T.area === id && document.querySelectorAll('#tr-panel .tr-card').length === 20; }",
+                                 arg=nxt, timeout=60000)
+            s1 = pg.evaluate(JS_TRACE_STATE)
+            pg.keyboard.press("End")
+            pg.wait_for_function("(id) => window.__VLONTO_METRICS.traces.area === id", arg=ids[-1], timeout=60000)
+            pg.keyboard.press("Home")
+            pg.wait_for_function("(id) => window.__VLONTO_METRICS.traces.area === id && document.querySelectorAll('#tr-panel .tr-card').length === 20",
+                                 arg=ids[0], timeout=60000)
+            s2 = pg.evaluate(JS_TRACE_STATE)
+            if s1["active"] != f"tr-tab-{nxt}" or s1["selected"] != [nxt] or len(s1["loaded"]) < 2 or s2["active"] != f"tr-tab-{ids[0]}" or "#area=" not in s2["hash"]:
+                raise RuntimeError(f"after ArrowRight {s1}; after End/Home {s2}")
+            return {"arrow_right": nxt, "loaded": len(s2["loaded"]), "hash": s2["hash"]}
+        check("keyboard: ArrowRight / End / Home select and lazy-load areas; the hash follows", keyboard, pg)
+
+        def timing():
+            ids = pg.evaluate("Array.from(document.querySelectorAll('#tr-tabs [role=tab]')).map(t => t.getAttribute('data-area'))")
+            cur = pg.evaluate("window.__VLONTO_METRICS.traces.area")
+            out = []
+            for a in [x for x in ids if x != cur][:3]:
+                out.append(pg.evaluate(JS_TAB_TIME, a))
+            slow = [t for t in out if t.get("timeout") or (not c.mobile and t["render_ms"] > 200)]
+            if slow:
+                raise RuntimeError(f"rendering 20 cards took more than 200 ms on desktop: {out}")
+            return {"tabs": out}
+        check("a tab renders its 20 cards in under 200 ms (desktop; total incl. loading and paint recorded)", timing, pg)
+
+        def drawings():
+            pg.evaluate("() => window.scrollTo(0, 0)")
+            return geom(pg, "#tr-panel svg.trv-card", "cards")
+        check("cards: call-out boxes clear of node and link boxes, text inside its box, boxes inside the drawing", drawings, pg)
+
+        def overflow():
+            bad = pg.evaluate(JS_CARD_OVERFLOW)
+            if bad:
+                raise RuntimeError(f"text wider than its card: {bad[:6]}")
+            return {"cards_checked": pg.evaluate("document.querySelectorAll('#tr-panel .tr-card').length"), "page_width": no_hscroll(c, pg, "traces")}
+        check("no text overflow in the cards; no horizontal page scroll", overflow, pg)
+
+        def legend():
+            L = pg.evaluate("""() => { const l = document.querySelector('[data-legend]'); if (!l) return null; const r = l.getBoundingClientRect();
+                return { entries: l.querySelectorAll('li').length, text: l.textContent.replace(/\\s+/g, ' '), visible: r.width > 0 && r.height > 0,
+                  flat: Array.from(l.querySelectorAll('.swatch:not(.trace)')).every(s => getComputedStyle(s).backgroundImage === 'none') }; }""")
+            need = ("Văn bản", "Work", "Điều", "Article", "Đường truy vết", "Traced answer", "Structure only")
+            if not L or not L["visible"] or L["entries"] < 14 or not L["flat"] or any(n not in L["text"] for n in need):
+                raise RuntimeError(f"legend {L}")
+            return {"entries": L["entries"], "flat_swatches": L["flat"]}
+        check("flat bilingual legend with the traced and the structural path", legend, pg)
+
+        def focus_keyboard():
+            pg.focus("#tr-panel .tr-card .tc-open")
+            pg.keyboard.press("Enter")
+            pg.wait_for_function("() => { const f = window.__VLONTO_METRICS.traces.focus; return f && f.open; }", timeout=30000)
+            st = pg.evaluate("""() => { const d = document.getElementById('tr-focus-dialog'), w = document.getElementById('tr-focus');
+                return { visible: !w.hidden && d.getBoundingClientRect().height > 0, role: d.getAttribute('role'), modal: d.getAttribute('aria-modal'),
+                  closeFocused: document.activeElement && document.activeElement.classList.contains('tf-close'), hops: d.querySelectorAll('.hop').length,
+                  legend: !!d.querySelector('.tr-legend'), view: (d.querySelector('svg.tr-fig') || {}).getAttribute ? d.querySelector('svg.tr-fig').getAttribute('data-view') : null,
+                  title: (document.getElementById('tf-title') || {}).textContent || '', hash: location.hash }; }""")
+            want_view = "tall" if c.vp[0] < 760 else "wide"
+            if not (st["visible"] and st["role"] == "dialog" and st["modal"] == "true" and st["closeFocused"] and st["hops"] == 5 and st["legend"]
+                    and st["view"] == want_view and "q=" in st["hash"]):
+                raise RuntimeError(f"focus view {st}")
+            g = geom(pg, "#tr-focus-dialog svg.tr-fig", "focus view")
+            shot = c.shot(pg, "traces_focus_keyboard")
+            for _ in range(25):                     # Tab cycles inside the dialog
+                pg.keyboard.press("Tab")
+            inside = pg.evaluate("() => !!document.activeElement.closest('#tr-focus-dialog')")
+            pg.keyboard.press("Escape")
+            pg.wait_for_function("() => { const f = window.__VLONTO_METRICS.traces.focus; return f && !f.open; }", timeout=10000)
+            after = pg.evaluate("() => ({ hidden: document.getElementById('tr-focus').hidden, active: document.activeElement && document.activeElement.className, hash: location.hash })")
+            if not inside or not after["hidden"] or "tc-open" not in (after["active"] or "") or "q=" in after["hash"]:
+                raise RuntimeError(f"focus trap {inside}; after Escape {after}")
+            return {"view": st["view"], "title": st["title"][:60], "geometry": g, "after_escape": after, "shot": shot}
+        check("focus view: Enter on a card opens it (dialog, legend, five hops), Tab stays inside, Esc closes", focus_keyboard, pg)
+    finally:
+        merge(log)
+        ctx.close()
+
+    # deep link and screenshots, per theme (emulated system setting)
+    for theme in c.themes:
+        def deep(theme=theme):
+            ctx, pg, log = c.open("traces.html#area=lao-dong-tien-luong&q=3", scheme=theme, ready_timeout=180000)
+            try:
+                pg.wait_for_function("() => { const f = window.__VLONTO_METRICS.traces.focus; return f && f.open; }", timeout=60000)
+                f = pg.evaluate("window.__VLONTO_METRICS.traces.focus")
+                applied = pg.evaluate("document.documentElement.getAttribute('data-theme')")
+                if f["area"] != "lao-dong-tien-luong" or f["rank"] != 3 or applied != theme:
+                    raise RuntimeError(f"deep link opened {f} in theme {applied}")
+                g = geom(pg, "#tr-focus-dialog svg.tr-fig", "focus view (deep link)")
+                focus_shot = c.shot(pg, f"traces_focus__{theme}")
+                pg.keyboard.press("Escape")
+                pg.wait_for_function("() => !window.__VLONTO_METRICS.traces.focus.open", timeout=10000)
+                pg.evaluate("() => window.scrollTo(0, 0)")
+                pg.wait_for_timeout(300)
+                top_shot = c.shot(pg, f"traces_top__{theme}")
+                pg.evaluate("() => document.getElementById('tr-panel').scrollIntoView()")
+                pg.wait_for_timeout(300)
+                cards_shot = c.shot(pg, f"traces_cards__{theme}")
+                return {"focus": f, "geometry": g, "shots": [focus_shot, top_shot, cards_shot]}
+            finally:
+                merge(log)
+                ctx.close()
+        check(f"deep link #area=lao-dong-tien-luong&q=3 opens the focus view ({theme}); screenshots", deep)
+    res["log"] = logs
+    return res
+
+
 GALLERY = ["index.html", "about.html", "network-3d.html", "sparql.html", "dashboard.html", "ontology.html",
-           "playbook.html", "downloads.html", "ontology/vlonto.html"]
+           "playbook.html", "downloads.html", "traces.html", "ontology/vlonto.html"]
 
 
 def t_gallery(c: Ctx):
@@ -1424,7 +1663,7 @@ def main(argv=None):
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--modes", default="http,file")
     ap.add_argument("--viewports", default="1440x900,390x844")
-    ap.add_argument("--tests", default="ontology,network,sparql,dashboard,simple,theme,paper,paper_style,gallery")
+    ap.add_argument("--tests", default="ontology,network,sparql,dashboard,simple,traces,theme,paper,paper_style,gallery")
     ap.add_argument("--themes", default="light,dark", help="themes of the gallery and paper screenshots (emulated system setting)")
     ap.add_argument("--chrome", type=Path, default=HERE.parent.parent / "tools" / "chrome.sh")
     a = ap.parse_args(argv)
@@ -1461,6 +1700,8 @@ def main(argv=None):
                     runs.append(lambda: [t_dashboard(c, stats)])
                 if "simple" in tests:
                     runs.append(lambda: t_simple(c, root))
+                if "traces" in tests:
+                    runs.append(lambda: [t_traces(c)])
                 if "gallery" in tests:
                     runs.append(lambda: t_gallery(c))
                 for fn in runs:

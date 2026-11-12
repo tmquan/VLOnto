@@ -6,7 +6,7 @@ Run with the KG environment (polars), from the repo root:
 
 Writes JSON files that build_site.py turns into site/data/*.js with tools/json2js.py:
   doc_links.json        all change events (15,035), all legal-basis edges (99,038) and per-document counts
-                        (articles, basis, citations, Q&As, court decisions, news), indexed like legal_network.json
+                        (articles, basis, citations, Q&As, news), indexed like legal_network.json
   doc_details_NN.json   per-document issue/effective/expiry dates, source status, issuers, source URL and the
                         evidence sentence of the change events that affect the document, in shards of 4,096
   dash_extra.json       per-document columns for the dashboard filters (type, year, area, issuer, validity, rank),
@@ -74,7 +74,6 @@ def main(argv=None) -> int:
     ci = T("edges_citation", ["src_doc_id", "dst_doc_id"]).filter(pl.col("src_doc_id") != pl.col("dst_doc_id"))
     qa_doc = T("edges_qa_document", ["qa_id", "dst_doc_id"])
     qa_art = T("edges_qa_article", ["qa_id", "dst_doc_id", "dst_article_id"])
-    dp = T("edges_decision_provision", ["decision_id", "dst_doc_id", "dst_article_id"])
     ne = T("edges_news_document", ["news_id", "dst_doc_id"])
 
     def count_map(df, key, val=None):
@@ -96,7 +95,6 @@ def main(argv=None) -> int:
         "cite_out": count_map(ci, "src_doc_id", "dst_doc_id"),
         "cite_in": count_map(ci, "dst_doc_id", "src_doc_id"),
         "qa": count_map(qa_docs, "dst_doc_id", "qa_id"),
-        "decisions": count_map(dp, "dst_doc_id", "decision_id"),
         "news": count_map(ne, "dst_doc_id", "news_id"),
     }
 
@@ -215,18 +213,17 @@ def main(argv=None) -> int:
         "documents": {
             "vbpl_citations": top_docs(ci_all.filter(pl.col("src_doc_id") != pl.col("dst_doc_id")), "src_doc_id"),
             "qa": top_docs(qa_docs, "qa_id"),
-            "court_decisions": top_docs(dp, "decision_id"),
         },
         "articles": {
             "vbpl_citations": top_arts(ci_all, "src_doc_id"),
             "qa": top_arts(qa_art, "qa_id"),
-            "court_decisions": top_arts(dp, "decision_id"),
         },
     }
     # consistency with the KG track's dashboard.json (top 50, same definitions)
     dash = json.loads((a.site_data / "dashboard.json").read_text(encoding="utf-8"))
     check = {}
-    for src in ("vbpl_citations", "qa", "court_decisions"):
+    # citing sources of release v1 (court decisions join in v2)
+    for src in ("vbpl_citations", "qa"):
         ref = [(r["id"], r["citing"]) for r in dash["most_cited_documents"][src]]
         mine = [(ids[i], c) for i, c in top["documents"][src][:len(ref)]]
         check["documents_" + src] = {"n": len(ref), "same_counts": sorted(c for _, c in ref) == sorted(c for _, c in mine),
@@ -246,7 +243,7 @@ def main(argv=None) -> int:
     dash_extra = {
         "version": net.get("version"),
         "note": "Columns are indexed like legal_network.json nodes; lookups (types, areas, issuers, validity) are those of legal_network.json. "
-                "most_cited = number of distinct citing documents / Q&As / court decisions (same definition as dashboard.json, top 400).",
+                "most_cited = number of distinct citing documents / Q&As (same definition as dashboard.json, top 400).",
         "types": net["types"], "areas": net["areas"], "issuers": net["issuers"], "validity": net["validity"], "ranks": net["ranks"],
         "change_kinds": kinds,
         "docs": {"type": col_type, "year": col_year, "area": col_area, "issuer": col_iss, "validity": col_valid, "rank": col_rank,

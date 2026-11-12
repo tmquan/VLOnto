@@ -13,16 +13,12 @@
     kpi(VL.fmt(S.change_events), 'change events', 'thay thế, sửa đổi, bãi bỏ'),
     kpi(VL.fmt(S.legal_basis_links), 'legal-basis links', 'căn cứ pháp lý'),
     kpi(VL.fmt(S.citation_links), 'citation links', 'trích dẫn'),
-    kpi(VL.fmt(S.court_decisions), 'court decisions', 'bản án, quyết định'),
-    kpi(VL.fmt(S.applied_provision_links), 'applied-provision links', 'điều luật được áp dụng'),
     kpi(VL.fmt(S.legal_questions), 'legal Q&As', 'hỏi đáp pháp luật'),
     kpi(VL.fmt(S.legal_terms), 'legal terms', 'thuật ngữ pháp lý'),
     kpi(VL.fmt(S.rdf_triples), 'RDF triples', 'bộ ba RDF')
   ].join('');
-  VL.$('#numbers-note').textContent = 'VLOnto ' + (S.version || '0.1.0') + ' (this release), built ' + (S.build_date || '') + '. Validity of documents derived as of ' +
-    (S.validity_as_of || '') + '. ' + VL.fmt(S.issuing_bodies) + ' issuing bodies, ' + VL.fmt(S.courts) + ' courts, ' + VL.fmt(S.precedents) +
-    ' precedents and ' + VL.fmt(S.legal_areas) + ' legal areas.';
-  VL.$('#cite-version').textContent = S.version || '0.1.0';
+  VL.$('#numbers-note').textContent = VL.releaseLabel() + ' (this release), built ' + (S.build_date || '') + '. Validity of documents derived as of ' +
+    (S.validity_as_of || '') + '. ' + VL.fmt(S.issuing_bodies) + ' issuing bodies and ' + VL.fmt(S.legal_areas) + ' legal areas.';
   VL.$('#asof').textContent = S.validity_as_of || '2026-11-08';
   if (S.validity && S.validity.unknown != null) VL.$('#unknown-n').textContent = VL.fmt(S.validity.unknown);
 
@@ -30,10 +26,11 @@
     ['index.html', 'cube', '3D ontology playground', 'Classes, properties, concept schemes and external alignments in an interactive 3D scene, with search, module filters and SPARQL CONSTRUCT results drawn in 3D.', true],
     ['network-3d.html', 'network', '3D legal network', 'All ' + VL.fmt(S.documents) + ' documents layered by legal force, with replacement, amendment, legal-basis and citation links and a validity panel.'],
     ['sparql.html', 'code', 'SPARQL playground', 'Ten bilingual example queries and a free editor over the core subset (' + VL.fmt(S.core_ttl_triples) + ' triples), running offline in WebAssembly.'],
-    ['dashboard.html', 'chart', 'Dashboard', 'Documents by type, year, issuer and area, validity, change relations, most-cited documents and articles, court decisions, Q&As and terms.'],
+    ['traces.html', 'trace', 'Question traces', 'For each of 27 legal areas, the 20 articles its answers cite most, each with one published question traced from the answer up to the law, drawn like the figures of the paper.'],
+    ['dashboard.html', 'chart', 'Dashboard', 'Documents by type, year, issuer and area, validity, change relations, most-cited documents and articles, Q&As, terms and news.'],
     ['ontology.html', 'docs', 'Ontology documentation', 'Modules, alignments and the full pyLODE reference of every class and property, with Turtle, SHACL and JSON-LD downloads.'],
     ['playbook.html', 'book', 'Playbook', 'How VLOnto is built and how to use it: sources and licences, the ontology design, the pipeline, validation and the website.'],
-    ['downloads.html', 'download', 'Downloads', 'Ontology, RDF core subset, site data, documentation and checksums, and how to rebuild the full graph from the six source datasets.']
+    ['downloads.html', 'download', 'Downloads', 'Ontology, RDF core subset, site data, documentation and checksums, and how to rebuild the full graph from the four source datasets.']
   ];
   VL.$('#tools').innerHTML = tools.map(function (t) {
     return '<a class="card tool-card' + (t[4] ? ' featured' : '') + '" href="' + t[0] + '"><span class="icon">' + VL.ICON[t[1]] + '</span>' +
@@ -42,11 +39,9 @@
 
   var SRC = [
     ['thuvienphapluat-vn-vbpl', 'Legal documents: identity, type, number, dates, issuer, area, status, structure, change, legal-basis and citation links (thuvienphapluat.vn).'],
-    ['thuvienphapluat-vn-hdpl', 'Legal Q&As: identifiers, URLs, dates, areas and the documents and articles they cite (no question or answer text).'],
+    ['thuvienphapluat-vn-hdpl', 'Legal Q&As: identifiers, URLs, dates, areas and the documents and articles they cite (no question or answer text; the Traces page shows the titles of the questions it traces).'],
     ['thuvienphapluat-vn-tnpl', 'Legal terminology: term names in Vietnamese and English (machine-translated), areas, status and related terms (no definitions).'],
-    ['thuvienphapluat-vn-htpl', 'Legal news: identifiers, URLs, categories, dates and the documents they mention (no titles or text).'],
-    ['anle-toaan-gov-vn', 'Precedents and selected judgments of the Supreme People’s Court: metadata, courts and applied provisions.'],
-    ['cbba-toaan-gov-vn', 'Published court judgments and decisions: number, date, court, category, instance, applied provisions and case links.']
+    ['thuvienphapluat-vn-htpl', 'Legal news: identifiers, URLs, categories, dates and the documents they mention (no titles or text).']
   ];
   var lic = S.sources || {};
   VL.$('#sources').innerHTML = SRC.map(function (s) {

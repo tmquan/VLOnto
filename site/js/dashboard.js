@@ -1,6 +1,8 @@
 /* VLOnto - dashboard (ECharts 6, canvas renderer). Filters (document type, issue-year range, legal area) are applied in the
    browser to per-document columns (data/dash_extra.js) so every document chart, the change chart and the most-cited tables
-   stay linked; court, Q&A, term and news charts use the aggregates of data/dashboard.js and apply the dimensions they have. */
+   stay linked; Q&A, term and news charts use the aggregates of data/dashboard.js and apply the dimensions they have.
+   Release v1 has no court data (court decisions join in v2): no court chart, KPI or citing source is drawn, whether or not
+   the data files still carry court fields. */
 (function () {
   'use strict';
   var VL = window.VL, M = window.__VLONTO_METRICS;
@@ -13,7 +15,7 @@
   var TYPES = X.types, AREAS = X.areas, ISSUERS = X.issuers, VALID = X.validity, KINDS = X.change_kinds;
   var UNK = VALID.indexOf('unknown');
   /* One year range for every dated record: the issue year of a document, the effective year of a change event and the year
-     of a court decision or Q&A. While the range is untouched every chart shows all records - undated ones in their own
+     of a Q&A. While the range is untouched every chart shows all records - undated ones in their own
      bucket - so the totals equal the knowledge graph; once the user narrows it, undated records are left out and the
      captions say how many. */
   var DY0 = 9999, DY1 = 0;
@@ -21,7 +23,6 @@
   var Y0 = DY0, Y1 = DY1;
   function widen(y) { if (y > 0) { if (y < Y0) Y0 = y; if (y > Y1) Y1 = y; } }
   X.changes.year.forEach(widen);
-  DB.decisions_by_category_year.forEach(function (r) { widen(r.year); });
   DB.qas_by_area_year.forEach(function (r) { widen(r.year); });
   var F = { type: -1, area: -1, y0: Y0, y1: Y1 };
   var charts = {}, finished = 0, total = 0, readySent = false;
@@ -69,7 +70,6 @@
       var out = [];
       if (NOTE.docs) out.push(plural(NOTE.docs, 'document', 'documents') + ' without an issue year');
       if (NOTE.changes) out.push(plural(NOTE.changes, 'change event', 'change events') + ' without an effective date');
-      if (NOTE.decisions) out.push(plural(NOTE.decisions, 'court decision', 'court decisions') + ' without a year');
       if (NOTE.qa) out.push(plural(NOTE.qa, 'Q&A', 'Q&As') + ' without a year');
       if (out.length) t += ' The year range leaves out ' + listJoin(out) + '.';
     }
@@ -395,54 +395,6 @@
     }), true);
     return sel;
   }
-  function decisionsYear() {
-    /* the few decisions dated before 2000 share one bucket; undated decisions get a 'no year' bucket while the range is untouched */
-    var CUT = 2000, rows = DB.decisions_by_category_year, undated = !yearActive(), cats = {}, yrs = {}, early = false, left = 0, shown = 0;
-    function rowOk(r) { return r.year > 0 ? (r.year >= F.y0 && r.year <= F.y1) : undated; }
-    rows.forEach(function (r) {
-      if (!rowOk(r)) { if (r.year <= 0) left += r.n; return; }
-      if (r.year > 0) { if (r.year < CUT) early = true; else yrs[r.year] = 1; }
-      cats[r.category] = (cats[r.category] || 0) + r.n;
-      shown += r.n;
-    });
-    var years = Object.keys(yrs).map(Number).sort(function (a, b) { return a - b; });
-    var labels = (early ? ['before ' + CUT] : []).concat(years.map(String));
-    var nY = labels.length;
-    if (undated && rows.some(function (r) { return r.year <= 0; })) labels.push('no year');
-    function col(y) { return y > 0 ? (y < CUT ? 0 : (early ? 1 : 0) + years.indexOf(y)) : nY; }
-    var catOrder = Object.keys(cats).sort(function (a, b) { return cats[b] - cats[a]; });
-    var pal = hues(['blue', 'pink', 'orange', 'teal', 'violet', 'yellow', 'green', 'red', 'slate']);
-    var series = catOrder.map(function (cat, ci) {
-      var data = labels.map(function () { return 0; });
-      rows.forEach(function (r) { if (r.category === cat && rowOk(r)) data[col(r.year)] += r.n; });
-      return { name: cat === 'unknown' ? 'unknown category' : cat, type: 'bar', stack: 'd', data: data, itemStyle: { color: pal[ci % pal.length] } };
-    });
-    NOTE.decisions = left;
-    var noYear = undated ? rows.filter(function (r) { return r.year <= 0; }).reduce(function (s, r) { return s + r.n; }, 0) : 0;
-    VL.$('#sub-dec-year').textContent = VL.fmt(shown) + ' decisions from anle.toaan.gov.vn and congbobanan.toaan.gov.vn' +
-      (noYear ? '; “no year” holds the ' + plural(noYear, 'decision', 'decisions') + ' without a year' : '') +
-      (left ? '; the year range leaves out ' + plural(left, 'decision', 'decisions') + ' without a year' : '') +
-      '. Only the year filter applies.';
-    chart('c-dec-year').setOption(base({
-      legend: legend(),
-      grid: { left: 8, right: 16, top: legendTop('c-dec-year', series.map(function (s) { return s.name; })), bottom: 8, containLabel: true },
-      xAxis: yearAxis('c-dec-year', labels),
-      yAxis: valueAxis(),
-      series: series
-    }), true);
-  }
-  function pieLike(id, rows, labelKey, pal) {
-    rows = rows.slice().sort(function (a, b) { return b.n - a.n; });
-    setHeight(id, rows.length, catPitch(rows.map(function (r) { return r[labelKey]; }), catW(150, 110), mob() ? 28 : 26), 40);
-    chart(id).setOption(base({
-      grid: { left: 8, right: mob() ? 54 : 66, top: 8, bottom: 8, containLabel: true },
-      tooltip: { trigger: 'item', confine: true, textStyle: { fontFamily: FONT, fontSize: 12 }, formatter: function (p) { return VL.esc(p.name) + ': ' + VL.fmt(p.value); } },
-      xAxis: valueAxis({ type: 'log', min: 100 }),
-      yAxis: { type: 'category', inverse: true, data: rows.map(function (r) { return r[labelKey]; }), axisLabel: catAxisLabel(mob() ? 110 : 150), axisTick: { show: false } },
-      series: [{ type: 'bar', barWidth: '60%', data: rows.map(function (r, i) { return { value: r.n, itemStyle: { color: hue(pal[i % pal.length]) } }; }),
-        label: { show: true, position: 'right', fontFamily: FONT, fontSize: 10.5, color: C.fg, formatter: function (p) { return VL.compact(p.value); } } }]
-    }), true);
-  }
   function qaChart() {
     var slugOf = AREAS.map(function (a) { return a[0]; }), labelOf = {};
     AREAS.forEach(function (a) { labelOf[a[0]] = a[2]; });
@@ -510,9 +462,7 @@
     var rows = [];
     DB.legal_basis_by_method.forEach(function (r) { rows.push({ k: 'legal basis · ' + r.method, n: r.n, c: VL.EDGE.basis.color }); });
     DB.citations_by_kind.forEach(function (r) { rows.push({ k: 'citation · ' + r.kind.replace(/_/g, ' '), n: r.edges, c: hue('slate') }); });
-    DB.case_links_by_method.forEach(function (r) { rows.push({ k: 'case link · ' + r.method, n: r.n, c: hue('pink') }); });
     DB.qa_article_links_by_method.forEach(function (r) { rows.push({ k: 'Q&A → article · ' + r.method, n: r.n, c: hue('green') }); });
-    rows.push({ k: 'applied provisions (court)', n: S.applied_provision_links, c: hue('pink') });
     rows.push({ k: 'change relations', n: S.change_events, c: hue('orange') });
     rows.sort(function (a, b) { return b.n - a.n; });
     setHeight('c-links', rows.length, catPitch(rows.map(function (r) { return r.k; }), catW(260, 140), mob() ? 26 : 24), 40);
@@ -541,8 +491,9 @@
   }
 
   /* ------------------------------------------------------------------ most-cited tables */
-  var SRC = [['vbpl_citations', 'Legal documents'], ['qa', 'Q&As'], ['court_decisions', 'Court decisions']];
-  var tab = { docs: 'vbpl_citations', arts: 'court_decisions' };
+  /* citing sources of release v1 (court decisions join in v2) */
+  var SRC = [['vbpl_citations', 'Legal documents'], ['qa', 'Q&As']];
+  var tab = { docs: 'vbpl_citations', arts: 'qa' };
   function tabs(id, which) {
     VL.$('#' + id).innerHTML = SRC.map(function (s) {
       return '<button type="button" role="tab" data-src="' + s[0] + '" aria-selected="' + (tab[which] === s[0]) + '">' + VL.esc(s[1]) + '</button>';
@@ -559,9 +510,9 @@
   });
   function docLabel(idx) { return X.doc_labels[String(idx)] || ['', '']; }
   function tables() {
-    var docs = X.most_cited.documents[tab.docs].filter(function (r) { return docOk(r[0]); }).slice(0, 12);
+    var docs = (X.most_cited.documents[tab.docs] || []).filter(function (r) { return docOk(r[0]); }).slice(0, 12);
     var max = docs.length ? docs[0][1] : 1;
-    var unit = { vbpl_citations: 'citing documents', qa: 'citing Q&As', court_decisions: 'decisions' }[tab.docs];
+    var unit = { vbpl_citations: 'citing documents', qa: 'citing Q&As' }[tab.docs];
     VL.$('#t-docs').innerHTML = docs.length ? '<table class="data rank-table"><thead><tr><th class="num">#</th><th>Document</th><th class="col-opt">Type</th><th class="num">' + VL.esc(unit) + '</th></tr></thead><tbody>' +
       docs.map(function (r, k) {
         var l = docLabel(r[0]), t = TYPES[X.docs.type[r[0]]] || {}, v = VL.VALIDITY[VALID[X.docs.validity[r[0]]]] || VL.VALIDITY.unknown;
@@ -571,9 +522,9 @@
           '<td class="col-opt">' + VL.esc(t.en || '') + '</td><td class="num">' + VL.fmt(r[1]) + '<div class="bar" style="width:' + Math.max(4, Math.round(100 * r[1] / max)) + '%"></div></td></tr>';
       }).join('') + '</tbody></table>' : '<p style="padding:12px 14px;margin:0" class="muted">No document matches the filters.</p>';
     tabs('tabs-docs', 'docs');
-    var arts = X.most_cited.articles[tab.arts].filter(function (r) { return docOk(r[0]); }).slice(0, 12);
+    var arts = (X.most_cited.articles[tab.arts] || []).filter(function (r) { return docOk(r[0]); }).slice(0, 12);
     var amax = arts.length ? arts[0][4] : 1;
-    var aunit = { vbpl_citations: 'citing documents', qa: 'citing Q&As', court_decisions: 'decisions' }[tab.arts];
+    var aunit = { vbpl_citations: 'citing documents', qa: 'citing Q&As' }[tab.arts];
     VL.$('#t-arts').innerHTML = arts.length ? '<table class="data rank-table"><thead><tr><th class="num">#</th><th>Article</th><th class="num">' + VL.esc(aunit) + '</th></tr></thead><tbody>' +
       arts.map(function (r, k) {
         var l = docLabel(r[0]);
@@ -608,24 +559,21 @@
   function kpisAll() {
     VL.$('#kpis-all').innerHTML = kpi(VL.fmt(S.documents), 'legal documents', 'văn bản') + kpi(VL.fmt(S.articles), 'articles', 'điều') +
       kpi(VL.fmt(S.change_events), 'change events', 'sự kiện thay đổi') + kpi(VL.fmt(S.legal_basis_links), 'legal-basis links', 'căn cứ pháp lý') +
-      kpi(VL.fmt(S.citation_links), 'citation links', 'trích dẫn') + kpi(VL.fmt(S.court_decisions), 'court decisions', 'bản án, quyết định') +
-      kpi(VL.fmt(S.applied_provision_links), 'applied-provision links', 'điều luật được áp dụng') + kpi(VL.fmt(S.legal_questions), 'legal Q&As', 'hỏi đáp pháp luật') +
+      kpi(VL.fmt(S.citation_links), 'citation links', 'trích dẫn') + kpi(VL.fmt(S.legal_questions), 'legal Q&As', 'hỏi đáp pháp luật') +
       kpi(VL.fmt(S.legal_terms), 'legal terms', 'thuật ngữ') + kpi(VL.fmt(S.news_articles), 'news articles', 'tin tức') +
-      kpi(VL.fmt(S.courts), 'courts', 'tòa án') + kpi(VL.fmt(S.rdf_triples), 'RDF triples', 'bộ ba RDF');
+      kpi(VL.fmt(S.rdf_triples), 'RDF triples', 'bộ ba RDF');
   }
 
   /* ------------------------------------------------------------------ update + events */
   function update() {
     typeYear(); validityByType(); ranks(); areasChart(); issuersChart();
     var sel = changesChart();
-    decisionsYear(); qaChart(); termsChart(); tables(); kpis(sel);
+    qaChart(); termsChart(); tables(); kpis(sel);
     noteFilters();
     M.filters = { type: F.type, area: F.area, y0: F.y0, y1: F.y1, yearActive: yearActive() };
-    M.undatedLeftOut = { docs: NOTE.docs || 0, changes: NOTE.changes || 0, decisions: NOTE.decisions || 0, qa: NOTE.qa || 0 };
+    M.undatedLeftOut = { docs: NOTE.docs || 0, changes: NOTE.changes || 0, qa: NOTE.qa || 0 };
   }
   function staticCharts() {
-    pieLike('c-dec-level', DB.decisions_by_court_level, 'court_level', ['blue', 'teal', 'slate', 'violet', 'pink', 'orange']);
-    pieLike('c-dec-inst', DB.decisions_by_instance_level, 'instance_level', ['blue', 'slate', 'orange', 'pink', 'violet']);
     linksChart(); newsChart();
   }
   function bindClicks() {
@@ -672,9 +620,9 @@
       return s;
     }
     var out = { kpis: M.kpis, undatedLeftOut: M.undatedLeftOut, filters: M.filters, caption: VL.$('#f-active').textContent, charts: {} };
-    ['c-type-year', 'c-validity', 'c-ranks', 'c-areas', 'c-changes', 'c-dec-year', 'c-dec-level', 'c-dec-inst', 'c-qa', 'c-terms', 'c-news']
+    ['c-type-year', 'c-validity', 'c-ranks', 'c-areas', 'c-changes', 'c-qa', 'c-terms', 'c-news']
       .forEach(function (id) { out.charts[id] = sumSeries(id); });
-    out.kg = { documents: S.documents, change_events: S.change_events, court_decisions: S.court_decisions, legal_questions: S.legal_questions,
+    out.kg = { documents: S.documents, change_events: S.change_events, legal_questions: S.legal_questions,
       legal_terms: S.legal_terms, news_articles: S.news_articles };
     return out;
   };

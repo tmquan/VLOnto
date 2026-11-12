@@ -17,7 +17,7 @@ for T in light dark; do
     --out "$B/site_check_$T" > "$B/site_check_$T/site_check.log" 2>&1 &
   eval "PSC_$T=\$!"
 done
-"$W/python" scripts/site/interaction_tests.py --root site --out "$B/site_tests/core" --tests ${TESTS_CORE:-ontology,network,sparql,dashboard,simple} \
+"$W/python" scripts/site/interaction_tests.py --root site --out "$B/site_tests/core" --tests ${TESTS_CORE:-ontology,network,sparql,dashboard,simple,traces} \
   > "$B/site_tests/core/interactions.log" 2>&1 &
 PIC=$!
 "$W/python" scripts/site/interaction_tests.py --root site --out "$B/site_tests/theme" --tests ${TESTS_THEME:-theme,paper,paper_style} \
