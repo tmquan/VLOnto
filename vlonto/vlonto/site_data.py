@@ -240,7 +240,8 @@ def ontology_graph():
                          "definition_en": defin(s, "en"), "definition_vi": None, "superclasses": [],
                          "instances": counts.get(cur(s), len(concepts)),
                          "examples": [{"iri": str(c), "label_en": lab(c, "en"), "label_vi": lab(c, "vi"), "notation": str(g.value(c, SKOS.notation) or "")}
-                                      for c in concepts][:12], "attributes": []}
+                                      for c in concepts][:12], "attributes": [],
+                         "scope_note_en": scope(s, "en"), "scope_note_vi": scope(s, "vi")}
     for s in classes:
         for o in g.objects(s, RDFS.subClassOf):
             if isinstance(o, URIRef) and cur(o) in nodes:
@@ -263,7 +264,8 @@ def ontology_graph():
         dom, rng = g.value(p, RDFS.domain), g.value(p, RDFS.range)
         sup = sorted(cur(o) for o in g.objects(p, RDFS.subPropertyOf))
         item = {"id": cur(p), "label_en": lab(p, "en"), "label_vi": lab(p, "vi"), "definition_en": defin(p, "en"), "aligned_to": sup,
-                "module": module(p), "inverse_of": cur(g.value(p, OWL.inverseOf)) if g.value(p, OWL.inverseOf) is not None else None}
+                "module": module(p), "inverse_of": cur(g.value(p, OWL.inverseOf)) if g.value(p, OWL.inverseOf) is not None else None,
+                "scope_note_en": scope(p, "en"), "scope_note_vi": scope(p, "vi")}
         if dom is not None and rng is not None and cur(dom) in nodes and cur(rng) in nodes:
             links.append({"source": cur(dom), "target": cur(rng), "type": "property", **item})
         elif dom is not None and cur(dom) in nodes:
@@ -274,7 +276,8 @@ def ontology_graph():
         n_dat += 1
         dom, rng = g.value(p, RDFS.domain), g.value(p, RDFS.range)
         item = {"id": cur(p), "label_en": lab(p, "en"), "label_vi": lab(p, "vi"), "definition_en": defin(p, "en"), "range": cur(rng) if rng is not None else None,
-                "aligned_to": sorted(cur(o) for o in g.objects(p, RDFS.subPropertyOf)), "module": module(p), "kind": "datatype"}
+                "aligned_to": sorted(cur(o) for o in g.objects(p, RDFS.subPropertyOf)), "module": module(p), "kind": "datatype",
+                "scope_note_en": scope(p, "en"), "scope_note_vi": scope(p, "vi")}
         if dom is not None and cur(dom) in nodes:
             nodes[cur(dom)]["attributes"].append(item)
     modules = [{"id": str(g.value(m, SKOS.notation)), "label_en": lab(m, "en"), "label_vi": lab(m, "vi"), "definition_en": defin(m, "en")}
