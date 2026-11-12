@@ -1,0 +1,9 @@
+PREFIX vlo: <https://tmquan.github.io/VLOnto/ontology#>
+# Every document reachable from 99/2025/TT-BTC by vlo:legalBasis (any depth)
+SELECT DISTINCT ?number ?title WHERE {
+  ?doc vlo:documentNumber "99/2025/TT-BTC" ;
+       vlo:legalBasis+ ?basis .
+  ?basis vlo:title ?title .
+  OPTIONAL { ?basis vlo:documentNumber ?number }
+}
+ORDER BY ?number ?title

@@ -1,0 +1,11 @@
+PREFIX vlo:  <https://tmquan.github.io/VLOnto/ontology#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+# Legal terms of the area labelled 'Labour and wages' (vi, en)
+SELECT ?vi ?en WHERE {
+  ?area skos:prefLabel "Labour and wages"@en .
+  ?term a vlo:LegalTerm ;
+        vlo:legalArea ?area ;
+        skos:prefLabel ?vi FILTER (lang(?vi) = "vi")
+  OPTIONAL { ?term skos:prefLabel ?en FILTER (lang(?en) = "en") }
+}
+ORDER BY ?vi ?en

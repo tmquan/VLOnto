@@ -1,0 +1,9 @@
+{
+  "pages": [
+    {"path": "webgl_test.html", "min_canvases": 1, "expect_webgl": true, "settle_ms": 1000,
+     "fail_on_warning": ["Multiple instances of Three\\.js"]},
+    {"path": "oxigraph_test.html", "settle_ms": 500},
+    {"path": "fonts_test.html", "settle_ms": 500},
+    {"path": "fonts_embedded_test.html", "settle_ms": 500}
+  ]
+}

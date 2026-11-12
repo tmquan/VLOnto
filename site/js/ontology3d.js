@@ -1,0 +1,1091 @@
+/* VLOnto - 3D Ontology Playground (3d-force-graph over data/ontology_graph.js; SPARQL via js/sparql-core.js).
+   Classes are spheres (size ~ log instance count), concept schemes octahedra, aligned external terms icosahedra;
+   colour = ontology module. Labels are canvas sprites (js/labels3d.js) drawn at a constant pixel size and culled in screen space so that
+   no two labels overlap and no label is cut by the canvas edge or hidden under an overlay. */
+(function () {
+  'use strict';
+  var VL = window.VL, M = window.__VLONTO_METRICS;
+  VL.chrome({ scene: true });
+  M.page = 'ontology-3d';
+
+  var OG = window.VLONTO.ontology_graph;
+  var EXAMPLES = ((window.VLONTO.sparql_examples || {}).queries) || [];
+  var app = VL.$('#app'), stage = VL.$('#stage'), host = VL.$('#canvas-host');
+  var panel = VL.$('#panel'), drawer = VL.$('#drawer'), legendEl = VL.$('#legend'), statusEl = VL.$('#status');
+  var FONT = '"Be Vietnam Pro", "Noto Sans Symbols 2", "Noto Sans Math", sans-serif';
+  var state = {
+    lang: 'en', modules: {}, showExternal: true, showSchemes: true,
+    links: { subClassOf: true, property: true, alignment: true, inScheme: true },
+    particles: true, selected: null, selectedLink: null, view: 'ontology', cm: 'overlay', legendOpen: !VL.isMobile()
+  };
+  VL.MODULES.forEach(function (m) { state.modules[m.id] = true; });
+
+  /* ------------------------------------------------------------------ data */
+  var nodes = OG.nodes.map(function (n) {
+    var o = {};
+    Object.keys(n).forEach(function (k) { o[k] = n[k]; });
+    o.label_en = VL.nfc(n.label_en || n.id);
+    o.label_vi = n.label_vi ? VL.nfc(n.label_vi) : null;
+    o.definition_en = n.definition_en ? VL.nfc(n.definition_en) : null;
+    o.definition_vi = n.definition_vi ? VL.nfc(n.definition_vi) : null;
+    o.__r = radius(o);
+    return o;
+  });
+  var byId = {};
+  nodes.forEach(function (n) { byId[n.id] = n; });
+  var links = OG.links.map(function (l, i) {
+    var o = { key: 'L' + i };
+    Object.keys(l).forEach(function (k) { o[k] = l[k]; });
+    o.label_en = VL.nfc(l.label_en || '');
+    o.label_vi = VL.nfc(l.label_vi || '');
+    return o;
+  });
+  var linkByKey = {};
+  links.forEach(function (l) { linkByKey[l.key] = l; });
+  function sid(x) { return typeof x === 'object' ? x.id : x; }
+  var outProps = {}, inProps = {}, subOf = {}, superOf = {}, alignOut = {}, alignIn = {}, schemeOf = {}, schemeMembers = {};
+  function push(map, k, v) { (map[k] = map[k] || []).push(v); }
+  links.forEach(function (l) {
+    var s = sid(l.source), t = sid(l.target);
+    if (l.type === 'property') { push(outProps, s, l); push(inProps, t, l); }
+    else if (l.type === 'subClassOf') { push(subOf, s, t); push(superOf, t, s); }
+    else if (l.type === 'alignment') { push(alignOut, s, l); push(alignIn, t, l); }
+    else if (l.type === 'inScheme') { push(schemeOf, s, t); push(schemeMembers, t, s); }
+  });
+  /* parallel links and self-loops get their own curvature and rotation */
+  (function () {
+    var cnt = {}, idx = {};
+    links.forEach(function (l) { var k = [sid(l.source), sid(l.target)].sort().join('|'); cnt[k] = (cnt[k] || 0) + 1; });
+    links.forEach(function (l) {
+      var s = sid(l.source), t = sid(l.target), k = [s, t].sort().join('|');
+      var i = idx[k] = (idx[k] || 0) + 1, n = cnt[k];
+      if (s === t) { l.curvature = 0.55 + 0.18 * (i - 1); l.rotation = (i - 1) * 2 * Math.PI / Math.max(1, n); }
+      else if (n > 1) { l.curvature = 0.14 + 0.12 * Math.floor((i - 1) / 2); l.rotation = (i - 1) * 2 * Math.PI / n; }
+      else { l.curvature = 0; l.rotation = 0; }
+    });
+  })();
+  var baseData = { nodes: nodes, links: links };
+  M.ontologyNodes = nodes.length;
+  M.ontologyLinks = links.length;
+
+  function radius(n) {
+    if (n.inst) return 2.6;
+    if (n.kind === 'external') return 3.4;
+    if (n.kind === 'scheme') return 3.6 + 0.9 * Math.log10((n.instances || 0) + 1);
+    return 3.4 + 1.9 * Math.log10((n.instances || 0) + 1);
+  }
+  function nodeColor(n) { return VL.moduleColor(n.module || 'provenance'); }
+  function kindLabel(n) {
+    if (n.inst) return 'instance';
+    return { 'class': 'class', external: 'external term', scheme: 'concept scheme' }[n.kind] || n.kind;
+  }
+  function labelText(n) {
+    if (n.inst) return n.short;
+    return (state.lang === 'vi' && n.label_vi) ? n.label_vi : n.label_en;
+  }
+
+  /* ------------------------------------------------------------------ visibility */
+  function nodeVisible(n) {
+    if (!n) return false;
+    if (n.inst) return true;
+    if (n.kind === 'external') return state.showExternal;
+    if (n.kind === 'scheme' && !state.showSchemes) return false;
+    return state.modules[n.module] !== false;
+  }
+  function linkVisible(l) {
+    if (l.type === 'result' || l.type === 'instance') return nodeVisible(nodeOf(l.source)) && nodeVisible(nodeOf(l.target));
+    if (state.links[l.type] === false) return false;
+    if (l.type === 'property' && state.modules[l.module] === false) return false;
+    return nodeVisible(nodeOf(l.source)) && nodeVisible(nodeOf(l.target));
+  }
+  var current = { byId: byId };
+  function nodeOf(x) { return typeof x === 'object' ? x : current.byId[x]; }
+
+  /* ------------------------------------------------------------------ highlight state */
+  var hl = { nodes: null, links: null };
+  function hlActive() { return !!hl.nodes; }
+  function setHighlight(nodeSet, linkSet) { hl.nodes = nodeSet; hl.links = linkSet; applyHighlight(); }
+  function applyHighlight() {
+    current.nodes.forEach(function (n) {
+      if (!n.__mesh) return;
+      var on = !hl.nodes || hl.nodes.has(n);
+      n.__mesh.material.opacity = on ? 1 : 0.16;
+      n.__mesh.material.depthWrite = on;
+      var sel = (state.selected === n);
+      n.__mesh.scale.setScalar(n.__r * (sel ? 1.3 : 1));
+      n.__mesh.material.emissive.copy(new THREE.Color(n.inst ? n.color : nodeColor(n))).multiplyScalar(sel ? 0.55 : (n.kind === 'external' ? 0.12 : 0.22));
+    });
+    if (graph) {
+      graph.linkColor(graph.linkColor());
+      graph.linkDirectionalParticles(graph.linkDirectionalParticles());
+      graph.linkWidth(graph.linkWidth());
+    }
+    scheduleCull();
+  }
+
+  /* ------------------------------------------------------------------ labels: constant pixel size + screen-space culling */
+  /* label box heights in CSS px (the text itself is about px / 1.68) */
+  var labelPx = { 'class': 24, scheme: 22, external: 21, instance: 21 };
+  var SELECTED_PX = 28;
+  function worldPerPx() { return VL.spriteWpp(graph.camera(), host.clientHeight); }
+  /* scene colours of the current theme (css/site.css: --scene-bg, --label-*, --o3d-link-*) */
+  var TH = {};
+  function readTheme() {
+    TH = {
+      bg: VL.tok('--scene-bg') || '#0a0f1e',
+      labelFg: VL.tok('--label-fg') || '#ffffff', labelFg2: VL.tok('--label-fg-2') || '#dbe2f1',
+      labelBg: VL.tok('--label-bg') || 'rgba(9, 14, 30, 0.78)', labelBorder: VL.tok('--label-border') || '',
+      link: { subClassOf: VL.tok('--o3d-link-subclass'), alignment: VL.tok('--o3d-link-alignment'), inScheme: VL.tok('--o3d-link-inscheme'),
+        instance: VL.tok('--o3d-link-instance'), result: VL.tok('--o3d-link-result') },
+      linkDefault: VL.tok('--o3d-link-default') || '#9aa7c7', linkDim: VL.tok('--o3d-link-dim') || '#263152'
+    };
+    M.sceneBg = TH.bg;
+  }
+  readTheme();
+  function labelStyle(n) { return { color: n.kind === 'external' ? TH.labelFg2 : TH.labelFg, bg: TH.labelBg, border: TH.labelBorder }; }
+  function makeLabel(n) {
+    var st = labelStyle(n);
+    var s = VL.TextSprite(labelText(n), {
+      px: labelPx[n.inst ? 'instance' : n.kind] || 21,
+      weight: (n.kind === 'class' || n.inst) ? '600' : '500',
+      color: st.color, bg: st.bg, border: st.border,
+      cx: 0.5, cy: -0.22
+    });
+    s.__basePx = s.__px;
+    s.position.set(0, n.__r * 1.02, 0);
+    s.fit(worldPerPx());
+    return s;
+  }
+  function resizeLabels() {
+    var w = worldPerPx();
+    current.nodes.forEach(function (n) {
+      var s = n.__label;
+      if (!s) return;
+      s.__px = (state.selected === n) ? SELECTED_PX : s.__basePx;
+      s.fit(w);
+    });
+  }
+  function relabel() {
+    current.nodes.forEach(function (n) { if (n.__label) n.__label.setText(labelText(n)); });
+    scheduleCull();
+  }
+  function priority(n) {
+    if (state.selected === n) return 1e12;
+    var p = 0;
+    if (hl.nodes && hl.nodes.has(n)) p += 1e9;
+    if (n.inst) p += 5e6;
+    if (n.kind === 'class') p += 1e6 + (n.instances || 0) / 10;
+    else if (n.kind === 'scheme') p += 5e5 + (n.instances || 0) / 1e3;
+    else p += 1e5;
+    return p;
+  }
+  var cullTimer = null, cullStats = { shown: 0, hidden: 0 };
+  function scheduleCull() {
+    if (cullTimer) return;
+    cullTimer = setTimeout(function () { cullTimer = null; cullLabels(); }, 90);
+  }
+  function obstacles() {
+    var hr = host.getBoundingClientRect(), out = [];
+    ['#legend', '#hint', '.stage-tools', '#status'].forEach(function (sel) {
+      var e = VL.$(sel, stage);
+      if (!e || e.classList.contains('hidden') || e.offsetParent === null) return;
+      var r = e.getBoundingClientRect();
+      if (r.width < 2 || r.height < 2) return;
+      out.push({ x0: r.left - hr.left - 4, x1: r.right - hr.left + 4, y0: r.top - hr.top - 4, y1: r.bottom - hr.top + 4 });
+    });
+    return out;
+  }
+  var _v = null;
+  function cullLabels() {
+    if (!graph) return;
+    if (!_v) _v = new THREE.Vector3();
+    var cam = graph.camera(), W = host.clientWidth, H = host.clientHeight;
+    cam.updateMatrixWorld();
+    var k = H / (2 * Math.tan(cam.fov * Math.PI / 360));
+    var items = [];
+    function anchor(s, y) {
+      s.position.set(0, y, 0);
+      s.updateMatrixWorld();
+      s.getWorldPosition(_v);
+      _v.project(cam);
+      return { x: (_v.x + 1) / 2 * W, y: (1 - _v.y) / 2 * H, ok: _v.z <= 1 && _v.z >= -1 };
+    }
+    current.nodes.forEach(function (n) {
+      var s = n.__label;
+      if (!s) return;
+      if (!nodeVisible(n) || !n.__obj || (hl.nodes && !hl.nodes.has(n) && !n.inst && state.selected)) { s.layers.set(1); return; }
+      var r = n.__r * 1.02, w = s.scale.x * k, h = s.scale.y * k;
+      var up = anchor(s, r), dn = anchor(s, -r);
+      if (!up.ok) { s.layers.set(1); return; }
+      /* candidate slots: above the node (preferred), then below it */
+      items.push({ n: n, s: s, p: priority(n), slots: [
+        { x0: up.x - w / 2, x1: up.x + w / 2, y0: up.y - 1.22 * h, y1: up.y - 0.22 * h, py: r, cy: -0.22 },
+        { x0: dn.x - w / 2, x1: dn.x + w / 2, y0: dn.y + 0.22 * h, y1: dn.y + 1.22 * h, py: -r, cy: 1.22 }
+      ] });
+    });
+    items.sort(function (a, b) { return b.p - a.p; });
+    var placed = obstacles(), shown = 0, hidden = 0;
+    function free(b) {
+      if (!(b.x0 >= 3 && b.x1 <= W - 3 && b.y0 >= 3 && b.y1 <= H - 3)) return false;
+      for (var i = 0; i < placed.length; i++) {
+        var p = placed[i];
+        if (!(b.x1 + 3 < p.x0 || b.x0 - 3 > p.x1 || b.y1 + 2 < p.y0 || b.y0 - 2 > p.y1)) return false;
+      }
+      return true;
+    }
+    items.forEach(function (it) {
+      var slot = free(it.slots[0]) ? it.slots[0] : (free(it.slots[1]) ? it.slots[1] : null);
+      if (slot) {
+        it.s.position.set(0, slot.py, 0);
+        it.s.center.y = slot.cy;
+        it.s.layers.set(0);
+        placed.push(slot);
+        shown++;
+      } else {
+        it.s.position.set(0, it.slots[0].py, 0);
+        it.s.center.y = -0.22;
+        it.s.layers.set(1);
+        hidden++;
+      }
+    });
+    cullStats = { shown: shown, hidden: hidden };
+    M.labelsShown = shown;
+    M.labelsHidden = hidden;
+  }
+
+  /* ------------------------------------------------------------------ node objects */
+  var GEO = null;
+  function makeNode(n) {
+    if (!GEO) GEO = { sphere: new THREE.SphereGeometry(1, 28, 18), ico: new THREE.IcosahedronGeometry(1, 0), oct: new THREE.OctahedronGeometry(1, 0) };
+    var g = new THREE.Group();
+    var col = new THREE.Color(n.inst ? n.color : nodeColor(n));
+    var mat = new THREE.MeshLambertMaterial({
+      color: col, emissive: col.clone().multiplyScalar(n.kind === 'external' ? 0.12 : 0.22),
+      transparent: true, opacity: 1, flatShading: (n.kind === 'external' || n.kind === 'scheme')
+    });
+    var geo = n.kind === 'external' ? GEO.ico : (n.kind === 'scheme' ? GEO.oct : GEO.sphere);
+    var mesh = new THREE.Mesh(geo, mat);
+    mesh.scale.setScalar(n.__r);
+    g.add(mesh);
+    var lab = makeLabel(n);
+    g.add(lab);
+    n.__mesh = mesh;
+    n.__label = lab;
+    n.__obj = g;
+    return g;
+  }
+
+  /* ------------------------------------------------------------------ link styling */
+  function linkBaseColor(l) { return l.type === 'property' ? VL.moduleColor(l.module) : (TH.link[l.type] || TH.linkDefault); }
+  function linkColor(l) {
+    if (hlActive() && !(hl.links && hl.links.has(l))) return TH.linkDim;
+    return linkBaseColor(l);
+  }
+  function linkWidth(l) {
+    var on = hlActive() && hl.links && hl.links.has(l);
+    if (l.type === 'subClassOf') return on ? 1.5 : 0.9;
+    if (l.type === 'property') return on ? 1.1 : 0.55;
+    if (l.type === 'result') return 1.1;
+    return on ? 0.6 : 0;
+  }
+  function linkParticles(l) {
+    if (!state.particles) return 0;
+    if (hlActive() && !(hl.links && hl.links.has(l))) return 0;
+    return (l.type === 'property' || l.type === 'result') ? 2 : 0;
+  }
+  function linkTooltip(l) {
+    var s = nodeOf(l.source), t = nodeOf(l.target);
+    var name = l.type === 'property' ? (state.lang === 'vi' && l.label_vi ? l.label_vi : l.label_en) :
+      (l.type === 'result' ? l.pred : (l.type === 'instance' ? 'instance of' : l.label_en));
+    return '<b>' + VL.esc(name) + '</b><br><span class="t-sub">' + VL.esc(s ? labelText(s) : '') + ' → ' + VL.esc(t ? labelText(t) : '') + '</span>';
+  }
+  function nodeTooltip(n) {
+    if (n.inst) return '<b>' + VL.esc(n.number || n.label || n.id) + '</b>' + (n.title ? '<br><span class="t-sub">' + VL.esc(VL.short(n.title, 70)) + '</span>' : '');
+    var m = VL.MODULE[n.module] || {};
+    return '<b>' + VL.esc(n.label_en) + '</b>' + (n.label_vi ? ' · ' + VL.esc(n.label_vi) : '') +
+      '<br><span class="t-sub">' + VL.esc(kindLabel(n)) + ' · ' + VL.esc(m.en || n.module) + (n.instances != null ? ' · ' + VL.fmt(n.instances) + ' instances' : '') + '</span>';
+  }
+
+  /* ------------------------------------------------------------------ layout forces */
+  var anchors = {};
+  (function () {
+    var ids = VL.MODULES.map(function (m) { return m.id; }).filter(function (id) { return id !== 'external' && id !== 'citation-basis'; });
+    var N = ids.length;
+    ids.forEach(function (id, i) {
+      var k = i + 0.5, phi = Math.acos(1 - 2 * k / N), th = Math.PI * (1 + Math.sqrt(5)) * k;
+      anchors[id] = { x: 120 * Math.cos(th) * Math.sin(phi), y: 95 * Math.cos(phi), z: 120 * Math.sin(th) * Math.sin(phi) };
+    });
+  })();
+  function clusterForce() {
+    var ns = [];
+    function f(alpha) {
+      ns.forEach(function (n) {
+        if (n.fx != null || n.inst) return;
+        if (n.kind === 'external') {
+          var r = Math.sqrt(n.x * n.x + n.y * n.y + n.z * n.z) || 1, kk = (215 - r) / r * 0.05 * alpha;
+          n.vx += n.x * kk; n.vy += n.y * kk; n.vz += n.z * kk;
+          return;
+        }
+        var a = anchors[n.module];
+        if (!a) return;
+        var k = 0.08 * alpha;
+        n.vx += (a.x - n.x) * k; n.vy += (a.y - n.y) * k; n.vz += (a.z - n.z) * k;
+      });
+    }
+    f.initialize = function (x) { ns = x; };
+    return f;
+  }
+
+  /* ------------------------------------------------------------------ graph */
+  var graph = null;
+  current.nodes = nodes;
+  function stageSize() { return { w: Math.max(50, host.clientWidth), h: Math.max(50, host.clientHeight) }; }
+  function build() {
+    var sz = stageSize();
+    graph = new ForceGraph3D(host, { controlType: 'orbit', rendererConfig: { antialias: true, alpha: false, preserveDrawingBuffer: true } })
+      .width(sz.w).height(sz.h)
+      .backgroundColor(TH.bg)
+      .showNavInfo(false)
+      .nodeRelSize(1)
+      .nodeVal(function (n) { return Math.pow(n.__r, 3); })
+      .nodeLabel(nodeTooltip)
+      .nodeThreeObject(makeNode)
+      .nodeThreeObjectExtend(false)
+      .nodeVisibility(nodeVisible)
+      .linkVisibility(linkVisible)
+      .linkColor(linkColor)
+      .linkWidth(linkWidth)
+      .linkOpacity(0.8)
+      .linkResolution(8)
+      .linkCurvature('curvature')
+      .linkCurveRotation('rotation')
+      .linkDirectionalArrowLength(function (l) { return (l.type === 'property' || l.type === 'subClassOf' || l.type === 'result') ? 4.2 : 0; })
+      .linkDirectionalArrowRelPos(1)
+      .linkDirectionalArrowColor(linkColor)
+      .linkDirectionalParticles(linkParticles)
+      .linkDirectionalParticleWidth(1.7)
+      .linkDirectionalParticleSpeed(0.0045)
+      .linkDirectionalParticleColor(function (l) { return linkBaseColor(l); })
+      .linkLabel(linkTooltip)
+      .linkHoverPrecision(2.5)
+      .onNodeClick(function (n) { select(n, true); })
+      .onLinkClick(function (l) { selectLink(l); })
+      .onBackgroundClick(function () { clearSelection(); })
+      .onNodeHover(function (n) { host.style.cursor = n ? 'pointer' : ''; M.hover = n ? n.id : null; })
+      .onLinkHover(function (l) { host.style.cursor = l ? 'pointer' : ''; })
+      .onEngineTick(scheduleCull)
+      .onEngineStop(onEngineStop)
+      .warmupTicks(160)
+      .cooldownTicks(60)
+      .d3AlphaDecay(0.035)
+      .d3VelocityDecay(0.38);
+    graph.d3Force('charge').strength(function (n) { return n.kind === 'class' ? -110 : (n.inst ? -14 : -50); });
+    graph.d3Force('link')
+      .distance(function (l) { return { subClassOf: 26, inScheme: 30, alignment: 50, property: 70, instance: 16, result: 34 }[l.type] || 50; })
+      .strength(function (l) { return { subClassOf: 0.7, inScheme: 0.5, alignment: 0.35, property: 0.1, instance: 0.9, result: 0.5 }[l.type] || 0.3; });
+    graph.d3Force('cluster', clusterForce());
+    graph.graphData(baseData);
+    current.nodes = nodes;
+    current.byId = byId;
+    graph.controls().addEventListener('change', scheduleCull);
+    graph.controls().addEventListener('start', function () { hideHint(); });
+    var lights = graph.lights && graph.lights();
+    M.webglRenderer = rendererName();
+    fitView(0);
+    window.VLApp.graph = graph;
+  }
+  function rendererName() {
+    try {
+      var gl = graph.renderer().getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info');
+      return ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+    } catch (e) { return null; }
+  }
+
+  function fitView(ms, subset) {
+    var vis = (subset || current.nodes).filter(nodeVisible).filter(function (n) { return isFinite(n.x); });
+    if (!vis.length) return;
+    var cx = 0, cy = 0, cz = 0;
+    vis.forEach(function (n) { cx += n.x; cy += n.y; cz += n.z; });
+    cx /= vis.length; cy /= vis.length; cz /= vis.length;
+    var R = 10;
+    vis.forEach(function (n) { R = Math.max(R, Math.sqrt(Math.pow(n.x - cx, 2) + Math.pow(n.y - cy, 2) + Math.pow(n.z - cz, 2)) + n.__r + 12); });
+    var cam = graph.camera(), sz = stageSize();
+    var vf = cam.fov * Math.PI / 180, aspect = sz.w / sz.h;
+    var hf = 2 * Math.atan(Math.tan(vf / 2) * aspect);
+    var d = R / Math.sin(Math.min(vf, hf) / 2) * 0.9;
+    var dir = new THREE.Vector3(0.32, 0.3, 1).normalize();
+    graph.cameraPosition({ x: cx + dir.x * d, y: cy + dir.y * d, z: cz + dir.z * d }, { x: cx, y: cy, z: cz }, ms || 0);
+    setTimeout(scheduleCull, (ms || 0) + 40);
+  }
+  function flyTo(n) {
+    if (!isFinite(n.x)) return;
+    var cam = graph.camera(), sz = stageSize();
+    var vf = cam.fov * Math.PI / 180, aspect = sz.w / sz.h, hf = 2 * Math.atan(Math.tan(vf / 2) * aspect);
+    var R = 70 + n.__r * 2;
+    var d = R / Math.sin(Math.min(vf, hf) / 2);
+    var t = graph.controls().target;
+    var dir = new THREE.Vector3().subVectors(cam.position, t);
+    if (dir.lengthSq() < 1) dir.set(0.3, 0.3, 1);
+    dir.normalize();
+    graph.cameraPosition({ x: n.x + dir.x * d, y: n.y + dir.y * d, z: n.z + dir.z * d }, { x: n.x, y: n.y, z: n.z }, 900);
+    setTimeout(scheduleCull, 950);
+  }
+
+  var firstStop = true;
+  function onEngineStop() {
+    scheduleCull();
+    if (!firstStop) return;
+    firstStop = false;
+    fitView(400);
+    setTimeout(function () {
+      var veil = VL.$('#veil');
+      if (veil) veil.remove();
+      cullLabels();
+      showHint();
+      applyHash();
+      measureFps(1500).then(function (fps) {
+        VL.setReady({ fps: fps, graphNodes: current.nodes.length, graphLinks: graph.graphData().links.length, webglRenderer: M.webglRenderer });
+        status();
+      });
+    }, 480);
+  }
+  function measureFps(ms) {
+    return new Promise(function (resolve) {
+      var r = graph.renderer(), f0 = r.info.render.frame, t0 = performance.now();
+      setTimeout(function () {
+        var fps = Math.round((r.info.render.frame - f0) * 10000 / (performance.now() - t0)) / 10;
+        M.fpsSamples = (M.fpsSamples || []).concat([fps]);
+        resolve(fps);
+      }, ms);
+    });
+  }
+  window.VLApp.measureFps = measureFps;
+  function status() {
+    var vis = current.nodes.filter(nodeVisible).length;
+    statusEl.textContent = vis + ' of ' + current.nodes.length + ' nodes · ' + (M.fps ? M.fps + ' fps' : '');
+  }
+
+  /* ------------------------------------------------------------------ selection + panel */
+  function neighbourhood(n) {
+    var ns = new Set([n]), ls = new Set();
+    graph.graphData().links.forEach(function (l) {
+      if (!linkVisible(l)) return;
+      var s = nodeOf(l.source), t = nodeOf(l.target);
+      if (s === n || t === n) { ls.add(l); ns.add(s); ns.add(t); }
+    });
+    return { nodes: ns, links: ls };
+  }
+  function select(n, fly) {
+    if (!n) return;
+    if (!nodeVisible(n)) {
+      if (n.kind === 'external') { state.showExternal = true; VL.$('#show-external').checked = true; }
+      else if (n.kind === 'scheme') { state.showSchemes = true; VL.$('#show-schemes').checked = true; }
+      if (n.module && state.modules[n.module] === false) { state.modules[n.module] = true; renderChips(); }
+      refreshVisibility();
+    }
+    state.selected = n;
+    state.selectedLink = null;
+    var nb = neighbourhood(n);
+    setHighlight(nb.nodes, nb.links);
+    resizeLabels();
+    openPanel(n.inst ? instancePanel(n) : nodePanel(n));
+    if (fly !== false) flyTo(n);
+    M.selected = n.id;
+    M.panelTitle = n.inst ? (n.number || n.label || n.id) : n.label_en;
+  }
+  function selectLink(l) {
+    state.selected = null;
+    state.selectedLink = l;
+    var s = nodeOf(l.source), t = nodeOf(l.target);
+    setHighlight(new Set([s, t]), new Set([l]));
+    resizeLabels();
+    openPanel(linkPanel(l));
+    M.selectedLink = l.id || l.key;
+  }
+  function clearSelection() {
+    state.selected = null;
+    state.selectedLink = null;
+    setHighlight(view.resultSet ? view.resultSet.nodes : null, view.resultSet ? view.resultSet.links : null);
+    resizeLabels();
+    closePanel();
+  }
+  function openPanel(html) {
+    panel.innerHTML = html;
+    panel.classList.remove('hidden');
+    stage.classList.add('panel-open');
+    if (VL.isMobile()) setDrawer(false);
+    relayout();
+    panel.scrollTop = 0;
+  }
+  function closePanel() {
+    panel.classList.add('hidden');
+    stage.classList.remove('panel-open');
+    relayout();
+  }
+  function chip(id) {
+    var n = current.byId[id] || byId[id];
+    if (!n) return '<span class="plain">' + VL.esc(id) + '</span>';
+    return '<button type="button" class="linkish" data-node="' + VL.esc(n.id) + '"><span class="swatch" style="background:' + VL.moduleVar(n.module || 'provenance') + '"></span>' + VL.esc(labelText(n)) + '</button>';
+  }
+  function section(title, body) { return body ? '<h3>' + VL.esc(title) + '</h3>' + body : ''; }
+  function closeBtn() { return '<button class="btn btn-xs panel-close" type="button" data-act="close" aria-label="Close details">' + VL.ICON.close + '</button>'; }
+  function nodePanel(n) {
+    var m = VL.MODULE[n.module] || VL.MODULE.provenance;
+    var h = closeBtn();
+    h += '<div class="panel-kind"><span class="badge"><span class="swatch" style="background:' + VL.moduleVar(n.module || 'provenance') + '"></span>' + VL.esc(m.en) + ' · <span lang="vi">' + VL.esc(m.vi) + '</span></span>' +
+      '<span class="badge">' + VL.esc(kindLabel(n)) + '</span></div>';
+    h += '<h2>' + VL.esc(n.label_en) + '</h2>';
+    if (n.label_vi) h += '<p class="vi" lang="vi">' + VL.esc(n.label_vi) + '</p>';
+    h += '<dl class="kv"><dt>IRI</dt><dd><span class="iri">' + VL.wbr(n.iri) + '</span></dd>' +
+      '<dt>CURIE</dt><dd class="iri">' + VL.esc(n.id) + '</dd>';
+    if (n.instances != null) h += '<dt>' + (n.kind === 'scheme' ? 'Concepts' : 'Instances') + '</dt><dd>' + VL.fmt(n.instances) + (n.kind === 'class' ? ' in the knowledge graph' : '') + '</dd>';
+    h += '</dl>';
+    if (n.definition_en) h += '<p class="def">' + VL.esc(n.definition_en) + '</p>';
+    if (n.definition_vi) h += '<p class="def vi-def" lang="vi">' + VL.esc(n.definition_vi) + '</p>';
+    var sup = (n.superclasses || []).filter(function (x) { return byId[x]; });
+    var supOther = (n.superclasses || []).filter(function (x) { return !byId[x]; });
+    h += section('Superclasses', (sup.length || supOther.length) ? '<div class="chip-list">' + sup.map(chip).join('') + supOther.map(function (x) { return '<span class="plain">' + VL.esc(x) + '</span>'; }).join('') + '</div>' : '');
+    h += section('Subclasses', (superOf[n.id] || []).length ? '<div class="chip-list">' + superOf[n.id].map(chip).join('') + '</div>' : '');
+    var al = (alignOut[n.id] || []);
+    h += section('Aligned with', al.length ? '<ul class="plist">' + al.map(function (l) {
+      return '<li><span class="p-arrow">' + VL.esc(l.label_en) + '</span> ' + chip(sid(l.target)) + '</li>'; }).join('') + '</ul>' : '');
+    var ai = (alignIn[n.id] || []);
+    h += section('VLOnto terms aligned to it', ai.length ? '<ul class="plist">' + ai.map(function (l) {
+      return '<li>' + chip(sid(l.source)) + ' <span class="p-arrow">' + VL.esc(l.label_en) + '</span></li>'; }).join('') + '</ul>' : '');
+    h += section('Concept scheme', (schemeOf[n.id] || []).length ? '<div class="chip-list">' + schemeOf[n.id].map(chip).join('') + '</div>' : '');
+    h += section('Classes with concepts in this scheme', (schemeMembers[n.id] || []).length ? '<div class="chip-list">' + schemeMembers[n.id].map(chip).join('') + '</div>' : '');
+    var op = outProps[n.id] || [], ip = inProps[n.id] || [];
+    h += section('Outgoing properties (' + op.length + ')', op.length ? '<ul class="plist">' + op.map(function (l) {
+      return '<li><button type="button" class="linkish p-name" data-link="' + l.key + '">' + VL.esc(propName(l)) + '</button> <span class="p-arrow">→</span> ' + chip(sid(l.target)) +
+        '<div class="muted-small mono">' + VL.esc(l.id || '') + '</div></li>'; }).join('') + '</ul>' : '');
+    h += section('Incoming properties (' + ip.length + ')', ip.length ? '<ul class="plist">' + ip.map(function (l) {
+      return '<li>' + chip(sid(l.source)) + ' <span class="p-arrow">→</span> <button type="button" class="linkish p-name" data-link="' + l.key + '">' + VL.esc(propName(l)) + '</button>' +
+        '<div class="muted-small mono">' + VL.esc(l.id || '') + '</div></li>'; }).join('') + '</ul>' : '');
+    var at = n.attributes || [];
+    h += section('Datatype properties (' + at.length + ')', at.length ? '<ul class="plist">' + at.map(function (a) {
+      return '<li><span class="p-name">' + VL.esc(state.lang === 'vi' && a.label_vi ? a.label_vi : a.label_en) + '</span> <span class="p-arrow">→</span> <span class="iri">' + VL.esc(VL.shortIri(a.range || '')) + '</span>' +
+        '<div class="muted-small mono">' + VL.esc(a.id) + '</div></li>'; }).join('') + '</ul>' : '');
+    var ex = n.examples || [];
+    if (ex.length) {
+      h += '<h3>' + (n.kind === 'scheme' ? 'Concepts' : 'Example instances') + '</h3><ul class="plist">' + ex.map(function (e) {
+        var lab = VL.nfc(e.label || (state.lang === 'vi' && e.label_vi ? e.label_vi : e.label_en) || e.iri);
+        var doc = VL.docIdFromIri(e.iri);
+        if (doc) return '<li><a href="network-3d.html#doc=' + encodeURIComponent(doc) + '">' + VL.esc(lab) + '</a><div class="muted-small">Opens in the 3D legal network</div></li>';
+        return '<li>' + VL.esc(lab) + (e.notation ? ' <span class="muted-small mono">' + VL.esc(e.notation) + '</span>' : '') + '<div class="iri muted-small">' + VL.wbr(VL.shortIri(e.iri)) + '</div></li>';
+      }).join('') + '</ul>';
+    }
+    h += '<div class="panel-actions"><button class="btn btn-xs" type="button" data-act="focus">Focus</button>' +
+      '<button class="btn btn-xs" type="button" data-copy="' + VL.esc(n.iri) + '">Copy IRI</button>' +
+      (n.kind === 'class' ? '<button class="btn btn-xs" type="button" data-act="query-class" data-cls="' + VL.esc(n.id) + '">Query instances</button>' : '') + '</div>';
+    return h;
+  }
+  function propName(l) { return state.lang === 'vi' && l.label_vi ? l.label_vi : l.label_en; }
+  function linkPanel(l) {
+    var s = nodeOf(l.source), t = nodeOf(l.target), h = closeBtn();
+    if (l.type === 'property') {
+      var m = VL.MODULE[l.module] || VL.MODULE.provenance;
+      var iri = VL.expandIri(l.id);
+      h += '<div class="panel-kind"><span class="badge"><span class="swatch" style="background:' + VL.moduleVar(l.module) + '"></span>' + VL.esc(m.en) + '</span><span class="badge">object property</span></div>';
+      h += '<h2>' + VL.esc(l.label_en) + '</h2>' + (l.label_vi ? '<p class="vi" lang="vi">' + VL.esc(l.label_vi) + '</p>' : '');
+      h += '<dl class="kv"><dt>IRI</dt><dd><span class="iri">' + VL.wbr(iri) + '</span></dd><dt>Domain</dt><dd>' + chip(s.id) + '</dd><dt>Range</dt><dd>' + chip(t.id) + '</dd>';
+      if (l.inverse_of) h += '<dt>Inverse of</dt><dd class="iri">' + VL.esc(l.inverse_of) + '</dd>';
+      if ((l.aligned_to || []).length) h += '<dt>Aligned to</dt><dd class="iri">' + l.aligned_to.map(VL.esc).join(', ') + '</dd>';
+      h += '</dl>';
+      if (l.definition_en) h += '<p class="def">' + VL.esc(l.definition_en) + '</p>';
+      h += '<div class="panel-actions"><button class="btn btn-xs" type="button" data-copy="' + VL.esc(iri) + '">Copy IRI</button>' +
+        '<button class="btn btn-xs" type="button" data-act="query-prop" data-prop="' + VL.esc(l.id) + '">Query this property</button></div>';
+      return h;
+    }
+    var kinds = { subClassOf: 'subclass axiom', alignment: 'alignment', inScheme: 'scheme membership', instance: 'instance of', result: 'CONSTRUCT triple' };
+    h += '<div class="panel-kind"><span class="badge">' + VL.esc(kinds[l.type] || l.type) + '</span></div>';
+    h += '<h2>' + VL.esc(l.type === 'result' ? l.pred : (l.type === 'instance' ? 'instance of' : l.label_en)) + '</h2>';
+    if (l.label_vi && l.type !== 'result') h += '<p class="vi" lang="vi">' + VL.esc(l.label_vi) + '</p>';
+    h += '<dl class="kv"><dt>From</dt><dd>' + chip(s.id) + '</dd><dt>To</dt><dd>' + chip(t.id) + '</dd>';
+    if (l.predIri) h += '<dt>Predicate</dt><dd><span class="iri">' + VL.wbr(l.predIri) + '</span></dd>';
+    h += '</dl>';
+    var expl = {
+      subClassOf: 'Every instance of the first class is also an instance of the second (rdfs:subClassOf).',
+      alignment: 'A sub-class or sub-property axiom that maps the VLOnto term to a term of an external vocabulary.',
+      inScheme: 'The concepts of this class are organised in the SKOS concept scheme (skos:inScheme).'
+    }[l.type];
+    if (expl) h += '<p class="def">' + VL.esc(expl) + '</p>';
+    return h;
+  }
+  function instancePanel(n) {
+    var h = closeBtn();
+    var cls = n.cls ? current.byId[n.cls] || byId[n.cls] : null;
+    h += '<div class="panel-kind"><span class="badge"><span class="swatch" style="background:' + VL.moduleVar(n.module || 'provenance') + '"></span>instance</span>' + (cls ? '<span class="badge">' + VL.esc(cls.label_en) + '</span>' : '') + '</div>';
+    h += '<h2>' + VL.esc(n.number || n.label || n.id) + '</h2>';
+    if (n.title && n.title !== n.number) h += '<p class="vi" lang="vi">' + VL.esc(n.title) + '</p>';
+    h += '<dl class="kv">' + (n.iri ? '<dt>IRI</dt><dd><span class="iri">' + VL.wbr(n.iri) + '</span></dd>' : '') + (cls ? '<dt>Class</dt><dd>' + chip(cls.id) + '</dd>' : '') + '</dl>';
+    var lits = (view.literals || {})[n.id] || [];
+    if (lits.length) h += '<h3>Values in the result</h3><ul class="plist">' + lits.slice(0, 12).map(function (l) { return '<li><span class="p-arrow mono">' + VL.esc(l[0]) + '</span> ' + VL.esc(VL.short(l[1], 160)) + '</li>'; }).join('') + '</ul>';
+    var doc = VL.docIdFromIri(n.iri);
+    if (doc) h += '<div class="panel-actions"><a class="btn btn-xs" href="network-3d.html#doc=' + encodeURIComponent(doc) + '">Open in the 3D legal network</a></div>';
+    return h;
+  }
+  panel.addEventListener('click', function (e) {
+    var b = e.target.closest('button, a');
+    if (!b) return;
+    if (b.hasAttribute('data-node')) { var n = current.byId[b.getAttribute('data-node')] || byId[b.getAttribute('data-node')]; if (n) select(n, true); }
+    else if (b.hasAttribute('data-link')) { var l = linkByKey[b.getAttribute('data-link')]; if (l) selectLink(l); }
+    else if (b.hasAttribute('data-copy')) VL.copy(b.getAttribute('data-copy'));
+    else if (b.getAttribute('data-act') === 'close') clearSelection();
+    else if (b.getAttribute('data-act') === 'focus' && state.selected) flyTo(state.selected);
+    else if (b.getAttribute('data-act') === 'query-class') {
+      openDrawer('PREFIX vlo: <https://tmquan.github.io/VLOnto/ontology#>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n' +
+        'SELECT ?s ?label WHERE {\n  ?s a ' + b.getAttribute('data-cls') + ' .\n  OPTIONAL { ?s vlo:title ?label }\n  OPTIONAL { ?s rdfs:label ?label }\n} LIMIT 50');
+    } else if (b.getAttribute('data-act') === 'query-prop') {
+      openDrawer('PREFIX vlo: <https://tmquan.github.io/VLOnto/ontology#>\nCONSTRUCT { ?s ' + b.getAttribute('data-prop') + ' ?o }\nWHERE { ?s ' + b.getAttribute('data-prop') + ' ?o }\nLIMIT 60');
+    }
+  });
+
+  /* ------------------------------------------------------------------ controls: chips, toggles, search, keys */
+  function renderChips() {
+    var counts = {};
+    nodes.forEach(function (n) { if (n.kind !== 'external') counts[n.module] = (counts[n.module] || 0) + 1; });
+    links.forEach(function (l) { if (l.type === 'property' && !counts[l.module]) counts[l.module] = 0; });
+    var html = VL.MODULES.filter(function (m) { return m.id !== 'external'; }).map(function (m) {
+      var on = state.modules[m.id] !== false;
+      var c = counts[m.id] || 0;
+      return '<button type="button" class="chip" data-mod="' + m.id + '" aria-pressed="' + on + '" title="' + VL.esc(m.vi) + '">' +
+        '<span class="swatch" style="background:' + m.v + '"></span>' + VL.esc(m.en) + (c ? ' · ' + c : '') + '</button>';
+    }).join('');
+    VL.$('#module-chips').innerHTML = html;
+  }
+  VL.$('#module-chips').addEventListener('click', function (e) {
+    var b = e.target.closest('[data-mod]');
+    if (!b) return;
+    var id = b.getAttribute('data-mod');
+    state.modules[id] = state.modules[id] === false;
+    b.setAttribute('aria-pressed', state.modules[id] ? 'true' : 'false');
+    refreshVisibility();
+  });
+  VL.$('#mod-all').addEventListener('click', function () { Object.keys(state.modules).forEach(function (k) { state.modules[k] = true; }); renderChips(); refreshVisibility(); });
+  VL.$('#mod-none').addEventListener('click', function () { Object.keys(state.modules).forEach(function (k) { state.modules[k] = false; }); renderChips(); refreshVisibility(); });
+  VL.$('#show-external').addEventListener('change', function (e) { state.showExternal = e.target.checked; refreshVisibility(); });
+  VL.$('#show-schemes').addEventListener('change', function (e) { state.showSchemes = e.target.checked; refreshVisibility(); });
+  VL.$('#show-particles').addEventListener('change', function (e) { state.particles = e.target.checked; graph.linkDirectionalParticles(graph.linkDirectionalParticles()); });
+  VL.$$('input[data-link]').forEach(function (cb) {
+    cb.addEventListener('change', function () { state.links[cb.getAttribute('data-link')] = cb.checked; refreshVisibility(); });
+  });
+  function refreshVisibility() {
+    if (!graph) return;
+    graph.nodeVisibility(graph.nodeVisibility());
+    graph.linkVisibility(graph.linkVisibility());
+    if (state.selected && !nodeVisible(state.selected)) clearSelection();
+    scheduleCull();
+    status();
+    M.visibleNodes = current.nodes.filter(nodeVisible).length;
+  }
+  VL.$$('[data-lang]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      state.lang = b.getAttribute('data-lang');
+      VL.$$('[data-lang]').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      relabel();
+      if (state.selected) openPanel(state.selected.inst ? instancePanel(state.selected) : nodePanel(state.selected));
+      else if (state.selectedLink) openPanel(linkPanel(state.selectedLink));
+      M.labelLang = state.lang;
+    });
+  });
+  function counts() {
+    VL.$('#cnt-external').textContent = nodes.filter(function (n) { return n.kind === 'external'; }).length;
+    VL.$('#cnt-schemes').textContent = nodes.filter(function (n) { return n.kind === 'scheme'; }).length;
+    ['subClassOf', 'property', 'alignment', 'inScheme'].forEach(function (t) {
+      VL.$('#cnt-' + t).textContent = links.filter(function (l) { return l.type === t; }).length;
+    });
+  }
+
+  var searchIndex = [];
+  nodes.forEach(function (n) {
+    searchIndex.push({ t: 'node', id: n.id, main: n.label_en, sub: [n.label_vi, n.id].filter(Boolean).join(' · '), kind: kindLabel(n), color: VL.moduleVar(n.module || 'provenance'),
+      hay: [VL.fold(n.label_en), VL.fold(n.label_vi || ''), VL.fold(n.id), VL.fold(n.id.split(':')[1] || ''), VL.fold(n.iri)], boost: n.kind === 'class' ? 3 : 1 });
+  });
+  links.forEach(function (l) {
+    if (l.type !== 'property') return;
+    searchIndex.push({ t: 'link', key: l.key, main: l.label_en, sub: [l.label_vi, l.id].filter(Boolean).join(' · '), kind: 'property', color: VL.moduleVar(l.module),
+      hay: [VL.fold(l.label_en), VL.fold(l.label_vi || ''), VL.fold(l.id || ''), VL.fold((l.id || '').split(':')[1] || '')], boost: 0 });
+  });
+  function searchSource(q) {
+    var qf = VL.fold(q.trim());
+    if (!qf) return [];
+    var out = [];
+    searchIndex.forEach(function (e) {
+      var s = 0;
+      e.hay.forEach(function (h) { s = Math.max(s, VL.score(qf, h)); });
+      if (s > 0) out.push([s + e.boost, e]);
+    });
+    out.sort(function (a, b) { return b[0] - a[0] || a[1].main.localeCompare(b[1].main); });
+    return out.slice(0, 10).map(function (x) { return x[1]; });
+  }
+  function onPick(e) {
+    if (e.t === 'node') select(byId[e.id], true);
+    else selectLink(linkByKey[e.key]);
+    if (VL.isMobile()) setSide(false);
+  }
+  VL.combobox({ input: VL.$('#onto-search'), list: VL.$('#onto-suggest'), source: searchSource, onPick: onPick });
+  VL.combobox({ input: VL.$('#onto-search-m'), list: VL.$('#onto-suggest-m'), source: searchSource, onPick: onPick });
+  window.VLApp.search = function (q) { var r = searchSource(q); if (r.length) onPick(r[0]); return r.map(function (x) { return x.main; }); };
+  window.VLApp.select = function (id) { var n = current.byId[id] || byId[id]; if (n) select(n, true); return !!n; };
+  window.VLApp.screenPos = function (id) {
+    var n = current.byId[id] || byId[id];
+    if (!n || !graph) return null;
+    var p = graph.graph2ScreenCoords(n.x, n.y, n.z), r = host.getBoundingClientRect();
+    return { x: r.left + p.x, y: r.top + p.y, inside: p.x > 0 && p.y > 0 && p.x < r.width && p.y < r.height };
+  };
+  window.VLApp.state = function () {
+    return { selected: state.selected && state.selected.id, view: view.mode, nodes: graph.graphData().nodes.length, links: graph.graphData().links.length,
+      panelOpen: !panel.classList.contains('hidden'), panelText: panel.textContent.slice(0, 400) };
+  };
+
+  function setSide(open) {
+    app.classList.toggle('side-open', open);
+    VL.$('#btn-side-m').setAttribute('aria-expanded', open ? 'true' : 'false');
+  }
+  VL.$('#btn-side-m').addEventListener('click', function () { setSide(!app.classList.contains('side-open')); });
+  VL.$('#btn-reset').addEventListener('click', resetView);
+  VL.$('#btn-reset2').innerHTML = VL.ICON.reset;
+  VL.$('#btn-reset2').addEventListener('click', resetView);
+  VL.$('#btn-legend').innerHTML = VL.ICON.layers;
+  VL.$('#btn-legend').addEventListener('click', function () { state.legendOpen = !state.legendOpen; renderLegend(); scheduleCull(); });
+  VL.$('#btn-png').addEventListener('click', exportPng);
+  VL.$('#btn-query').addEventListener('click', function () { setDrawer(!state.drawerOpen); });
+  VL.$('#btn-query-m').addEventListener('click', function () { setSide(false); setDrawer(!state.drawerOpen); });
+  function resetView() {
+    clearSelection();
+    fitView(700);
+  }
+  function exportPng() {
+    var r = graph.renderer();
+    r.render(graph.scene(), graph.camera());
+    r.domElement.toBlob(function (b) { VL.downloadBlob(b, 'vlonto-ontology-3d.png'); VL.toast('PNG exported'); }, 'image/png');
+  }
+  window.VLApp.exportPng = function () { var r = graph.renderer(); r.render(graph.scene(), graph.camera()); return r.domElement.toDataURL('image/png').length; };
+
+  function orbit(dAz, dPol, zoom) {
+    var cam = graph.camera(), ctl = graph.controls(), t = ctl.target;
+    var off = cam.position.clone().sub(t), sph = new THREE.Spherical().setFromVector3(off);
+    sph.theta += dAz;
+    sph.phi = Math.min(Math.PI - 0.05, Math.max(0.05, sph.phi + dPol));
+    sph.radius *= zoom || 1;
+    off.setFromSpherical(sph);
+    cam.position.copy(t).add(off);
+    cam.lookAt(t);
+    ctl.update();
+    scheduleCull();
+  }
+  host.addEventListener('keydown', function (e) {
+    var k = e.key;
+    if (k === 'ArrowLeft') orbit(-0.12, 0);
+    else if (k === 'ArrowRight') orbit(0.12, 0);
+    else if (k === 'ArrowUp') orbit(0, -0.1);
+    else if (k === 'ArrowDown') orbit(0, 0.1);
+    else if (k === '+' || k === '=') orbit(0, 0, 0.85);
+    else if (k === '-' || k === '_') orbit(0, 0, 1.18);
+    else return;
+    e.preventDefault();
+  });
+  document.addEventListener('keydown', function (e) {
+    var tag = (e.target && e.target.tagName) || '';
+    var typing = /INPUT|TEXTAREA|SELECT/.test(tag);
+    if (e.key === '/' && !typing) { e.preventDefault(); (VL.isMobile() ? VL.$('#onto-search-m') : VL.$('#onto-search')).focus(); }
+    else if (e.key === 'Escape' && !typing) {
+      if (!panel.classList.contains('hidden')) clearSelection();
+      else if (state.drawerOpen) setDrawer(false);
+      else if (app.classList.contains('side-open')) setSide(false);
+    }
+  });
+
+  /* ------------------------------------------------------------------ legend + hint */
+  var SHAPES = {
+    'class': '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><circle cx="7" cy="7" r="5.5" fill="currentColor"/></svg>',
+    scheme: '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1.2L12.8 7 7 12.8 1.2 7z" fill="currentColor"/></svg>',
+    external: '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1.3l5 2.9v5.7L7 12.7 2 9.9V4.2z" fill="currentColor"/></svg>'
+  };
+  function renderLegend() {
+    var btn = VL.$('#btn-legend');
+    btn.setAttribute('aria-expanded', state.legendOpen ? 'true' : 'false');
+    legendEl.classList.toggle('hidden', !state.legendOpen);
+    if (!state.legendOpen) return;
+    var mods = VL.MODULES.filter(function (m) { return m.id !== 'citation-basis'; });
+    var h = '<h3>Modules</h3><ul>' + mods.map(function (m) {
+      return '<li><span class="swatch" style="background:' + m.v + '"></span>' + VL.esc(m.id === 'external' ? 'external terms' : m.en) + '</li>';
+    }).join('') + '</ul>';
+    h += '<div class="legend-sub"><ul>' +
+      '<li>' + SHAPES['class'] + 'class (size ~ instances)</li><li>' + SHAPES.scheme + 'concept scheme</li>' +
+      '<li>' + SHAPES.external + 'external term</li>' +
+      '<li><span class="swatch line" style="background:var(--o3d-link-subclass)"></span>subclass of</li>' +
+      '<li><span class="swatch line" style="background:linear-gradient(90deg,var(--mod-documents),var(--mod-validity-change))"></span>object property</li>' +
+      '<li><span class="swatch line" style="background:var(--o3d-link-alignment)"></span>alignment</li>' +
+      (view.mode !== 'ontology' ? '<li><span class="swatch line" style="background:var(--o3d-link-result)"></span>CONSTRUCT triple</li>' : '') +
+      '</ul></div>';
+    legendEl.innerHTML = h;
+  }
+  function showHint() {
+    if (VL.store.get('hint-onto3d') === 'off') return;
+    VL.$('#hint').classList.remove('hidden');
+    scheduleCull();
+  }
+  function hideHint() {
+    var h = VL.$('#hint');
+    if (h && !h.classList.contains('hidden')) { h.classList.add('hidden'); scheduleCull(); }
+  }
+  VL.$('#hint-close').addEventListener('click', function () { hideHint(); VL.store.set('hint-onto3d', 'off'); });
+
+  /* ------------------------------------------------------------------ theme switch (light / dark): background, node
+     colours, label sprites and link colours change in place (no new layout); DOM swatches follow CSS variables */
+  function applyTheme() {
+    readTheme();
+    if (!graph) return;
+    graph.backgroundColor(TH.bg);
+    var seen = new Set();
+    nodes.concat(current.nodes || []).forEach(function (n) {
+      if (seen.has(n)) return;
+      seen.add(n);
+      if (n.inst) n.color = VL.moduleColor(n.module || 'provenance');
+      if (n.__mesh) n.__mesh.material.color.set(n.inst ? n.color : nodeColor(n));
+      if (n.__label) n.__label.setStyle(labelStyle(n));
+    });
+    applyHighlight();
+    graph.linkDirectionalArrowColor(graph.linkDirectionalArrowColor());
+    graph.linkDirectionalParticleColor(graph.linkDirectionalParticleColor());
+    renderLegend();
+    M.themeRenders = (M.themeRenders || 0) + 1;
+  }
+  window.addEventListener('vlonto-theme', applyTheme);
+
+  /* ------------------------------------------------------------------ layout of the stage (panel / drawer docking) */
+  function relayout() {
+    if (!graph) return;
+    requestAnimationFrame(function () {
+      var sz = stageSize();
+      graph.width(sz.w).height(sz.h);
+      resizeLabels();
+      scheduleCull();
+    });
+  }
+  window.addEventListener('resize', relayout);
+
+  /* ------------------------------------------------------------------ SPARQL query mode */
+  var view = { mode: 'ontology', resultSet: null, literals: null };
+  var ctxPromise = null;
+  var qText = VL.$('#qd-text'), qStatus = VL.$('#qd-status'), qResult = VL.$('#qd-result'), qSel = VL.$('#qd-example');
+  VL.$('#qd-close').innerHTML = VL.ICON.close;
+  (function fillExamples() {
+    var h = '<optgroup label="Graph results (CONSTRUCT, drawn in 3D)">' + VL.Sparql.CONSTRUCT_EXAMPLES.map(function (e, i) {
+      return '<option value="c' + i + '">' + VL.esc(e.title_en) + '</option>'; }).join('') + '</optgroup>';
+    h += '<optgroup label="Table results (SELECT)">' + EXAMPLES.map(function (e, i) {
+      return '<option value="s' + i + '">' + VL.esc(e.title_en) + '</option>'; }).join('') + '</optgroup>';
+    qSel.innerHTML = h;
+    qText.value = VL.Sparql.CONSTRUCT_EXAMPLES[0].query;
+  })();
+  qSel.addEventListener('change', function () {
+    var v = qSel.value, i = +v.slice(1);
+    qText.value = v[0] === 'c' ? VL.Sparql.CONSTRUCT_EXAMPLES[i].query : EXAMPLES[i].query;
+    setQStatus('Example loaded. Press Run (Ctrl+Enter).', '');
+  });
+  qText.addEventListener('keydown', function (e) {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); runQuery(); }
+    if (e.key === 'Tab' && !e.shiftKey && !e.ctrlKey) {
+      e.preventDefault();
+      var s = qText.selectionStart;
+      qText.value = qText.value.slice(0, s) + '  ' + qText.value.slice(qText.selectionEnd);
+      qText.selectionStart = qText.selectionEnd = s + 2;
+    }
+  });
+  VL.$$('[data-cm]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      state.cm = b.getAttribute('data-cm');
+      VL.$$('[data-cm]').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+    });
+  });
+  VL.$('#qd-run').addEventListener('click', runQuery);
+  VL.$('#qd-back').addEventListener('click', backToOntology);
+  VL.$('#qd-close').addEventListener('click', function () { setDrawer(false); });
+  VL.$('#qd-min').addEventListener('click', function () {
+    var min = !drawer.classList.contains('min');
+    drawer.classList.toggle('min', min);
+    stage.classList.toggle('drawer-min', min);
+    VL.$('#qd-min').textContent = min ? 'Show editor' : 'Hide editor';
+    VL.$('#qd-min').setAttribute('aria-expanded', min ? 'false' : 'true');
+    relayout();
+  });
+  function setQStatus(msg, cls) { qStatus.textContent = msg; qStatus.className = 'qd-status' + (cls ? ' ' + cls : ''); }
+  function setDrawer(open) {
+    state.drawerOpen = open;
+    drawer.classList.toggle('hidden', !open);
+    stage.classList.toggle('drawer-open', open);
+    if (open && VL.isMobile()) { closePanel(); }
+    if (open) ensureStore();
+    relayout();
+    M.drawerOpen = open;
+  }
+  function openDrawer(query) {
+    setDrawer(true);
+    if (drawer.classList.contains('min')) VL.$('#qd-min').click();
+    qText.value = query;
+    runQuery();
+  }
+  function ensureStore() {
+    if (!ctxPromise) {
+      setQStatus('Loading Oxigraph (WebAssembly) and the triple store: ontology + core subset…', '');
+      ctxPromise = VL.Sparql.createStore('both').then(function (ctx) {
+        M.storeTriples = ctx.triples;
+        M.storeLoadMs = ctx.loadMs;
+        setQStatus('Triple store ready: ' + VL.fmt(ctx.triples) + ' triples (ontology + core subset) loaded in ' + VL.fmt(ctx.loadMs) + ' ms. Press Run.', 'ok');
+        return ctx;
+      }, function (e) {
+        setQStatus('Could not load the triple store: ' + e.message, 'err');
+        ctxPromise = null;
+        throw e;
+      });
+    }
+    return ctxPromise;
+  }
+  function highlightError(err) {
+    if (!err || !err.line) return;
+    var lines = qText.value.split('\n'), pos = 0;
+    for (var i = 0; i < err.line - 1 && i < lines.length; i++) pos += lines[i].length + 1;
+    var col = Math.max(0, (err.col || 1) - 1);
+    qText.focus();
+    qText.setSelectionRange(pos + col, Math.min(pos + (lines[err.line - 1] || '').length, pos + col + 12));
+  }
+  function runQuery() {
+    var q = qText.value;
+    setQStatus('Running…', '');
+    return ensureStore().then(function (ctx) {
+      var res = VL.Sparql.run(ctx, q);
+      M.lastQuery = { form: res.form, count: res.count, ms: res.ms, error: res.error ? res.error.message : null };
+      if (res.error) { setQStatus(res.error.message, 'err'); highlightError(res.error); qResult.innerHTML = ''; return res; }
+      if (res.form === 'SELECT') {
+        setQStatus('SELECT returned ' + VL.fmt(res.count) + ' row' + (res.count === 1 ? '' : 's') + ' in ' + res.ms + ' ms. Graph results (CONSTRUCT) are drawn in 3D.', 'ok');
+        VL.Sparql.renderTable(qResult, res, { dark: true, max: 300 });
+      } else if (res.form === 'ASK') {
+        setQStatus('ASK → ' + (res.boolean ? 'true' : 'false') + ' (' + res.ms + ' ms)', 'ok');
+        qResult.innerHTML = '';
+      } else {
+        drawConstruct(ctx, res);
+      }
+      return res;
+    }).catch(function (e) { setQStatus(String(e && e.message || e), 'err'); });
+  }
+  window.VLApp.runQuery = function (q, mode) { if (mode) state.cm = mode; setDrawer(true); if (q != null) qText.value = q; return runQuery().then(function () { return M.lastQuery; }); };
+  window.VLApp.constructExamples = VL.Sparql.CONSTRUCT_EXAMPLES;
+
+  function drawConstruct(ctx, res) {
+    var g = VL.Sparql.quadsToGraph(ctx, res.quads, 500);
+    if (!g.nodes.length) {
+      setQStatus(res.form + ' returned no triples (' + res.ms + ' ms).', 'ok');
+      qResult.innerHTML = '';
+      return;
+    }
+    var mode = state.cm;
+    if (view.mode !== 'ontology') restoreBase(false);
+    var add = {}, cnodes = [], clinks = [], resultNodes = new Set(), resultLinks = new Set();
+    g.nodes.forEach(function (gn) {
+      var base = byId[gn.id];
+      if (base) {
+        if (mode === 'overlay') { add[gn.id] = base; resultNodes.add(base); return; }
+        var copy = {};
+        Object.keys(base).forEach(function (k) { if (k.indexOf('__') !== 0 && ['x', 'y', 'z', 'vx', 'vy', 'vz', 'fx', 'fy', 'fz', 'index'].indexOf(k) < 0) copy[k] = base[k]; });
+        copy.__r = radius(copy);
+        add[gn.id] = copy; cnodes.push(copy); resultNodes.add(copy);
+        return;
+      }
+      var cls = null;
+      (gn.types || []).forEach(function (t) { var c = VL.shortIri(t); if (!cls && byId[c] && byId[c].kind === 'class') cls = c; });
+      var module = cls ? byId[cls].module : ((gn.iri || '').indexOf(VL.NS.vlo) === 0 ? 'provenance' : 'documents');
+      var node = { id: gn.id, inst: true, kind: 'instance', iri: gn.iri, cls: cls, module: module, color: VL.moduleColor(module),
+        number: gn.number ? VL.nfc(gn.number) : null, title: gn.title ? VL.nfc(gn.title) : null, label: gn.label ? VL.nfc(gn.label) : null };
+      node.short = VL.short(node.number || node.label || node.title || gn.id, 28);
+      node.__r = radius(node);
+      add[gn.id] = node; cnodes.push(node); resultNodes.add(node);
+    });
+    g.links.forEach(function (l, i) {
+      var lk = { key: 'R' + i, source: l.source, target: l.target, type: 'result', pred: l.pred, predIri: l.predIri, curvature: 0, rotation: 0 };
+      clinks.push(lk); resultLinks.add(lk); linkByKey[lk.key] = lk;
+    });
+    var all = {}, data;
+    if (mode === 'overlay') {
+      nodes.forEach(function (n) { n.fx = n.x; n.fy = n.y; n.fz = n.z; all[n.id] = n; });
+      cnodes.forEach(function (n) {
+        all[n.id] = n;
+        if (n.cls && byId[n.cls]) { var c = byId[n.cls]; n.x = c.x + (Math.random() - 0.5) * 20; n.y = c.y + (Math.random() - 0.5) * 20; n.z = c.z + (Math.random() - 0.5) * 20; }
+      });
+      var inst = [];
+      cnodes.forEach(function (n, i) {
+        if (n.cls && byId[n.cls]) { var lk = { key: 'I' + i, source: n.id, target: n.cls, type: 'instance', curvature: 0, rotation: 0 }; inst.push(lk); linkByKey[lk.key] = lk; resultNodes.add(byId[n.cls]); }
+      });
+      data = { nodes: nodes.concat(cnodes), links: links.concat(clinks, inst) };
+    } else {
+      cnodes.forEach(function (n) { all[n.id] = n; });
+      data = { nodes: cnodes, links: clinks };
+    }
+    current.byId = all;
+    current.nodes = data.nodes;
+    view.mode = mode;
+    view.literals = g.literals;
+    view.resultSet = { nodes: resultNodes, links: resultLinks };
+    state.selected = null;
+    closePanel();
+    graph.warmupTicks(mode === 'overlay' ? 60 : 140);
+    graph.graphData(data);
+    setHighlight(mode === 'overlay' ? resultNodes : null, mode === 'overlay' ? resultLinks : null);
+    VL.$('#qd-back').classList.remove('hidden');
+    renderLegend();
+    setTimeout(function () { fitView(700, mode === 'overlay' ? Array.from(resultNodes) : null); }, 60);
+    var lit = Object.keys(g.literals).reduce(function (a, k) { return a + g.literals[k].length; }, 0);
+    setQStatus(res.form + ' returned ' + VL.fmt(res.count) + ' triples in ' + res.ms + ' ms → ' + VL.fmt(cnodes.length) + ' new nodes and ' + VL.fmt(clinks.length) +
+      ' links drawn (' + mode + ')' + (lit ? '; ' + VL.fmt(lit) + ' literal values are listed below' : '') + (g.truncated ? '; result truncated to 500 nodes' : '') + '.', 'ok');
+    VL.Sparql.renderTable(qResult, res, { dark: true, max: 200 });
+    M.view = 'construct-' + mode;
+    M.constructTriples = res.count;
+    M.graphNodes = data.nodes.length;
+    M.graphLinks = data.links.length;
+    status();
+  }
+  function restoreBase(refit) {
+    nodes.forEach(function (n) { delete n.fx; delete n.fy; delete n.fz; n.fx = undefined; n.fy = undefined; n.fz = undefined; });
+    current.byId = byId;
+    current.nodes = nodes;
+    view.mode = 'ontology';
+    view.resultSet = null;
+    view.literals = null;
+    state.selected = null;
+    graph.warmupTicks(0);
+    graph.graphData(baseData);
+    setHighlight(null, null);
+    renderLegend();
+    VL.$('#qd-back').classList.add('hidden');
+    if (refit) setTimeout(function () { fitView(700); }, 60);
+    M.view = 'ontology';
+    M.graphNodes = nodes.length;
+    M.graphLinks = links.length;
+    status();
+  }
+  function backToOntology() { closePanel(); restoreBase(true); setQStatus('Back to the ontology graph.', ''); }
+  window.VLApp.back = backToOntology;
+
+  /* ------------------------------------------------------------------ hash (#class=vlo:Article) */
+  function applyHash() {
+    var p = VL.params();
+    var id = p['class'] || p.term || p.node;
+    if (id) {
+      if (id.indexOf(':') < 0) id = 'vlo:' + id;
+      if (byId[id]) select(byId[id], true);
+    }
+    if (p.query === '1') setDrawer(true);
+  }
+  window.addEventListener('hashchange', applyHash);
+
+  /* ------------------------------------------------------------------ start */
+  renderChips();
+  counts();
+  renderLegend();
+  VL.fontsReady().then(function () {
+    build();
+  }).catch(function (e) {
+    console.error(e);
+    VL.$('#veil').innerHTML = '<div>Could not start the 3D view: ' + VL.esc(e.message) + '</div>';
+  });
+})();

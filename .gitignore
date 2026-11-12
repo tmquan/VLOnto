@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+# build outputs and local-only data (never publish)
+/build/
+/envs/
+kg_local/
+*.parquet
+*.nt.gz
+# tool downloads
+/tools/typst/
+/tools/chrome/
+node_modules/
+# OS / editor
+.DS_Store
+._*
+*.swp
+# secrets
+.env
+.env.*

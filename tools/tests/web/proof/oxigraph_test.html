@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VLOnto — kiểm thử SPARQL (Oxigraph WebAssembly)</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+  body { margin: 0; padding: 18px 20px; font-family: var(--vlo-font-sans); color: #18213a; background: #f6f7fb; }
+  h1 { font-size: 20px; line-height: 1.4; margin: 0 0 8px; }
+  p { font-size: 14px; line-height: 1.55; margin: 0 0 10px; }
+  pre { font-family: var(--vlo-font-mono); font-size: 12px; line-height: 1.55; background: #fff; border: 1px solid #d9deeb;
+        padding: 10px 12px; margin: 0 0 12px; white-space: pre-wrap; overflow-wrap: normal; overflow-x: auto; }
+  .wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 1.5; background: #fff; }
+  /* never break inside a word: identifiers, numbers and years stay on one line, titles wrap at spaces */
+  th, td { border: 1px solid #d9deeb; padding: 6px 8px; text-align: left; vertical-align: top; overflow-wrap: normal; }
+  th { background: #eef1f8; }
+  .nowrap { white-space: nowrap; }
+  td.mono { font-family: var(--vlo-font-mono); font-size: 12px; }
+  /* phones: drop the secondary IRI column instead of squeezing every column */
+  @media (max-width: 600px) { .col-iri { display: none; } }
+  .ok { color: #0a6e2c; font-weight: 600; }
+  .err { color: #b3261e; font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>SPARQL trong trình duyệt: Oxigraph 0.5.13 (WebAssembly nhúng trong tệp .js)</h1>
+<p id="status">Đang khởi tạo WebAssembly…</p>
+<pre id="query"></pre>
+<div class="wrap">
+<table id="result"><thead><tr><th class="col-iri">IRI</th><th class="nowrap">Số hiệu</th><th>Tiêu đề</th><th class="nowrap">Năm</th></tr></thead><tbody></tbody></table>
+</div>
+<p id="count"></p>
+<script src="vendor/oxigraph/oxigraph.iife.min.js"></script>
+<script src="data/sample_ttl.js"></script>
+<script>
+(function () {
+  'use strict';
+  var t0 = performance.now();
+  var M = window.__VLONTO_METRICS = { protocol: location.protocol };
+  window.__VLONTO_READY = false;
+  var BASE = 'https://tmquan.github.io/VLOnto/id/';
+  var Q1 = 'PREFIX vlo: <https://tmquan.github.io/VLOnto/ontology#>\n' +
+           'SELECT ?doc ?so ?title ?year WHERE {\n' +
+           '  ?doc a vlo:LegalDocument ;\n       vlo:documentNumber ?so ;\n       vlo:title ?title ;\n       vlo:year ?year .\n' +
+           '  FILTER(LANG(?title) = "vi")\n} ORDER BY ?year ?so';
+  var Q2 = 'PREFIX vlo: <https://tmquan.github.io/VLOnto/ontology#>\n' +
+           'SELECT ?type (COUNT(?doc) AS ?n) WHERE { ?doc vlo:documentType ?type } GROUP BY ?type ORDER BY DESC(?n) ?type';
+  document.getElementById('query').textContent = Q1;
+  window.oxigraphReady.then(function (ox) {
+    M.wasmReadyMs = Math.round(performance.now() - t0);
+    M.readySinceNavMs = Math.round(performance.now());   // end to end: parse + decode + inflate + instantiate
+    if (window.oxigraphTiming) { M.oxigraphTiming = window.oxigraphTiming; }
+    var store = new ox.Store();
+    store.load(window.VLONTO.sample_ttl, { format: 'text/turtle', base_iri: BASE });
+    M.triples = store.size;
+    var t1 = performance.now();
+    var rows = store.query(Q1);
+    M.queryMs = Math.round((performance.now() - t1) * 10) / 10;
+    M.rows = rows.length;
+    var tb = document.querySelector('#result tbody');
+    rows.forEach(function (b) {
+      var tr = document.createElement('tr');
+      [['id:' + b.get('doc').value.slice(BASE.length), 'mono nowrap col-iri'], [b.get('so').value, 'nowrap'], [b.get('title').value, ''], [b.get('year').value, 'nowrap']]
+        .forEach(function (cell) { var td = document.createElement('td'); td.textContent = cell[0]; if (cell[1]) { td.className = cell[1]; } tr.appendChild(td); });
+      tb.appendChild(tr);
+    });
+    var counts = store.query(Q2).map(function (b) { return b.get('type').value + ': ' + b.get('n').value; });
+    M.groupBy = counts;
+    M.firstRow = rows.length ? [rows[0].get('so').value, rows[0].get('title').value, rows[0].get('year').value] : null;
+    document.getElementById('count').textContent = 'GROUP BY loại văn bản → ' + counts.join(' • ');
+    var s = document.getElementById('status');
+    s.className = 'ok';
+    s.textContent = '✓ Oxigraph sẵn sàng sau ' + M.wasmReadyMs + ' ms • ' + M.triples + ' bộ ba • SELECT trả về ' + M.rows +
+                    ' dòng trong ' + M.queryMs + ' ms • giao thức trang: ' + location.protocol;
+    window.__VLONTO_READY = true;
+  }).catch(function (e) {
+    var s = document.getElementById('status');
+    s.className = 'err';
+    s.textContent = '✗ Lỗi: ' + e;
+    console.error(e);
+  });
+})();
+</script>
+</body>
+</html>

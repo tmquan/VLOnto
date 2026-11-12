@@ -1,0 +1,18 @@
+# Synthetic test fixture with deliberate errors. check_ontology.py expects:
+#  SHACL: t:bad-change (no evidence, two acting documents), t:bad-article (no inDocument, bad number),
+#         t:bad-term (has a definition), t:bad-doc (two document types) to be reported;
+#  OWL-RL: t:bad-doc typed both vlo:Law and vlo:Decree (disjoint) to be reported as an inconsistency.
+@prefix vlo:  <https://tmquan.github.io/VLOnto/ontology#> .
+@prefix t:    <https://tmquan.github.io/VLOnto/id/test/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+
+t:bad-doc a vlo:Law , vlo:Decree ; rdfs:label "bad" ; vlo:sourceId "x1" ;
+    vlo:documentType vlo:doctype-law , vlo:doctype-decree .
+t:bad-doc-2 a vlo:Decree ; rdfs:label "bad 2" .
+t:bad-change a vlo:LegalChange ; vlo:actingDocument t:bad-doc , t:bad-doc-2 ; vlo:affectedDocument t:bad-doc-2 ;
+    vlo:changeKind vlo:change-replaced ; vlo:ruleVersion "v7" ; vlo:extractionMethod vlo:method-validity-rules-v7 .
+t:bad-article a vlo:Article ; rdfs:label "Điều x" ; vlo:provisionNumber "x1" ; vlo:isPartOf t:bad-doc .
+t:bad-term a vlo:LegalTerm ; skos:inScheme vlo:LegalTermScheme ; skos:prefLabel "Thuật ngữ lỗi"@vi ;
+    skos:definition "must not be here"@vi .

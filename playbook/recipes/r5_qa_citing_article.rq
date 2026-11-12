@@ -1,0 +1,12 @@
+PREFIX vlo: <https://tmquan.github.io/VLOnto/ontology#>
+# Q&As whose answer cites Article 35 of 45/2019/QH14 or one of its
+# clauses or points (newest first)
+SELECT DISTINCT ?id ?date WHERE {
+  BIND (<https://tmquan.github.io/VLOnto/id/document/333670/dieu-35> AS ?art)
+  ?target vlo:isPartOf* ?art .
+  ?answer vlo:answerCitesProvision ?target .
+  ?question vlo:hasAnswer ?answer ;
+            vlo:sourceId ?id .
+  OPTIONAL { ?question vlo:publishedDate ?date }
+}
+ORDER BY DESC(?date) ?id

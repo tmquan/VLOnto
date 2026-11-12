@@ -1,0 +1,11 @@
+/* VLOnto site fonts: the toolchain's embedded (data: URI) faces, so the pages load their fonts from file:// in Chrome,
+   Safari and Firefox (Firefox refuses font files from other file:// paths). Only the families the site uses are
+   imported: Be Vietnam Pro (UI, text), JetBrains Mono NL (code, IRIs, numbers) and the symbol fallbacks
+   (Noto Sans Symbols 2, Noto Sans Math, also routed first for arrows/operators). Licences: fonts/OFL-*.txt. */
+@import url("../fonts/embedded/be-vietnam-pro.css");
+@import url("../fonts/embedded/jetbrains-mono-nl.css");
+@import url("../fonts/embedded/symbols.css");
+:root {
+  --vlo-font-sans: "Be Vietnam Pro", "Noto Sans Symbols 2", "Noto Sans Math", sans-serif;
+  --vlo-font-mono: "JetBrains Mono NL", "Noto Sans Symbols 2", "Noto Sans Math", monospace;
+}

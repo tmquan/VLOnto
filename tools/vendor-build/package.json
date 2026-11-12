@@ -1,0 +1,18 @@
+{
+  "name": "vlonto-vendor-build",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pinned npm inputs for site/vendor. Built by tools/fetch_vendor.sh (npm ci --ignore-scripts in $V/build/vendor-build, then node build.mjs).",
+  "license": "MIT",
+  "dependencies": {
+    "3d-force-graph": "1.80.2",
+    "echarts": "6.1.0",
+    "fflate": "0.8.3",
+    "oxigraph": "0.5.13",
+    "three": "0.187.0",
+    "three-spritetext": "1.10.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

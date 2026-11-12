@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>/* theme before first paint: ?theme=, else stored choice, else system (css/site.css, js/common.js) */(function(d,w){var t=null,m=/[?&]theme=(light|dark)(?:&|$)/.exec(w.location.search);if(m)t=m[1];else{try{t=w.localStorage.getItem('vlonto.theme')}catch(e){}if(t!=='light'&&t!=='dark'){try{t=w.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}catch(e){t='light'}}}d.setAttribute('data-theme',t);d.style.colorScheme=t})(document.documentElement,window);</script>
+<title>3D Legal Network · VLOnto</title>
+<meta name="description" content="40,816 Vietnamese legal documents in 3D, layered by legal force, with change, legal-basis and citation links.">
+<link rel="stylesheet" href="css/fonts-web.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body class="page-scene page-net3d">
+<a class="skip-link" href="#net-search">Skip to search</a>
+<div id="vl-header"></div>
+<main class="scene-app" id="app">
+  <div class="scene-toolbar">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" class="icon"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      <input id="net-search-m" class="input" type="search" placeholder="Number or title" aria-label="Search documents by number or title, for example 45/2019/QH14">
+      <ul class="suggest hidden" id="net-suggest-m"></ul>
+    </div>
+    <button class="btn" type="button" id="btn-side-m" aria-expanded="false" aria-controls="side">Filters</button>
+  </div>
+  <aside class="scene-side" id="side" aria-label="Network controls">
+    <div class="side-section search-in-side">
+      <label class="side-title" for="net-search">Find a document</label>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" class="icon"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+        <input id="net-search" class="input" type="search" placeholder="e.g. 45/2019/QH14" aria-label="Search documents by number or title, for example 45/2019/QH14">
+        <ul class="suggest hidden" id="net-suggest"></ul>
+      </div>
+    </div>
+    <div class="side-section">
+      <div class="side-title">Documents</div>
+      <div class="seg" role="group" aria-label="Dataset">
+        <button type="button" data-ds="lite" aria-pressed="false">Lite · 6,000</button>
+        <button type="button" data-ds="full" aria-pressed="false">Full · 40,816</button>
+      </div>
+      <p class="side-note" id="ds-note"></p>
+    </div>
+    <div class="side-section">
+      <div class="side-title">Colour by</div>
+      <div class="seg" role="group" aria-label="Colour documents by">
+        <button type="button" data-color="validity" aria-pressed="true">Validity</button>
+        <button type="button" data-color="type" aria-pressed="false">Type</button>
+        <button type="button" data-color="area" aria-pressed="false">Area</button>
+      </div>
+    </div>
+    <div class="side-section">
+      <div class="side-title">Links</div>
+      <div id="edge-toggles"></div>
+    </div>
+    <div class="side-section">
+      <div class="side-title">Issue year</div>
+      <div class="range-row"><label for="y-from">From</label><input type="range" id="y-from"><output id="y-from-o" for="y-from"></output></div>
+      <div class="range-row"><label for="y-to">To</label><input type="range" id="y-to"><output id="y-to-o" for="y-to"></output></div>
+      <label class="check"><input type="checkbox" id="y-unknown" checked> Documents without a year</label>
+    </div>
+    <div class="side-section">
+      <div class="side-title">Neighbourhood of the selection</div>
+      <div class="seg" role="group" aria-label="Neighbourhood depth">
+        <button type="button" data-hops="1" aria-pressed="true">1 hop</button>
+        <button type="button" data-hops="2" aria-pressed="false">2 hops</button>
+      </div>
+    </div>
+    <div class="side-section">
+      <div class="side-title">View</div>
+      <label class="check"><input type="checkbox" id="show-layers" checked> Legal-force layers</label>
+      <div class="seg" role="group" aria-label="Label language" style="margin-top:6px">
+        <button type="button" data-lang="en" aria-pressed="true">English</button>
+        <button type="button" data-lang="vi" aria-pressed="false">Tiếng Việt</button>
+      </div>
+      <div class="row tight" style="margin-top:10px">
+        <button class="btn" type="button" id="btn-reset">Reset view</button>
+        <button class="btn" type="button" id="btn-png">Export PNG</button>
+      </div>
+    </div>
+    <div class="side-section">
+      <div class="side-title">About</div>
+      <p class="side-about">Each point is a legal document. Height is its legal-force rank (Constitution on top); the horizontal
+        layout comes from a force layout of change, legal-basis and citation links. Validity is derived automatically and is
+        unknown for many documents.</p>
+      <p class="side-about">Paper: <a href="https://arxiv.org/abs/2611.11426" target="_blank" rel="noopener" data-paper-link="side">Vietnamese
+        Legal Ontology: Every legal answer, traced to the article that grounds it</a> (Bui &amp; Tran Minh, 2026,
+        arXiv:2611.11426). Numbers here are computed from the VLOnto 0.1.0 release and can differ from the paper’s.</p>
+    </div>
+  </aside>
+  <section class="scene-stage" id="stage" aria-label="3D legal network">
+    <div class="scene-canvas" id="canvas-host" tabindex="0" role="application" aria-roledescription="3D network" aria-label="3D network of legal documents. Drag or use the arrow keys to rotate, scroll or press plus and minus to zoom, click a document for details."></div>
+    <div class="legend" id="legend"></div>
+    <div class="hint hidden" id="hint" role="note">
+      <p><strong>Legal documents by legal force.</strong> The Constitution is on top, circulars at the bottom. <span class="desk-only">Click</span><span class="touch-only">Tap</span> a point or search a number such as <span class="nowrap">45/2019/QH14</span> to see its links and validity.</p>
+      <button class="btn btn-xs" type="button" id="hint-close">Got it</button>
+    </div>
+    <div class="stage-tools">
+      <button class="btn" type="button" id="btn-reset2" title="Reset view" aria-label="Reset view"></button>
+      <button class="btn" type="button" id="btn-legend" title="Show or hide the legend" aria-label="Show or hide the legend" aria-expanded="true" aria-controls="legend"></button>
+    </div>
+    <div class="stage-status" id="status" aria-live="polite"></div>
+    <div class="tooltip3d hidden" id="tip" role="tooltip"></div>
+    <div class="loading-veil" id="veil"><div><div class="spin"></div><span id="veil-text">Loading the legal network…</span></div></div>
+    <aside class="scene-panel hidden" id="panel" aria-label="Document details" tabindex="-1"></aside>
+  </section>
+</main>
+<div id="vl-footer"></div>
+<script src="data/site_meta.js"></script>
+<script src="js/common.js"></script>
+<script src="vendor/three/three.iife.min.js"></script>
+<script src="js/labels3d.js"></script>
+<script src="js/network3d.js"></script>
+</body>
+</html>

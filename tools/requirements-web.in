@@ -1,0 +1,15 @@
+# VLOnto web/doc build environment ($V/envs/web, Python 3.12) - top-level requirements.
+# The resolved, hash-pinned set lives in requirements-web.lock:
+#   uv pip compile requirements-web.in --python $V/envs/web/bin/python --generate-hashes -o requirements-web.lock
+pypandoc-binary==1.17
+# Node 24 LTS line (nodejs-wheel==24.22.1 does not exist on PyPI); exact version is in the lock.
+nodejs-wheel>=24,<25
+playwright
+fonttools[woff]
+pymupdf
+pypdfium2
+pillow
+numpy
+jinja2
+markdown-it-py
+beautifulsoup4

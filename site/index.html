@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>/* theme before first paint: ?theme=, else stored choice, else system (css/site.css, js/common.js) */(function(d,w){var t=null,m=/[?&]theme=(light|dark)(?:&|$)/.exec(w.location.search);if(m)t=m[1];else{try{t=w.localStorage.getItem('vlonto.theme')}catch(e){}if(t!=='light'&&t!=='dark'){try{t=w.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}catch(e){t='light'}}}d.setAttribute('data-theme',t);d.style.colorScheme=t})(document.documentElement,window);</script>
+<title>VLOnto · 3D Ontology Playground of Vietnamese Law</title>
+<meta name="description" content="Explore the VLOnto ontology of Vietnamese law in 3D: classes, properties, concept schemes and alignments, with SPARQL CONSTRUCT results drawn in the same scene.">
+<link rel="stylesheet" href="css/fonts-web.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body class="page-scene page-onto3d">
+<a class="skip-link" href="#onto-search">Skip to search</a>
+<div id="vl-header"></div>
+<main class="scene-app" id="app">
+  <div class="scene-toolbar">
+    <div class="search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" class="icon"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+      <input id="onto-search-m" class="input" type="search" placeholder="Search classes" aria-label="Search classes and properties (English, Vietnamese or IRI)">
+      <ul class="suggest hidden" id="onto-suggest-m"></ul>
+    </div>
+    <button class="btn" type="button" id="btn-side-m" aria-expanded="false" aria-controls="side">Filters</button>
+    <button class="btn" type="button" id="btn-query-m">SPARQL</button>
+  </div>
+  <aside class="scene-side" id="side" aria-label="Playground controls">
+    <div class="side-section search-in-side">
+      <label class="side-title" for="onto-search">Search</label>
+      <div class="search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" class="icon"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
+        <input id="onto-search" class="input" type="search" placeholder="Class, property or IRI" aria-label="Search classes and properties (English, Vietnamese or IRI)">
+        <ul class="suggest hidden" id="onto-suggest"></ul>
+      </div>
+    </div>
+    <div class="side-section">
+      <div class="side-title">Labels</div>
+      <div class="seg" role="group" aria-label="Label language">
+        <button type="button" data-lang="en" aria-pressed="true">English</button>
+        <button type="button" data-lang="vi" aria-pressed="false">Tiếng Việt</button>
+      </div>
+    </div>
+    <div class="side-section">
+      <div class="side-title"><span>Modules</span><span class="links"><button type="button" class="btn-link" id="mod-all">All</button><button type="button" class="btn-link" id="mod-none">None</button></span></div>
+      <div class="chips" id="module-chips"></div>
+    </div>
+    <div class="side-section">
+      <div class="side-title">Show</div>
+      <label class="check"><input type="checkbox" id="show-external" checked> External terms<span class="count" id="cnt-external"></span></label>
+      <label class="check"><input type="checkbox" id="show-schemes" checked> Concept schemes<span class="count" id="cnt-schemes"></span></label>
+      <label class="check"><input type="checkbox" data-link="subClassOf" checked> Subclass links<span class="count" id="cnt-subClassOf"></span></label>
+      <label class="check"><input type="checkbox" data-link="property" checked> Object properties<span class="count" id="cnt-property"></span></label>
+      <label class="check"><input type="checkbox" data-link="alignment" checked> Alignments<span class="count" id="cnt-alignment"></span></label>
+      <label class="check"><input type="checkbox" data-link="inScheme" checked> Scheme membership<span class="count" id="cnt-inScheme"></span></label>
+      <label class="check"><input type="checkbox" id="show-particles" checked> Direction particles</label>
+    </div>
+    <div class="side-section">
+      <div class="side-title">View</div>
+      <div class="row tight">
+        <button class="btn" type="button" id="btn-reset">Reset view</button>
+        <button class="btn" type="button" id="btn-png">Export PNG</button>
+      </div>
+      <div class="row tight" style="margin-top:8px">
+        <button class="btn btn-primary" type="button" id="btn-query">SPARQL query mode</button>
+      </div>
+    </div>
+    <div class="side-section" id="paper-section">
+      <div class="side-title">Paper</div>
+      <div data-vl-paper="panel"></div>
+    </div>
+    <div class="side-section">
+      <div class="side-title">About</div>
+      <p class="side-about">Node size grows with the number of knowledge-graph instances (log scale). Colours are the
+        ontology modules. External terms show how VLOnto aligns with ELI, SKOS, PROV-O, schema.org, ORG and DCTERMS.
+        Documentation: <a href="ontology.html">ontology page</a>.</p>
+    </div>
+  </aside>
+  <section class="scene-stage" id="stage" aria-label="3D ontology scene">
+    <div class="scene-canvas" id="canvas-host" tabindex="0" role="application" aria-roledescription="3D graph" aria-label="3D view of the VLOnto ontology. Drag or use the arrow keys to rotate, scroll or press plus and minus to zoom, click a class or link for details."></div>
+    <div class="legend" id="legend"></div>
+    <div class="hint hidden" id="hint" role="note">
+      <p><strong>Explore the ontology.</strong> <span class="desk-only">Drag to rotate, scroll to zoom, right-drag to pan. Click a class or a link for details; press <kbd>/</kbd> to search.</span><span class="touch-only">Drag to rotate, pinch to zoom, drag with two fingers to pan. Tap a class or a link for details.</span></p>
+      <button class="btn btn-xs" type="button" id="hint-close">Got it</button>
+    </div>
+    <div class="stage-tools">
+      <button class="btn" type="button" id="btn-reset2" title="Reset view" aria-label="Reset view"></button>
+      <button class="btn" type="button" id="btn-legend" title="Show or hide the legend" aria-label="Show or hide the legend" aria-expanded="true" aria-controls="legend"></button>
+    </div>
+    <div class="stage-status" id="status" aria-live="polite"></div>
+    <div class="loading-veil" id="veil"><div><div class="spin"></div>Building the 3D ontology…</div></div>
+    <aside class="scene-panel hidden" id="panel" aria-label="Details" tabindex="-1"></aside>
+    <section class="query-drawer hidden" id="drawer" aria-label="SPARQL query mode">
+      <div class="qd-head">
+        <h2>SPARQL</h2>
+        <label class="sr-only" for="qd-example">Example query</label>
+        <select class="select" id="qd-example"></select>
+        <div class="seg" role="group" aria-label="How CONSTRUCT results are drawn">
+          <button type="button" data-cm="overlay" aria-pressed="true">Overlay</button>
+          <button type="button" data-cm="replace" aria-pressed="false">Replace</button>
+        </div>
+        <button class="btn btn-primary" type="button" id="qd-run">Run</button>
+        <button class="btn hidden" type="button" id="qd-back">Back to ontology</button>
+        <button class="btn" type="button" id="qd-min" aria-expanded="true">Hide editor</button>
+        <button class="btn" type="button" id="qd-close" aria-label="Close query mode"></button>
+      </div>
+      <div class="qd-editor">
+        <label class="sr-only" for="qd-text">SPARQL query</label>
+        <textarea id="qd-text" spellcheck="false"></textarea>
+        <div class="qd-status" id="qd-status" role="status">Choose an example or write a query, then press Run (Ctrl+Enter). CONSTRUCT results are drawn in 3D; SELECT results appear as a table.</div>
+      </div>
+      <div class="qd-result" id="qd-result"></div>
+    </section>
+  </section>
+</main>
+<div id="vl-footer"></div>
+<script src="data/site_meta.js"></script>
+<script src="js/common.js"></script>
+<script src="vendor/three/three.iife.min.js"></script>
+<script src="js/labels3d.js"></script>
+<script src="vendor/3d-force-graph/3d-force-graph.iife.min.js"></script>
+<script src="data/ontology_graph.js"></script>
+<script src="data/sparql_examples.js"></script>
+<script src="js/sparql-core.js"></script>
+<script src="js/ontology3d.js"></script>
+</body>
+</html>

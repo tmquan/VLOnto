@@ -1,0 +1,65 @@
+# VLOnto toolchain pins (pinned 2026-11-11 on the build node, Ubuntu 26.04, glibc 2.43, x86_64).
+# Shell-sourceable KEY=VALUE file, read by tools/setup_tools.sh, tools/chrome.sh and tools/fetch_vendor.sh.
+# Sha256 values were computed on download; setup_tools.sh refuses any file whose sha256 differs.
+# Companion locks: requirements-web.lock (uv, --require-hashes), chrome-deps.conda.lock (@EXPLICIT + md5),
+#                  vendor-build/package-lock.json (npm integrity sha512), vendor.lock.json (output sha256).
+
+# --- uv (Python/env manager), official release asset (matches the .sha256 published with the release)
+UV_VERSION=0.13.7
+UV_URL=https://github.com/astral-sh/uv/releases/download/0.13.7/uv-x86_64-unknown-linux-gnu.tar.gz
+UV_SHA256=c5221ff41b7892bfc223543883600125f6a47fe845093e0f5bdff4f359196d83
+
+# --- CPython (python-build-standalone via `uv python install`; uv checks its own download hashes)
+PYTHON_VERSION=3.12.16
+
+# --- env web: exact versions are in requirements-web.lock; the headline ones, for reports:
+PANDOC_VERSION=3.9                # bundled by pypandoc-binary 1.17 (envs/web/bin/pandoc symlink)
+NODE_VERSION=24.19.0              # nodejs-wheel 24.19.0 (envs/web/bin/node)
+NPM_VERSION=11.17.0
+PLAYWRIGHT_VERSION=1.65.0         # Python API only; browsers are NOT downloaded (we use CHROME_* below)
+
+# --- Typst CLI (static musl build). Reproducibility flags in 0.15.1 (from `typst compile --help`):
+#   --creation-timestamp <unix> (env SOURCE_DATE_EPOCH), --ignore-system-fonts (TYPST_IGNORE_SYSTEM_FONTS),
+#   --ignore-embedded-fonts (TYPST_IGNORE_EMBEDDED_FONTS), --font-path (TYPST_FONT_PATHS),
+#   --package-path / --package-cache-path (TYPST_PACKAGE_PATH / TYPST_PACKAGE_CACHE_PATH),
+#   --pdf-standard 1.4..2.0,a-1b,a-1a,a-2b,a-2u,a-2a,a-3b,a-3u,a-3a,a-4,a-4f,a-4e,ua-1, --no-pdf-tags,
+#   --root, --input key=value, --deps, --jobs, --features html,bundle,a11y-extras, --ppi (PNG).
+TYPST_VERSION=0.15.1
+TYPST_COMMIT=9dfd3a08
+TYPST_URL=https://github.com/typst/typst/releases/download/v0.15.1/typst-x86_64-unknown-linux-musl.tar.xz
+TYPST_SHA256=a6d077d0a95eed5a2eba715b2dae06be954f624ccbf85758a03f389ded33118c
+SOURCE_DATE_EPOCH_DEFAULT=1767225600   # 2026-01-01T00:00:00Z, used by the sample builds
+
+# --- Chrome for Testing headless shell (no checksum is published upstream; this is our recorded sha256)
+CHROME_VERSION=157.0.8103.50
+CHROME_URL=https://storage.googleapis.com/chrome-for-testing-public/157.0.8103.50/linux64/chrome-headless-shell-linux64.zip
+CHROME_SHA256=7bf0d41e424efd1d6281c4162993ab9dc5de92fac213c211614905a71c057d0f
+
+# --- micromamba (static binary) used only to fetch the libraries chrome-headless-shell lacks on the node
+MICROMAMBA_VERSION=2.10.0-0
+MICROMAMBA_URL=https://github.com/mamba-org/micromamba-releases/releases/download/2.10.0-0/micromamba-linux-64
+MICROMAMBA_SHA256=701f39c06f8e6a670a0e186c8479b9e5c0502a2f0cda6cef65d83bdd2875e8bd
+# conda-forge packages: atk-1.0 2.38.0, at-spi2-atk 2.38.0, at-spi2-core 2.40.3, xorg-libxcomposite 0.4.7,
+# xorg-libxdamage 1.1.6, xorg-libxfixes 6.0.2, xorg-libxi 1.8.4, alsa-lib 1.2.16.1 (full list: chrome-deps.conda.lock)
+# Only these files are copied into tools/chrome/lib (closure of `ldd` "not found"; glib, dbus, libstdc++ stay system):
+CHROME_LIBS="libatk-1.0.so.0 libatk-bridge-2.0.so.0 libatspi.so.0 libXcomposite.so.1 libXdamage.so.1 libXfixes.so.3 libXi.so.6 libasound.so.2"
+# Installed-file sha256 for the 7 prefix-independent libraries. libasound.so.2 is not listed: conda rewrites the
+# install prefix (ALSA config path) into it, so its bytes depend on ROOT; it is verified through its package: every
+# package in tools/chrome-deps must carry the md5 of chrome-deps.conda.lock in conda-meta (checked by setup_tools.sh).
+CHROME_LIBS_SHA256="libatk-1.0.so.0:07ec0743d226f3768eee950837d7882049532453a8fd7fd1de7bc81b66ff3a4c libatk-bridge-2.0.so.0:136875a81f4d9cd21ea377d8520f2e726ebe199228545f2081a8ee7c99b3c7d2 libatspi.so.0:731b51eb07d4dab851841fd1383bf0e9ebe38f9c89377573b213cfd7579dd355 libXcomposite.so.1:db49f4fd319abdfbb946c3b3e8f2c54a12fe56379ef72fb8b83a3a2939ac8c74 libXdamage.so.1:cecc6033b717f4de3fd7b0120ae5ecec88c9546746b6aa82c47522ac3be641c6 libXfixes.so.3:c9576da345aec0b06ac54bb2589d001234d9993e6ffee13c239ceff27410e33c libXi.so.6:aca5071e66e1ad1f87af80e1ea3fdfc830f77eb41101112f7087745db56a8a0d"
+
+# --- web build (npm via nodejs-wheel); exact tree in vendor-build/package-lock.json
+ESBUILD_VERSION=0.28.2
+NPM_THREE=0.187.0
+NPM_3D_FORCE_GRAPH=1.80.2
+NPM_THREE_SPRITETEXT=1.10.0
+NPM_OXIGRAPH=0.5.13
+NPM_ECHARTS=6.1.0
+NPM_FFLATE=0.8.3            # MIT; deflates the oxigraph wasm at build time and inflates it in the browser
+
+# --- font sources (raw files at fixed commits / release tags; per-file sha256 in vendor.lock.json)
+FONTS_GOOGLE_COMMIT=5bb28733cec313b63fbd415b574b5ae35c8aa8b8      # github.com/google/fonts (Be Vietnam Pro 1.002)
+FONTS_NOTO_COMMIT=4cf78353cd1668040ba8efa13029cd910fcdf9e2        # github.com/notofonts/notofonts.github.io
+JETBRAINS_MONO_VERSION=2.304
+JETBRAINS_MONO_URL=https://github.com/JetBrains/JetBrainsMono/releases/download/v2.304/JetBrainsMono-2.304.zip
+JETBRAINS_MONO_SHA256=6f6376c6ed2960ea8a963cd7387ec9d76e3f629125bc33d1fdcd7eb7012f7bbf

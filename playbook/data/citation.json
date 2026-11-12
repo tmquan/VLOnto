@@ -1,0 +1,14 @@
+{
+ "title": "Vietnamese Legal Ontology: Every legal answer, traced to the article that grounds it",
+ "authors": ["Khac-Hoai Nam Bui", "Quan Tran Minh"],
+ "authors_text": "Khac-Hoai Nam Bui and Quan Tran Minh",
+ "short_authors": "Bui and Tran Minh",
+ "year": "2026",
+ "published": "2026-11-08",
+ "arxiv_id": "2611.11426",
+ "primary_class": "cs.CL",
+ "url": "https://arxiv.org/abs/2611.11426",
+ "bibtex_key": "bui2026vietnamese",
+ "bibtex": "@misc{bui2026vietnamese,\n  title         = {Vietnamese Legal Ontology: Every legal answer, traced to the article\n                   that grounds it},\n  author        = {Bui, Khac-Hoai Nam and Tran Minh, Quan},\n  year          = {2026},\n  eprint        = {2611.11426},\n  archivePrefix = {arXiv},\n  primaryClass  = {cs.CL},\n  url           = {https://arxiv.org/abs/2611.11426}\n}",
+ "note": "Paper reference as listed on arXiv (2611.11426v1, cs.CL, 2026-11-08). Cite by title, authors, identifier, link and BibTeX only; the paper's numbers describe its own graph, not VLOnto 0.1.0. The BibTeX title field is wrapped over two lines (BibTeX reads the line break as a space) so the entry fits the page."
+}

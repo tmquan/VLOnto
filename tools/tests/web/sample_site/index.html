@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VLOnto — bảng điều khiển mẫu (bản đã sửa)</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<header class="top">
+  <h1>VLOnto · Bảng điều khiển mẫu</h1>
+  <nav><a href="#tong-quan">Tổng quan</a><a href="#bieu-do">Biểu đồ</a><a href="#van-ban">Văn bản</a></nav>
+</header>
+<main>
+<section id="tong-quan">
+  <h2>Tổng quan dữ liệu</h2>
+  <div class="cards">
+    <div class="card"><div class="k">Văn bản trong phạm vi</div><div class="v" id="k-docs">–</div></div>
+    <div class="card"><div class="k">Đoạn trích (chunk)</div><div class="v" id="k-chunks">–</div></div>
+    <div class="card"><div class="k">Quan hệ hiệu lực</div><div class="v" id="k-rel">–</div></div>
+  </div>
+  <p class="symbols">Ký hiệu: → dẫn chiếu, ← được dẫn chiếu, <span class="badge">✓ còn hiệu lực một phần (đã sửa đổi, bổ sung)</span> ✗ hết hiệu lực •
+     “trích dẫn” ‘đơn’ … § 3 ≤ 5 ≥ 2 × 4 · 25 °C · 10 m² · 1.000 ₫.</p>
+  <p class="iri">https://tmquan.github.io/VLOnto/id/van-ban/31-2024-QH15/dieu-1/khoan-2/diem-a/phien-ban/2024-08-01</p>
+</section>
+<section id="bieu-do">
+  <h2>Số văn bản theo năm ban hành</h2>
+  <div id="chart" class="chart"></div>
+</section>
+<section id="van-ban">
+  <h2>Văn bản tiêu biểu</h2>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Số hiệu</th><th>Tên văn bản</th><th class="col-iri">IRI</th></tr></thead>
+    <tbody>
+      <tr><td class="num">31/2024/QH15</td><td>Luật Đất đai</td><td class="iri col-iri">https://tmquan.github.io/VLOnto/id/luat-31-2024-qh15</td></tr>
+      <tr><td class="num">45/2019/QH14</td><td>Bộ luật Lao động</td><td class="iri col-iri">https://tmquan.github.io/VLOnto/id/bo-luat-45-2019-qh14</td></tr>
+      <tr><td class="num">168/2024/NĐ-CP</td><td>Nghị định quy định xử phạt vi phạm hành chính về trật tự, an toàn giao thông trong lĩnh vực giao thông đường bộ</td><td class="iri col-iri">https://tmquan.github.io/VLOnto/id/nd-168-2024-nd-cp</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <pre class="code">PREFIX vlo: &lt;https://tmquan.github.io/VLOnto/ontology#&gt;
+SELECT ?vb ?tieuDe WHERE {
+  ?vb a vlo:LegalDocument ; vlo:title ?tieuDe .   # “Luật Đất đai”@vi
+  FILTER(LANG(?tieuDe) = "vi")
+}</pre>
+</section>
+</main>
+<footer>Dữ liệu mẫu · VLOnto · phông chữ theo giấy phép SIL OFL 1.1</footer>
+<script src="vendor/echarts/echarts.min.js"></script>
+<script src="data/stats.js"></script>
+<script>
+(function () {
+  'use strict';
+  window.__VLONTO_READY = false;
+  var S = window.VLONTO.stats;
+  var fmt = new Intl.NumberFormat('vi-VN');
+  document.getElementById('k-docs').textContent = fmt.format(S.documents);
+  document.getElementById('k-chunks').textContent = fmt.format(S.chunks);
+  document.getElementById('k-rel').textContent = fmt.format(S.relations);
+  function draw() {
+    var chart = echarts.init(document.getElementById('chart'), null, { renderer: 'canvas' });
+    chart.on('finished', function () { window.__VLONTO_READY = true; });
+    chart.setOption({
+      animation: false,
+      textStyle: { fontFamily: '"Be Vietnam Pro", sans-serif' },
+      grid: { left: 56, right: 16, top: 24, bottom: 36 },
+      tooltip: { trigger: 'axis' },
+      xAxis: { type: 'category', data: S.by_year.map(function (r) { return String(r[0]); }) },
+      yAxis: { type: 'value', axisLabel: { formatter: function (v) { return fmt.format(v); } } },
+      series: [{ name: 'Văn bản', type: 'bar', data: S.by_year.map(function (r) { return r[1]; }), itemStyle: { color: '#2f52d6' } }]
+    });
+    window.addEventListener('resize', function () { chart.resize(); });
+  }
+  (document.fonts ? document.fonts.load('400 13px "Be Vietnam Pro"') : Promise.resolve()).then(draw, draw);
+})();
+</script>
+</body>
+</html>

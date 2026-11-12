@@ -1,0 +1,51 @@
+# Deploys the prebuilt, tested static site (site/) to GitHub Pages, and checks that the committed
+# Typst sources rebuild the committed playbook PDF byte for byte with the pinned Typst release.
+# Actions are pinned to the commit SHAs of the tags named in the comments.
+name: pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - name: Check download checksums
+        working-directory: site/downloads
+        run: sha256sum -c SHA256SUMS.txt
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: site
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+
+  reproduce-pdf:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install the pinned Typst release (sha256-checked)
+        run: bash tools/fetch_typst.sh "$RUNNER_TEMP/typst"
+      - name: Rebuild the playbook PDF from the committed Typst sources
+        run: TY="$RUNNER_TEMP/typst/typst" bash scripts/build_pdf.sh --pdf-only --out "$RUNNER_TEMP/VLOnto-playbook.pdf"
+      - name: Compare with the committed PDF
+        run: |
+          sha256sum "$RUNNER_TEMP/VLOnto-playbook.pdf" site/downloads/VLOnto-playbook.pdf
+          cmp "$RUNNER_TEMP/VLOnto-playbook.pdf" site/downloads/VLOnto-playbook.pdf

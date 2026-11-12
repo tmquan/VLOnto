@@ -1,0 +1,198 @@
+40: 1    | {%- elif res.n_rows == 1 -%}1 row{%- else -%}{{ num(res.n_rows) }} rows{%- endif -%}
+48: 1.    | ## 1. Scope, audience and disclaimer
+50: 3    | VLOnto is an OWL ontology of Vietnamese law and a knowledge graph built with it from six public datasets of Vi
+50: 2.2    | VLOnto is an OWL ontology of Vietnamese law and a knowledge graph built with it from six public datasets of Vi
+54: 2    | **What it covers.** How to open the offline website and query the files (section 2), how the data flows from t
+54: 3    | **What it covers.** How to open the offline website and query the files (section 2), how the data flows from t
+54: 4    | **What it covers.** How to open the offline website and query the files (section 2), how the data flows from t
+54: 5    | **What it covers.** How to open the offline website and query the files (section 2), how the data flows from t
+54: 6    | **What it covers.** How to open the offline website and query the files (section 2), how the data flows from t
+54: 7    | **What it covers.** How to open the offline website and query the files (section 2), how the data flows from t
+54: 8    | **What it covers.** How to open the offline website and query the files (section 2), how the data flows from t
+54: 9    | **What it covers.** How to open the offline website and query the files (section 2), how the data flows from t
+54: 10    | **What it covers.** How to open the offline website and query the files (section 2), how the data flows from t
+54: 11    | **What it covers.** How to open the offline website and query the files (section 2), how the data flows from t
+54: 12    | **What it covers.** How to open the offline website and query the files (section 2), how the data flows from t
+54: 1.1,    | **What it covers.** How to open the offline website and query the files (section 2), how the data flows from t
+54: 12.    | **What it covers.** How to open the offline website and query the files (section 2), how the data flows from t
+60: 1.1    | ### 1.1 How to cite
+66: 2.    | ## 2. Quick start
+68: 2.1    | ### 2.1 Open the offline playground
+72: 1.    | 1. Clone the repository <https://github.com/tmquan/VLOnto> or download it as a ZIP file.
+73: 2.    | 2. Double-click `site/index.html` in the repository folder: it opens the 3D ontology playground as a `file://`
+73: 3    | 2. Double-click `site/index.html` in the repository folder: it opens the 3D ontology playground as a `file://`
+74: 3.    | 3. The other pages are the legal-network playground, the SPARQL playground, the dashboard, the ontology docume
+74: 9    | 3. The other pages are the legal-network playground, the SPARQL playground, the dashboard, the ontology docume
+76: 12    | All scripts, fonts and data are inside the folder; the pages load no external resources. The site is checked w
+78: 2.2    | ### 2.2 Get the code and the data
+80: 3    | VLOnto is published as code and a website, not as a data release. The GitHub repository <https://github.com/tm
+80: 5    | VLOnto is published as code and a website, not as a data release. The GitHub repository <https://github.com/tm
+80: 5.1    | VLOnto is published as code and a website, not as a data release. The GitHub repository <https://github.com/tm
+97: 10.4    | Sizes are those of the reference build of {{ cfg.build_date }} (section 10.4). `rdf/vlonto-kg.nt.gz` is the wh
+97: 9    | Sizes are those of the reference build of {{ cfg.build_date }} (section 10.4). `rdf/vlonto-kg.nt.gz` is the wh
+99: 2.3    | ### 2.3 Install the query libraries
+105: 2.6    | Run the examples in the build folder of a local build (`build/`, or `$VLONTO_BUILD`), which contains `kg/` and
+107: 2.4    | ### 2.4 SQL over the parquet tables with DuckDB
+117: 2.5    | ### 2.5 DataFrames with polars
+127: 2.6    | ### 2.6 SPARQL with pyoxigraph
+148: 7    | The build loaded the same dump into Oxigraph in {{ val.oxigraph.load_s }} s ({{ num(val.oxigraph.triples_loade
+150: 3.    | ## 3. Architecture
+160: 8    | **Processed corpus.** The vn-legal project (the data pipeline of the Vietnamese legal assistant, section 8) do
+160: 7    | **Processed corpus.** The vn-legal project (the data pipeline of the Vietnamese legal assistant, section 8) do
+170: 5    | **Knowledge-graph build.** `python -m vlonto.cli all` (section 5) resolves every reference to a document, arti
+172: 2.2    | **Outputs.** The parquet tables are the primary form (fast, columnar, with provenance columns); the RDF dump s
+174: 200    | **What is deliberately left out.** No article or document bodies, no Q&A, news or judgment text, no glossary d
+174: 300    | **What is deliberately left out.** No article or document bodies, no Q&A, news or judgment text, no glossary d
+176: 4.    | ## 4. The ontology
+178: 2    | VLOnto is an OWL 2 ontology in Turtle (`ontology/vlonto.ttl`, {{ num(o.header.triples) }} triples) with {{ o.b
+178: 6    | VLOnto is an OWL 2 ontology in Turtle (`ontology/vlonto.ttl`, {{ num(o.header.triples) }} triples) with {{ o.b
+180: 4.1    | ### 4.1 Modules
+182: 3    | Each term belongs to one of {{ o.modules | length }} thematic modules (annotation `vlo:module`); the 3D ontolo
+190: 4.2    | ### 4.2 Key classes
+200: 4.3    | ### 4.3 Key properties
+210: 4.4    | ### 4.4 Alignments
+212: 6    | VLOnto reuses established vocabularies through sub-class and sub-property axioms rather than redefining them: 
+221: 4.5    | ### 4.5 IRI scheme
+229: 3    | ["part, chapter, section, appendix", Md("`vlid:document/<doc_id>/chuong-iii/muc-3`"), "structure path"],
+242: 4.6    | ### 4.6 Versioning
+246: 5.    | ## 5. Building the knowledge graph
+248: 5.1    | ### 5.1 Prerequisites
+252: 5.2    | ### 5.2 Commands
+260: 3    | Options: `--workers N` (parallel court-name workers), `--core-max-rank N` (legal-force ranks in the browser su
+262: 5.3    | ### 5.3 Steps and expected output
+265: 0    | [Md("`build`"), Md("`build/kg/*.parquet`, `build/kg_local/`"), num(st.documents) ~ " documents, " ~ num(st.art
+266: 0    | [Md("`export`"), Md("`build/rdf/vlonto-kg.nt.gz`"), num(f.export.triples_total) ~ " triples, " ~ size(f.export
+267: 1    | [Md("`core`"), Md("`build/rdf/vlonto-core.ttl`"), num(core.triples) ~ " triples, " ~ num(core.documents) ~ " d
+268: 0    | [Md("`validate`"), Md("`build/reports/validation.json`, `build/oxigraph/`"), (val.referential_integrity.checks
+269: 20    | [Md("`site`"), Md("`build/site_data/*.json`, `js/*.js`"), (f.manifest.files | length) ~ " bundles and twins, a
+275: 6.2    | Wall times are those of the reference build on the build node ({{ cfg.build_date }}); `-` means the step repor
+277: 5.4    | ### 5.4 Node and edge tables
+285: 6.    | ## 6. Validation
+287: 6.1    | ### 6.1 The {{ n_checks }} build checks
+295: 6.2    | ### 6.2 Reconciliation with the processed corpus
+303: 6.3    | ### 6.3 Integrity, RDF and SHACL/OWL-RL
+311: 6.4    | ### 6.4 Spot checks of extracted edges
+313: 6.1.    | For each edge type and resolution method, edges were drawn at random from the final build and judged by readin
+325: 95    | {% set n_s = sc.rows | map(attribute="checked") | max %}A sample of {{ n_s }} gives only coarse precision: wit
+327: 6.5    | ### 6.5 Precision of the validity relations
+329: 7    | The {{ num(st.change_events) }} change events come from the validity map of the vn-legal project (rules v7). O
+329: 95    | The {{ num(st.change_events) }} change events come from the validity map of the vn-legal project (rules v7). O
+340: 6.6    | ### 6.6 Known limits of the validation
+342: 7    | ![Validity classes of the {{ num(st.documents) }} documents as of {{ cfg.validity_as_of }} (validity rules v7)
+349: 12.    | The complete list of limitations is in section 12.
+351: 7.    | ## 7. Recipes
+353: 2.6,    | Each recipe answers one question twice: in SQL over the parquet tables (DuckDB) and in SPARQL over the RDF. Ev
+374: 7.1    | ### 7.1 What replaced an act?
+376: 10/2012/    | The Labour Code 10/2012/QH13 was replaced; the change event keeps the operative sentence of the new code as ev
+376: 13    | The Labour Code 10/2012/QH13 was replaced; the change event keeps the operative sentence of the new code as ev
+380: 7.2    | Use the kinds `replaced` and `repealed` for "no longer in force because of X", and `amended`, `partially_repea
+382: 7.2    | ### 7.2 Amendment history
+384: 31/2024/    | All change events that affect the Land Law 31/2024/QH15, oldest first:
+384: 15,    | All change events that affect the Land Law 31/2024/QH15, oldest first:
+388: 7.3    | ### 7.3 Legal-basis chain
+394: 2.6    | The browser subset returns no row here because a circular is outside it (section 2.6). Amending resolutions of
+396: 7.4    | ### 7.4 Articles most applied by courts
+406: 7.5    | ### 7.5 Q&As that cite an article
+408: 35    | The legal Q&A edges come from the evaluation labels of the vn-legal project. Q&As whose answer cites Article 3
+408: 45/2019/    | The legal Q&A edges come from the evaluation labels of the vn-legal project. Q&As whose answer cites Article 3
+408: 14    | The legal Q&A edges come from the evaluation labels of the vn-legal project. Q&As whose answer cites Article 3
+414: 7.6    | ### 7.6 Terms of a legal area
+420: 7.7    | ### 7.7 The playground examples
+428: 8.    | ## 8. Using VLOnto with the Vietnamese legal assistant agent
+430: 8.1    | ### 8.1 Where VLOnto fits
+432: 3.5    | The companion guide *Building a Vietnamese Legal Assistant Agent with NVIDIA NeMo Helix and Nemotron 3.5* buil
+434: 7    | The validity data of that service and the change events of VLOnto come from the same validity map (rules v7). 
+436: 1.    | 1. **Validity as published, typed data.** Each change event has its kind, effective date, evidence sentence an
+437: 2.    | 2. **The citation network around an article.** What an article cites, which documents cite it, and the legal b
+438: 3.    | 3. **Usage signals.** How many court decisions apply an article and how many published Q&As cite it, and which
+440: 8.2    | ### 8.2 Three knowledge-graph tools
+454: 2012    | The first result is what the agent needs to answer a question asked under the 2012 code: the act is no longer 
+456: 8.3    | ### 8.3 Plugging the tools into the agent
+490: 11    | - **In the retrieval service.** `GET /validity/{doc_number}` and `check_validity` read the same relations, so 
+491: 45/2019/    | - **In the answer audit.** The audit parses each citation (`[45/2019/QH14, Điều 35]`) and checks that the arti
+491: 14,    | - **In the answer audit.** The audit parses each citation (`[45/2019/QH14, Điều 35]`) and checks that the arti
+491: 35    | - **In the answer audit.** The audit parses each citation (`[45/2019/QH14, Điều 35]`) and checks that the arti
+494: 8.4    | ### 8.4 Cautions
+497: 6.5    | - The change events are extracted from text with a precision of {{ vp.correct }}/{{ vp.sampled }} on a sample 
+500: 9.    | ## 9. The website and the 3D playgrounds
+500: 3    | ## 9. The website and the 3D playgrounds
+502: 3    | The website is a set of static pages generated from the build's data bundles. It is published at <https://tmqu
+502: 2.1    | The website is a set of static pages generated from the build's data bundles. It is published at <https://tmqu
+505: 3    | [Md("`index.html`"), "The start page: the 3D ontology playground, the ontology as a 3D graph: " ~ og.lengths.n
+505: 3    | [Md("`index.html`"), "The start page: the 3D ontology playground, the ontology as a 3D graph: " ~ og.lengths.n
+507: 3    | [Md("`ontology-3d.html`"), Md("Only a redirect to `index.html`, so that older links to the playground keep wor
+508: 3    | [Md("`network-3d.html`"), "The legal network: " ~ num(net.lengths.nodes) ~ " documents in 3D with the legal-fo
+508: 3    | [Md("`network-3d.html`"), "The legal network: " ~ num(net.lengths.nodes) ~ " documents in 3D with the legal-fo
+509: 7.7.    | [Md("`sparql.html`"), "A SPARQL editor that runs Oxigraph, compiled to WebAssembly, inside the page over the b
+513: 2.2    | [Md("`downloads.html`"), "The files that need no build (section 2.2): the ontology, the core Turtle subset, th
+513: 256    | [Md("`downloads.html`"), "The files that need no build (section 2.2): the ontology, the core Turtle subset, th
+517: 2    | **Offline use.** Every page is plain HTML with classic scripts: no ES modules, no `fetch`, no server. Data bun
+517: 20    | **Offline use.** Every page is plain HTML with classic scripts: no ES modules, no `fetch`, no server. Data bun
+517: 256    | **Offline use.** Every page is plain HTML with classic scripts: no ES modules, no `fetch`, no server. Data bun
+519: 3    | **3D views.** The 3D views use three.js and 3d-force-graph with text labels drawn as sprites. The legal-networ
+519: 3    | **3D views.** The 3D views use three.js and 3d-force-graph with text labels drawn as sprites. The legal-networ
+519: 3    | **3D views.** The 3D views use three.js and 3d-force-graph with text labels drawn as sprites. The legal-networ
+521: 10.    | ## 10. Reproducibility
+523: 10.1    | ### 10.1 Pinned tools and libraries
+533: 3    | ["three.js", ver("NPM_THREE"), "3D rendering"],
+534: 3    | ["3d-force-graph", ver("NPM_3D_FORCE_GRAPH"), "3D graphs"],
+534: 3    | ["3d-force-graph", ver("NPM_3D_FORCE_GRAPH"), "3D graphs"],
+534: 3    | ["3d-force-graph", ver("NPM_3D_FORCE_GRAPH"), "3D graphs"],
+535: 3    | ["three-spritetext", ver("NPM_THREE_SPRITETEXT"), "3D labels"],
+543: 2    | The fonts come from fixed commits of their repositories (Be Vietnam Pro, Noto Serif, Noto Sans Math, Noto Sans
+545: 10.2    | ### 10.2 Lock files
+554: 10.3    | ### 10.3 Deterministic build of this playbook
+556: 2    | The Markdown is generated, never edited by hand: `playbook.md.j2` + `data/facts.json` → `playbook.md` → pandoc
+558: 1.    | {{ code("bash scripts/build_pdf.sh --facts       # 1. gather facts (needs the KG build)
+559: 2.    | bash scripts/build_pdf.sh               # 2. Markdown, SVG figures, Typst, PDF, HTML
+560: 3.    | bash scripts/build_pdf.sh --check       # 3. check the PDF, rebuild it twice
+561: 4.    | bash scripts/build_pdf.sh --check-files # 4. printed sizes and sha256 vs the files
+561: 256    | bash scripts/build_pdf.sh --check-files # 4. printed sizes and sha256 vs the files
+564: 1    | `playbook/Makefile` offers the same steps as targets: `make -C playbook facts`, `pdf`, `check`, `check-files` 
+568: 10.4    | ### 10.4 Checksums of the reference build
+570: 256    | `playbook/data/SHA256SUMS` records the sha256 of the outputs of the reference build of {{ cfg.build_date }} th
+570: 256    | `playbook/data/SHA256SUMS` records the sha256 of the outputs of the reference build of {{ cfg.build_date }} th
+570: 16    | `playbook/data/SHA256SUMS` records the sha256 of the outputs of the reference build of {{ cfg.build_date }} th
+576: 256    | The ontology files, `rdf/vlonto-core.ttl` and the data dictionary on the website's downloads page are these fi
+576: 256    | The ontology files, `rdf/vlonto-core.ttl` and the data dictionary on the website's downloads page are these fi
+576: 5.3,    | The ontology files, `rdf/vlonto-core.ttl` and the data dictionary on the website's downloads page are these fi
+576: 6.2    | The ontology files, `rdf/vlonto-core.ttl` and the data dictionary on the website's downloads page are these fi
+578: 11.    | ## 11. Maintenance runbook
+580: 11.1    | ### 11.1 New revisions of the source datasets
+582: 1.    | 1. Update the revision of each changed dataset in `vlonto/vlonto/config.py` (`SOURCES`) and in the vn-legal pr
+583: 2.    | 2. Re-run the vn-legal data pipeline: clean and scope, split into articles, extract the validity map, build th
+584: 3.    | 3. Run `python -m vlonto.cli all` (section 5) and read `build/reports/kg_report.md`: all checks must pass and 
+584: 5    | 3. Run `python -m vlonto.cli all` (section 5) and read `build/reports/kg_report.md`: all checks must pass and 
+585: 4.    | 4. Compare `build/site_data/stats.json` with the previous release and explain every large change.
+586: 5.    | 5. Draw new spot-check samples for the edge types whose extraction rules or inputs changed, judge them and rec
+587: 6.    | 6. Re-check the licences of the dataset cards (`docs/licence_policy.md`) if a card changed.
+588: 7.    | 7. Rebuild the website data and this playbook (`bash scripts/build_pdf.sh --facts` without `REUSE_STORE`, `bas
+590: 11.2    | ### 11.2 Re-running the validity rules
+594: 1.    | 1. Edit and re-run the rules there (`SAMPLE_SEED=31 $R/envs/data/bin/python $R/code/validity.py`, as in the gu
+594: 31    | 1. Edit and re-run the rules there (`SAMPLE_SEED=31 $R/envs/data/bin/python $R/code/validity.py`, as in the gu
+595: 2.    | 2. Judge a fresh sample of relations and record the precision with the rule version.
+596: 3.    | 3. Set `VALIDITY_AS_OF` in `vlonto/vlonto/config.py` and rebuild VLOnto: every change event records the rule v
+597: 4.    | 4. Rebuild the retrieval service of the agent from the same map, so that the agent and VLOnto agree.
+599: 11.3    | ### 11.3 Releasing
+601: 1.    | 1. Set `VERSION` and `BUILD_DATE` in `vlonto/vlonto/config.py`; update `owl:versionInfo`, `owl:versionIRI` and
+601: 4.6.    | 1. Set `VERSION` and `BUILD_DATE` in `vlonto/vlonto/config.py`; update `owl:versionInfo`, `owl:versionIRI` and
+602: 2.    | 2. Rebuild the graph, the website data and the playbook; all checks must pass.
+603: 3.    | 3. Regenerate `playbook/data/SHA256SUMS` (`bash scripts/build_pdf.sh --facts`), refresh the website's download
+603: 256    | 3. Regenerate `playbook/data/SHA256SUMS` (`bash scripts/build_pdf.sh --facts`), refresh the website's download
+603: 256    | 3. Regenerate `playbook/data/SHA256SUMS` (`bash scripts/build_pdf.sh --facts`), refresh the website's download
+603: 256    | 3. Regenerate `playbook/data/SHA256SUMS` (`bash scripts/build_pdf.sh --facts`), refresh the website's download
+604: 4.    | 4. Keep the ontology file of the previous version available; its version IRI must keep resolving.
+606: 12.    | ## 12. Limitations and roadmap
+608: 12.1    | ### 12.1 Limitations of the knowledge graph
+616: 12.2    | ### 12.2 Limitations of the website and this playbook
+619: 3    | - The 3D views were tested with software WebGL; large graphs can be slow on weak graphics hardware, which is w
+621: 8.3    | - The agent integration of section 8.3 is a design; only the knowledge-graph tools themselves were run.
+623: 12.3    | ### 12.3 Roadmap
+625: 1.    | 1. Close the validity gap: add official validity sources and consolidated texts as evidence, and measure recal
+626: 2.    | 2. Measure precision with larger, stratified samples and with legal review, starting with case-to-case links a
+627: 3.    | 3. Repair the residual court names and resolve joint issuers.
+628: 4.    | 4. Publish the agent tools as an MCP server package and evaluate them in the agent's test set.
+629: 5.    | 5. Serve the RDF with content negotiation and a public SPARQL endpoint.
+704: 200    | **What the outputs contain.** The tables, the RDF dumps and the website data hold metadata, titles, article an
+704: 300    | **What the outputs contain.** The tables, the RDF dumps and the website data hold metadata, titles, article an
+718: 1.1    | **Fonts and libraries.** The fonts of the PDF and the website are under the SIL Open Font License 1.1 (licence

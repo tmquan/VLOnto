@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>/* theme before first paint: ?theme=, else stored choice, else system (css/site.css, js/common.js) */(function(d,w){var t=null,m=/[?&]theme=(light|dark)(?:&|$)/.exec(w.location.search);if(m)t=m[1];else{try{t=w.localStorage.getItem('vlonto.theme')}catch(e){}if(t!=='light'&&t!=='dark'){try{t=w.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}catch(e){t='light'}}}d.setAttribute('data-theme',t);d.style.colorScheme=t})(document.documentElement,window);</script>
+<title>Playbook · VLOnto</title>
+<meta name="description" content="The VLOnto playbook: how the ontology and knowledge graph of Vietnamese law are built, validated and published.">
+<link rel="stylesheet" href="css/fonts-web.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body class="page-text page-playbook">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="vl-header"></div>
+<main id="main" class="page">
+  <header class="page-head">
+    <p class="eyebrow">Playbook · Sổ tay</p>
+    <h1>The VLOnto playbook</h1>
+    <p class="lead">How VLOnto is built and how to use it: sources and licences, the ontology design, the knowledge-graph
+      pipeline, validation, the website and publication.</p>
+    <div class="row" id="pb-actions"></div>
+  </header>
+  <div id="pb-body"></div>
+</main>
+<div id="vl-footer"></div>
+<script src="data/site_meta.js"></script>
+<script src="data/site_files.js"></script>
+<script src="js/common.js"></script>
+<script src="js/playbook.js"></script>
+</body>
+</html>

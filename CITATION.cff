@@ -1,0 +1,34 @@
+cff-version: 1.2.0
+message: "If you use VLOnto, please cite it as below."
+title: "VLOnto: Vietnamese Legal Ontology and Knowledge Graph"
+type: dataset
+version: "0.1.0"
+date-released: "2026-11-12"
+authors:
+  - alias: "tmquan"
+    website: "https://huggingface.co/tmquan"
+repository-code: "https://github.com/tmquan/VLOnto"
+url: "https://tmquan.github.io/VLOnto/"
+license:
+  - Apache-2.0
+  - CC-BY-4.0
+keywords:
+  - Vietnamese law
+  - legal ontology
+  - knowledge graph
+  - RDF
+  - ELI
+preferred-citation:
+  type: article
+  title: "Vietnamese Legal Ontology: Every legal answer, traced to the article that grounds it"
+  authors:
+    - given-names: "Khac-Hoai Nam"
+      family-names: "Bui"
+    - given-names: "Quan"
+      family-names: "Tran Minh"
+  year: 2026
+  journal: "arXiv preprint"
+  identifiers:
+    - type: other
+      value: "arXiv:2611.11426"
+  url: "https://arxiv.org/abs/2611.11426"

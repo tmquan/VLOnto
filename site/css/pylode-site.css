@@ -1,0 +1,99 @@
+/* Site styles for the pyLODE documentation copy (site/ontology/vlonto.html, patched by scripts/site/build_site.py):
+   site fonts, a back link bar, readable widths, and tables/code that scroll inside themselves on narrow screens. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  font-family: var(--vlo-font-sans) !important; font-size: 15px; line-height: 1.6; color: #111a30;
+  margin: 0 auto !important; padding: 0 22px 40px !important; max-width: 1120px; background: #fff;
+}
+#pylode { display: none !important; }
+.vl-doc-bar {
+  position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; gap: 4px 18px; align-items: center; justify-content: space-between;
+  background: #0b1122; color: #b8c3df; margin: 0 -22px 18px; padding: 9px 22px; font-size: 13px; line-height: 1.45;
+}
+.vl-doc-bar a { color: #a9c0ff; font-weight: 600; }
+h1, h2, h3, h4 { font-family: var(--vlo-font-sans) !important; line-height: 1.3; color: #111a30; }
+h1 { font-size: 30px; } h2 { font-size: 23px; } h3 { font-size: 18px; }
+a { color: #2b55d0; }
+code, pre, kbd, samp, .mono { font-family: var(--vlo-font-mono) !important; font-size: 0.9em; }
+pre { white-space: pre-wrap; overflow-x: auto; overflow-wrap: normal; }
+table { border-collapse: collapse; display: block; overflow-x: auto; max-width: 100%; }
+th, td { overflow-wrap: normal; vertical-align: top; }
+dd, dt, li, p, td, th { overflow-wrap: normal; }
+img, svg { max-width: 100%; height: auto; }
+@media (max-width: 600px) {
+  body { padding: 0 12px 30px !important; font-size: 14px; }
+  .vl-doc-bar { margin: 0 -12px 12px; padding: 8px 12px; }
+  h1 { font-size: 24px; } h2 { font-size: 20px; }
+}
+/* pyLODE's own stylesheet names 'sans-serif' on some elements (e.g. ul.first li h5 a), which would fall back to a
+   system font; force the site fonts everywhere, monospace for code. */
+body * { font-family: var(--vlo-font-sans) !important; }
+body code, body pre, body kbd, body samp, body .mono, body code *, body pre * { font-family: var(--vlo-font-mono) !important; }
+/* class/property marker superscripts (sup.sup-c, sup.sup-op, ...) must not touch the heading text */
+/* pyLODE's own <style> (after this file) sets sup { margin-left: -3px }, which pulls the marker into the heading text */
+body sup { margin-left: .3em !important; font-size: .68em; line-height: 0; }
+/* pyLODE sets code { font-size: large }; keep IRIs in proportion with the text */
+body code { font-size: .92em; }
+/* pyLODE fixes its table of contents to the right edge (about 200 px wide) on wide screens: keep the page and the
+   back bar left of it; on narrow screens pyLODE moves the contents above the page (flex order -1): keep the back bar
+   first and cap the contents box so the documentation starts within the first screen. */
+@media (min-width: 769px) {
+  body { margin: 0 236px 0 auto !important; }
+  #content { width: auto !important; }
+}
+@media (max-width: 768px) {
+  .vl-doc-bar { order: -2; }
+  #toc { max-height: 42vh !important; overflow-y: auto !important; margin-bottom: 14px; }
+}
+.vl-h1-vi { font-size: .8em; color: #3b4a6b; }
+
+/* ------------------------------------------------------------------ themes
+   The inline script at the top of <head> sets html[data-theme] before first paint (same rule as the site pages);
+   js/doc-theme.js adds the toggle and follows the ontology page that embeds this file in an iframe.
+   pyLODE's own <style> comes after this file, so every override below is more specific than its rule. */
+html { color-scheme: light; }
+html[data-theme="dark"] { color-scheme: dark; }
+.vl-doc-bar .vl-doc-right { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+.vl-doc-bar .vl-paper-link { color: #a9c0ff; font-weight: 600; }
+.vl-theme-btn {
+  display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; flex: 0 0 auto;
+  background: #1a2546; color: #e8edf8; border: 1px solid #2c3a66; border-radius: 8px; cursor: pointer;
+}
+.vl-theme-btn:hover { background: #23305a; color: #fff; }
+html .vl-theme-btn svg { width: 17px; height: 17px; max-width: none; }
+.vl-theme-btn .i-moon { display: none; }
+html[data-theme="dark"] .vl-theme-btn .i-sun { display: none; }
+html[data-theme="dark"] .vl-theme-btn .i-moon { display: block; }
+.vl-doc-bar a:focus-visible, .vl-theme-btn:focus-visible { outline: 3px solid #ffb547; outline-offset: 2px; }
+:focus-visible { outline: 3px solid #b45309; outline-offset: 2px; }
+html[data-theme="dark"] :focus-visible { outline-color: #ffb547; }
+.vl-doc-foot { margin: 28px 0 0; padding-top: 12px; border-top: 1px solid #d9e0ee; font-size: 13px; color: #45516f; }
+/* light theme: pyLODE marker colours that are below 4.5:1 on white */
+html .sup-c, html .sup-con { color: #b45309; }
+html .sup-fp, html .sup-ps { color: #0369a1; }
+html .sup-ns { color: #15803d; }
+/* dark theme */
+html[data-theme="dark"] body { color: #e7ecf6; background: #0c1120; }
+html[data-theme="dark"] h1, html[data-theme="dark"] h2, html[data-theme="dark"] h3, html[data-theme="dark"] h4 { color: #a8c2ff; background: transparent; }
+html[data-theme="dark"] h3 { border-bottom-color: #3a4766; }
+html[data-theme="dark"] :link { color: #8fb0ff; }
+html[data-theme="dark"] :visited { color: #c9b0ff; }
+html[data-theme="dark"] a:active { color: #ff9b91; }
+html[data-theme="dark"] .vl-doc-bar a { color: #a9c0ff; }
+html[data-theme="dark"] ul.hlist, html[data-theme="dark"] div.hierarchy { background: #131b2f; border-color: #3a4766; }
+html[data-theme="dark"] .entity { border-color: #3a4766; }
+html[data-theme="dark"] #toc { border-color: #3a4766; background: #0c1120; }
+html[data-theme="dark"] code { color: #ffb4a9; }
+html[data-theme="dark"] .proplink { color: #c5cee2; }
+html[data-theme="dark"] .cardinality { color: #f0abfc; }
+html[data-theme="dark"] #profile { color: #ff9b91 !important; }
+html[data-theme="dark"] .sup-c, html[data-theme="dark"] .sup-con { color: #fdba74; }
+html[data-theme="dark"] .sup-op, html[data-theme="dark"] .sup-ps { color: #93c5fd; }
+html[data-theme="dark"] .sup-fp { color: #7dd3fc; }
+html[data-theme="dark"] .sup-dp, html[data-theme="dark"] .sup-ns { color: #86efac; }
+html[data-theme="dark"] .sup-ap, html[data-theme="dark"] .sup-col { color: #fca5a5; }
+html[data-theme="dark"] .sup-p { color: #e7ecf6; }
+html[data-theme="dark"] .sup-ni { color: #e0b089; }
+html[data-theme="dark"] .vl-h1-vi { color: #b9c3dd; }
+html[data-theme="dark"] hr { border-color: #3a4766; }
+html[data-theme="dark"] .vl-doc-foot { border-top-color: #283350; color: #b9c3dd; }

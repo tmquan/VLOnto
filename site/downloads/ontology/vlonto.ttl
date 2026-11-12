@@ -1,0 +1,1346 @@
+# VLOnto - Vietnamese Legal Ontology, version 0.1.0
+# OWL 2 ontology in Turtle. Namespace https://tmquan.github.io/VLOnto/ontology# (prefix vlo:).
+# Instance IRIs of the knowledge graph use https://tmquan.github.io/VLOnto/id/ (prefix vlid:).
+# Every VLOnto class and property has rdfs:label in English and Vietnamese, an English skos:definition,
+# and a vlo:module annotation used by the 3D ontology playground to colour terms by module.
+
+@prefix vlo:     <https://tmquan.github.io/VLOnto/ontology#> .
+@prefix vlid:    <https://tmquan.github.io/VLOnto/id/> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+@prefix schema:  <https://schema.org/> .
+@prefix org:     <http://www.w3.org/ns/org#> .
+@prefix eli:     <http://data.europa.eu/eli/ontology#> .
+@prefix vann:    <http://purl.org/vocab/vann/> .
+
+# =====================================================================================================
+# Ontology header
+# =====================================================================================================
+
+<https://tmquan.github.io/VLOnto/ontology>
+    a owl:Ontology ;
+    dcterms:title "VLOnto: Vietnamese Legal Ontology"@en , "VLOnto: Bản thể học pháp luật Việt Nam"@vi ;
+    dcterms:description """VLOnto describes Vietnamese legal documents and their provisions, the bodies that issue them, their validity and the dated events that replace, amend or repeal them, legal-basis and citation links, court decisions and case-law precedents, legal questions and answers, legal terminology, legal news and the classification schemes used to organise them. Terms are aligned with ELI (European Legislation Identifier), SKOS, DCTERMS, PROV-O, schema.org and the W3C Organization ontology by sub-class and sub-property axioms. The VLOnto knowledge graph instantiates the ontology from six public datasets of Vietnamese legal material."""@en ,
+        """VLOnto mô tả văn bản pháp luật Việt Nam và các điều, khoản của chúng, cơ quan ban hành, tình trạng hiệu lực và các sự kiện thay thế, sửa đổi, bãi bỏ văn bản, quan hệ căn cứ pháp lý và trích dẫn, bản án, quyết định của Tòa án và án lệ, hỏi đáp pháp luật, thuật ngữ pháp lý, tin tức pháp luật và các hệ thống phân loại. Các khái niệm được liên kết với ELI, SKOS, DCTERMS, PROV-O, schema.org và W3C Organization bằng tiên đề lớp con và thuộc tính con. Đồ thị tri thức VLOnto được xây dựng từ sáu bộ dữ liệu công khai về pháp luật Việt Nam."""@vi ;
+    owl:versionInfo "0.1.0" ;
+    owl:versionIRI <https://tmquan.github.io/VLOnto/ontology/0.1.0> ;
+    dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
+    dcterms:creator [ a schema:Person ; schema:name "tmquan" ; schema:url "https://github.com/tmquan"^^xsd:anyURI ] ;
+    dcterms:created "2026-11-11"^^xsd:date ;
+    dcterms:modified "2026-11-12"^^xsd:date ;
+    dcterms:rights "CC BY 4.0. Not an official legal text and not legal advice."@en ;
+    vann:preferredNamespacePrefix "vlo" ;
+    vann:preferredNamespaceUri "https://tmquan.github.io/VLOnto/ontology#" ;
+    rdfs:seeAlso <https://tmquan.github.io/VLOnto/> , <https://github.com/tmquan/VLOnto> , <https://arxiv.org/abs/2611.11426> ;
+    dcterms:source <https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-vbpl> ,
+        <https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-hdpl> ,
+        <https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-tnpl> ,
+        <https://huggingface.co/datasets/tmquan/thuvienphapluat-vn-htpl> ,
+        <https://huggingface.co/datasets/tmquan/anle-toaan-gov-vn> ,
+        <https://huggingface.co/datasets/tmquan/cbba-toaan-gov-vn> .
+
+# =====================================================================================================
+# Annotation properties and the module scheme
+# =====================================================================================================
+
+vlo:module
+    a owl:AnnotationProperty ;
+    rdfs:label "module"@en , "mô-đun"@vi ;
+    skos:definition "The thematic module of VLOnto to which a class, property or concept scheme belongs; used to group and colour terms in documentation and in the 3D ontology playground."@en ;
+    rdfs:range vlo:Module ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ;
+    vlo:module vlo:module-provenance .
+
+vlo:typeConcept
+    a owl:AnnotationProperty ;
+    rdfs:label "type concept"@en , "khái niệm loại văn bản"@vi ;
+    skos:definition "Links a VLOnto document class to the concept of the DocumentType scheme that represents the same document type, so that class membership and the eli:type_document value can be kept in step."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ;
+    vlo:module vlo:module-classification .
+
+vlo:Module
+    a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Module"@en , "Mô-đun bản thể"@vi ;
+    skos:definition "A thematic group of VLOnto terms, such as documents, provisions or judiciary."@en ;
+    skos:definition "Một nhóm chủ đề của các khái niệm VLOnto, ví dụ văn bản, điều khoản hay tư pháp."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ;
+    vlo:module vlo:module-provenance .
+
+vlo:ModuleScheme
+    a skos:ConceptScheme ;
+    rdfs:label "VLOnto modules"@en , "Các mô-đun của VLOnto"@vi ;
+    skos:definition "The eleven thematic modules of VLOnto."@en ;
+    vlo:module vlo:module-provenance ;
+    skos:hasTopConcept vlo:module-documents , vlo:module-provisions , vlo:module-agents , vlo:module-validity-change ,
+        vlo:module-citation-basis , vlo:module-judiciary , vlo:module-qa , vlo:module-terminology , vlo:module-news ,
+        vlo:module-classification , vlo:module-provenance .
+
+vlo:module-documents a vlo:Module , owl:NamedIndividual ; skos:inScheme vlo:ModuleScheme ; skos:topConceptOf vlo:ModuleScheme ; skos:notation "documents" ;
+    skos:prefLabel "documents"@en , "văn bản"@vi ; skos:definition "Legal documents and their types."@en .
+vlo:module-provisions a vlo:Module , owl:NamedIndividual ; skos:inScheme vlo:ModuleScheme ; skos:topConceptOf vlo:ModuleScheme ; skos:notation "provisions" ;
+    skos:prefLabel "provisions"@en , "điều khoản"@vi ; skos:definition "Structural units of legal documents: parts, chapters, sections, articles, clauses, points and appendices."@en .
+vlo:module-agents a vlo:Module , owl:NamedIndividual ; skos:inScheme vlo:ModuleScheme ; skos:topConceptOf vlo:ModuleScheme ; skos:notation "agents" ;
+    skos:prefLabel "agents"@en , "chủ thể"@vi ; skos:definition "Public authorities that issue documents or decide cases."@en .
+vlo:module-validity-change a vlo:Module , owl:NamedIndividual ; skos:inScheme vlo:ModuleScheme ; skos:topConceptOf vlo:ModuleScheme ; skos:notation "validity-change" ;
+    skos:prefLabel "validity and change"@en , "hiệu lực và thay đổi"@vi ; skos:definition "Validity status of documents and the dated events that replace, amend, repeal or terminate them."@en .
+vlo:module-citation-basis a vlo:Module , owl:NamedIndividual ; skos:inScheme vlo:ModuleScheme ; skos:topConceptOf vlo:ModuleScheme ; skos:notation "citation-basis" ;
+    skos:prefLabel "citation and legal basis"@en , "trích dẫn và căn cứ"@vi ; skos:definition "Legal-basis and citation links between legal resources and from other works to legal resources."@en .
+vlo:module-judiciary a vlo:Module , owl:NamedIndividual ; skos:inScheme vlo:ModuleScheme ; skos:topConceptOf vlo:ModuleScheme ; skos:notation "judiciary" ;
+    skos:prefLabel "judiciary"@en , "tư pháp"@vi ; skos:definition "Court decisions, judgments, precedents and their classification."@en .
+vlo:module-qa a vlo:Module , owl:NamedIndividual ; skos:inScheme vlo:ModuleScheme ; skos:topConceptOf vlo:ModuleScheme ; skos:notation "qa" ;
+    skos:prefLabel "legal Q&A"@en , "hỏi đáp pháp luật"@vi ; skos:definition "Published legal questions and their answers."@en .
+vlo:module-terminology a vlo:Module , owl:NamedIndividual ; skos:inScheme vlo:ModuleScheme ; skos:topConceptOf vlo:ModuleScheme ; skos:notation "terminology" ;
+    skos:prefLabel "terminology"@en , "thuật ngữ"@vi ; skos:definition "Legal terms organised as SKOS concepts."@en .
+vlo:module-news a vlo:Module , owl:NamedIndividual ; skos:inScheme vlo:ModuleScheme ; skos:topConceptOf vlo:ModuleScheme ; skos:notation "news" ;
+    skos:prefLabel "news"@en , "tin tức"@vi ; skos:definition "Legal news and policy articles that mention legal documents."@en .
+vlo:module-classification a vlo:Module , owl:NamedIndividual ; skos:inScheme vlo:ModuleScheme ; skos:topConceptOf vlo:ModuleScheme ; skos:notation "classification" ;
+    skos:prefLabel "classification"@en , "phân loại"@vi ; skos:definition "Concept schemes for legal areas, document types and legal-force ranks."@en .
+vlo:module-provenance a vlo:Module , owl:NamedIndividual ; skos:inScheme vlo:ModuleScheme ; skos:topConceptOf vlo:ModuleScheme ; skos:notation "provenance" ;
+    skos:prefLabel "provenance"@en , "nguồn gốc"@vi ; skos:definition "Source datasets, extraction methods, edge sets and build activities."@en .
+
+# =====================================================================================================
+# External terms referenced by alignment axioms (declarations only)
+# =====================================================================================================
+
+eli:LegalResource a owl:Class ; rdfs:label "Legal resource (ELI)"@en ; rdfs:isDefinedBy <http://data.europa.eu/eli/ontology> .
+eli:LegalResourceSubdivision a owl:Class ; rdfs:label "Legal resource subdivision (ELI)"@en ; rdfs:isDefinedBy <http://data.europa.eu/eli/ontology> .
+eli:ResourceType a owl:Class ; rdfs:label "Resource type (ELI)"@en ; rdfs:isDefinedBy <http://data.europa.eu/eli/ontology> .
+eli:InForce a owl:Class ; rdfs:label "In force (ELI)"@en ; rdfs:isDefinedBy <http://data.europa.eu/eli/ontology> .
+eli:is_part_of a owl:ObjectProperty ; rdfs:label "is part of (ELI)"@en ; rdfs:isDefinedBy <http://data.europa.eu/eli/ontology> .
+eli:has_part a owl:ObjectProperty ; rdfs:label "has part (ELI)"@en ; rdfs:isDefinedBy <http://data.europa.eu/eli/ontology> .
+eli:cites a owl:ObjectProperty ; rdfs:label "cites (ELI)"@en ; rdfs:isDefinedBy <http://data.europa.eu/eli/ontology> .
+eli:based_on a owl:ObjectProperty ; rdfs:label "based on (ELI)"@en ; rdfs:isDefinedBy <http://data.europa.eu/eli/ontology> .
+eli:changes a owl:ObjectProperty ; rdfs:label "changes (ELI)"@en ; rdfs:isDefinedBy <http://data.europa.eu/eli/ontology> .
+eli:amends a owl:ObjectProperty ; rdfs:label "amends (ELI)"@en ; rdfs:isDefinedBy <http://data.europa.eu/eli/ontology> .
+eli:repeals a owl:ObjectProperty ; rdfs:label "repeals (ELI)"@en ; rdfs:isDefinedBy <http://data.europa.eu/eli/ontology> .
+eli:in_force a owl:ObjectProperty ; rdfs:label "in force (ELI)"@en ; rdfs:isDefinedBy <http://data.europa.eu/eli/ontology> .
+eli:type_document a owl:ObjectProperty ; rdfs:label "type of document (ELI)"@en ; rdfs:isDefinedBy <http://data.europa.eu/eli/ontology> .
+eli:passed_by a owl:ObjectProperty ; rdfs:label "passed by (ELI)"@en ; rdfs:isDefinedBy <http://data.europa.eu/eli/ontology> .
+eli:first_date_entry_in_force a owl:DatatypeProperty ; rdfs:label "first date of entry into force (ELI)"@en ; rdfs:isDefinedBy <http://data.europa.eu/eli/ontology> .
+eli:date_no_longer_in_force a owl:DatatypeProperty ; rdfs:label "date no longer in force (ELI)"@en ; rdfs:isDefinedBy <http://data.europa.eu/eli/ontology> .
+eli:date_document a owl:DatatypeProperty ; rdfs:label "date of document (ELI)"@en ; rdfs:isDefinedBy <http://data.europa.eu/eli/ontology> .
+eli:id_local a owl:DatatypeProperty ; rdfs:label "local identifier (ELI)"@en ; rdfs:isDefinedBy <http://data.europa.eu/eli/ontology> .
+
+skos:Concept a owl:Class ; rdfs:label "Concept (SKOS)"@en ; rdfs:isDefinedBy <http://www.w3.org/2004/02/skos/core> .
+skos:ConceptScheme a owl:Class ; rdfs:label "Concept scheme (SKOS)"@en ; rdfs:isDefinedBy <http://www.w3.org/2004/02/skos/core> .
+skos:related a owl:ObjectProperty ; rdfs:label "related (SKOS)"@en ; rdfs:isDefinedBy <http://www.w3.org/2004/02/skos/core> .
+prov:Entity a owl:Class ; rdfs:label "Entity (PROV)"@en ; rdfs:isDefinedBy <http://www.w3.org/ns/prov-o#> .
+prov:Activity a owl:Class ; rdfs:label "Activity (PROV)"@en ; rdfs:isDefinedBy <http://www.w3.org/ns/prov-o#> .
+prov:Plan a owl:Class ; rdfs:label "Plan (PROV)"@en ; rdfs:isDefinedBy <http://www.w3.org/ns/prov-o#> .
+prov:wasGeneratedBy a owl:ObjectProperty ; rdfs:label "was generated by (PROV)"@en ; rdfs:isDefinedBy <http://www.w3.org/ns/prov-o#> .
+prov:used a owl:ObjectProperty ; rdfs:label "used (PROV)"@en ; rdfs:isDefinedBy <http://www.w3.org/ns/prov-o#> .
+prov:startedAtTime a owl:DatatypeProperty ; rdfs:label "started at time (PROV)"@en ; rdfs:isDefinedBy <http://www.w3.org/ns/prov-o#> .
+org:Organization a owl:Class ; rdfs:label "Organization (ORG)"@en ; rdfs:isDefinedBy <http://www.w3.org/ns/org#> .
+schema:CreativeWork a owl:Class ; rdfs:label "Creative work (schema.org)"@en ; rdfs:isDefinedBy <https://schema.org/> .
+schema:Legislation a owl:Class ; rdfs:label "Legislation (schema.org)"@en ; rdfs:isDefinedBy <https://schema.org/> .
+schema:Question a owl:Class ; rdfs:label "Question (schema.org)"@en ; rdfs:isDefinedBy <https://schema.org/> .
+schema:Answer a owl:Class ; rdfs:label "Answer (schema.org)"@en ; rdfs:isDefinedBy <https://schema.org/> .
+schema:NewsArticle a owl:Class ; rdfs:label "News article (schema.org)"@en ; rdfs:isDefinedBy <https://schema.org/> .
+schema:acceptedAnswer a owl:ObjectProperty ; rdfs:label "accepted answer (schema.org)"@en ; rdfs:isDefinedBy <https://schema.org/> .
+schema:citation a owl:ObjectProperty ; rdfs:label "citation (schema.org)"@en ; rdfs:isDefinedBy <https://schema.org/> .
+schema:mentions a owl:ObjectProperty ; rdfs:label "mentions (schema.org)"@en ; rdfs:isDefinedBy <https://schema.org/> .
+schema:url a owl:DatatypeProperty ; rdfs:label "url (schema.org)"@en ; rdfs:isDefinedBy <https://schema.org/> .
+dcterms:references a owl:ObjectProperty ; rdfs:label "references (DCTERMS)"@en ; rdfs:isDefinedBy <http://purl.org/dc/terms/> .
+dcterms:subject a owl:ObjectProperty ; rdfs:label "subject (DCTERMS)"@en ; rdfs:isDefinedBy <http://purl.org/dc/terms/> .
+dcterms:source a owl:ObjectProperty ; rdfs:label "source (DCTERMS)"@en ; rdfs:isDefinedBy <http://purl.org/dc/terms/> .
+dcterms:creator a owl:ObjectProperty ; rdfs:label "creator (DCTERMS)"@en ; rdfs:isDefinedBy <http://purl.org/dc/terms/> .
+dcterms:license a owl:ObjectProperty ; rdfs:label "license (DCTERMS)"@en ; rdfs:isDefinedBy <http://purl.org/dc/terms/> .
+dcterms:title a owl:DatatypeProperty ; rdfs:label "title (DCTERMS)"@en ; rdfs:isDefinedBy <http://purl.org/dc/terms/> .
+dcterms:identifier a owl:DatatypeProperty ; rdfs:label "identifier (DCTERMS)"@en ; rdfs:isDefinedBy <http://purl.org/dc/terms/> .
+dcterms:issued a owl:DatatypeProperty ; rdfs:label "issued (DCTERMS)"@en ; rdfs:isDefinedBy <http://purl.org/dc/terms/> .
+dcterms:date a owl:DatatypeProperty ; rdfs:label "date (DCTERMS)"@en ; rdfs:isDefinedBy <http://purl.org/dc/terms/> .
+dcterms:description a owl:AnnotationProperty .
+dcterms:created a owl:AnnotationProperty .
+dcterms:modified a owl:AnnotationProperty .
+dcterms:rights a owl:AnnotationProperty .
+vann:preferredNamespacePrefix a owl:AnnotationProperty .
+vann:preferredNamespaceUri a owl:AnnotationProperty .
+skos:definition a owl:AnnotationProperty .
+skos:prefLabel a owl:AnnotationProperty .
+skos:notation a owl:AnnotationProperty .
+skos:inScheme a owl:AnnotationProperty .
+skos:topConceptOf a owl:AnnotationProperty .
+skos:hasTopConcept a owl:AnnotationProperty .
+schema:name a owl:AnnotationProperty .
+
+# =====================================================================================================
+# Module: documents
+# =====================================================================================================
+
+vlo:LegalDocument
+    a owl:Class ;
+    rdfs:subClassOf eli:LegalResource , schema:Legislation ;
+    rdfs:label "Legal document"@en , "Văn bản pháp luật"@vi ;
+    skos:definition "A document issued by a competent state body that has legal effect, identified by its type, number and issue date."@en ;
+    skos:definition "Văn bản do cơ quan nhà nước có thẩm quyền ban hành, có hiệu lực pháp lý, được xác định bởi loại, số, ký hiệu và ngày ban hành."@vi ;
+    rdfs:comment "In the VLOnto knowledge graph every legal document comes from the thuvienphapluat-vn-vbpl dataset and is one of the 40,816 in-scope normative documents of the processed corpus."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ;
+    vlo:module vlo:module-documents .
+
+vlo:NormativeLegalDocument
+    a owl:Class ;
+    rdfs:subClassOf vlo:LegalDocument ;
+    rdfs:label "Normative legal document"@en , "Văn bản quy phạm pháp luật"@vi ;
+    skos:definition "A legal document containing generally binding rules of conduct, issued in the form, order and procedure set out by the Law on Promulgation of Legal Normative Documents."@en ;
+    skos:definition "Văn bản có chứa quy phạm pháp luật, được ban hành theo đúng thẩm quyền, hình thức, trình tự, thủ tục do Luật Ban hành văn bản quy phạm pháp luật quy định."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ;
+    vlo:module vlo:module-documents .
+
+vlo:Constitution a owl:Class ; rdfs:subClassOf vlo:NormativeLegalDocument ;
+    rdfs:label "Constitution"@en , "Hiến pháp"@vi ;
+    skos:definition "The fundamental law of the State, adopted by the National Assembly; it has the highest legal force."@en ;
+    skos:definition "Đạo luật cơ bản của Nhà nước do Quốc hội thông qua, có hiệu lực pháp lý cao nhất."@vi ;
+    vlo:typeConcept vlo:doctype-constitution ; rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-documents .
+
+vlo:Code a owl:Class ; rdfs:subClassOf vlo:NormativeLegalDocument ;
+    rdfs:label "Code"@en , "Bộ luật"@vi ;
+    skos:definition "A comprehensive law adopted by the National Assembly that systematically regulates a whole field, such as the Civil Code or the Labour Code."@en ;
+    skos:definition "Văn bản luật do Quốc hội thông qua, điều chỉnh một cách có hệ thống một lĩnh vực, ví dụ Bộ luật Dân sự, Bộ luật Lao động."@vi ;
+    vlo:typeConcept vlo:doctype-code ; rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-documents .
+
+vlo:Law a owl:Class ; rdfs:subClassOf vlo:NormativeLegalDocument ;
+    rdfs:label "Law"@en , "Luật"@vi ;
+    skos:definition "A statute adopted by the National Assembly."@en ;
+    skos:definition "Văn bản luật do Quốc hội thông qua."@vi ;
+    vlo:typeConcept vlo:doctype-law ; rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-documents .
+
+vlo:Ordinance a owl:Class ; rdfs:subClassOf vlo:NormativeLegalDocument ;
+    rdfs:label "Ordinance"@en , "Pháp lệnh"@vi ;
+    skos:definition "A normative document adopted by the Standing Committee of the National Assembly on matters assigned by the National Assembly."@en ;
+    skos:definition "Văn bản quy phạm pháp luật do Ủy ban Thường vụ Quốc hội ban hành về những vấn đề được Quốc hội giao."@vi ;
+    vlo:typeConcept vlo:doctype-ordinance ; rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-documents .
+
+vlo:Resolution a owl:Class ; rdfs:subClassOf vlo:NormativeLegalDocument ;
+    rdfs:label "Resolution"@en , "Nghị quyết"@vi ;
+    skos:definition "A normative resolution issued by a collegial body such as the National Assembly, its Standing Committee, the Government or the Council of Judges of the Supreme People's Court."@en ;
+    skos:definition "Nghị quyết quy phạm pháp luật do cơ quan tập thể ban hành, như Quốc hội, Ủy ban Thường vụ Quốc hội, Chính phủ hoặc Hội đồng Thẩm phán Tòa án nhân dân tối cao."@vi ;
+    vlo:typeConcept vlo:doctype-resolution ; rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-documents .
+
+vlo:JointResolution a owl:Class ; rdfs:subClassOf vlo:NormativeLegalDocument ;
+    rdfs:label "Joint resolution"@en , "Nghị quyết liên tịch"@vi ;
+    skos:definition "A resolution issued jointly by a state body and the central body of a socio-political organisation, for example the Standing Committee of the National Assembly or the Government together with the Presidium of the Viet Nam Fatherland Front."@en ;
+    skos:definition "Nghị quyết do cơ quan nhà nước và cơ quan trung ương của tổ chức chính trị - xã hội cùng ban hành."@vi ;
+    vlo:typeConcept vlo:doctype-joint-resolution ; rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-documents .
+
+vlo:Decree a owl:Class ; rdfs:subClassOf vlo:NormativeLegalDocument ;
+    rdfs:label "Decree"@en , "Nghị định"@vi ;
+    skos:definition "A normative document issued by the Government, usually detailing or implementing laws."@en ;
+    skos:definition "Văn bản quy phạm pháp luật do Chính phủ ban hành, thường quy định chi tiết hoặc hướng dẫn thi hành luật."@vi ;
+    vlo:typeConcept vlo:doctype-decree ; rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-documents .
+
+vlo:Decision a owl:Class ; rdfs:subClassOf vlo:NormativeLegalDocument ;
+    rdfs:label "Decision"@en , "Quyết định"@vi ;
+    skos:definition "A normative decision issued by the Prime Minister, a minister or another competent head of a central body; only decisions numbered in the normative form N/YYYY/CODE are in scope."@en ;
+    skos:definition "Quyết định quy phạm pháp luật của Thủ tướng Chính phủ, Bộ trưởng hoặc người đứng đầu cơ quan trung ương có thẩm quyền; chỉ các quyết định có số dạng N/YYYY/KÝ-HIỆU thuộc phạm vi."@vi ;
+    vlo:typeConcept vlo:doctype-decision ; rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-documents .
+
+vlo:Circular a owl:Class ; rdfs:subClassOf vlo:NormativeLegalDocument ;
+    rdfs:label "Circular"@en , "Thông tư"@vi ;
+    skos:definition "A normative document issued by a minister or the head of a ministerial-level agency, the Chief Justice of the Supreme People's Court, the Prosecutor General or the State Auditor General."@en ;
+    skos:definition "Văn bản quy phạm pháp luật do Bộ trưởng, Thủ trưởng cơ quan ngang bộ, Chánh án Tòa án nhân dân tối cao, Viện trưởng Viện kiểm sát nhân dân tối cao hoặc Tổng Kiểm toán nhà nước ban hành."@vi ;
+    vlo:typeConcept vlo:doctype-circular ; rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-documents .
+
+vlo:JointCircular a owl:Class ; rdfs:subClassOf vlo:NormativeLegalDocument ;
+    rdfs:label "Joint circular"@en , "Thông tư liên tịch"@vi ;
+    skos:definition "A circular issued jointly by two or more ministers, heads of ministerial-level agencies or judicial bodies."@en ;
+    skos:definition "Thông tư do hai hay nhiều Bộ trưởng, Thủ trưởng cơ quan ngang bộ hoặc cơ quan tư pháp cùng ban hành."@vi ;
+    vlo:typeConcept vlo:doctype-joint-circular ; rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-documents .
+
+[] a owl:AllDisjointClasses ;
+    owl:members ( vlo:Constitution vlo:Code vlo:Law vlo:Ordinance vlo:Resolution vlo:JointResolution vlo:Decree vlo:Decision vlo:Circular vlo:JointCircular ) .
+
+# =====================================================================================================
+# Module: provisions
+# =====================================================================================================
+
+vlo:Provision
+    a owl:Class ;
+    rdfs:subClassOf eli:LegalResourceSubdivision ;
+    rdfs:label "Provision"@en , "Đơn vị cấu trúc của văn bản"@vi ;
+    skos:definition "A structural unit of a legal document, such as a part, chapter, section, article, clause, point or appendix."@en ;
+    skos:definition "Một đơn vị cấu trúc của văn bản pháp luật như phần, chương, mục, điều, khoản, điểm hoặc phụ lục."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ;
+    vlo:module vlo:module-provisions .
+
+vlo:Part a owl:Class ; rdfs:subClassOf vlo:Provision ;
+    rdfs:label "Part"@en , "Phần"@vi ;
+    skos:definition "A top-level division of a long legal document, grouping chapters (Phần thứ nhất, Phần thứ hai, ...)."@en ;
+    skos:definition "Đơn vị lớn nhất trong văn bản dài, gồm nhiều chương."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provisions .
+
+vlo:Chapter a owl:Class ; rdfs:subClassOf vlo:Provision ;
+    rdfs:label "Chapter"@en , "Chương"@vi ;
+    skos:definition "A division of a legal document grouping sections or articles under a heading (Chương I, Chương II, ...)."@en ;
+    skos:definition "Đơn vị của văn bản gồm các mục hoặc điều có cùng đề mục."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provisions .
+
+vlo:Section a owl:Class ; rdfs:subClassOf vlo:Provision ;
+    rdfs:label "Section"@en , "Mục"@vi ;
+    skos:definition "A division of a chapter grouping articles (Mục 1, Mục 2, ...)."@en ;
+    skos:definition "Đơn vị của chương, gồm các điều."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provisions .
+
+vlo:Article a owl:Class ; rdfs:subClassOf vlo:Provision ;
+    rdfs:label "Article"@en , "Điều"@vi ;
+    skos:definition "The basic numbered unit of a legal document (Điều N), usually with a heading, divided into clauses."@en ;
+    skos:definition "Đơn vị cơ bản được đánh số của văn bản (Điều N), thường có tên điều và gồm các khoản."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provisions .
+
+vlo:Clause a owl:Class ; rdfs:subClassOf vlo:Provision ;
+    rdfs:label "Clause"@en , "Khoản"@vi ;
+    skos:definition "A numbered subdivision of an article (khoản 1, khoản 2, ...)."@en ;
+    skos:definition "Đơn vị được đánh số trong một điều (khoản 1, khoản 2, ...)."@vi ;
+    rdfs:comment "In the knowledge graph clauses are created only when a citation, applied-provision or answer edge refers to them."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provisions .
+
+vlo:Point a owl:Class ; rdfs:subClassOf vlo:Provision ;
+    rdfs:label "Point"@en , "Điểm"@vi ;
+    skos:definition "A lettered subdivision of a clause (điểm a, điểm b, ...)."@en ;
+    skos:definition "Đơn vị được đánh chữ cái trong một khoản (điểm a, điểm b, ...)."@vi ;
+    rdfs:comment "In the knowledge graph points are created only when a citation, applied-provision or answer edge refers to them."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provisions .
+
+vlo:Appendix a owl:Class ; rdfs:subClassOf vlo:Provision ;
+    rdfs:label "Appendix"@en , "Phụ lục"@vi ;
+    skos:definition "An attachment issued with a legal document, such as a regulation, charter or list promulgated by the document; it may contain its own articles."@en ;
+    skos:definition "Văn bản kèm theo (quy định, quy chế, điều lệ, danh mục) được ban hành kèm theo văn bản; có thể có các điều riêng."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provisions .
+
+[] a owl:AllDisjointClasses ;
+    owl:members ( vlo:Part vlo:Chapter vlo:Section vlo:Article vlo:Clause vlo:Point vlo:Appendix ) .
+
+vlo:LegalDocument owl:disjointWith vlo:Provision .
+
+# =====================================================================================================
+# Module: agents
+# =====================================================================================================
+
+vlo:PublicAuthority
+    a owl:Class ;
+    rdfs:subClassOf org:Organization ;
+    rdfs:label "Public authority"@en , "Cơ quan nhà nước"@vi ;
+    skos:definition "A state organisation or office holder acting for the State, such as the National Assembly, the Government, a ministry, the Prime Minister or a court."@en ;
+    skos:definition "Tổ chức hoặc chức danh nhà nước, như Quốc hội, Chính phủ, bộ, Thủ tướng Chính phủ hoặc Tòa án."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-agents .
+
+vlo:IssuingBody
+    a owl:Class ;
+    rdfs:subClassOf vlo:PublicAuthority ;
+    rdfs:label "Issuing body"@en , "Cơ quan ban hành"@vi ;
+    skos:definition "A public authority that issues legal documents, identified in the knowledge graph by the issuer code used in document numbers (for example BTC for the Ministry of Finance)."@en ;
+    skos:definition "Cơ quan nhà nước ban hành văn bản pháp luật, được xác định bằng ký hiệu cơ quan trong số văn bản (ví dụ BTC là Bộ Tài chính)."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-agents .
+
+vlo:Court
+    a owl:Class ;
+    rdfs:subClassOf vlo:PublicAuthority ;
+    rdfs:label "Court"@en , "Tòa án"@vi ;
+    skos:definition "A people's court or military court that decides cases; identified by its official name, for example Tòa án nhân dân tỉnh Cà Mau."@en ;
+    skos:definition "Tòa án nhân dân hoặc Tòa án quân sự xét xử các vụ việc; được xác định bằng tên chính thức."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-agents .
+
+# =====================================================================================================
+# Module: validity-change
+# =====================================================================================================
+
+vlo:LegalChange
+    a owl:Class ;
+    rdfs:subClassOf prov:Activity ;
+    rdfs:label "Legal change"@en , "Sự kiện thay đổi hiệu lực văn bản"@vi ;
+    skos:definition "A dated event in which an acting legal document replaces, amends, repeals, partially repeals or partially terminates an affected legal document. The event is reified so that its kind, effective date, the evidence sentence and the extraction method can be recorded; the direct shortcut properties (vlo:replaces, vlo:amends, ...) carry the same information without the details."@en ;
+    skos:definition "Sự kiện có ngày hiệu lực, trong đó một văn bản thay thế, sửa đổi bổ sung, bãi bỏ, bãi bỏ một phần hoặc làm hết hiệu lực một phần văn bản khác; được biểu diễn thành nút để ghi loại thay đổi, ngày hiệu lực, câu chứng cứ và phương pháp trích xuất."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:ChangeKind
+    a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Change kind"@en , "Loại thay đổi"@vi ;
+    skos:definition "A kind of legal change: replaced, amended, repealed, partially repealed or partially terminated."@en ;
+    skos:definition "Loại thay đổi: thay thế, sửa đổi bổ sung, bãi bỏ, bãi bỏ một phần, hết hiệu lực một phần."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:ValidityStatus
+    a owl:Class ;
+    rdfs:subClassOf skos:Concept , eli:InForce ;
+    rdfs:label "Validity status"@en , "Tình trạng hiệu lực"@vi ;
+    skos:definition "The validity of a legal document as of the knowledge-graph date, combining the curated source status with text-extracted change relations (validity rules v7). It refines the ELI in-force concept with eight values."@en ;
+    skos:definition "Tình trạng hiệu lực của văn bản tại ngày tính của đồ thị, kết hợp trạng thái từ nguồn với các quan hệ thay đổi trích xuất từ văn bản (bộ luật v7)."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+# =====================================================================================================
+# Module: judiciary
+# =====================================================================================================
+
+vlo:JudicialDocument
+    a owl:Class ;
+    rdfs:subClassOf schema:CreativeWork ;
+    rdfs:label "Judicial document"@en , "Văn bản của Tòa án"@vi ;
+    skos:definition "A document produced in the judicial system: a court decision in a case or a published case-law precedent."@en ;
+    skos:definition "Văn bản trong hoạt động xét xử: bản án, quyết định của Tòa án hoặc án lệ đã công bố."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+
+vlo:CourtDecision
+    a owl:Class ;
+    rdfs:subClassOf vlo:JudicialDocument ;
+    rdfs:label "Court decision"@en , "Bản án, quyết định của Tòa án"@vi ;
+    skos:definition "A judgment or ruling issued by a court in a specific case, identified by its decision number (for example 38/2021/DS-PT), court and date."@en ;
+    skos:definition "Bản án hoặc quyết định do Tòa án ban hành trong một vụ việc cụ thể, xác định bằng số (ví dụ 38/2021/DS-PT), Tòa án và ngày."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+
+vlo:Judgment
+    a owl:Class ;
+    rdfs:subClassOf vlo:CourtDecision ;
+    rdfs:label "Judgment"@en , "Bản án"@vi ;
+    skos:definition "A court decision that settles a case on its merits after a hearing (first instance, appeal, cassation or retrial)."@en ;
+    skos:definition "Quyết định của Tòa án giải quyết nội dung vụ án sau phiên tòa (sơ thẩm, phúc thẩm, giám đốc thẩm hoặc tái thẩm)."@vi ;
+    rdfs:comment "In the knowledge graph a decision is a Judgment when its number code does not start with QĐ."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+
+vlo:CourtRuling
+    a owl:Class ;
+    rdfs:subClassOf vlo:CourtDecision ;
+    rdfs:label "Court ruling"@en , "Quyết định của Tòa án"@vi ;
+    skos:definition "A decision of a court other than a judgment, for example recognising the parties' agreement or suspending a case."@en ;
+    skos:definition "Quyết định của Tòa án không phải bản án, ví dụ quyết định công nhận sự thỏa thuận của các đương sự hoặc đình chỉ giải quyết vụ án."@vi ;
+    rdfs:comment "In the knowledge graph a decision is a CourtRuling when its number code starts with QĐ (quyết định)."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+
+vlo:Precedent
+    a owl:Class ;
+    rdfs:subClassOf vlo:JudicialDocument ;
+    rdfs:label "Precedent"@en , "Án lệ"@vi ;
+    skos:definition "Reasoning or a ruling in a court decision that the Council of Judges of the Supreme People's Court has selected and the Chief Justice has published as a precedent for courts to follow; identified by its number, for example 04/2016/AL."@en ;
+    skos:definition "Lập luận, phán quyết trong bản án, quyết định của Tòa án được Hội đồng Thẩm phán Tòa án nhân dân tối cao lựa chọn và được Chánh án công bố là án lệ để các Tòa án nghiên cứu, áp dụng; xác định bằng số, ví dụ 04/2016/AL."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+
+vlo:Judgment owl:disjointWith vlo:CourtRuling .
+vlo:CourtDecision owl:disjointWith vlo:Precedent .
+vlo:JudicialDocument owl:disjointWith vlo:LegalDocument .
+
+vlo:CourtLevel
+    a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Court level"@en , "Cấp Tòa án"@vi ;
+    skos:definition "The level of a court in the court system: supreme, high, provincial, district or military."@en ;
+    skos:definition "Cấp của Tòa án trong hệ thống: tối cao, cấp cao, cấp tỉnh, cấp huyện hoặc quân sự."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+
+vlo:InstanceLevel
+    a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Instance level"@en , "Cấp xét xử"@vi ;
+    skos:definition "The procedural stage at which a decision is made: first instance, appeal, cassation review or retrial review."@en ;
+    skos:definition "Giai đoạn tố tụng ra quyết định: sơ thẩm, phúc thẩm, giám đốc thẩm hoặc tái thẩm."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+
+vlo:CaseCategory
+    a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Case category"@en , "Loại vụ việc"@vi ;
+    skos:definition "The legal domain of a case: civil, criminal, administrative, commercial, labour, marriage and family, bankruptcy or economic."@en ;
+    skos:definition "Lĩnh vực của vụ việc: dân sự, hình sự, hành chính, kinh doanh thương mại, lao động, hôn nhân và gia đình, phá sản hoặc kinh tế."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+
+# =====================================================================================================
+# Module: qa
+# =====================================================================================================
+
+vlo:LegalQuestion
+    a owl:Class ;
+    rdfs:subClassOf schema:Question ;
+    rdfs:label "Legal question"@en , "Câu hỏi pháp luật"@vi ;
+    skos:definition "A published legal question from a legal Q&A service. The knowledge graph keeps its identifier, link, date and legal area, not its text."@en ;
+    skos:definition "Câu hỏi pháp luật được đăng trên dịch vụ hỏi đáp pháp luật. Đồ thị chỉ lưu mã, liên kết, ngày và lĩnh vực, không lưu nội dung."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-qa .
+
+vlo:LegalAnswer
+    a owl:Class ;
+    rdfs:subClassOf schema:Answer ;
+    rdfs:label "Legal answer"@en , "Câu trả lời pháp luật"@vi ;
+    skos:definition "The published answer to a legal question; in the knowledge graph it carries the citations of legal documents and provisions found in the answer, not its text."@en ;
+    skos:definition "Câu trả lời đã đăng cho một câu hỏi pháp luật; trong đồ thị chỉ mang các trích dẫn văn bản và điều khoản, không lưu nội dung."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-qa .
+
+vlo:LegalQuestion owl:disjointWith vlo:LegalAnswer .
+
+# =====================================================================================================
+# Module: terminology
+# =====================================================================================================
+
+vlo:LegalTerm
+    a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Legal term"@en , "Thuật ngữ pháp lý"@vi ;
+    skos:definition "A term of Vietnamese legal language, organised as a SKOS concept with a Vietnamese preferred label, an English label (machine translation unless marked otherwise), a legal area, a status and related terms."@en ;
+    skos:definition "Thuật ngữ trong ngôn ngữ pháp lý Việt Nam, được tổ chức thành khái niệm SKOS với nhãn tiếng Việt, nhãn tiếng Anh (bản dịch máy trừ khi ghi khác), lĩnh vực, tình trạng và các thuật ngữ liên quan."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-terminology .
+
+# =====================================================================================================
+# Module: news
+# =====================================================================================================
+
+vlo:LegalNewsArticle
+    a owl:Class ;
+    rdfs:subClassOf schema:NewsArticle ;
+    rdfs:label "Legal news article"@en , "Bài viết tin tức pháp luật"@vi ;
+    skos:definition "A news, policy or advice article about law published by a legal information portal; the knowledge graph keeps its identifier, link, date, category and the legal documents it mentions."@en ;
+    skos:definition "Bài viết tin tức, chính sách hoặc tư vấn về pháp luật trên cổng thông tin pháp luật; đồ thị lưu mã, liên kết, ngày, chuyên mục và các văn bản được nhắc đến."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-news .
+
+vlo:NewsCategory
+    a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "News category"@en , "Chuyên mục tin tức"@vi ;
+    skos:definition "A section of a legal news portal, such as new policies or real estate."@en ;
+    skos:definition "Chuyên mục của cổng tin tức pháp luật, như chính sách mới hay bất động sản."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-news .
+
+# =====================================================================================================
+# Module: classification
+# =====================================================================================================
+
+vlo:LegalArea
+    a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Legal area"@en , "Lĩnh vực pháp luật"@vi ;
+    skos:definition "A subject area of law used to classify documents, questions and terms, such as labour and wages or real estate."@en ;
+    skos:definition "Lĩnh vực pháp luật dùng để phân loại văn bản, câu hỏi và thuật ngữ, ví dụ lao động - tiền lương hay bất động sản."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-classification .
+
+vlo:DocumentType
+    a owl:Class ;
+    rdfs:subClassOf skos:Concept , eli:ResourceType ;
+    rdfs:label "Document type"@en , "Loại văn bản"@vi ;
+    skos:definition "A type of legal document, such as law, decree or circular; used as the value of eli:type_document."@en ;
+    skos:definition "Loại văn bản pháp luật, ví dụ luật, nghị định, thông tư."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-classification .
+
+vlo:LegalForceRank
+    a owl:Class ;
+    rdfs:subClassOf skos:Concept ;
+    rdfs:label "Legal-force rank"@en , "Thứ bậc hiệu lực pháp lý"@vi ;
+    skos:definition "A level in the hierarchy of legal force of Vietnamese normative documents, from the Constitution (level 0, highest) to circulars and ministerial decisions (level 5, lowest). An act cannot replace, repeal or amend an act of a higher level."@en ;
+    skos:definition "Một bậc trong thứ bậc hiệu lực pháp lý của văn bản quy phạm pháp luật, từ Hiến pháp (bậc 0, cao nhất) đến thông tư và quyết định của bộ trưởng (bậc 5, thấp nhất)."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-classification .
+
+# =====================================================================================================
+# Module: provenance
+# =====================================================================================================
+
+vlo:SourceDataset
+    a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Source dataset"@en , "Bộ dữ liệu nguồn"@vi ;
+    skos:definition "A published dataset, pinned to a revision, from which knowledge-graph records were derived; carries its licence and attribution text."@en ;
+    skos:definition "Bộ dữ liệu đã công bố, cố định theo phiên bản, là nguồn của các bản ghi trong đồ thị; kèm giấy phép và lời ghi nguồn."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provenance .
+
+vlo:ExtractionMethod
+    a owl:Class ;
+    rdfs:subClassOf prov:Plan , skos:Concept ;
+    rdfs:label "Extraction method"@en , "Phương pháp trích xuất"@vi ;
+    skos:definition "A documented procedure that produced records or links of the knowledge graph, for example a rule set or a resolver strategy."@en ;
+    skos:definition "Quy trình đã mô tả dùng để tạo bản ghi hoặc liên kết của đồ thị, ví dụ bộ luật trích xuất hoặc chiến lược phân giải."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provenance .
+
+vlo:EdgeSet
+    a owl:Class ;
+    rdfs:subClassOf prov:Entity ;
+    rdfs:label "Edge set"@en , "Tập liên kết"@vi ;
+    skos:definition "The set of all knowledge-graph links of one property produced from one source, described with its size, the extraction methods used and the build that generated it. Per-link methods are kept in the parquet edge tables."@en ;
+    skos:definition "Tập tất cả liên kết của một thuộc tính được tạo từ một nguồn, mô tả bằng số lượng, phương pháp trích xuất và lần xây dựng tạo ra nó."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provenance .
+
+vlo:BuildActivity
+    a owl:Class ;
+    rdfs:subClassOf prov:Activity ;
+    rdfs:label "Build activity"@en , "Lần xây dựng đồ thị"@vi ;
+    skos:definition "One run of the VLOnto build pipeline that generated the knowledge-graph tables and RDF dumps."@en ;
+    skos:definition "Một lần chạy quy trình xây dựng VLOnto tạo ra các bảng và tệp RDF của đồ thị."@vi ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provenance .
+
+# =====================================================================================================
+# Properties: documents and provisions
+# =====================================================================================================
+
+vlo:documentType a owl:ObjectProperty , owl:FunctionalProperty ;
+    rdfs:subPropertyOf eli:type_document ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range vlo:DocumentType ;
+    rdfs:label "document type"@en , "loại văn bản"@vi ;
+    skos:definition "The type of a legal document as a concept of the DocumentType scheme."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-documents .
+
+vlo:documentNumber a owl:DatatypeProperty ;
+    rdfs:subPropertyOf eli:id_local ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range xsd:string ;
+    rdfs:label "document number"@en , "số, ký hiệu văn bản"@vi ;
+    skos:definition "The official number and symbol of a legal document as printed in its header, for example 45/2019/QH14."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-documents .
+
+vlo:documentNumberKey a owl:DatatypeProperty ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range xsd:string ;
+    rdfs:label "document number key"@en , "khóa số văn bản"@vi ;
+    skos:definition "A normalised lookup key of the document number (ASCII, upper case, unified separators, Đ written as D), used to match citations to documents."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-documents .
+
+vlo:title a owl:DatatypeProperty ;
+    rdfs:subPropertyOf dcterms:title ;
+    rdfs:range rdfs:Literal ;
+    rdfs:label "title"@en , "tên văn bản"@vi ;
+    skos:definition "The Vietnamese title of a legal document, including its type and, for sub-statutory acts, its number."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-documents .
+
+vlo:issueDate a owl:DatatypeProperty ;
+    rdfs:subPropertyOf eli:date_document ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range xsd:date ;
+    rdfs:label "issue date"@en , "ngày ban hành"@vi ;
+    skos:definition "The date on which a legal document was adopted or signed."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-documents .
+
+vlo:issuedBy a owl:ObjectProperty ;
+    rdfs:subPropertyOf eli:passed_by ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range vlo:IssuingBody ;
+    rdfs:label "issued by"@en , "cơ quan ban hành"@vi ;
+    skos:definition "A body that issued a legal document; joint documents have several issuing bodies."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-agents .
+
+vlo:issuerCode a owl:DatatypeProperty ;
+    rdfs:domain vlo:IssuingBody ; rdfs:range xsd:string ;
+    rdfs:label "issuer code"@en , "ký hiệu cơ quan ban hành"@vi ;
+    skos:definition "The abbreviation that identifies an issuing body in document numbers, written in ASCII upper case (for example BTC, BLDTBXH, TTG)."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-agents .
+
+vlo:legalForceRank a owl:ObjectProperty , owl:FunctionalProperty ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range vlo:LegalForceRank ;
+    rdfs:label "legal-force rank"@en , "thứ bậc hiệu lực"@vi ;
+    skos:definition "The level of a legal document in the hierarchy of legal force, derived from its type and issuer (rule 5 of the validity rules v7)."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-classification .
+
+vlo:rankLevel a owl:DatatypeProperty ;
+    rdfs:domain vlo:LegalForceRank ; rdfs:range xsd:integer ;
+    rdfs:label "rank level"@en , "bậc"@vi ;
+    skos:definition "The numeric level of a legal-force rank: 0 is the highest (Constitution), 5 the lowest."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-classification .
+
+vlo:legalArea a owl:ObjectProperty ;
+    rdfs:subPropertyOf dcterms:subject ;
+    rdfs:range vlo:LegalArea ;
+    rdfs:label "legal area"@en , "lĩnh vực"@vi ;
+    skos:definition "The legal area under which a document, question or term is classified by its source."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-classification .
+
+vlo:isPartOf a owl:ObjectProperty ;
+    rdfs:subPropertyOf eli:is_part_of ;
+    owl:inverseOf vlo:hasPart ;
+    rdfs:domain vlo:Provision ; rdfs:range eli:LegalResource ;
+    rdfs:label "is part of"@en , "thuộc"@vi ;
+    skos:definition "Links a provision to the unit that immediately contains it: a section, chapter, part, appendix, article, clause or the document itself."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provisions .
+
+vlo:hasPart a owl:ObjectProperty ;
+    rdfs:subPropertyOf eli:has_part ;
+    rdfs:domain eli:LegalResource ; rdfs:range vlo:Provision ;
+    rdfs:label "has part"@en , "gồm"@vi ;
+    skos:definition "Inverse of vlo:isPartOf: links a document or provision to a provision it immediately contains. Not materialised in the RDF dumps."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provisions .
+
+vlo:inDocument a owl:ObjectProperty , owl:FunctionalProperty ;
+    rdfs:subPropertyOf eli:is_part_of ;
+    rdfs:domain vlo:Provision ; rdfs:range vlo:LegalDocument ;
+    rdfs:label "in document"@en , "thuộc văn bản"@vi ;
+    skos:definition "Links a provision at any depth directly to the legal document that contains it."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provisions .
+
+vlo:provisionNumber a owl:DatatypeProperty ;
+    rdfs:subPropertyOf dcterms:identifier ;
+    rdfs:domain vlo:Provision ; rdfs:range xsd:string ;
+    rdfs:label "provision number"@en , "số hiệu điều khoản"@vi ;
+    skos:definition "The number or letter of a provision within its parent: 35 or 5a for an article, 2 for a clause, a or đ for a point, III for a chapter, 1 for an appendix."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provisions .
+
+vlo:heading a owl:DatatypeProperty ;
+    rdfs:subPropertyOf dcterms:title ;
+    rdfs:domain vlo:Provision ; rdfs:range rdfs:Literal ;
+    rdfs:label "heading"@en , "tên điều khoản"@vi ;
+    skos:definition "The heading of a provision as printed, cut at 200 characters (for example the article title or the chapter heading)."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provisions .
+
+vlo:position a owl:DatatypeProperty ;
+    rdfs:domain vlo:Provision ; rdfs:range xsd:integer ;
+    rdfs:label "position"@en , "thứ tự"@vi ;
+    skos:definition "The 1-based order of a provision among the provisions of the same kind in its document, following the text."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provisions .
+
+# =====================================================================================================
+# Properties: validity and change
+# =====================================================================================================
+
+vlo:validityStatus a owl:ObjectProperty , owl:FunctionalProperty ;
+    rdfs:subPropertyOf eli:in_force ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range vlo:ValidityStatus ;
+    rdfs:label "validity status"@en , "tình trạng hiệu lực"@vi ;
+    skos:definition "The validity of a legal document as of the build date of the knowledge graph."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:isInForce a owl:DatatypeProperty ;
+    rdfs:range xsd:boolean ;
+    rdfs:label "is in force"@en , "còn hiệu lực"@vi ;
+    skos:definition "True if the document or term is known to be in force, false if known not to be in force; absent when unknown."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:effectiveDate a owl:DatatypeProperty ;
+    rdfs:subPropertyOf eli:first_date_entry_in_force ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range xsd:date ;
+    rdfs:label "effective date"@en , "ngày có hiệu lực"@vi ;
+    skos:definition "The date on which a legal document enters into force (source metadata first, then the commencement article)."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:expiryDate a owl:DatatypeProperty ;
+    rdfs:subPropertyOf eli:date_no_longer_in_force ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range xsd:date ;
+    rdfs:label "expiry date"@en , "ngày hết hiệu lực"@vi ;
+    skos:definition "The date from which a legal document is no longer in force, from the source status or from the effective date of the replacing or repealing act."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:sourceStatus a owl:DatatypeProperty ;
+    rdfs:range rdfs:Literal ;
+    rdfs:label "source status"@en , "tình trạng theo nguồn"@vi ;
+    skos:definition "The validity status string as published by the source, in Vietnamese (for example 'Hết hiệu lực: 01/07/2025')."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:statusTextConflict a owl:DatatypeProperty ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range xsd:boolean ;
+    rdfs:label "status-text conflict"@en , "mâu thuẫn trạng thái và văn bản"@vi ;
+    skos:definition "True when the source status says in force but an extracted relation says the document was replaced or repealed; such documents must be verified."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:validityEvidenceSource a owl:DatatypeProperty ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range xsd:string ;
+    rdfs:label "validity evidence source"@en , "nguồn căn cứ hiệu lực"@vi ;
+    skos:definition "Which evidence determined the validity status: status, text, status+text or none."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:actingDocument a owl:ObjectProperty , owl:FunctionalProperty ;
+    rdfs:domain vlo:LegalChange ; rdfs:range vlo:LegalDocument ;
+    rdfs:label "acting document"@en , "văn bản tác động"@vi ;
+    skos:definition "The legal document whose text makes the change (the newer act)."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:affectedDocument a owl:ObjectProperty , owl:FunctionalProperty ;
+    rdfs:domain vlo:LegalChange ; rdfs:range vlo:LegalDocument ;
+    rdfs:label "affected document"@en , "văn bản bị tác động"@vi ;
+    skos:definition "The legal document that is replaced, amended, repealed or terminated by the change."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:changeKind a owl:ObjectProperty , owl:FunctionalProperty ;
+    rdfs:domain vlo:LegalChange ; rdfs:range vlo:ChangeKind ;
+    rdfs:label "change kind"@en , "loại thay đổi"@vi ;
+    skos:definition "The kind of a legal change."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:changeEffectiveDate a owl:DatatypeProperty ;
+    rdfs:domain vlo:LegalChange ; rdfs:range xsd:date ;
+    rdfs:label "change effective date"@en , "ngày thay đổi có hiệu lực"@vi ;
+    skos:definition "The date from which a legal change takes effect, normally the effective date of the acting document."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:mentionedDate a owl:DatatypeProperty ;
+    rdfs:domain vlo:LegalChange ; rdfs:range xsd:date ;
+    rdfs:label "mentioned date"@en , "ngày được nêu"@vi ;
+    skos:definition "The issue date of the affected document as stated in the evidence sentence, when given; used to disambiguate numbers without a year."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:evidenceText a owl:DatatypeProperty ;
+    rdfs:domain vlo:LegalChange ; rdfs:range rdfs:Literal ;
+    rdfs:label "evidence text"@en , "câu chứng cứ"@vi ;
+    skos:definition "The operative sentence of the acting document from which the change was extracted, quoted in Vietnamese and cut at 300 characters."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:ruleVersion a owl:DatatypeProperty ;
+    rdfs:domain vlo:LegalChange ; rdfs:range xsd:string ;
+    rdfs:label "rule version"@en , "phiên bản bộ luật trích xuất"@vi ;
+    skos:definition "The version of the extraction rules that produced a legal change (v7 in VLOnto 0.1.0)."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:changes a owl:ObjectProperty ;
+    rdfs:subPropertyOf eli:changes ;
+    owl:inverseOf vlo:changedBy ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range vlo:LegalDocument ;
+    rdfs:label "changes"@en , "thay đổi"@vi ;
+    skos:definition "Shortcut for any legal change: the subject document replaces, amends, repeals, partially repeals or partially terminates the object document."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:changedBy a owl:ObjectProperty ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range vlo:LegalDocument ;
+    rdfs:label "changed by"@en , "bị thay đổi bởi"@vi ;
+    skos:definition "Inverse of vlo:changes. Not materialised in the RDF dumps."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:replaces a owl:ObjectProperty ;
+    rdfs:subPropertyOf vlo:changes , eli:repeals ;
+    owl:inverseOf vlo:replacedBy ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range vlo:LegalDocument ;
+    rdfs:label "replaces"@en , "thay thế"@vi ;
+    skos:definition "The subject document replaces the object document as a whole, which then ceases to be in force (thay thế)."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:replacedBy a owl:ObjectProperty ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range vlo:LegalDocument ;
+    rdfs:label "replaced by"@en , "được thay thế bởi"@vi ;
+    skos:definition "Inverse of vlo:replaces. Not materialised in the RDF dumps."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:amends a owl:ObjectProperty ;
+    rdfs:subPropertyOf vlo:changes , eli:amends ;
+    owl:inverseOf vlo:amendedBy ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range vlo:LegalDocument ;
+    rdfs:label "amends"@en , "sửa đổi, bổ sung"@vi ;
+    skos:definition "The subject document amends or supplements some provisions of the object document (sửa đổi, bổ sung)."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:amendedBy a owl:ObjectProperty ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range vlo:LegalDocument ;
+    rdfs:label "amended by"@en , "được sửa đổi, bổ sung bởi"@vi ;
+    skos:definition "Inverse of vlo:amends. Not materialised in the RDF dumps."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:repeals a owl:ObjectProperty ;
+    rdfs:subPropertyOf vlo:changes , eli:repeals ;
+    owl:inverseOf vlo:repealedBy ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range vlo:LegalDocument ;
+    rdfs:label "repeals"@en , "bãi bỏ"@vi ;
+    skos:definition "The subject document repeals the object document as a whole without replacing it (bãi bỏ)."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:repealedBy a owl:ObjectProperty ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range vlo:LegalDocument ;
+    rdfs:label "repealed by"@en , "bị bãi bỏ bởi"@vi ;
+    skos:definition "Inverse of vlo:repeals. Not materialised in the RDF dumps."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:partiallyRepeals a owl:ObjectProperty ;
+    rdfs:subPropertyOf vlo:changes ;
+    owl:inverseOf vlo:partiallyRepealedBy ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range vlo:LegalDocument ;
+    rdfs:label "partially repeals"@en , "bãi bỏ một phần"@vi ;
+    skos:definition "The subject document repeals some articles, clauses, points or contents of the object document, which otherwise stays in force."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:partiallyRepealedBy a owl:ObjectProperty ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range vlo:LegalDocument ;
+    rdfs:label "partially repealed by"@en , "bị bãi bỏ một phần bởi"@vi ;
+    skos:definition "Inverse of vlo:partiallyRepeals. Not materialised in the RDF dumps."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:partiallyTerminates a owl:ObjectProperty ;
+    rdfs:subPropertyOf vlo:changes ;
+    owl:inverseOf vlo:partiallyTerminatedBy ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range vlo:LegalDocument ;
+    rdfs:label "partially terminates"@en , "làm hết hiệu lực một phần"@vi ;
+    skos:definition "The subject document declares that some provisions of the object document cease to be in force (hết hiệu lực một phần)."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:partiallyTerminatedBy a owl:ObjectProperty ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range vlo:LegalDocument ;
+    rdfs:label "partially terminated by"@en , "bị làm hết hiệu lực một phần bởi"@vi ;
+    skos:definition "Inverse of vlo:partiallyTerminates. Not materialised in the RDF dumps."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+# =====================================================================================================
+# Properties: citation and legal basis
+# =====================================================================================================
+
+vlo:refersTo a owl:ObjectProperty ;
+    rdfs:subPropertyOf dcterms:references ;
+    rdfs:label "refers to"@en , "dẫn chiếu"@vi ;
+    skos:definition "The most general VLOnto reference link: a work (legal document, provision, court decision, answer or news article) refers to a legal resource or judicial document. Specialised by the citation, basis, application and mention properties."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-citation-basis .
+
+vlo:cites a owl:ObjectProperty ;
+    rdfs:subPropertyOf vlo:refersTo , eli:cites ;
+    rdfs:domain eli:LegalResource ; rdfs:range eli:LegalResource ;
+    rdfs:label "cites"@en , "trích dẫn"@vi ;
+    skos:definition "A legal document, or one of its articles, cites another legal document or a provision of it. Self-references and anaphoric references are not included."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-citation-basis .
+
+vlo:citesParentLaw a owl:ObjectProperty ;
+    rdfs:subPropertyOf vlo:cites ;
+    rdfs:domain eli:LegalResource ; rdfs:range eli:LegalResource ;
+    rdfs:label "cites parent law"@en , "trích dẫn luật gốc"@vi ;
+    skos:definition "A citation that the source dataset marks as a reference to the parent law of the citing document, that is, the law the citing document details or implements."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-citation-basis .
+
+vlo:legalBasis a owl:ObjectProperty ;
+    rdfs:subPropertyOf vlo:refersTo , eli:based_on ;
+    owl:inverseOf vlo:isLegalBasisOf ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range vlo:LegalDocument ;
+    rdfs:label "legal basis"@en , "căn cứ pháp lý"@vi ;
+    skos:definition "The object document is a legal basis on which the subject document was issued, as listed in the 'Căn cứ ...' recitals of its preamble or in the source's parent-acts field. The object never has a lower legal-force rank than the subject."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-citation-basis .
+
+vlo:isLegalBasisOf a owl:ObjectProperty ;
+    rdfs:domain vlo:LegalDocument ; rdfs:range vlo:LegalDocument ;
+    rdfs:label "is legal basis of"@en , "là căn cứ của"@vi ;
+    skos:definition "Inverse of vlo:legalBasis. Not materialised in the RDF dumps."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-citation-basis .
+
+# =====================================================================================================
+# Properties: judiciary
+# =====================================================================================================
+
+vlo:decidedBy a owl:ObjectProperty ;
+    rdfs:subPropertyOf dcterms:creator ;
+    rdfs:domain vlo:CourtDecision ; rdfs:range vlo:Court ;
+    rdfs:label "decided by"@en , "Tòa án ban hành"@vi ;
+    skos:definition "The court that issued a court decision."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+
+vlo:courtLevel a owl:ObjectProperty ;
+    rdfs:range vlo:CourtLevel ;
+    rdfs:label "court level"@en , "cấp Tòa án"@vi ;
+    skos:definition "The level of the court that issued a decision, or of a court."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+
+vlo:instanceLevel a owl:ObjectProperty ;
+    rdfs:domain vlo:CourtDecision ; rdfs:range vlo:InstanceLevel ;
+    rdfs:label "instance level"@en , "cấp xét xử"@vi ;
+    skos:definition "The procedural stage at which a court decision was made."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+
+vlo:caseCategory a owl:ObjectProperty ;
+    rdfs:domain vlo:JudicialDocument ; rdfs:range vlo:CaseCategory ;
+    rdfs:label "case category"@en , "loại vụ việc"@vi ;
+    skos:definition "The legal domain of the case decided or of the precedent."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+
+vlo:decisionNumber a owl:DatatypeProperty ;
+    rdfs:subPropertyOf dcterms:identifier ;
+    rdfs:domain vlo:CourtDecision ; rdfs:range xsd:string ;
+    rdfs:label "decision number"@en , "số bản án, quyết định"@vi ;
+    skos:definition "The number of a court decision as issued, for example 38/2021/DS-PT. Numbers are unique only within one court."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+
+vlo:decisionCode a owl:DatatypeProperty ;
+    rdfs:domain vlo:CourtDecision ; rdfs:range xsd:string ;
+    rdfs:label "decision code"@en , "ký hiệu bản án, quyết định"@vi ;
+    skos:definition "The symbol part of a decision number that encodes case domain and stage, for example DS-PT (civil, appeal) or QĐST-HNGĐ (first-instance ruling, marriage and family)."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+
+vlo:decisionDate a owl:DatatypeProperty ;
+    rdfs:subPropertyOf dcterms:date ;
+    rdfs:domain vlo:CourtDecision ; rdfs:range xsd:date ;
+    rdfs:label "decision date"@en , "ngày tuyên án, ra quyết định"@vi ;
+    skos:definition "The date on which a court decision was issued."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+
+vlo:precedentNumber a owl:DatatypeProperty ;
+    rdfs:subPropertyOf dcterms:identifier ;
+    rdfs:domain vlo:Precedent ; rdfs:range xsd:string ;
+    rdfs:label "precedent number"@en , "số án lệ"@vi ;
+    skos:definition "The national number of a precedent, for example 04/2016/AL."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+
+vlo:selectedFrom a owl:ObjectProperty ;
+    rdfs:subPropertyOf prov:wasDerivedFrom ;
+    rdfs:domain vlo:Precedent ; rdfs:range vlo:CourtDecision ;
+    rdfs:label "selected from"@en , "được lựa chọn từ"@vi ;
+    skos:definition "The court decision whose reasoning or ruling was selected as the precedent."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+
+vlo:appliesProvision a owl:ObjectProperty ;
+    rdfs:subPropertyOf vlo:refersTo ;
+    rdfs:domain vlo:JudicialDocument ; rdfs:range vlo:Provision ;
+    rdfs:label "applies provision"@en , "áp dụng điều khoản"@vi ;
+    skos:definition "A court decision cites an article, clause or point of a legal document as applied or relied on."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+
+vlo:appliesDocument a owl:ObjectProperty ;
+    rdfs:subPropertyOf vlo:refersTo ;
+    rdfs:domain vlo:JudicialDocument ; rdfs:range vlo:LegalDocument ;
+    rdfs:label "applies document"@en , "áp dụng văn bản"@vi ;
+    skos:definition "A court decision cites a legal document as a whole, or a provision of it that is not available as an article node."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+
+vlo:citesCase a owl:ObjectProperty ;
+    rdfs:subPropertyOf vlo:refersTo ;
+    rdfs:domain vlo:JudicialDocument ; rdfs:range vlo:JudicialDocument ;
+    rdfs:label "cites case"@en , "viện dẫn bản án"@vi ;
+    skos:definition "A court decision refers to another court decision (for example the first-instance judgment under appeal) or to a precedent."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+
+vlo:appliesPrecedent a owl:ObjectProperty ;
+    rdfs:subPropertyOf vlo:citesCase ;
+    rdfs:domain vlo:JudicialDocument ; rdfs:range vlo:Precedent ;
+    rdfs:label "applies precedent"@en , "áp dụng án lệ"@vi ;
+    skos:definition "A court decision cites a precedent by its number."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-judiciary .
+
+# =====================================================================================================
+# Properties: Q&A, terminology, news
+# =====================================================================================================
+
+vlo:hasAnswer a owl:ObjectProperty , owl:FunctionalProperty ;
+    rdfs:subPropertyOf schema:acceptedAnswer ;
+    rdfs:domain vlo:LegalQuestion ; rdfs:range vlo:LegalAnswer ;
+    rdfs:label "has answer"@en , "có câu trả lời"@vi ;
+    skos:definition "Links a legal question to its published answer."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-qa .
+
+vlo:answerCitesProvision a owl:ObjectProperty ;
+    rdfs:subPropertyOf vlo:refersTo , schema:citation ;
+    rdfs:domain vlo:LegalAnswer ; rdfs:range vlo:Provision ;
+    rdfs:label "answer cites provision"@en , "câu trả lời trích dẫn điều khoản"@vi ;
+    skos:definition "A legal answer cites an article, clause or point of a legal document."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-qa .
+
+vlo:answerCitesDocument a owl:ObjectProperty ;
+    rdfs:subPropertyOf vlo:refersTo , schema:citation ;
+    rdfs:domain vlo:LegalAnswer ; rdfs:range vlo:LegalDocument ;
+    rdfs:label "answer cites document"@en , "câu trả lời trích dẫn văn bản"@vi ;
+    skos:definition "A legal answer cites a legal document by its number."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-qa .
+
+vlo:publishedDate a owl:DatatypeProperty ;
+    rdfs:subPropertyOf dcterms:issued ;
+    rdfs:range xsd:date ;
+    rdfs:label "published date"@en , "ngày đăng"@vi ;
+    skos:definition "The date on which a question, answer or news article was published by its source."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-qa .
+
+vlo:relatedTerm a owl:ObjectProperty , owl:SymmetricProperty ;
+    rdfs:subPropertyOf skos:related ;
+    rdfs:domain vlo:LegalTerm ; rdfs:range vlo:LegalTerm ;
+    rdfs:label "related term"@en , "thuật ngữ liên quan"@vi ;
+    skos:definition "A legal term listed by the source as related to another term."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-terminology .
+
+vlo:englishLabelSource a owl:DatatypeProperty ;
+    rdfs:domain vlo:LegalTerm ; rdfs:range xsd:string ;
+    rdfs:label "English label source"@en , "nguồn nhãn tiếng Anh"@vi ;
+    skos:definition "Provenance of the English label of a term: 'mt' for machine translation, 'site' for an English name given by the source site."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-terminology .
+
+vlo:translationModel a owl:DatatypeProperty ;
+    rdfs:domain vlo:LegalTerm ; rdfs:range xsd:string ;
+    rdfs:label "translation model"@en , "mô hình dịch"@vi ;
+    skos:definition "Identifier of the model that machine-translated the English label, as recorded by the source dataset."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-terminology .
+
+vlo:mentionsDocument a owl:ObjectProperty ;
+    rdfs:subPropertyOf vlo:refersTo , schema:mentions ;
+    rdfs:domain vlo:LegalNewsArticle ; rdfs:range vlo:LegalDocument ;
+    rdfs:label "mentions document"@en , "nhắc đến văn bản"@vi ;
+    skos:definition "A news article mentions a legal document by its number."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-news .
+
+vlo:newsCategory a owl:ObjectProperty ;
+    rdfs:domain vlo:LegalNewsArticle ; rdfs:range vlo:NewsCategory ;
+    rdfs:label "news category"@en , "chuyên mục"@vi ;
+    skos:definition "The section of the portal in which a news article was published."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-news .
+
+# =====================================================================================================
+# Properties: provenance
+# =====================================================================================================
+
+vlo:sourceDataset a owl:ObjectProperty ;
+    rdfs:subPropertyOf dcterms:source ;
+    rdfs:range vlo:SourceDataset ;
+    rdfs:label "source dataset"@en , "bộ dữ liệu nguồn"@vi ;
+    skos:definition "The source dataset from which a knowledge-graph record was derived."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provenance .
+
+vlo:sourceId a owl:DatatypeProperty ;
+    rdfs:subPropertyOf dcterms:identifier ;
+    rdfs:range xsd:string ;
+    rdfs:label "source identifier"@en , "mã trong nguồn"@vi ;
+    skos:definition "The identifier of the record in its source dataset (for example the vbpl document id 333670 or the cbba doc_name)."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provenance .
+
+vlo:sourceUrl a owl:DatatypeProperty ;
+    rdfs:subPropertyOf schema:url ;
+    rdfs:range xsd:anyURI ;
+    rdfs:label "source URL"@en , "đường dẫn nguồn"@vi ;
+    skos:definition "The web address of the record at its original publisher, where its full text can be read."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provenance .
+
+vlo:datasetRevision a owl:DatatypeProperty ;
+    rdfs:domain vlo:SourceDataset ; rdfs:range xsd:string ;
+    rdfs:label "dataset revision"@en , "phiên bản bộ dữ liệu"@vi ;
+    skos:definition "The commit hash of the dataset revision that was used."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provenance .
+
+vlo:licenceLabel a owl:DatatypeProperty ;
+    rdfs:domain vlo:SourceDataset ; rdfs:range xsd:string ;
+    rdfs:label "licence label"@en , "nhãn giấy phép"@vi ;
+    skos:definition "The licence identifier given in the card of the source dataset, for example cc-by-4.0 or other."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provenance .
+
+vlo:attributionText a owl:DatatypeProperty ;
+    rdfs:domain vlo:SourceDataset ; rdfs:range rdfs:Literal ;
+    rdfs:label "attribution text"@en , "lời ghi nguồn"@vi ;
+    skos:definition "The attribution that must accompany material derived from the dataset."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provenance .
+
+vlo:inclusionPolicy a owl:DatatypeProperty ;
+    rdfs:domain vlo:SourceDataset ; rdfs:range rdfs:Literal ;
+    rdfs:label "inclusion policy"@en , "chính sách sử dụng"@vi ;
+    skos:definition "What VLOnto takes from the dataset and what it leaves out, following the dataset licence."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provenance .
+
+vlo:extractionMethod a owl:ObjectProperty ;
+    rdfs:range vlo:ExtractionMethod ;
+    rdfs:label "extraction method"@en , "phương pháp trích xuất"@vi ;
+    skos:definition "The extraction method that produced a legal change or the links of an edge set."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provenance .
+
+vlo:edgeProperty a owl:ObjectProperty ;
+    rdfs:domain vlo:EdgeSet ;
+    rdfs:label "edge property"@en , "thuộc tính liên kết"@vi ;
+    skos:definition "The property used by all links of an edge set."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provenance .
+
+vlo:edgeCount a owl:DatatypeProperty ;
+    rdfs:domain vlo:EdgeSet ; rdfs:range xsd:integer ;
+    rdfs:label "edge count"@en , "số liên kết"@vi ;
+    skos:definition "The number of links in an edge set."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provenance .
+
+vlo:validityAsOf a owl:DatatypeProperty ;
+    rdfs:domain vlo:BuildActivity ; rdfs:range xsd:date ;
+    rdfs:label "validity as of"@en , "hiệu lực tính đến ngày"@vi ;
+    skos:definition "The reference date at which document validity was computed."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provenance .
+
+vlo:softwareVersion a owl:DatatypeProperty ;
+    rdfs:domain vlo:BuildActivity ; rdfs:range xsd:string ;
+    rdfs:label "software version"@en , "phiên bản phần mềm"@vi ;
+    skos:definition "The version of the VLOnto build code used by a build activity."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-provenance .
+
+prov:wasDerivedFrom a owl:ObjectProperty ; rdfs:label "was derived from (PROV)"@en ; rdfs:isDefinedBy <http://www.w3.org/ns/prov-o#> .
+
+# =====================================================================================================
+# Concept schemes. Closed vocabularies are defined here; data-driven schemes (legal areas, term areas,
+# news categories, the legal-term glossary) are declared here and populated by the knowledge graph.
+# =====================================================================================================
+
+vlo:shortcutProperty a owl:AnnotationProperty ;
+    rdfs:label "shortcut property"@en , "thuộc tính rút gọn"@vi ;
+    skos:definition "Links a change kind to the direct document-to-document property that represents the same change."@en ;
+    rdfs:isDefinedBy <https://tmquan.github.io/VLOnto/ontology> ; vlo:module vlo:module-validity-change .
+
+vlo:DocumentTypeScheme a skos:ConceptScheme ;
+    rdfs:label "Document types"@en , "Loại văn bản"@vi ;
+    skos:definition "The ten types of normative legal documents in scope of VLOnto 0.1.0."@en ;
+    vlo:module vlo:module-classification .
+
+vlo:doctype-constitution a vlo:DocumentType , owl:NamedIndividual ; skos:inScheme vlo:DocumentTypeScheme ; skos:topConceptOf vlo:DocumentTypeScheme ;
+    skos:notation "HP" ; skos:prefLabel "Constitution"@en , "Hiến pháp"@vi ; skos:definition "Document type of the Constitution."@en .
+vlo:doctype-code a vlo:DocumentType , owl:NamedIndividual ; skos:inScheme vlo:DocumentTypeScheme ; skos:topConceptOf vlo:DocumentTypeScheme ;
+    skos:notation "BL" ; skos:prefLabel "Code"@en , "Bộ luật"@vi ; skos:definition "Document type of codes adopted by the National Assembly."@en .
+vlo:doctype-law a vlo:DocumentType , owl:NamedIndividual ; skos:inScheme vlo:DocumentTypeScheme ; skos:topConceptOf vlo:DocumentTypeScheme ;
+    skos:notation "L" ; skos:prefLabel "Law"@en , "Luật"@vi ; skos:definition "Document type of laws adopted by the National Assembly."@en .
+vlo:doctype-ordinance a vlo:DocumentType , owl:NamedIndividual ; skos:inScheme vlo:DocumentTypeScheme ; skos:topConceptOf vlo:DocumentTypeScheme ;
+    skos:notation "PL" ; skos:prefLabel "Ordinance"@en , "Pháp lệnh"@vi ; skos:definition "Document type of ordinances of the National Assembly Standing Committee."@en .
+vlo:doctype-resolution a vlo:DocumentType , owl:NamedIndividual ; skos:inScheme vlo:DocumentTypeScheme ; skos:topConceptOf vlo:DocumentTypeScheme ;
+    skos:notation "NQ" ; skos:prefLabel "Resolution"@en , "Nghị quyết"@vi ; skos:definition "Document type of normative resolutions."@en .
+vlo:doctype-joint-resolution a vlo:DocumentType , owl:NamedIndividual ; skos:inScheme vlo:DocumentTypeScheme ; skos:topConceptOf vlo:DocumentTypeScheme ;
+    skos:notation "NQLT" ; skos:prefLabel "Joint resolution"@en , "Nghị quyết liên tịch"@vi ; skos:definition "Document type of joint resolutions."@en .
+vlo:doctype-decree a vlo:DocumentType , owl:NamedIndividual ; skos:inScheme vlo:DocumentTypeScheme ; skos:topConceptOf vlo:DocumentTypeScheme ;
+    skos:notation "NĐ" ; skos:prefLabel "Decree"@en , "Nghị định"@vi ; skos:definition "Document type of Government decrees."@en .
+vlo:doctype-decision a vlo:DocumentType , owl:NamedIndividual ; skos:inScheme vlo:DocumentTypeScheme ; skos:topConceptOf vlo:DocumentTypeScheme ;
+    skos:notation "QĐ" ; skos:prefLabel "Decision"@en , "Quyết định"@vi ; skos:definition "Document type of normative decisions."@en .
+vlo:doctype-circular a vlo:DocumentType , owl:NamedIndividual ; skos:inScheme vlo:DocumentTypeScheme ; skos:topConceptOf vlo:DocumentTypeScheme ;
+    skos:notation "TT" ; skos:prefLabel "Circular"@en , "Thông tư"@vi ; skos:definition "Document type of circulars."@en .
+vlo:doctype-joint-circular a vlo:DocumentType , owl:NamedIndividual ; skos:inScheme vlo:DocumentTypeScheme ; skos:topConceptOf vlo:DocumentTypeScheme ;
+    skos:notation "TTLT" ; skos:prefLabel "Joint circular"@en , "Thông tư liên tịch"@vi ; skos:definition "Document type of joint circulars."@en .
+
+vlo:ValidityStatusScheme a skos:ConceptScheme ;
+    rdfs:label "Validity statuses"@en , "Tình trạng hiệu lực"@vi ;
+    skos:definition "The eight validity values computed by the validity rules v7 as of the knowledge-graph date."@en ;
+    vlo:module vlo:module-validity-change .
+
+vlo:validity-in-force a vlo:ValidityStatus , owl:NamedIndividual ; skos:inScheme vlo:ValidityStatusScheme ; skos:topConceptOf vlo:ValidityStatusScheme ;
+    skos:notation "in_force" ; skos:prefLabel "in force"@en , "còn hiệu lực"@vi ;
+    skos:definition "The source status says the document is in force and no amending act was extracted."@en .
+vlo:validity-in-force-amended a vlo:ValidityStatus , owl:NamedIndividual ; skos:inScheme vlo:ValidityStatusScheme ; skos:topConceptOf vlo:ValidityStatusScheme ;
+    skos:notation "in_force_amended" ; skos:prefLabel "in force, amended"@en , "còn hiệu lực, đã được sửa đổi"@vi ;
+    skos:definition "The source status says the document is in force and at least one amending act was extracted."@en .
+vlo:validity-presumed-in-force-amended a vlo:ValidityStatus , owl:NamedIndividual ; skos:inScheme vlo:ValidityStatusScheme ; skos:topConceptOf vlo:ValidityStatusScheme ;
+    skos:notation "presumed_in_force_amended" ; skos:prefLabel "presumed in force, amended"@en , "được cho là còn hiệu lực, đã được sửa đổi"@vi ;
+    skos:definition "The source gives no status; the document was amended but no replacement or repeal was extracted."@en .
+vlo:validity-superseded a vlo:ValidityStatus , owl:NamedIndividual ; skos:inScheme vlo:ValidityStatusScheme ; skos:topConceptOf vlo:ValidityStatusScheme ;
+    skos:notation "superseded" ; skos:prefLabel "superseded"@en , "đã bị thay thế hoặc bãi bỏ"@vi ;
+    skos:definition "An extracted relation says the document was replaced or repealed."@en .
+vlo:validity-expired a vlo:ValidityStatus , owl:NamedIndividual ; skos:inScheme vlo:ValidityStatusScheme ; skos:topConceptOf vlo:ValidityStatusScheme ;
+    skos:notation "expired" ; skos:prefLabel "no longer in force"@en , "hết hiệu lực"@vi ;
+    skos:definition "The source status says the document is no longer in force."@en .
+vlo:validity-not-yet-effective a vlo:ValidityStatus , owl:NamedIndividual ; skos:inScheme vlo:ValidityStatusScheme ; skos:topConceptOf vlo:ValidityStatusScheme ;
+    skos:notation "not_yet_effective" ; skos:prefLabel "not yet in force"@en , "chưa có hiệu lực"@vi ;
+    skos:definition "The effective date is after the as-of date of the knowledge graph."@en .
+vlo:validity-not-applicable a vlo:ValidityStatus , owl:NamedIndividual ; skos:inScheme vlo:ValidityStatusScheme ; skos:topConceptOf vlo:ValidityStatusScheme ;
+    skos:notation "not_applicable" ; skos:prefLabel "no longer applicable"@en , "không còn phù hợp"@vi ;
+    skos:definition "The source status says the document is no longer applicable (Không còn phù hợp)."@en .
+vlo:validity-unknown a vlo:ValidityStatus , owl:NamedIndividual ; skos:inScheme vlo:ValidityStatusScheme ; skos:topConceptOf vlo:ValidityStatusScheme ;
+    skos:notation "unknown" ; skos:prefLabel "unknown"@en , "chưa xác định"@vi ;
+    skos:definition "Neither a source status nor an extracted change relation is available; the validity is unknown, not assumed."@en .
+
+vlo:ChangeKindScheme a skos:ConceptScheme ;
+    rdfs:label "Change kinds"@en , "Loại thay đổi"@vi ;
+    skos:definition "The five kinds of legal change extracted by the validity rules v7."@en ;
+    vlo:module vlo:module-validity-change .
+
+vlo:change-replaced a vlo:ChangeKind , owl:NamedIndividual ; skos:inScheme vlo:ChangeKindScheme ; skos:topConceptOf vlo:ChangeKindScheme ;
+    skos:notation "replaced" ; skos:prefLabel "replaced"@en , "thay thế"@vi ; vlo:shortcutProperty vlo:replaces ;
+    skos:definition "The affected document is replaced as a whole by the acting document."@en .
+vlo:change-amended a vlo:ChangeKind , owl:NamedIndividual ; skos:inScheme vlo:ChangeKindScheme ; skos:topConceptOf vlo:ChangeKindScheme ;
+    skos:notation "amended" ; skos:prefLabel "amended"@en , "sửa đổi, bổ sung"@vi ; vlo:shortcutProperty vlo:amends ;
+    skos:definition "Some provisions of the affected document are amended or supplemented."@en .
+vlo:change-repealed a vlo:ChangeKind , owl:NamedIndividual ; skos:inScheme vlo:ChangeKindScheme ; skos:topConceptOf vlo:ChangeKindScheme ;
+    skos:notation "repealed" ; skos:prefLabel "repealed"@en , "bãi bỏ"@vi ; vlo:shortcutProperty vlo:repeals ;
+    skos:definition "The affected document is repealed as a whole."@en .
+vlo:change-partially-repealed a vlo:ChangeKind , owl:NamedIndividual ; skos:inScheme vlo:ChangeKindScheme ; skos:topConceptOf vlo:ChangeKindScheme ;
+    skos:notation "partially_repealed" ; skos:prefLabel "partially repealed"@en , "bãi bỏ một phần"@vi ; vlo:shortcutProperty vlo:partiallyRepeals ;
+    skos:definition "Some provisions or contents of the affected document are repealed."@en .
+vlo:change-partially-expired a vlo:ChangeKind , owl:NamedIndividual ; skos:inScheme vlo:ChangeKindScheme ; skos:topConceptOf vlo:ChangeKindScheme ;
+    skos:notation "partially_expired" ; skos:prefLabel "partially terminated"@en , "hết hiệu lực một phần"@vi ; vlo:shortcutProperty vlo:partiallyTerminates ;
+    skos:definition "Some provisions of the affected document are declared no longer in force."@en .
+
+vlo:LegalForceRankScheme a skos:ConceptScheme ;
+    rdfs:label "Legal-force ranks"@en , "Thứ bậc hiệu lực pháp lý"@vi ;
+    skos:definition "Six levels of legal force used by the validity rules (rule 5) and as the vertical layer of the 3D legal network."@en ;
+    vlo:module vlo:module-classification .
+
+vlo:rank-0 a vlo:LegalForceRank , owl:NamedIndividual ; skos:inScheme vlo:LegalForceRankScheme ; skos:topConceptOf vlo:LegalForceRankScheme ; skos:notation "0" ; vlo:rankLevel 0 ;
+    skos:prefLabel "Constitution"@en , "Hiến pháp"@vi ; skos:definition "Highest legal force: the Constitution."@en .
+vlo:rank-1 a vlo:LegalForceRank , owl:NamedIndividual ; skos:inScheme vlo:LegalForceRankScheme ; skos:topConceptOf vlo:LegalForceRankScheme ; skos:notation "1" ; vlo:rankLevel 1 ;
+    skos:prefLabel "Codes, laws and National Assembly resolutions"@en , "Bộ luật, luật, nghị quyết của Quốc hội"@vi ; skos:definition "Acts of the National Assembly other than the Constitution."@en .
+vlo:rank-2 a vlo:LegalForceRank , owl:NamedIndividual ; skos:inScheme vlo:LegalForceRankScheme ; skos:topConceptOf vlo:LegalForceRankScheme ; skos:notation "2" ; vlo:rankLevel 2 ;
+    skos:prefLabel "Ordinances and Standing Committee resolutions"@en , "Pháp lệnh, nghị quyết của Ủy ban Thường vụ Quốc hội"@vi ; skos:definition "Acts of the Standing Committee of the National Assembly."@en .
+vlo:rank-3 a vlo:LegalForceRank , owl:NamedIndividual ; skos:inScheme vlo:LegalForceRankScheme ; skos:topConceptOf vlo:LegalForceRankScheme ; skos:notation "3" ; vlo:rankLevel 3 ;
+    skos:prefLabel "Decrees, joint resolutions and other resolutions"@en , "Nghị định, nghị quyết liên tịch và nghị quyết khác"@vi ; skos:definition "Government decrees, joint resolutions and resolutions of the Government or the Council of Judges."@en .
+vlo:rank-4 a vlo:LegalForceRank , owl:NamedIndividual ; skos:inScheme vlo:LegalForceRankScheme ; skos:topConceptOf vlo:LegalForceRankScheme ; skos:notation "4" ; vlo:rankLevel 4 ;
+    skos:prefLabel "Prime Minister decisions"@en , "Quyết định của Thủ tướng Chính phủ"@vi ; skos:definition "Normative decisions of the Prime Minister."@en .
+vlo:rank-5 a vlo:LegalForceRank , owl:NamedIndividual ; skos:inScheme vlo:LegalForceRankScheme ; skos:topConceptOf vlo:LegalForceRankScheme ; skos:notation "5" ; vlo:rankLevel 5 ;
+    skos:prefLabel "Circulars, joint circulars and other decisions"@en , "Thông tư, thông tư liên tịch và quyết định khác"@vi ; skos:definition "Lowest legal force in scope: circulars, joint circulars and decisions of ministers and other heads of central bodies."@en .
+
+vlo:CourtLevelScheme a skos:ConceptScheme ;
+    rdfs:label "Court levels"@en , "Cấp Tòa án"@vi ;
+    skos:definition "Levels of the Vietnamese court system as recorded by the court-decision datasets."@en ;
+    vlo:module vlo:module-judiciary .
+
+vlo:court-level-supreme a vlo:CourtLevel , owl:NamedIndividual ; skos:inScheme vlo:CourtLevelScheme ; skos:topConceptOf vlo:CourtLevelScheme ;
+    skos:notation "Supreme" ; skos:prefLabel "Supreme People's Court"@en , "Tòa án nhân dân tối cao"@vi ; skos:definition "The highest court."@en .
+vlo:court-level-high a vlo:CourtLevel , owl:NamedIndividual ; skos:inScheme vlo:CourtLevelScheme ; skos:topConceptOf vlo:CourtLevelScheme ;
+    skos:notation "High" ; skos:prefLabel "High People's Court"@en , "Tòa án nhân dân cấp cao"@vi ; skos:definition "The three high courts (Hà Nội, Đà Nẵng, Hồ Chí Minh City)."@en .
+vlo:court-level-provincial a vlo:CourtLevel , owl:NamedIndividual ; skos:inScheme vlo:CourtLevelScheme ; skos:topConceptOf vlo:CourtLevelScheme ;
+    skos:notation "Provincial" ; skos:prefLabel "provincial court"@en , "Tòa án nhân dân cấp tỉnh"@vi ; skos:definition "Courts of provinces and centrally run cities."@en .
+vlo:court-level-district a vlo:CourtLevel , owl:NamedIndividual ; skos:inScheme vlo:CourtLevelScheme ; skos:topConceptOf vlo:CourtLevelScheme ;
+    skos:notation "District" ; skos:prefLabel "district court"@en , "Tòa án nhân dân cấp huyện"@vi ; skos:definition "Courts of districts, towns and provincial cities (regional courts after the 2025 reform)."@en .
+vlo:court-level-military a vlo:CourtLevel , owl:NamedIndividual ; skos:inScheme vlo:CourtLevelScheme ; skos:topConceptOf vlo:CourtLevelScheme ;
+    skos:notation "Military" ; skos:prefLabel "military court"@en , "Tòa án quân sự"@vi ; skos:definition "Courts of the military court system."@en .
+
+vlo:InstanceLevelScheme a skos:ConceptScheme ;
+    rdfs:label "Instance levels"@en , "Cấp xét xử"@vi ;
+    skos:definition "Procedural stages at which court decisions are made."@en ;
+    vlo:module vlo:module-judiciary .
+
+vlo:instance-first-instance a vlo:InstanceLevel , owl:NamedIndividual ; skos:inScheme vlo:InstanceLevelScheme ; skos:topConceptOf vlo:InstanceLevelScheme ;
+    skos:notation "First-instance" ; skos:prefLabel "first instance"@en , "sơ thẩm"@vi ; skos:definition "First hearing of a case."@en .
+vlo:instance-appellate a vlo:InstanceLevel , owl:NamedIndividual ; skos:inScheme vlo:InstanceLevelScheme ; skos:topConceptOf vlo:InstanceLevelScheme ;
+    skos:notation "Appellate" ; skos:prefLabel "appeal"@en , "phúc thẩm"@vi ; skos:definition "Hearing of an appeal against a first-instance decision that is not yet legally effective."@en .
+vlo:instance-cassation a vlo:InstanceLevel , owl:NamedIndividual ; skos:inScheme vlo:InstanceLevelScheme ; skos:topConceptOf vlo:InstanceLevelScheme ;
+    skos:notation "Cassation" ; skos:prefLabel "cassation review"@en , "giám đốc thẩm"@vi ; skos:definition "Review of a legally effective decision because of a serious violation of law."@en .
+vlo:instance-retrial a vlo:InstanceLevel , owl:NamedIndividual ; skos:inScheme vlo:InstanceLevelScheme ; skos:topConceptOf vlo:InstanceLevelScheme ;
+    skos:notation "Retrial" ; skos:prefLabel "retrial review"@en , "tái thẩm"@vi ; skos:definition "Review of a legally effective decision because of newly discovered facts."@en .
+
+vlo:CaseCategoryScheme a skos:ConceptScheme ;
+    rdfs:label "Case categories"@en , "Loại vụ việc"@vi ;
+    skos:definition "Legal domains of cases as recorded by the court-decision datasets."@en ;
+    vlo:module vlo:module-judiciary .
+
+vlo:case-civil a vlo:CaseCategory , owl:NamedIndividual ; skos:inScheme vlo:CaseCategoryScheme ; skos:topConceptOf vlo:CaseCategoryScheme ;
+    skos:notation "Civil" ; skos:prefLabel "civil"@en , "dân sự"@vi ; skos:definition "Civil cases and matters."@en .
+vlo:case-criminal a vlo:CaseCategory , owl:NamedIndividual ; skos:inScheme vlo:CaseCategoryScheme ; skos:topConceptOf vlo:CaseCategoryScheme ;
+    skos:notation "Criminal" ; skos:prefLabel "criminal"@en , "hình sự"@vi ; skos:definition "Criminal cases."@en .
+vlo:case-administrative a vlo:CaseCategory , owl:NamedIndividual ; skos:inScheme vlo:CaseCategoryScheme ; skos:topConceptOf vlo:CaseCategoryScheme ;
+    skos:notation "Administrative" ; skos:prefLabel "administrative"@en , "hành chính"@vi ; skos:definition "Administrative cases against decisions or acts of state bodies."@en .
+vlo:case-commercial a vlo:CaseCategory , owl:NamedIndividual ; skos:inScheme vlo:CaseCategoryScheme ; skos:topConceptOf vlo:CaseCategoryScheme ;
+    skos:notation "Commercial" ; skos:prefLabel "business and commercial"@en , "kinh doanh, thương mại"@vi ; skos:definition "Business and commercial disputes."@en .
+vlo:case-labour a vlo:CaseCategory , owl:NamedIndividual ; skos:inScheme vlo:CaseCategoryScheme ; skos:topConceptOf vlo:CaseCategoryScheme ;
+    skos:notation "Labor" ; skos:prefLabel "labour"@en , "lao động"@vi ; skos:definition "Labour disputes."@en .
+vlo:case-marriage-family a vlo:CaseCategory , owl:NamedIndividual ; skos:inScheme vlo:CaseCategoryScheme ; skos:topConceptOf vlo:CaseCategoryScheme ;
+    skos:notation "Marriage & Family" ; skos:prefLabel "marriage and family"@en , "hôn nhân và gia đình"@vi ; skos:definition "Marriage and family cases, including divorce."@en .
+vlo:case-bankruptcy a vlo:CaseCategory , owl:NamedIndividual ; skos:inScheme vlo:CaseCategoryScheme ; skos:topConceptOf vlo:CaseCategoryScheme ;
+    skos:notation "Bankruptcy" ; skos:prefLabel "bankruptcy"@en , "phá sản"@vi ; skos:definition "Bankruptcy proceedings."@en .
+vlo:case-economic a vlo:CaseCategory , owl:NamedIndividual ; skos:inScheme vlo:CaseCategoryScheme ; skos:topConceptOf vlo:CaseCategoryScheme ;
+    skos:notation "Economic" ; skos:prefLabel "economic"@en , "kinh tế"@vi ; skos:definition "Economic cases (category used before commercial cases were introduced)."@en .
+
+vlo:ExtractionMethodScheme a skos:ConceptScheme ;
+    rdfs:label "Extraction methods"@en , "Phương pháp trích xuất"@vi ;
+    skos:definition "Procedures that produced VLOnto records and links; the notation is the value used in the method columns of the parquet edge tables."@en ;
+    vlo:module vlo:module-provenance .
+
+vlo:method-source-metadata a vlo:ExtractionMethod , owl:NamedIndividual ; skos:inScheme vlo:ExtractionMethodScheme ; skos:notation "source-metadata" ;
+    skos:prefLabel "source metadata"@en , "siêu dữ liệu nguồn"@vi ; skos:definition "Value taken from a structured field of the source dataset after cleaning (clean.py)."@en .
+vlo:method-chunk-parser a vlo:ExtractionMethod , owl:NamedIndividual ; skos:inScheme vlo:ExtractionMethodScheme ; skos:notation "chunk-parser" ;
+    skos:prefLabel "article parser"@en , "bộ tách điều"@vi ; skos:definition "Article, appendix, chapter and section structure parsed from the cleaned text with the sequence rules of chunk.py."@en .
+vlo:method-validity-rules-v7 a vlo:ExtractionMethod , owl:NamedIndividual ; skos:inScheme vlo:ExtractionMethodScheme ; skos:notation "validity-rules-v7" ;
+    skos:prefLabel "validity rules v7"@en , "bộ luật hiệu lực v7"@vi ; skos:definition "Replace, amend, repeal and termination relations extracted from operative clauses of the acting document (validity.py rules v7: operative-clause and description filters, date-matched year-less numbers, partial subjects, legal-hierarchy filter, status-first precedence); manual precision 29/30 on a sample."@en .
+vlo:method-docnum-key a vlo:ExtractionMethod , owl:NamedIndividual ; skos:inScheme vlo:ExtractionMethodScheme ; skos:notation "docnum-key" ;
+    skos:prefLabel "document-number key"@en , "khóa số văn bản"@vi ; skos:definition "A cited document number normalised with docnum_key and matched to an in-scope document; when several documents share the key, the one of the cited type issued last on or before the citing date is taken."@en .
+vlo:method-law-name-year a vlo:ExtractionMethod , owl:NamedIndividual ; skos:inScheme vlo:ExtractionMethodScheme ; skos:notation "law-name-year" ;
+    skos:prefLabel "law name and year"@en , "tên luật và năm"@vi ; skos:definition "A code, law, ordinance or constitution cited by type and name, matched diacritic-insensitively to titles of in-scope documents; the version issued or effective in the cited year, or else the latest version in force at the citing date, is taken."@en .
+vlo:method-unique-document-of-type a vlo:ExtractionMethod , owl:NamedIndividual ; skos:inScheme vlo:ExtractionMethodScheme ; skos:notation "unique-document-of-type" ;
+    skos:prefLabel "unique document of type"@en , "văn bản duy nhất cùng loại"@vi ; skos:definition "A provision cited without a law name is attached to the only document of that type cited in the same record."@en .
+vlo:method-answer-text-number a vlo:ExtractionMethod , owl:NamedIndividual ; skos:inScheme vlo:ExtractionMethodScheme ; skos:notation "answer-text-number" ;
+    skos:prefLabel "answer text, number"@en , "nội dung trả lời, số văn bản"@vi ; skos:definition "The document is read from the answer text right after 'Điều N' and matched by its number."@en .
+vlo:method-answer-text-name a vlo:ExtractionMethod , owl:NamedIndividual ; skos:inScheme vlo:ExtractionMethodScheme ; skos:notation "answer-text-name" ;
+    skos:prefLabel "answer text, name"@en , "nội dung trả lời, tên luật"@vi ; skos:definition "The document is read from the answer text right after 'Điều N' and matched by law name and year."@en .
+vlo:method-citation-field-name a vlo:ExtractionMethod , owl:NamedIndividual ; skos:inScheme vlo:ExtractionMethodScheme ; skos:notation "citation-field-name" ;
+    skos:prefLabel "citation field, name"@en , "trường trích dẫn, tên luật"@vi ; skos:definition "The document is matched from the law-name and year fields of the source citation."@en .
+vlo:method-parent-acts a vlo:ExtractionMethod , owl:NamedIndividual ; skos:inScheme vlo:ExtractionMethodScheme ; skos:notation "parent-acts" ;
+    skos:prefLabel "parent-acts field"@en , "trường văn bản căn cứ"@vi ; skos:definition "Legal basis taken from the parent_acts field of the vbpl dataset and resolved by number or name."@en .
+vlo:method-preamble-citation a vlo:ExtractionMethod , owl:NamedIndividual ; skos:inScheme vlo:ExtractionMethodScheme ; skos:notation "preamble-citation" ;
+    skos:prefLabel "preamble citation"@en , "trích dẫn phần căn cứ"@vi ; skos:definition "Legal basis taken from citations that the vbpl dataset locates in the preamble of the citing document, kept only when the cited document does not have a lower legal-force rank than the citing one."@en .
+vlo:method-constitution-preamble a vlo:ExtractionMethod , owl:NamedIndividual ; skos:inScheme vlo:ExtractionMethodScheme ; skos:notation "constitution-preamble" ;
+    skos:prefLabel "Constitution in the preamble"@en , "Hiến pháp trong phần căn cứ"@vi ; skos:definition "Legal basis on the Constitution, which has no number and therefore no citation record: 'Căn cứ Hiến pháp ...' before Article 1 is linked to the constitution named by year or by its amending resolution, otherwise to the one in force on the citing document's issue date."@en .
+vlo:method-case-number-date a vlo:ExtractionMethod , owl:NamedIndividual ; skos:inScheme vlo:ExtractionMethodScheme ; skos:notation "case-number-date" ;
+    skos:prefLabel "case number and date"@en , "số và ngày bản án"@vi ; skos:definition "A cited decision is matched by number, year, symbol and the exact date written next to the citation; the court named next to the citation, when present, must also match. Without a named court the match is kept only when the courts of both decisions are known and are the same court, lie in the same province, or the citing court is the Supreme Court or the High Court of the cited court's region."@en .
+vlo:method-case-number-court a vlo:ExtractionMethod , owl:NamedIndividual ; skos:inScheme vlo:ExtractionMethodScheme ; skos:notation "case-number-court" ;
+    skos:prefLabel "case number and court"@en , "số bản án và Tòa án"@vi ; skos:definition "A cited decision is matched by number, year, symbol and the court named next to the citation."@en .
+vlo:method-precedent-number a vlo:ExtractionMethod , owl:NamedIndividual ; skos:inScheme vlo:ExtractionMethodScheme ; skos:notation "precedent-number" ;
+    skos:prefLabel "precedent number"@en , "số án lệ"@vi ; skos:definition "A precedent cited by its national number NN/YYYY/AL."@en .
+vlo:method-docnum-regex a vlo:ExtractionMethod , owl:NamedIndividual ; skos:inScheme vlo:ExtractionMethodScheme ; skos:notation "docnum-regex" ;
+    skos:prefLabel "document-number pattern"@en , "mẫu số văn bản"@vi ; skos:definition "Document numbers of the form N/YYYY/CODE found by regular expression in a text and resolved by docnum_key."@en .
+vlo:method-court-name a vlo:ExtractionMethod , owl:NamedIndividual ; skos:inScheme vlo:ExtractionMethodScheme ; skos:notation "court-name" ;
+    skos:prefLabel "court name"@en , "tên Tòa án"@vi ; skos:definition "The issuing court taken from the court field of the source, or from the judgment header when the field holds only the generic name; anonymised names are not used."@en .
+vlo:method-issuer-code a vlo:ExtractionMethod , owl:NamedIndividual ; skos:inScheme vlo:ExtractionMethodScheme ; skos:notation "issuer-code" ;
+    skos:prefLabel "issuer code"@en , "ký hiệu cơ quan"@vi ; skos:definition "Issuing bodies read from the symbol part of the document number (for example TT-BTC gives BTC), falling back to the issuer field of the source."@en .
+
+vlo:LegalAreaScheme a skos:ConceptScheme ;
+    rdfs:label "Legal areas (documents and Q&A)"@en , "Lĩnh vực pháp luật (văn bản và hỏi đáp)"@vi ;
+    skos:definition "The 27 legal areas used by the document and Q&A datasets; populated by the knowledge graph."@en ;
+    vlo:module vlo:module-classification .
+
+vlo:TermAreaScheme a skos:ConceptScheme ;
+    rdfs:label "Legal areas (terminology)"@en , "Lĩnh vực pháp luật (thuật ngữ)"@vi ;
+    skos:definition "The legal areas used by the terminology dataset; areas with the same name as a document area are the same concept. Populated by the knowledge graph."@en ;
+    vlo:module vlo:module-classification .
+
+vlo:NewsCategoryScheme a skos:ConceptScheme ;
+    rdfs:label "News categories"@en , "Chuyên mục tin tức"@vi ;
+    skos:definition "Sections of the legal news portal; populated by the knowledge graph."@en ;
+    vlo:module vlo:module-news .
+
+vlo:LegalTermScheme a skos:ConceptScheme ;
+    rdfs:label "Vietnamese legal terminology"@en , "Thuật ngữ pháp lý Việt Nam"@vi ;
+    skos:definition "The glossary of legal terms derived from the terminology dataset; populated by the knowledge graph."@en ;
+    vlo:module vlo:module-terminology .

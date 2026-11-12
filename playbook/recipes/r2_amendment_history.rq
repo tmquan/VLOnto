@@ -1,0 +1,13 @@
+PREFIX vlo:  <https://tmquan.github.io/VLOnto/ontology#>
+PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
+# Amendment history of the Land Law 31/2024/QH15
+SELECT ?date ?number ?kind WHERE {
+  ?law vlo:documentNumber "31/2024/QH15" .
+  ?change vlo:affectedDocument ?law ;
+          vlo:actingDocument ?by ;
+          vlo:changeKind ?k .
+  ?k skos:prefLabel ?kind FILTER (lang(?kind) = "en")
+  OPTIONAL { ?change vlo:changeEffectiveDate ?date }
+  ?by vlo:documentNumber ?number .
+}
+ORDER BY ?date ?number ?kind

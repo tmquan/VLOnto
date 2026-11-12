@@ -1,0 +1,74 @@
+# Synthetic test fixture (not real data): every node should conform to vlonto-shapes.ttl and the
+# OWL-RL closure of vlonto.ttl + this file must contain the inferences listed in check_ontology.py.
+@prefix vlo:  <https://tmquan.github.io/VLOnto/ontology#> .
+@prefix t:    <https://tmquan.github.io/VLOnto/id/test/> .
+@prefix vlid: <https://tmquan.github.io/VLOnto/id/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd:  <http://www.w3.org/2001/XMLSchema#> .
+@prefix prov: <http://www.w3.org/ns/prov#> .
+
+vlid:source\/thuvienphapluat-vn-vbpl a vlo:SourceDataset ; rdfs:label "test vbpl" ;
+    vlo:datasetRevision "705ade585384108ded5fc30f40a06fe110bdff22" ; vlo:licenceLabel "cc-by-4.0" ;
+    vlo:attributionText "test attribution" ; vlo:inclusionPolicy "test policy" .
+vlid:source\/cbba-toaan-gov-vn a vlo:SourceDataset ; rdfs:label "test cbba" ;
+    vlo:datasetRevision "8ace3afc9c974afd51e12dccbefd4b3ba54ce1ec" ; vlo:licenceLabel "cc-by-4.0" ;
+    vlo:attributionText "test attribution" ; vlo:inclusionPolicy "test policy" .
+vlid:source\/thuvienphapluat-vn-hdpl a vlo:SourceDataset ; rdfs:label "test hdpl" ;
+    vlo:datasetRevision "e814ecbfa1a1c0c32727c2f2ad2498d52f04b8bd" ; vlo:licenceLabel "other" ;
+    vlo:attributionText "test attribution" ; vlo:inclusionPolicy "test policy" .
+
+t:area-1 a vlo:LegalArea ; skos:inScheme vlo:LegalAreaScheme ; skos:prefLabel "Lĩnh vực thử"@vi , "Test area"@en .
+t:issuer-1 a vlo:IssuingBody ; rdfs:label "Cơ quan thử"@vi ; vlo:issuerCode "QH" .
+
+t:doc-new a vlo:Law ; rdfs:label "Luật thử mới"@vi ;
+    vlo:sourceId "1001" ; vlo:sourceDataset vlid:source\/thuvienphapluat-vn-vbpl ;
+    vlo:sourceUrl "https://thuvienphapluat.vn/van-ban/test-1001.aspx"^^xsd:anyURI ;
+    vlo:documentType vlo:doctype-law ; vlo:legalForceRank vlo:rank-1 ; vlo:validityStatus vlo:validity-in-force ;
+    vlo:title "Luật thử mới"@vi ; vlo:documentNumber "1/2020/QH14" ; vlo:issueDate "2020-01-01"^^xsd:date ;
+    vlo:effectiveDate "2021-01-01"^^xsd:date ; vlo:isInForce true ; vlo:issuedBy t:issuer-1 ; vlo:legalArea t:area-1 ;
+    vlo:replaces t:doc-old ; vlo:legalBasis t:doc-const .
+
+t:doc-old a vlo:Law ; rdfs:label "Luật thử cũ"@vi ;
+    vlo:sourceId "1000" ; vlo:sourceDataset vlid:source\/thuvienphapluat-vn-vbpl ;
+    vlo:sourceUrl "https://thuvienphapluat.vn/van-ban/test-1000.aspx"^^xsd:anyURI ;
+    vlo:documentType vlo:doctype-law ; vlo:legalForceRank vlo:rank-1 ; vlo:validityStatus vlo:validity-superseded ;
+    vlo:title "Luật thử cũ"@vi ; vlo:expiryDate "2021-01-01"^^xsd:date ; vlo:isInForce false .
+
+t:doc-const a vlo:Constitution ; rdfs:label "Hiến pháp thử"@vi ;
+    vlo:sourceId "999" ; vlo:sourceDataset vlid:source\/thuvienphapluat-vn-vbpl ;
+    vlo:sourceUrl "https://thuvienphapluat.vn/van-ban/test-999.aspx"^^xsd:anyURI ;
+    vlo:documentType vlo:doctype-constitution ; vlo:legalForceRank vlo:rank-0 ; vlo:validityStatus vlo:validity-unknown ;
+    vlo:title "Hiến pháp thử"@vi .
+
+t:chapter-1 a vlo:Chapter ; rdfs:label "Chương I"@vi ; vlo:provisionNumber "I" ; vlo:heading "Chương I. QUY ĐỊNH CHUNG"@vi ;
+    vlo:isPartOf t:doc-new ; vlo:inDocument t:doc-new .
+t:art-5 a vlo:Article ; rdfs:label "Điều 5"@vi ; vlo:provisionNumber "5" ; vlo:heading "Điều thử"@vi ; vlo:position 5 ;
+    vlo:isPartOf t:chapter-1 ; vlo:inDocument t:doc-new ; vlo:cites t:doc-const .
+t:art-5-k1 a vlo:Clause ; rdfs:label "khoản 1 Điều 5"@vi ; vlo:provisionNumber "1" ; vlo:isPartOf t:art-5 ; vlo:inDocument t:doc-new .
+t:art-5-k1-a a vlo:Point ; rdfs:label "điểm a khoản 1 Điều 5"@vi ; vlo:provisionNumber "a" ; vlo:isPartOf t:art-5-k1 ; vlo:inDocument t:doc-new .
+
+t:change-1 a vlo:LegalChange ; rdfs:label "1/2020/QH14 replaced 0/2010/QH12" ;
+    vlo:actingDocument t:doc-new ; vlo:affectedDocument t:doc-old ; vlo:changeKind vlo:change-replaced ;
+    vlo:evidenceText "Câu chứng cứ thử."@vi ; vlo:changeEffectiveDate "2021-01-01"^^xsd:date ;
+    vlo:extractionMethod vlo:method-validity-rules-v7 ; vlo:ruleVersion "v7" ; vlo:sourceDataset vlid:source\/thuvienphapluat-vn-vbpl .
+
+t:court-1 a vlo:Court ; rdfs:label "Tòa án nhân dân tỉnh Thử" ; vlo:courtLevel vlo:court-level-provincial .
+t:dec-1 a vlo:Judgment ; rdfs:label "1/2022/DS-PT" ; vlo:sourceId "T1" ; vlo:sourceDataset vlid:source\/cbba-toaan-gov-vn ;
+    vlo:decisionNumber "1/2022/DS-PT" ; vlo:decisionDate "2022-05-01"^^xsd:date ; vlo:caseCategory vlo:case-civil ;
+    vlo:instanceLevel vlo:instance-appellate ; vlo:courtLevel vlo:court-level-provincial ; vlo:decidedBy t:court-1 ;
+    vlo:appliesProvision t:art-5-k1 ; vlo:appliesDocument t:doc-new ; vlo:appliesPrecedent t:prec-1 .
+t:prec-1 a vlo:Precedent ; rdfs:label "Án lệ 04/2016/AL" ; vlo:precedentNumber "04/2016/AL" .
+
+t:qa-1 a vlo:LegalQuestion ; rdfs:label "Q&A 1" ; vlo:sourceId "1" ; vlo:sourceDataset vlid:source\/thuvienphapluat-vn-hdpl ;
+    vlo:sourceUrl "https://thuvienphapluat.vn/hoi-dap-phap-luat/test-1.html"^^xsd:anyURI ; vlo:publishedDate "2024-01-01"^^xsd:date ;
+    vlo:legalArea t:area-1 ; vlo:hasAnswer t:qa-1-answer .
+t:qa-1-answer a vlo:LegalAnswer ; vlo:answerCitesProvision t:art-5 ; vlo:answerCitesDocument t:doc-new .
+
+t:term-1 a vlo:LegalTerm ; skos:inScheme vlo:LegalTermScheme ; skos:prefLabel "Thuật ngữ thử"@vi , "Test term"@en ;
+    vlo:englishLabelSource "mt" ; vlo:relatedTerm t:term-2 ; vlo:legalArea t:area-1 .
+t:term-2 a vlo:LegalTerm ; skos:inScheme vlo:LegalTermScheme ; skos:prefLabel "Thuật ngữ thử 2"@vi .
+
+t:build-1 a vlo:BuildActivity ; rdfs:label "test build" ; vlo:validityAsOf "2026-11-08"^^xsd:date ; vlo:softwareVersion "0.1.0" .
+t:edges-1 a vlo:EdgeSet ; rdfs:label "test edge set" ; vlo:edgeProperty vlo:replaces ; vlo:edgeCount 1 ;
+    vlo:extractionMethod vlo:method-validity-rules-v7 ; prov:wasGeneratedBy t:build-1 .

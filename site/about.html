@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>/* theme before first paint: ?theme=, else stored choice, else system (css/site.css, js/common.js) */(function(d,w){var t=null,m=/[?&]theme=(light|dark)(?:&|$)/.exec(w.location.search);if(m)t=m[1];else{try{t=w.localStorage.getItem('vlonto.theme')}catch(e){}if(t!=='light'&&t!=='dark'){try{t=w.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}catch(e){t='light'}}}d.setAttribute('data-theme',t);d.style.colorScheme=t})(document.documentElement,window);</script>
+<title>About · VLOnto, Vietnamese Legal Ontology and Knowledge Graph</title>
+<meta name="description" content="VLOnto is an ontology and knowledge graph of Vietnamese law built from six public datasets: legal documents, validity and change relations, citations, court decisions, legal Q&As, terminology and news.">
+<link rel="stylesheet" href="css/fonts-web.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body class="page-text page-home">
+<a class="skip-link" href="#main">Skip to content</a>
+<div id="vl-header"></div>
+<main id="main">
+  <section class="hero">
+    <div class="inner">
+      <div>
+        <p class="eyebrow" style="color:#9fb4ff"><span class="ib">Vietnamese Legal Ontology ·</span> <span class="ib" lang="vi">Bản thể học pháp luật Việt Nam</span></p>
+        <h1>VLOnto</h1>
+        <p class="vi-title">An ontology and knowledge graph of Vietnamese law</p>
+        <p>VLOnto describes Vietnamese legal documents and their articles, the bodies that issue them, their validity and the
+          dated events that replace, amend or repeal them, legal-basis and citation links, court decisions and precedents,
+          legal questions and answers, terminology and news. The knowledge graph instantiates the ontology from six public
+          datasets and links every record back to its source.</p>
+        <div class="actions">
+          <a class="btn btn-primary" href="index.html">Open the 3D ontology playground</a>
+          <a class="btn" href="network-3d.html">Explore the legal network</a>
+          <a class="btn" href="sparql.html">Run SPARQL</a>
+        </div>
+      </div>
+      <svg class="hero-art" viewBox="0 0 440 360" role="img" aria-label="Illustration: documents layered by legal force and linked">
+        <defs>
+          <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2b55d0" stop-opacity=".55"/><stop offset="1" stop-color="#0f766e" stop-opacity=".35"/></linearGradient>
+        </defs>
+        <g fill="url(#lg)" stroke="#5d77c9" stroke-opacity=".6">
+          <path d="M40 92 L220 40 L400 92 L220 144 Z"/>
+          <path d="M40 182 L220 130 L400 182 L220 234 Z" opacity=".85"/>
+          <path d="M40 272 L220 220 L400 272 L220 324 Z" opacity=".7"/>
+        </g>
+        <g stroke-width="1.6" stroke-linecap="round" fill="none">
+          <path d="M220 86 L150 176" stroke="#5B9BFF"/><path d="M220 86 L292 172" stroke="#5B9BFF"/>
+          <path d="M150 176 L118 268" stroke="#FFC83D"/><path d="M150 176 L214 262" stroke="#FF8A3D"/>
+          <path d="M292 172 L214 262" stroke="#9AA8C7"/><path d="M292 172 L318 274" stroke="#FF8A3D"/>
+          <path d="M150 176 L292 172" stroke="#F472B6" stroke-dasharray="4 4"/>
+        </g>
+        <g stroke="#0b1122" stroke-width="2">
+          <circle cx="220" cy="86" r="11" fill="#FFD166"/>
+          <circle cx="150" cy="176" r="8.5" fill="#EF476F"/><circle cx="292" cy="172" r="8.5" fill="#4F8EF7"/>
+          <circle cx="250" cy="190" r="5" fill="#A78BFA"/><circle cx="190" cy="198" r="5" fill="#22C55E"/>
+          <circle cx="118" cy="268" r="6" fill="#4ADE80"/><circle cx="214" cy="262" r="6" fill="#4F8EF7"/>
+          <circle cx="318" cy="274" r="6" fill="#4ADE80"/><circle cx="262" cy="292" r="4.5" fill="#22D3EE"/><circle cx="168" cy="290" r="4.5" fill="#B5E853"/>
+        </g>
+      </svg>
+    </div>
+  </section>
+
+  <div class="page">
+    <section class="block" id="paper" aria-labelledby="h-paper">
+      <h2 id="h-paper">Paper</h2>
+      <div class="card paper-card" data-vl-paper="card"></div>
+    </section>
+
+    <section class="block" aria-labelledby="h-numbers">
+      <h2 id="h-numbers">The knowledge graph at a glance</h2>
+      <p class="lead-sm" id="numbers-note"></p>
+      <div class="kpis" id="kpis"></div>
+    </section>
+
+    <section class="block" aria-labelledby="h-tools">
+      <h2 id="h-tools">Explore</h2>
+      <div class="grid grid-3" id="tools"></div>
+    </section>
+
+    <section class="block" aria-labelledby="h-sources">
+      <h2 id="h-sources">Built from six public datasets</h2>
+      <p class="lead-sm">All six datasets are published on Hugging Face by TMQuan. VLOnto keeps metadata, structure, short
+        labels and the links it derives; it does not republish document bodies, Q&amp;A or news text, glossary definitions,
+        judgment text or person names. Each record links to its source for the text.</p>
+      <div class="table-wrap">
+        <table class="data">
+          <thead><tr><th>Dataset</th><th>Content used by VLOnto</th><th class="col-opt">Licence</th></tr></thead>
+          <tbody id="sources"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="h-modules">
+      <h2 id="h-modules">What the ontology covers</h2>
+      <p class="lead-sm">47 classes, 46 object properties and 35 datatype properties in eleven modules, 13 SKOS concept
+        schemes, and alignments with ELI, SKOS, PROV-O, schema.org, the W3C Organization ontology and DCTERMS.
+        Every term has an English and a Vietnamese label.</p>
+      <div class="grid grid-4" id="modules"></div>
+    </section>
+
+    <section class="block" id="cite" aria-labelledby="h-cite">
+      <h2 id="h-cite">How to cite</h2>
+      <p class="lead-sm">For the approach, cite the paper (<a href="#paper">BibTeX above</a>: Bui &amp; Tran Minh (2026),
+        arXiv:2611.11426). For the data and files of this release, cite VLOnto 0.1.0:</p>
+      <div class="grid grid-2">
+        <div class="card">
+          <h3>Text</h3>
+          <p>tmquan (2026). <em>VLOnto: Vietnamese Legal Ontology and Knowledge Graph</em>, version <span id="cite-version">0.1.0</span>.
+            Code: <a href="https://github.com/tmquan/VLOnto" target="_blank" rel="noopener">github.com/tmquan/VLOnto</a>;
+            website: <a href="https://tmquan.github.io/VLOnto/" target="_blank" rel="noopener">tmquan.github.io/VLOnto</a>.</p>
+          <p class="muted">Please also credit the six source datasets (see the attribution below).</p>
+        </div>
+        <div class="card">
+          <h3>BibTeX</h3>
+<pre class="code" id="bibtex">@misc{vlonto2026,
+  author  = {tmquan},
+  title   = {{VLOnto}: Vietnamese Legal
+             Ontology and Knowledge Graph},
+  year    = {2026},
+  version = {0.1.0},
+  url     = {https://github.com/tmquan/VLOnto}
+}</pre>
+          <div class="row" style="margin-top:10px"><button class="btn btn-xs" type="button" id="copy-bib">Copy BibTeX</button></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="licences" aria-labelledby="h-lic">
+      <h2 id="h-lic">Licences and attribution</h2>
+      <blockquote class="attr" id="attr-en"></blockquote>
+      <blockquote class="attr" id="attr-vi" lang="vi"></blockquote>
+      <div class="grid grid-3" style="margin-top:16px">
+        <div class="card"><h3>Ontology</h3><p><code>vlonto.ttl</code>, the SHACL shapes and the documentation are released under
+          <a href="https://creativecommons.org/licenses/by/4.0/" rel="license noopener" target="_blank">CC BY 4.0</a>.</p></div>
+        <div class="card"><h3>Knowledge graph</h3><p>VLOnto’s own contributions (resolution, structure, derived links, validity)
+          are CC BY 4.0. Records derived from <code>hdpl</code>, <code>tnpl</code> and <code>htpl</code> hold only identifiers,
+          links, dates, categories, short labels and derived links, and remain subject to the source terms.</p></div>
+        <div class="card"><h3>Software and fonts</h3><p>three.js, 3d-force-graph, three-spritetext (MIT), ECharts (Apache-2.0),
+          Oxigraph (MIT or Apache-2.0); fonts under the SIL Open Font License. Details on the <a href="downloads.html#dl-vendor">downloads page</a>.</p></div>
+      </div>
+    </section>
+
+    <section class="block" aria-labelledby="h-disc">
+      <h2 id="h-disc">Not legal advice</h2>
+      <div class="disclaimer-box">
+        <p><strong>VLOnto is not an official legal text and is not legal advice.</strong> Relations between documents and
+          the validity of documents are extracted automatically and may be wrong; validity is derived as of
+          <span id="asof">2026-11-08</span> and is unknown for <span id="unknown-n">28,660</span> documents. Read the document at
+          its official source before relying on it, and consult a qualified lawyer for legal questions.</p>
+        <p lang="vi" style="margin-bottom:0">VLOnto không phải văn bản pháp luật chính thức và không phải tư vấn pháp lý.</p>
+      </div>
+    </section>
+  </div>
+</main>
+<div id="vl-footer"></div>
+<script src="data/site_meta.js"></script>
+<script src="data/stats.js"></script>
+<script src="data/ontology_graph.js"></script>
+<script src="js/common.js"></script>
+<script src="js/home.js"></script>
+</body>
+</html>

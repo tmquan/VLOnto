@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VLOnto — kiểm thử WebGL 3D (2.000 nút)</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+  html, body { margin: 0; height: 100%; background: #0d1326; color: #e9edf7; font-family: var(--vlo-font-sans); }
+  body { display: flex; flex-direction: column; }
+  header { padding: 14px 18px 10px; border-bottom: 1px solid #26304d; }
+  h1 { margin: 0 0 6px; font-size: 20px; line-height: 1.4; font-weight: 700; }
+  p { margin: 0; font-size: 14px; line-height: 1.55; }
+  .meta { margin-top: 6px; font-family: var(--vlo-font-mono); font-size: 12px; line-height: 1.55; color: #aab4d4; overflow-wrap: anywhere; }
+  #graph { flex: 1 1 auto; min-height: 320px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Đồ thị văn bản pháp luật — kiểm thử WebGL 3D</h1>
+  <p>Luật → Nghị định → Thông tư → Điều ✓ nhãn tiếng Việt “Bộ luật Dân sự”, ‘Điều 1’ … § ≤ ≥ × ° ² ✗ — dữ liệu mẫu tổng hợp.</p>
+  <p class="meta" id="meta">Đang khởi tạo…</p>
+</header>
+<div id="graph"></div>
+<script src="vendor/three/three.iife.min.js"></script>
+<script src="vendor/three-spritetext/three-spritetext.min.js"></script>
+<script src="vendor/3d-force-graph/3d-force-graph.iife.min.js"></script>
+<script src="data/test_graph.js"></script>
+<script>
+(function () {
+  'use strict';
+  var t0 = performance.now();
+  var M = window.__VLONTO_METRICS = { threeRevision: THREE.REVISION, protocol: location.protocol };
+  window.__VLONTO_READY = false;
+  var data = window.VLONTO.test_graph;
+  var colors = { law: '#ffb547', decree: '#5bd1ff', circular: '#b49cff', article: '#7fe0a6' };
+
+  function start() {
+    var el = document.getElementById('graph');
+    var graph = new ForceGraph3D(el, { controlType: 'orbit' })
+      .width(el.clientWidth)
+      .height(el.clientHeight)
+      .backgroundColor('#0d1326')
+      .showNavInfo(false)
+      .nodeRelSize(3)
+      .nodeResolution(8)
+      .nodeVal(function (n) { return n.kind === 'law' ? 9 : n.kind === 'article' ? 0.6 : 2.5; })
+      .nodeColor(function (n) { return colors[n.kind]; })
+      .nodeLabel(function (n) { return n.label || n.title; })
+      .linkColor(function () { return 'rgba(150,170,230,0.30)'; })
+      .nodeThreeObjectExtend(true)
+      .nodeThreeObject(function (n) {
+        if (!n.label) { return null; }
+        var s = new SpriteText(n.label);
+        s.fontFace = '"Be Vietnam Pro", "Noto Sans Symbols 2", sans-serif';
+        s.fontWeight = n.kind === 'law' ? '700' : '400';
+        s.textHeight = n.kind === 'law' ? 8 : 4;
+        s.color = '#ffffff';
+        s.backgroundColor = 'rgba(13,19,38,0.6)';
+        s.padding = 1.5;
+        s.position.y = n.kind === 'law' ? 12 : 7;
+        return s;
+      })
+      .warmupTicks(80)
+      .cooldownTicks(70)
+      .graphData(data);
+
+    // one THREE instance shared by page code, three-spritetext and 3d-force-graph?
+    M.sceneIsWindowTHREE = graph.scene() instanceof THREE.Scene;
+    M.cameraIsWindowTHREE = graph.camera() instanceof THREE.PerspectiveCamera;
+    M.spriteIsWindowTHREE = new SpriteText('x') instanceof THREE.Sprite;
+    M.sharedThree = M.sceneIsWindowTHREE && M.cameraIsWindowTHREE && M.spriteIsWindowTHREE;
+    var renderer = graph.renderer();
+    var gl = renderer.getContext();
+    var ext = gl.getExtension('WEBGL_debug_renderer_info');
+    M.webglVersion = gl.getParameter(gl.VERSION);
+    M.webglRenderer = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+    M.nodes = data.nodes.length;
+    M.links = data.links.length;
+    M.labels = data.nodes.filter(function (n) { return n.label; }).length;
+    M.initMs = Math.round(performance.now() - t0);
+
+    (function waitFirstFrame() {
+      if (renderer.info.render.frame > 0) {
+        M.firstFrameMs = Math.round(performance.now() - t0);
+        M.firstFrameSinceNavigationMs = Math.round(performance.now());
+      } else {
+        requestAnimationFrame(waitFirstFrame);
+      }
+    })();
+
+    graph.onEngineStop(function () {
+      if (M.layoutDoneMs) { return; }
+      M.layoutDoneMs = Math.round(performance.now() - t0);
+      // close-up on the first law node so the Vietnamese SpriteText labels are legible in screenshots
+      var focus = data.nodes.filter(function (n) { return n.id === 'L00'; })[0];
+      // the perspective camera keeps a fixed vertical field of view, so on a portrait (phone) canvas the same
+      // distance makes the bold law label wider than the screen: pull back in proportion to the aspect ratio
+      var aspect = el.clientWidth / Math.max(1, el.clientHeight);
+      var k = Math.max(1, 0.95 / aspect);
+      graph.cameraPosition({ x: focus.x + 30 * k, y: focus.y + 25 * k, z: focus.z + 120 * k }, { x: focus.x, y: focus.y, z: focus.z }, 0);
+      M.camera = 'close-up on L00';
+      M.cameraScale = Math.round(k * 100) / 100;
+      var f0 = renderer.info.render.frame, tf = performance.now();
+      setTimeout(function () {
+        M.fps = Math.round((renderer.info.render.frame - f0) * 10000 / (performance.now() - tf)) / 10;
+        M.framesRendered = renderer.info.render.frame;
+        document.getElementById('meta').textContent =
+          'WebGL: ' + M.webglRenderer + ' • THREE r' + M.threeRevision + ' (một bản dùng chung: ' + (M.sharedThree ? 'có' : 'KHÔNG') + ')' +
+          ' • ' + M.nodes.toLocaleString('vi-VN') + ' nút, ' + M.links.toLocaleString('vi-VN') + ' cạnh, ' + M.labels + ' nhãn' +
+          ' • khung hình đầu: ' + M.firstFrameMs + ' ms • bố cục xong: ' + M.layoutDoneMs + ' ms • ' + M.fps + ' khung/giây • ' + location.protocol;
+        window.__VLONTO_READY = true;
+      }, 1500);
+    });
+  }
+
+  // draw sprite labels only after the web font is loaded (canvas text does not re-render on font load)
+  var fontsReady = (document.fonts && document.fonts.load)
+    ? Promise.all([document.fonts.load('400 16px "Be Vietnam Pro"'), document.fonts.load('700 16px "Be Vietnam Pro"')])
+    : Promise.resolve();
+  fontsReady.then(start, start);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,41 @@
+:root { --bg: #f7f8fc; --fg: #141b2d; --muted: #56617f; --line: #dde2ee; --accent: #2f52d6; }
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; font-family: var(--vlo-font-sans); color: var(--fg); background: var(--bg); font-size: 15px; line-height: 1.6; }
+header.top { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 24px; padding: 14px 20px; background: #fff; border-bottom: 1px solid var(--line); }
+header.top h1 { margin: 0; font-size: 20px; line-height: 1.4; }
+nav { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+nav a { color: var(--accent); text-decoration: none; }
+main { max-width: 1100px; margin: 0 auto; padding: 4px 20px 24px; }
+h2 { font-size: 17px; line-height: 1.4; margin: 22px 0 10px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.card { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; }
+.card .k { color: var(--muted); font-size: 13px; line-height: 1.5; }
+.card .v { font-size: 26px; line-height: 1.3; font-weight: 700; }
+.chart { width: 100%; height: 320px; background: #fff; border: 1px solid var(--line); border-radius: 8px; }
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; background: #fff; font-size: 14px; line-height: 1.5; }
+/* never break inside a word: numbers/identifiers stay on one line, prose wraps at spaces, IRIs after / - . */
+th, td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; overflow-wrap: normal; }
+td.num { white-space: nowrap; }
+th { background: #eef1f8; }
+.iri { font-family: var(--vlo-font-mono); font-size: 12.5px; overflow-wrap: anywhere; }
+pre.code { font-family: var(--vlo-font-mono); font-size: 12.5px; line-height: 1.55; background: #fff; border: 1px solid var(--line);
+           border-radius: 8px; padding: 10px 12px; margin: 12px 0 0; white-space: pre-wrap; overflow-wrap: normal; overflow-x: auto; }
+/* phones: drop the secondary IRI column and shrink code so a full IRI fits on one line */
+@media (max-width: 600px) {
+  .col-iri { display: none; }
+  pre.code { font-size: 11.5px; }
+}
+.badge { display: inline-block; padding: 1px 8px; border-radius: 999px; background: #e3f4e8; color: #0a6e2c; font-size: 13px; line-height: 1.6; }
+.symbols { font-size: 15px; }
+footer { padding: 14px 20px; color: var(--muted); font-size: 13px; border-top: 1px solid var(--line); }
+
+/* ---- deliberate defects, used only by defects.html ---- */
+.defects { border: 2px dashed #b3261e; border-radius: 8px; padding: 6px 14px 12px; background: #fff7f6; }
+.iri-nowrap { font-family: var(--vlo-font-mono); font-size: 13px; white-space: nowrap; }
+.badge-clip { display: inline-block; width: 110px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom;
+              padding: 1px 8px; border-radius: 999px; background: #fde7e4; color: #8c1d18; font-size: 13px; line-height: 1.6; }
+.overlap-demo { position: relative; }
+.stamp { position: absolute; top: 4px; left: 40px; font-weight: 700; font-size: 18px; color: #b3261e; }
+.narrow-cell { display: inline-block; width: 1.4em; overflow-wrap: anywhere; vertical-align: top; background: #fde7e4; }

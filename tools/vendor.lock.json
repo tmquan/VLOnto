@@ -1,0 +1,1737 @@
+{
+ "schema": 1,
+ "generated_by": "tools/fetch_vendor.sh (tools/vendor_build.py)",
+ "tools": {
+  "fonttools": "4.68.0",
+  "brotli": "1.2.1",
+  "node": "v24.19.0",
+  "npm": "11.17.0",
+  "esbuild": "0.28.2"
+ },
+ "npm_packages": [
+  {
+   "name": "3d-force-graph",
+   "version": "1.80.2",
+   "license": "MIT",
+   "integrity": "sha512-hStm8c4s2yLt0kj9JBLWLgLsJlS+G08AXTNeEw6YBD1kzCu4s1szwAZL9Z1tcPhVOlDkWliUzTuraBF86TmNCQ==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/3d-force-graph/-/3d-force-graph-1.80.2.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "@babel/runtime",
+   "version": "7.29.13",
+   "license": "MIT",
+   "integrity": "sha512-v+oN26xP4YIlQsbQ/CbTH1WG5m/l/DjKKZNy/Kp3f/AFvbgt7Em/D0FeMM3O2hX0YzeN2M16W8lOpyhIkfCBcQ==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@babel/runtime/-/runtime-7.29.13.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "@esbuild/aix-ppc64",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-XExcO+dvLKvVtNTibSTBej1NCAbaGhWn9Ww1ZPx80qsahhPFe/8jgWP0IchNe0F3HwkU7n8ejhH8bjonqht8mQ==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/aix-ppc64/-/aix-ppc64-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/android-arm",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-kXXoiPVVGQcnIYGOeaovwOURpniDBpSq4A03qkQ+BMQqtGG6HYap3xne9C1O1yo4TR3qxlCX5IqqmX6fFo2Lqg==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/android-arm/-/android-arm-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/android-arm64",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-5YfKeeI8qWfBZIX+u2xZC3Zlb3Os/gLS2sbEKM+I4ZOcsWmHS2WLysCcQZDAFRslDUU5Oiq44gf6PYN1vGwG5A==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/android-arm64/-/android-arm64-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/android-x64",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-O387ite7SzUyCcy3JQX4P4bLtEA7bLLkx+esve5JHnyYfNTxcVpXZo9jhdB0lTKN44gztELTdU7nS8Nr16Fs1Q==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/android-x64/-/android-x64-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/darwin-arm64",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-n4KqkOQrraxHJcgjM1RvwbigfQKIKJVpM7xp+KsxiyUSrRdIXnt73VhrPAx0fV44hgfmIVKjxMN9J1t5jySVkw==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/darwin-arm64/-/darwin-arm64-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/darwin-x64",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-uq6suIWYP37qzGddBKPw5QEQPi6HiLGsO7UmkpfyaYNQ3D+rN6w6WfwH+nuqcGXWvawGwxOEroO4YGnFh95azw==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/darwin-x64/-/darwin-x64-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/freebsd-arm64",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-n+I0BTSRIoy+d6RPKnEVwql5UwBJolytvY4mAOIEJorKlqgPII8ix6slVVrfZ5Tnj7glIZvloylbB/EJPMWEXw==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/freebsd-arm64/-/freebsd-arm64-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/freebsd-x64",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-78XJTJkvPs0kz2w61301PJjXl4g7q3JqiYMZ/M/yVI73EHBrCRTgkhu9oqG7vPqq+a/yadEW8aD+agKlk5xrmg==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/freebsd-x64/-/freebsd-x64-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/linux-arm",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-XlDnu2q5yoqems+xay6wSAcg9DDD7K9RLKZEBOMZm3ckNpJBvOX20tSfby8KfrrhINDyv9V2YVZKY/SpoGJI8w==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/linux-arm/-/linux-arm-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/linux-arm64",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-pW4AC0P3it8c7do9MVM4p51FzHzdM/TZrerurgRcHJ2WTa1VQ1CIq18xncfpBJw4ojkiZZrKW2yIBWBP92j6Ug==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/linux-arm64/-/linux-arm64-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/linux-ia32",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-CYbnj78HsIeA+DhgUKgFCfvNsTHFhMMrinUrMZpDXJXKN8T3XViTZ/+wtHeVxEWY8ewSzTFN+nRmSwO2tZaLUQ==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/linux-ia32/-/linux-ia32-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/linux-loong64",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-buwkd8nsph4R+ajRvw0qM5Hja/TXQow3ptzWO2EbG/cqcIkHloRrdlBtQlshyYGTNFvfkfJ5tpPLVkY4DtsPfQ==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/linux-loong64/-/linux-loong64-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/linux-mips64el",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-ZVykbDyk7519VwiNb9Lcj9m8XM6v5V9uKPvrEMkkEedVewf+0itkhahp4HDpgERXhwLRpWFypsGbG/J8s0QjJA==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/linux-mips64el/-/linux-mips64el-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/linux-ppc64",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-CAXl+Dtd9UUuJd8pKKdwh6MLm3MUMiqMPmhZ3tTSXPqfyQ3vDl6R5hZdZ/kYojK4ofXtdfSv1tFq8XzWx3heNQ==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/linux-ppc64/-/linux-ppc64-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/linux-riscv64",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-GeXCej4IQtU1B+QlDV8W/RRvbzI3O/Stss+/bCXv4lZls5WGRtu2a+3JkA3i4qIUlMXpcHebWpF8AkJhATowuA==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/linux-riscv64/-/linux-riscv64-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/linux-s390x",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-3H1weTYZPxt/WOhByszQZybS9w5lKzUn1FDMsgEChbHWQwHYQQRfBxgCcZvPhjHfKyJjIievvMmEUawJrdY9Dg==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/linux-s390x/-/linux-s390x-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/linux-x64",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-4xTZr1FUmSoQW4XIWmit3tzQrUTZM+N3P0XV8xROKYF50XfI7xeO90+1bZvNwxIufQ9hDQVRJH5YhgPVF8A/HQ==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/netbsd-arm64",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-sSATRjPeDBg3pdgHoQfoYBob11Kk1FGa9lui5RIHZCoCkJa9QKlvl3/vKz2usCmYYjs7ymJR/2Nnsqe+Hjt5nw==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/netbsd-arm64/-/netbsd-arm64-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/netbsd-x64",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-lqnzCV+mM0gIADaKihiCg6ifgfU2L3h5E33rNQBN1Y4MaVGnzryzmvvf7UHxprpQdE8hpqLolJ9Rl+SkIRDpyw==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/netbsd-x64/-/netbsd-x64-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/openbsd-arm64",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-AL2qJILH7lNjrDmCQDvdxMfAUIv8KMNZOvrwAQ8i8//ntL9FflhOyMJ8OZSMBb8/AWXe3/5v5S20y3zCoZWKoQ==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/openbsd-arm64/-/openbsd-arm64-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/openbsd-x64",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-QtiuPytchRyC4rwUKhexJdQKvDuZ6hWloi3igqPQNUJCS1/v9EiO3UTOXR6A3FoMo4fnAKbWJdqaIwhOzh8qEw==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/openbsd-x64/-/openbsd-x64-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/openharmony-arm64",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-WkhYDmpTjLvGlScA1rwjRUmhl4k8oXR3cIbtqWmELgU/dFeHHlEllxDvdWcNJV9rbzCexB5vz8gtNewWLgCT7Q==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/openharmony-arm64/-/openharmony-arm64-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/sunos-x64",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-GPMSkTOtMnv2U2F8gxe4Io6qmVs+YKyp832Etqqxr0hFngmXQ3rzwytelm3GIn7T4VviRUlf3sOgBOiTdvaf7g==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/sunos-x64/-/sunos-x64-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/win32-arm64",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-PIhhEkE9uPBleRBrQEJpUn7MBnibZzbGzYWPmY3x+YoVg/95zbjB4CxPPOQ8l5tYYM4mMaCthF8/1DIfBQQyWQ==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/win32-arm64/-/win32-arm64-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/win32-ia32",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-YmJbfTlvU7Sdn9BB+4PRES4oB6pxgS37MAONj+hBr/cpXS1aBPKXxNnDbu+QCWPj0o9dgyxeq79g6c5P8KeuYA==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/win32-ia32/-/win32-ia32-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@esbuild/win32-x64",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-5ebpxr3nWMzrL/rnUI755Jkuee0bHL/Gq0WTF9lvcpv73wAp5eu8MfBUgWK9bhWvZjj7yX8etf/8tI8Ney695g==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@esbuild/win32-x64/-/win32-x64-0.28.2.tgz",
+   "optional": true,
+   "dev": true
+  },
+  {
+   "name": "@tweenjs/tween.js",
+   "version": "25.0.0",
+   "license": "MIT",
+   "integrity": "sha512-XKLA6syeBUaPzx4j3qwMqzzq+V4uo72BnlbOjmuljLrRqdsd3qnzvZZoxvMHZ23ndsRS4aufU6JOZYpCbU6T1A==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/@tweenjs/tween.js/-/tween.js-25.0.0.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "accessor-fn",
+   "version": "1.5.3",
+   "license": "MIT",
+   "integrity": "sha512-rkAofCwe/FvYFUlMB0v0gWmhqtfAtV1IUkdPbfhTUyYniu5LrC0A0UJkTH0Jv3S8SvwkmfuAlY+mQIJATdocMA==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/accessor-fn/-/accessor-fn-1.5.3.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "d3-array",
+   "version": "3.2.5",
+   "license": "ISC",
+   "integrity": "sha512-Th8qGXoBalmWsstpkuhmBuTsBQIFqYOJtjlBvNVvBfJ8E3uYusBUwUR8HU20U0qKKQkgCvKyR1YjiozWadk5QA==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/d3-array/-/d3-array-3.2.5.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "d3-binarytree",
+   "version": "1.0.2",
+   "license": "MIT",
+   "integrity": "sha512-cElUNH+sHu95L04m92pG73t2MEJXKu+GeKUN1TJkFsu93E5W8E9Sc3kHEGJKgenGvj19m6upSn2EunvMgMD2Yw==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/d3-binarytree/-/d3-binarytree-1.0.2.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "d3-color",
+   "version": "3.1.1",
+   "license": "ISC",
+   "integrity": "sha512-lfab8x0Bj0UO7SNsY8dZSbNIA6ipbkE3X0NG9nqjCu6CfCHZseuDnOSJY7hidKrjpP++i1M2qT+FlAdPKYRilA==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/d3-color/-/d3-color-3.1.1.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "d3-dispatch",
+   "version": "3.0.2",
+   "license": "ISC",
+   "integrity": "sha512-sAzH4Y4nsLo8eSqw5jKiZt+LU2wZmL/qS+OkxQGjhwazB/D7TY34R/QK1eshfGr7cZEKymKZ/Haem7m+lu98Sg==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/d3-dispatch/-/d3-dispatch-3.0.2.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "d3-force-3d",
+   "version": "3.0.6",
+   "license": "MIT",
+   "integrity": "sha512-4tsKHUPLOVkyfEffZo1v6sFHvGFwAIIjt/W8IThbp08DYAsXZck+2pSHEG5W1+gQgEvFLdZkYvmJAbRM2EzMnA==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/d3-force-3d/-/d3-force-3d-3.0.6.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "d3-format",
+   "version": "3.1.3",
+   "license": "ISC",
+   "integrity": "sha512-+F+/49swqmGuQJmSKnVMIDH/QkEFV5li9QRj0xm/KhyAUBv099O5PrvpQFxBp24PYph17Mnvt9mjKQV0ii0nMA==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/d3-format/-/d3-format-3.1.3.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "d3-interpolate",
+   "version": "3.0.2",
+   "license": "ISC",
+   "integrity": "sha512-IRzGU62DtxhvsnSTWMQIdnoZ6gA+BCWwBon1EJI6SjoN595799b6z/QRBzXfFhE8iupUPp3042yBNo0STPqnzQ==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/d3-interpolate/-/d3-interpolate-3.0.2.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "d3-octree",
+   "version": "1.1.0",
+   "license": "MIT",
+   "integrity": "sha512-F8gPlqpP+HwRPMO/8uOu5wjH110+6q4cgJvgJT6vlpy3BEaDIKlTZrgHKZSp/i1InRpVfh4puY/kvL6MxK930A==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/d3-octree/-/d3-octree-1.1.0.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "d3-quadtree",
+   "version": "3.0.2",
+   "license": "ISC",
+   "integrity": "sha512-9Lu9mqJKRbIk0d6mKDjpvPURaPdwHVK5CYbcdd0/4vBgz4ldz/7TIOse3kNERsByGNfld58KEco507AztJWyTQ==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/d3-quadtree/-/d3-quadtree-3.0.2.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "d3-scale",
+   "version": "4.0.3",
+   "license": "ISC",
+   "integrity": "sha512-66cWobCNzcMvlfoaDHCxuIv9TBUWG1BLOWdv9kHHFuCr1JdqAWPvTmsaEYDD5NRMyWZ5+7u0GqiCDfMXMqh3hg==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/d3-scale/-/d3-scale-4.0.3.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "d3-scale-chromatic",
+   "version": "3.1.1",
+   "license": "ISC",
+   "integrity": "sha512-lA5gfN2yMvmChubmptnDiBfeGpHD7Yb1EbvCz0TZE0WHXhyR6W2allPuhKtzV5ILQRqeOdefF0qYtERReLUBDg==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/d3-scale-chromatic/-/d3-scale-chromatic-3.1.1.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "d3-selection",
+   "version": "3.0.1",
+   "license": "ISC",
+   "integrity": "sha512-ODSf35vqCrlCfp7hrm0eZjvOosSXSYLjqvIlhMBV9q9VOx7EBJG6pc+uXBswEZNJgCGJ+qnKYcWutbZDIxe/Xg==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/d3-selection/-/d3-selection-3.0.1.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "d3-time",
+   "version": "3.1.1",
+   "license": "ISC",
+   "integrity": "sha512-Ze7rjrhMzdeulh0/hjcfFj7XLAHOfowtEMfsoG6DU866HPynQNW7Wfen6hzXcqKTv8XzxvF6Hzr5XD6bMHr2ug==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/d3-time/-/d3-time-3.1.1.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "d3-time-format",
+   "version": "4.1.1",
+   "license": "ISC",
+   "integrity": "sha512-22XaqjyCjpqgda20erhsOjGmC3vvYwTNYniKAd45W5UWLDF43moeOuV9qYpRqobIlsnK0UhnKZjUUJm3VgORUA==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/d3-time-format/-/d3-time-format-4.1.1.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "d3-timer",
+   "version": "3.0.2",
+   "license": "ISC",
+   "integrity": "sha512-1Il1aliroVSErrv5aulRBxAY+7+DnaoLIWGd1C6SsBTWDeobWiP/V69vwb8vT6abR1kKwaNe1196pmaQ1fK90A==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/d3-timer/-/d3-timer-3.0.2.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "data-bind-mapper",
+   "version": "1.0.3",
+   "license": "MIT",
+   "integrity": "sha512-QmU3lyEnbENQPo0M1F9BMu4s6cqNNp8iJA+b/HP2sSb7pf3dxwF3+EP1eO69rwBfH9kFJ1apmzrtogAmVt2/Xw==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/data-bind-mapper/-/data-bind-mapper-1.0.3.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "echarts",
+   "version": "6.1.0",
+   "license": "Apache-2.0",
+   "integrity": "sha512-q0yaFPggC9FUdsWH4blavRWFmxdrIodbkoKNAjJudAI6CA9gNPxHtV2RcZNEepZVlk4yvBYkOkbk6HIVpIyHZA==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/echarts/-/echarts-6.1.0.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "esbuild",
+   "version": "0.28.2",
+   "license": "MIT",
+   "integrity": "sha512-HKVLS8dvII+xoKW9kmqxbRKrnWEXfJJr/FZhhJmiqIB0e053QNYFqOBouTMO/k5sID4MvCiUCvv8b9M4h32wIA==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/esbuild/-/esbuild-0.28.2.tgz",
+   "optional": false,
+   "dev": true
+  },
+  {
+   "name": "fflate",
+   "version": "0.8.3",
+   "license": "MIT",
+   "integrity": "sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/fflate/-/fflate-0.8.3.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "float-tooltip",
+   "version": "1.8.0",
+   "license": "MIT",
+   "integrity": "sha512-9iixvzv6T0GQwXugQOdDBBzGCbMsPzpq2vnimyefcCnhDIjsKpPNqLiZ3WaeDBqjx6Uxt26I24ZW98H6SdYRnQ==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/float-tooltip/-/float-tooltip-1.8.0.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "internmap",
+   "version": "2.0.3",
+   "license": "ISC",
+   "integrity": "sha512-5Hh7Y1wQbvY5ooGgPbDaL5iYLAPzMTUrjMulskHLH6wnv/A+1q5rgEaiuqEjB+oxGXIVZs1FF+R/KPN3ZSQYYg==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/internmap/-/internmap-2.0.3.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "kapsule",
+   "version": "1.16.3",
+   "license": "MIT",
+   "integrity": "sha512-4+5mNNf4vZDSwPhKprKwz3330iisPrb08JyMgbsdFrimBCKNHecua/WBwvVg3n7vwx0C1ARjfhwIpbrbd9n5wg==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/kapsule/-/kapsule-1.16.3.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "lodash-es",
+   "version": "4.18.1",
+   "license": "MIT",
+   "integrity": "sha512-J8xewKD/Gk22OZbhpOVSwcs60zhd95ESDwezOFuA3/099925PdHJ7OFHNTGtajL3AlZkykD32HykiMo+BIBI8A==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/lodash-es/-/lodash-es-4.18.1.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "ngraph.events",
+   "version": "1.4.0",
+   "license": "BSD-3-Clause",
+   "integrity": "sha512-NeDGI4DSyjBNBRtA86222JoYietsmCXbs8CEB0dZ51Xeh4lhVl1y3wpWLumczvnha8sFQIW4E0vvVWwgmX2mGw==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/ngraph.events/-/ngraph.events-1.4.0.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "ngraph.forcelayout",
+   "version": "3.3.1",
+   "license": "BSD-3-Clause",
+   "integrity": "sha512-MKBuEh1wujyQHFTW57y5vd/uuEOK0XfXYxm3lC7kktjJLRdt/KEKEknyOlc6tjXflqBKEuYBBcu7Ax5VY+S6aw==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/ngraph.forcelayout/-/ngraph.forcelayout-3.3.1.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "ngraph.graph",
+   "version": "20.1.2",
+   "license": "BSD-3-Clause",
+   "integrity": "sha512-W/G3GBR3Y5UxMLHTUCPP9v+pbtpzwuAEIqP5oZV+9IwgxAIEZwh+Foc60iPc1idlnK7Zxu0p3puxAyNmDvBd0Q==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/ngraph.graph/-/ngraph.graph-20.1.2.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "ngraph.merge",
+   "version": "1.0.0",
+   "license": "MIT",
+   "integrity": "sha512-5J8YjGITUJeapsomtTALYsw7rFveYkM+lBj3QiYZ79EymQcuri65Nw3knQtFxQBU1r5iOaVRXrSwMENUPK62Vg==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/ngraph.merge/-/ngraph.merge-1.0.0.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "ngraph.random",
+   "version": "1.2.0",
+   "license": "BSD-3-Clause",
+   "integrity": "sha512-4EUeAGbB2HWX9njd6bP6tciN6ByJfoaAvmVL9QTaZSeXrW46eNGA9GajiXiPBbvFqxUWFkEbyo6x5qsACUuVfA==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/ngraph.random/-/ngraph.random-1.2.0.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "oxigraph",
+   "version": "0.5.13",
+   "license": "MIT OR Apache-2.0",
+   "integrity": "sha512-nD9pc9lhwzVUeEIeEc3ds4MyYphOW8fXsOf8Zeu8uKcGNn5KNIVQBHPNNp0jHMNKFVvmZH8BKDGcjVLmTus9DA==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/oxigraph/-/oxigraph-0.5.13.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "polished",
+   "version": "4.3.1",
+   "license": "MIT",
+   "integrity": "sha512-OBatVyC/N7SCW/FaDHrSd+vn0o5cS855TOmYi4OkdWUMSJCET/xip//ch8xGUvtr3i44X9LVyWwQlRMTN3pwSA==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/polished/-/polished-4.3.1.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "preact",
+   "version": "11.2.0",
+   "license": "MIT",
+   "integrity": "sha512-/HfHI/7N84e6GrWBJ3J280z3mLaRJiDcSvj/A+y/4AbLnND/1UlGHe1sR6oYuTGwId0nP7dqDU9OnLxMPZ7xBg==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/preact/-/preact-11.2.0.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "three",
+   "version": "0.187.0",
+   "license": "MIT",
+   "integrity": "sha512-Qiu7R+Cmh8CstZsY1uJOSWnVlfo7ZtNLV7mF8Jltk3LB3AtDu9cRZlcnRKkAk8Y4z6KKw35z7Y7Urd7jWY8etA==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/three/-/three-0.187.0.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "three-forcegraph",
+   "version": "1.43.6",
+   "license": "MIT",
+   "integrity": "sha512-fayF9Cn6XfSUJOcKUcJ1tg8EQEHP9X3wELzNX/Ik3TxnbHTfYuEFspSld7GvK8RwEpsyoJaPbfEGgMTJoiywYg==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/three-forcegraph/-/three-forcegraph-1.43.6.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "three-render-objects",
+   "version": "1.44.1",
+   "license": "MIT",
+   "integrity": "sha512-XsjD8yiYjL7p61KiNK2bCVHAzUQ2Jq38ifqZu+pEHkefcpsjzPSb5kN0W0+qmjnGKoqMKmzm+p6k1M3Z4VmINw==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/three-render-objects/-/three-render-objects-1.44.1.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "three-spritetext",
+   "version": "1.10.0",
+   "license": "MIT",
+   "integrity": "sha512-t08iP1FCU1lQh8T5MmCpdijKgas8GDHJE0LqMGBuVu3xqMMpFnEZhTlih7FlxLPQizHIGoumUSpfOlY1GO/Tgg==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/three-spritetext/-/three-spritetext-1.10.0.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "tinycolor2",
+   "version": "1.6.0",
+   "license": "MIT",
+   "integrity": "sha512-XPaBkWQJdsf3pLKJV9p4qN/S+fm2Oj8AIPo1BTUhg5oxkvm9+SVEGFdhyOz7tTdUTfvxMiAs4sp6/eZO2Ew+pw==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/tinycolor2/-/tinycolor2-1.6.0.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "tslib",
+   "version": "2.3.0",
+   "license": "0BSD",
+   "integrity": "sha512-N82ooyxVNm6h1riLCoyS9e3fuJ3AMG2zIZs2Gd1ATcSFjSA23Q0fzjjZeh0jbJvWVDZ0cJT8yaNNaaXHzueNjg==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/tslib/-/tslib-2.3.0.tgz",
+   "optional": false,
+   "dev": false
+  },
+  {
+   "name": "zrender",
+   "version": "6.1.0",
+   "license": "BSD-3-Clause",
+   "integrity": "sha512-oEGMDB6pOP2S6OwRR4PdVv610zrjnA3Bh+JnSG12fYJlBKjtNAoEb5fSUoCOOINlH96I2fU38/A2UpRKs67xYQ==",
+   "registry_integrity_match": true,
+   "resolved": "https://registry.npmjs.org/zrender/-/zrender-6.1.0.tgz",
+   "optional": false,
+   "dev": false
+  }
+ ],
+ "files": [
+  {
+   "file": "site/fonts/BeVietnamPro-Bold.woff2",
+   "sha256": "32eb3a183490d280351f9676cc0b8e1725d95090988db57503dc83879b5fe602",
+   "bytes": 41212,
+   "source": "fontTools woff2 of typst/fonts/BeVietnamPro-Bold.ttf",
+   "package": "Be Vietnam Pro",
+   "version": "Version 1.002",
+   "licence": "OFL-1.1",
+   "unicode_range": null
+  },
+  {
+   "file": "site/fonts/BeVietnamPro-BoldItalic.woff2",
+   "sha256": "e603b9895e7282a1b2fe7151615104d107c134f5f14dc3e8e6d67e8beb99ca3b",
+   "bytes": 40768,
+   "source": "fontTools woff2 of typst/fonts/BeVietnamPro-BoldItalic.ttf",
+   "package": "Be Vietnam Pro",
+   "version": "Version 1.002",
+   "licence": "OFL-1.1",
+   "unicode_range": null
+  },
+  {
+   "file": "site/fonts/BeVietnamPro-Italic.woff2",
+   "sha256": "14ea3679c80b111a2fa3108273a7e41b6d84b0825924f61442b53745d558c3a7",
+   "bytes": 38764,
+   "source": "fontTools woff2 of typst/fonts/BeVietnamPro-Italic.ttf",
+   "package": "Be Vietnam Pro",
+   "version": "Version 1.002",
+   "licence": "OFL-1.1",
+   "unicode_range": null
+  },
+  {
+   "file": "site/fonts/BeVietnamPro-Medium.woff2",
+   "sha256": "15a399b6a57023c665fa8aca7f4691d36c512b17cc36f74bd9dc077487ac9ffc",
+   "bytes": 40232,
+   "source": "fontTools woff2 of typst/fonts/BeVietnamPro-Medium.ttf",
+   "package": "Be Vietnam Pro",
+   "version": "Version 1.002",
+   "licence": "OFL-1.1",
+   "unicode_range": null
+  },
+  {
+   "file": "site/fonts/BeVietnamPro-Regular.woff2",
+   "sha256": "907ebfa4a4bd967cdcb313b2889655ff9fb90d5fd4f193723aa99142d14a1652",
+   "bytes": 38064,
+   "source": "fontTools woff2 of typst/fonts/BeVietnamPro-Regular.ttf",
+   "package": "Be Vietnam Pro",
+   "version": "Version 1.002",
+   "licence": "OFL-1.1",
+   "unicode_range": null
+  },
+  {
+   "file": "site/fonts/BeVietnamPro-SemiBold.woff2",
+   "sha256": "91329e727900425300269d9402c32e9e020943783fc0b9457f0b7419bef90dbf",
+   "bytes": 40464,
+   "source": "fontTools woff2 of typst/fonts/BeVietnamPro-SemiBold.ttf",
+   "package": "Be Vietnam Pro",
+   "version": "Version 1.002",
+   "licence": "OFL-1.1",
+   "unicode_range": null
+  },
+  {
+   "file": "site/fonts/JetBrainsMonoNL-Bold.woff2",
+   "sha256": "07baeb91b5a375556f0716f8b8bbde09c6fdaa14471500c786e8a414f7f60943",
+   "bytes": 73176,
+   "source": "fontTools woff2 of typst/fonts/JetBrainsMonoNL-Bold.ttf",
+   "package": "JetBrains Mono NL",
+   "version": "Version 2.304",
+   "licence": "OFL-1.1",
+   "unicode_range": null
+  },
+  {
+   "file": "site/fonts/JetBrainsMonoNL-BoldItalic.woff2",
+   "sha256": "b8d739075f5ee60f4b89f55e8eae5d400eaac5fe951c88fd6f8c5d02ca44b3bb",
+   "bytes": 76692,
+   "source": "fontTools woff2 of typst/fonts/JetBrainsMonoNL-BoldItalic.ttf",
+   "package": "JetBrains Mono NL",
+   "version": "Version 2.304",
+   "licence": "OFL-1.1",
+   "unicode_range": null
+  },
+  {
+   "file": "site/fonts/JetBrainsMonoNL-Italic.woff2",
+   "sha256": "5f9bce111316b5e68a2a82fac6ddbc4fb5b1ef7805dad58002bb5031f47a71e3",
+   "bytes": 75056,
+   "source": "fontTools woff2 of typst/fonts/JetBrainsMonoNL-Italic.ttf",
+   "package": "JetBrains Mono NL",
+   "version": "Version 2.304",
+   "licence": "OFL-1.1",
+   "unicode_range": null
+  },
+  {
+   "file": "site/fonts/JetBrainsMonoNL-Regular.woff2",
+   "sha256": "69c335c6d989acdebe097c2c3f7f03afa6c87222ce7476428e568b01afe0dee9",
+   "bytes": 71828,
+   "source": "fontTools woff2 of typst/fonts/JetBrainsMonoNL-Regular.ttf",
+   "package": "JetBrains Mono NL",
+   "version": "Version 2.304",
+   "licence": "OFL-1.1",
+   "unicode_range": null
+  },
+  {
+   "file": "site/fonts/NotoSansMath-Regular.subset.woff2",
+   "sha256": "6c2bf81c42d4575ee9bfc9e851b56dbd684c7d6123e1eb2f8edd323ce4e26a03",
+   "bytes": 109212,
+   "source": "fontTools subset of typst/fonts/NotoSansMath-Regular.ttf",
+   "package": "Noto Sans Math",
+   "version": "Version 3.000",
+   "licence": "OFL-1.1",
+   "unicode_range": "U+00B1, U+00D7, U+00F7, U+2190-2300, U+2302, U+2305-2306, U+2308-230B, U+2310-2313, U+2317, U+2319, U+231C-2323, U+232C, U+2332, U+2336-237A, U+237C, U+2394-2395, U+239B-23B9, U+23CE, U+23D0, U+23DC-23E7, U+27C0-27FF, U+2900-2AFF, U+2BFE"
+  },
+  {
+   "file": "site/fonts/NotoSansSymbols2-Regular.subset.woff2",
+   "sha256": "3af9caa7e9c19df39ff78b7e626e3fa152c173b0a4233b9c6583935ea632862e",
+   "bytes": 45696,
+   "source": "fontTools subset of typst/fonts/NotoSansSymbols2-Regular.ttf",
+   "package": "Noto Sans Symbols 2",
+   "version": "Version 2.008",
+   "licence": "OFL-1.1",
+   "unicode_range": "U+21AF, U+21E6-21F0, U+21F3, U+2316, U+2318, U+231A-231B, U+2324-2328, U+232B, U+237B, U+237D-237F, U+2394, U+23CE-23CF, U+23E9-23EA, U+23ED-23EF, U+23F1-23FF, U+25A0-2609, U+260E-2612, U+2614-2623, U+2630-2637, U+263C, U+2654-2668, U+267F-268F, U+269E-26A1, U+26AA-26AC, U+26BD-26CD, U+26CF-26E1, U+2700-2704, U+2706-2709, U+270B-271C, U+2722-2727, U+2729-274B, U+274D, U+274F-2753, U+2756-2775, U+2794, U+2798-27AF, U+27B1-27BE, U+2B00-2B0D, U+2B12-2B2F, U+2B4D-2B73, U+2B76-2B95, U+2B97-2BFD, U+2BFF"
+  },
+  {
+   "file": "site/fonts/NotoSerif-Bold.woff2",
+   "sha256": "c20fa41abea6e0dc9817c64d136752b71bfd923d4fb688b8f84cc3701208095c",
+   "bytes": 247288,
+   "source": "fontTools woff2 of typst/fonts/NotoSerif-Bold.ttf",
+   "package": "Noto Serif",
+   "version": "Version 2.015",
+   "licence": "OFL-1.1",
+   "unicode_range": null
+  },
+  {
+   "file": "site/fonts/NotoSerif-BoldItalic.woff2",
+   "sha256": "d22defc9409c139d84195a2672645e42769f3defd5887ed708afbf09303d99ee",
+   "bytes": 275316,
+   "source": "fontTools woff2 of typst/fonts/NotoSerif-BoldItalic.ttf",
+   "package": "Noto Serif",
+   "version": "Version 2.015",
+   "licence": "OFL-1.1",
+   "unicode_range": null
+  },
+  {
+   "file": "site/fonts/NotoSerif-Italic.woff2",
+   "sha256": "81ee4e70cdc6df140bbdb9644604f82f7fa4fa17a255f02b5397abdfaed9c75c",
+   "bytes": 253816,
+   "source": "fontTools woff2 of typst/fonts/NotoSerif-Italic.ttf",
+   "package": "Noto Serif",
+   "version": "Version 2.015",
+   "licence": "OFL-1.1",
+   "unicode_range": null
+  },
+  {
+   "file": "site/fonts/NotoSerif-Regular.woff2",
+   "sha256": "839ca259c8fa8cd3c34198aba645767e935cbd2c7dbd739af4cacd33bd32445b",
+   "bytes": 232768,
+   "source": "fontTools woff2 of typst/fonts/NotoSerif-Regular.ttf",
+   "package": "Noto Serif",
+   "version": "Version 2.015",
+   "licence": "OFL-1.1",
+   "unicode_range": null
+  },
+  {
+   "file": "site/fonts/OFL-BeVietnamPro.txt",
+   "sha256": "6b7f8f73609a25ea78c891e34cf37b06f8a676b7ea986e941e43b009110f2a85",
+   "bytes": 4397,
+   "source": "copy of typst/fonts/OFL-BeVietnamPro.txt",
+   "package": "OFL-BeVietnamPro",
+   "version": "",
+   "licence": "OFL-1.1"
+  },
+  {
+   "file": "site/fonts/OFL-JetBrainsMono.txt",
+   "sha256": "30f0c136e3c88e422d0791acd97238870f9054a9729bc34cf2ff0d4ed8cac4ad",
+   "bytes": 4399,
+   "source": "copy of typst/fonts/OFL-JetBrainsMono.txt",
+   "package": "OFL-JetBrainsMono",
+   "version": "",
+   "licence": "OFL-1.1"
+  },
+  {
+   "file": "site/fonts/OFL-Noto.txt",
+   "sha256": "f2095b08bed08b23a6fe26112fcd679a2bee3f002eef077eb05d215ed1051bd8",
+   "bytes": 4374,
+   "source": "copy of typst/fonts/OFL-Noto.txt",
+   "package": "OFL-Noto",
+   "version": "",
+   "licence": "OFL-1.1"
+  },
+  {
+   "file": "site/fonts/embedded/be-vietnam-pro.css",
+   "sha256": "79fb1ea8eaf7fe334e8b028f1a3198b5996ac4c55d9e893908c6b5150c16f0f0",
+   "bytes": 320526,
+   "source": "generated @font-face CSS",
+   "package": "fonts",
+   "version": "",
+   "licence": "OFL-1.1"
+  },
+  {
+   "file": "site/fonts/embedded/jetbrains-mono-nl.css",
+   "sha256": "798894fdd76d09d283344e5f903d76f1535a0295bffacc6d640a0200b3d0299c",
+   "bytes": 396528,
+   "source": "generated @font-face CSS",
+   "package": "fonts",
+   "version": "",
+   "licence": "OFL-1.1"
+  },
+  {
+   "file": "site/fonts/embedded/noto-serif.css",
+   "sha256": "c2d3dcc5a0473881bb75223828dc47ad623eab2eae347b72ea39182fbc37382e",
+   "bytes": 1346420,
+   "source": "generated @font-face CSS",
+   "package": "fonts",
+   "version": "",
+   "licence": "OFL-1.1"
+  },
+  {
+   "file": "site/fonts/embedded/symbols.css",
+   "sha256": "e10f9daaf87a5c38cf0c3e68aba32ed75837c4a7a7c09d8f985deff9e3b9c261",
+   "bytes": 353666,
+   "source": "generated @font-face CSS",
+   "package": "fonts",
+   "version": "",
+   "licence": "OFL-1.1"
+  },
+  {
+   "file": "site/fonts/fonts-embedded.css",
+   "sha256": "8ad4e825cb0d0141d4562a596783be4e04a8a6078681c93847dabb8ce7d96b65",
+   "bytes": 711,
+   "source": "generated @font-face CSS",
+   "package": "fonts",
+   "version": "",
+   "licence": "OFL-1.1"
+  },
+  {
+   "file": "site/fonts/fonts.css",
+   "sha256": "b310586f4e6846102ef809b9bf2038ae8ba58696f880df93e853a5506bf5e39b",
+   "bytes": 4210,
+   "source": "generated @font-face CSS",
+   "package": "fonts",
+   "version": "",
+   "licence": "OFL-1.1"
+  },
+  {
+   "file": "site/vendor/3d-force-graph/3d-force-graph.iife.min.js",
+   "sha256": "dc554a14b532742128139c1e4dfcd17d2771f462c9b18bd824492f4efd02f0e2",
+   "bytes": 305600,
+   "package": "3d-force-graph",
+   "version": "1.80.2",
+   "licence": "MIT",
+   "source": "esbuild 0.28.2 IIFE (tools/vendor-build/build.mjs)",
+   "bundled_packages": [
+    "3d-force-graph@1.80.2 (MIT)",
+    "@babel/runtime@7.29.13 (MIT)",
+    "@tweenjs/tween.js@25.0.0 (MIT)",
+    "accessor-fn@1.5.3 (MIT)",
+    "d3-array@3.2.5 (ISC)",
+    "d3-binarytree@1.0.2 (MIT)",
+    "d3-color@3.1.1 (ISC)",
+    "d3-dispatch@3.0.2 (ISC)",
+    "d3-force-3d@3.0.6 (MIT)",
+    "d3-format@3.1.3 (ISC)",
+    "d3-interpolate@3.0.2 (ISC)",
+    "d3-octree@1.1.0 (MIT)",
+    "d3-quadtree@3.0.2 (ISC)",
+    "d3-scale@4.0.3 (ISC)",
+    "d3-scale-chromatic@3.1.1 (ISC)",
+    "d3-selection@3.0.1 (ISC)",
+    "d3-time@3.1.1 (ISC)",
+    "d3-time-format@4.1.1 (ISC)",
+    "d3-timer@3.0.2 (ISC)",
+    "data-bind-mapper@1.0.3 (MIT)",
+    "float-tooltip@1.8.0 (MIT)",
+    "kapsule@1.16.3 (MIT)",
+    "lodash-es@4.18.1 (MIT)",
+    "ngraph.events@1.4.0 (BSD-3-Clause)",
+    "ngraph.forcelayout@3.3.1 (BSD-3-Clause)",
+    "ngraph.graph@20.1.2 (BSD-3-Clause)",
+    "ngraph.merge@1.0.0 (MIT)",
+    "ngraph.random@1.2.0 (BSD-3-Clause)",
+    "polished@4.3.1 (MIT)",
+    "preact@11.2.0 (MIT)",
+    "three@0.187.0 (MIT)",
+    "three-forcegraph@1.43.6 (MIT)",
+    "three-render-objects@1.44.1 (MIT)",
+    "tinycolor2@1.6.0 (MIT)"
+   ]
+  },
+  {
+   "file": "site/vendor/README.md",
+   "sha256": "90551c97e9628a44164b84c221e0a7969cff2823f882cc005d7122522d2de17b",
+   "bytes": 2430,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/THIRD_PARTY_LICENSES.md",
+   "sha256": "258494ca30533068d50129ea0473c70f2da4fcbabedf241e9a90fc13cb3be720",
+   "bytes": 3934,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/echarts/echarts.min.js",
+   "sha256": "b66b25aeb4df84e33199dc21694014d336d222cbd9deb0e5a7c14bd6aa0d0fd0",
+   "bytes": 1121883,
+   "package": "echarts",
+   "version": "6.1.0",
+   "licence": "Apache-2.0",
+   "source": "https://registry.npmjs.org/echarts/-/echarts-6.1.0.tgz -> package/dist/echarts.min.js",
+   "tarball_integrity": "sha512-q0yaFPggC9FUdsWH4blavRWFmxdrIodbkoKNAjJudAI6CA9gNPxHtV2RcZNEepZVlk4yvBYkOkbk6HIVpIyHZA==",
+   "bundled_packages": [
+    "echarts@6.1.0 (Apache-2.0)",
+    "zrender@6.1.0 (BSD-3-Clause)",
+    "tslib@2.3.0 (0BSD)"
+   ]
+  },
+  {
+   "file": "site/vendor/licenses/3d-force-graph-LICENSE.txt",
+   "sha256": "7262e566e874d1ce8cfadace01d4f635f8d704b6bdf7b4345cc028e5faeafded",
+   "bytes": 1072,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/@babel__runtime-LICENSE.txt",
+   "sha256": "117da2af0d4ce0fe1c8e19b5cff9dcd806adf973d328d27b11d4448c4ff24f76",
+   "bytes": 1106,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/@tweenjs__tween.js-LICENSE.txt",
+   "sha256": "c95fecd88f2709bfc34e4d1f1ccc36d17048990e6ba26c283cfecdef0432936b",
+   "bytes": 1166,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/accessor-fn-LICENSE.txt",
+   "sha256": "7262e566e874d1ce8cfadace01d4f635f8d704b6bdf7b4345cc028e5faeafded",
+   "bytes": 1072,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/d3-array-LICENSE.txt",
+   "sha256": "2a6d2d5f32ba0b755ddbc1c833f766e30cdbe6ebe9a6d4e3e24427721f0b63d3",
+   "bytes": 731,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/d3-binarytree-LICENSE.txt",
+   "sha256": "7262e566e874d1ce8cfadace01d4f635f8d704b6bdf7b4345cc028e5faeafded",
+   "bytes": 1072,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/d3-color-LICENSE.txt",
+   "sha256": "2a6d2d5f32ba0b755ddbc1c833f766e30cdbe6ebe9a6d4e3e24427721f0b63d3",
+   "bytes": 731,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/d3-dispatch-LICENSE.txt",
+   "sha256": "2a6d2d5f32ba0b755ddbc1c833f766e30cdbe6ebe9a6d4e3e24427721f0b63d3",
+   "bytes": 731,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/d3-force-3d-LICENSE.txt",
+   "sha256": "7262e566e874d1ce8cfadace01d4f635f8d704b6bdf7b4345cc028e5faeafded",
+   "bytes": 1072,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/d3-format-LICENSE.txt",
+   "sha256": "2a6d2d5f32ba0b755ddbc1c833f766e30cdbe6ebe9a6d4e3e24427721f0b63d3",
+   "bytes": 731,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/d3-interpolate-LICENSE.txt",
+   "sha256": "2a6d2d5f32ba0b755ddbc1c833f766e30cdbe6ebe9a6d4e3e24427721f0b63d3",
+   "bytes": 731,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/d3-octree-LICENSE.txt",
+   "sha256": "7262e566e874d1ce8cfadace01d4f635f8d704b6bdf7b4345cc028e5faeafded",
+   "bytes": 1072,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/d3-quadtree-LICENSE.txt",
+   "sha256": "2a6d2d5f32ba0b755ddbc1c833f766e30cdbe6ebe9a6d4e3e24427721f0b63d3",
+   "bytes": 731,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/d3-scale-LICENSE.txt",
+   "sha256": "2a6d2d5f32ba0b755ddbc1c833f766e30cdbe6ebe9a6d4e3e24427721f0b63d3",
+   "bytes": 731,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/d3-scale-chromatic-LICENSE.txt",
+   "sha256": "667e7fd523c85aefbe152167ae59d6cdc0f944720c11d1f17ecef8783d1dcb9b",
+   "bytes": 1423,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/d3-selection-LICENSE.txt",
+   "sha256": "2a6d2d5f32ba0b755ddbc1c833f766e30cdbe6ebe9a6d4e3e24427721f0b63d3",
+   "bytes": 731,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/d3-time-LICENSE.txt",
+   "sha256": "2a6d2d5f32ba0b755ddbc1c833f766e30cdbe6ebe9a6d4e3e24427721f0b63d3",
+   "bytes": 731,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/d3-time-format-LICENSE.txt",
+   "sha256": "2a6d2d5f32ba0b755ddbc1c833f766e30cdbe6ebe9a6d4e3e24427721f0b63d3",
+   "bytes": 731,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/d3-timer-LICENSE.txt",
+   "sha256": "2a6d2d5f32ba0b755ddbc1c833f766e30cdbe6ebe9a6d4e3e24427721f0b63d3",
+   "bytes": 731,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/data-bind-mapper-LICENSE.txt",
+   "sha256": "bbba7cb786b64e6b7f9d7cb6dacae5c78898752f7c60d3fc04c13ca67e4dc7f2",
+   "bytes": 1072,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/echarts-LICENSE.txt",
+   "sha256": "634293835b43a6dd2094fa39182a3d9a6b9ca43b7fdb9ac354e8037af2a3093a",
+   "bytes": 11990,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/echarts-NOTICE.txt",
+   "sha256": "d491d358344f842685c1b1585970999db65fe30ecf7ef3867af8814f4016c016",
+   "bytes": 168,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/fflate-LICENSE.txt",
+   "sha256": "0a1df3a083d0c010560aa342e87959c8c1070e6fd54545741f083f22d0c8b551",
+   "bytes": 1069,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/float-tooltip-LICENSE.txt",
+   "sha256": "07e7bf38169a0e26e088a0a6e6ba7f60704b2d0442c4433044169924c68ba732",
+   "bytes": 1072,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/kapsule-LICENSE.txt",
+   "sha256": "7262e566e874d1ce8cfadace01d4f635f8d704b6bdf7b4345cc028e5faeafded",
+   "bytes": 1072,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/lodash-es-LICENSE.txt",
+   "sha256": "f71e8ed126b46346494aad5486874cd8f0aafe95092ed67d2e3cb6110f939abc",
+   "bytes": 1952,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/ngraph.events-LICENSE.txt",
+   "sha256": "a70b73ddfbc2ce8a01e2f66a50fff4c37c052b8602a95842a54cbd1be2c463e6",
+   "bytes": 1494,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/ngraph.forcelayout-LICENSE.txt",
+   "sha256": "28b2d0a69b4f870bc9d181ddef39e117e2db3a64816d83db3a67669f65e7083d",
+   "bytes": 1497,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/ngraph.graph-LICENSE.txt",
+   "sha256": "54dcd2d143f95c33650b436731c6119554f8e825f9efc5d500b6585cd6865719",
+   "bytes": 1497,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/ngraph.merge-LICENSE.txt",
+   "sha256": "e9b1ba0cc96533c469b1c76b2769e8d92a6426d53237f87efa09d599af76a520",
+   "bytes": 1086,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/ngraph.random-LICENSE.txt",
+   "sha256": "3a3f33e4a8dae9e3b64430f4e207435a3169e8f48e54fddc5c9982ca32680977",
+   "bytes": 1495,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/oxigraph-LICENSE-APACHE.txt",
+   "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+   "bytes": 10847,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/oxigraph-LICENSE-MIT.txt",
+   "sha256": "1f4f6736adc52ebfda18bb84947e0ef492bd86a408c0e83872efb75ed5e02838",
+   "bytes": 1063,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/polished-LICENSE.md",
+   "sha256": "671e164460e3edbb93c0e22813d45dd37c1c643c6a7cbddde0f70c8914aab294",
+   "bytes": 1099,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/preact-LICENSE.txt",
+   "sha256": "1fe6958409c8c257a70c587a18b6f7f412b179b456630790d30b2ec9a8e4b7d4",
+   "bytes": 1087,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/three-LICENSE.txt",
+   "sha256": "8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc",
+   "bytes": 1081,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/three-forcegraph-LICENSE.txt",
+   "sha256": "7262e566e874d1ce8cfadace01d4f635f8d704b6bdf7b4345cc028e5faeafded",
+   "bytes": 1072,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/three-render-objects-LICENSE.txt",
+   "sha256": "5b6dc9ce44c7b73620b191c567339212bd00537af46fdedaf98304c34214cc9c",
+   "bytes": 1072,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/three-spritetext-LICENSE.txt",
+   "sha256": "5b6dc9ce44c7b73620b191c567339212bd00537af46fdedaf98304c34214cc9c",
+   "bytes": 1072,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/tinycolor2-LICENSE.txt",
+   "sha256": "c6cb470a9ba0a50d57611aeec1f31da609c5aefdbee8eac7f289bcb0e30625fa",
+   "bytes": 1081,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/tslib-LICENSE.txt",
+   "sha256": "210b19e543130388c68654b7497e967119ce17145f66ab7d85688fbd70f08751",
+   "bytes": 655,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/licenses/zrender-LICENSE.txt",
+   "sha256": "a681e9d183c72b4af4856935893805eb48c08f0f5a3f260203db7444c20fb98a",
+   "bytes": 1509,
+   "package": "licences",
+   "version": "",
+   "licence": "-",
+   "source": "collected"
+  },
+  {
+   "file": "site/vendor/oxigraph/oxigraph.iife.min.js",
+   "sha256": "034ef87b04d2227ba25f0e46c41b26e23ef09f6fe7a8ddb030cb8ccc6182fcdc",
+   "bytes": 2550203,
+   "package": "oxigraph",
+   "version": "0.5.13",
+   "licence": "MIT OR Apache-2.0",
+   "source": "esbuild 0.28.2 IIFE (tools/vendor-build/build.mjs)",
+   "bundled_packages": [
+    "fflate@0.8.3 (MIT)",
+    "oxigraph@0.5.13 (MIT OR Apache-2.0)"
+   ],
+   "embedded_wasm": {
+    "file": "oxigraph/web_bg.wasm",
+    "wasm_bytes": 4324920,
+    "wasm_sha256": "75e3f0f4de67921e88e3f6d587b2a8e7aa822abbe3a3b79873f2b97f20d52c24",
+    "deflated_bytes": 1577243,
+    "payload_chars": 2523589,
+    "encoding": "zlib (fflate level 9, mem 12) + RFC 4648 base32, lower case, no padding (a-z2-7)"
+   }
+  },
+  {
+   "file": "site/vendor/three-spritetext/three-spritetext.min.js",
+   "sha256": "6c2059abe62aac9ee977a3630d8f1b6dd2b8a1ff0ef3db032cf2abd433f7a7be",
+   "bytes": 9179,
+   "package": "three-spritetext",
+   "version": "1.10.0",
+   "licence": "MIT",
+   "source": "https://registry.npmjs.org/three-spritetext/-/three-spritetext-1.10.0.tgz -> package/dist/three-spritetext.min.js",
+   "tarball_integrity": "sha512-t08iP1FCU1lQh8T5MmCpdijKgas8GDHJE0LqMGBuVu3xqMMpFnEZhTlih7FlxLPQizHIGoumUSpfOlY1GO/Tgg==",
+   "bundled_packages": [
+    "three-spritetext@1.10.0 (MIT)"
+   ]
+  },
+  {
+   "file": "site/vendor/three/three.iife.min.js",
+   "sha256": "ca20b71dfc49cc7dda464f26ff450ac388e41b37ddf43bf924c4f277c2f890df",
+   "bytes": 786024,
+   "package": "three",
+   "version": "0.187.0",
+   "licence": "MIT",
+   "source": "esbuild 0.28.2 IIFE (tools/vendor-build/build.mjs)",
+   "bundled_packages": [
+    "three@0.187.0 (MIT)"
+   ]
+  },
+  {
+   "file": "typst/fonts/BeVietnamPro-Bold.ttf",
+   "sha256": "7f738fe5c43c8872807b20e2d30d42163618de8a4daf7f48a939adac32c16847",
+   "bytes": 140300,
+   "source": "https://raw.githubusercontent.com/google/fonts/5bb28733cec313b63fbd415b574b5ae35c8aa8b8/ofl/bevietnampro/BeVietnamPro-Bold.ttf",
+   "package": "Be Vietnam Pro",
+   "version": "Version 1.002",
+   "licence": "OFL-1.1",
+   "font": {
+    "family": "Be Vietnam Pro",
+    "style_name": "Bold",
+    "weight": 700,
+    "italic": false,
+    "version": "Version 1.002",
+    "postscript_name": "BeVietnamPro-Bold"
+   }
+  },
+  {
+   "file": "typst/fonts/BeVietnamPro-BoldItalic.ttf",
+   "sha256": "a2a65bdf9b251beb3d658ae691889d71ce63c0290940c87ca60b449ceb0bdaee",
+   "bytes": 137748,
+   "source": "https://raw.githubusercontent.com/google/fonts/5bb28733cec313b63fbd415b574b5ae35c8aa8b8/ofl/bevietnampro/BeVietnamPro-BoldItalic.ttf",
+   "package": "Be Vietnam Pro",
+   "version": "Version 1.002",
+   "licence": "OFL-1.1",
+   "font": {
+    "family": "Be Vietnam Pro",
+    "style_name": "Bold Italic",
+    "weight": 700,
+    "italic": true,
+    "version": "Version 1.002",
+    "postscript_name": "BeVietnamPro-BoldItalic"
+   }
+  },
+  {
+   "file": "typst/fonts/BeVietnamPro-Italic.ttf",
+   "sha256": "a33ebb3f68e0e260a7d3874d64259ad309971a2daf969e7ce5f444d70bce535f",
+   "bytes": 137244,
+   "source": "https://raw.githubusercontent.com/google/fonts/5bb28733cec313b63fbd415b574b5ae35c8aa8b8/ofl/bevietnampro/BeVietnamPro-Italic.ttf",
+   "package": "Be Vietnam Pro",
+   "version": "Version 1.002",
+   "licence": "OFL-1.1",
+   "font": {
+    "family": "Be Vietnam Pro",
+    "style_name": "Italic",
+    "weight": 400,
+    "italic": true,
+    "version": "Version 1.002",
+    "postscript_name": "BeVietnamPro-Italic"
+   }
+  },
+  {
+   "file": "typst/fonts/BeVietnamPro-Medium.ttf",
+   "sha256": "b60832bfa0fcd015158112c64d7e3fdad3b0c6287d1823f85a3103636e845268",
+   "bytes": 135980,
+   "source": "https://raw.githubusercontent.com/google/fonts/5bb28733cec313b63fbd415b574b5ae35c8aa8b8/ofl/bevietnampro/BeVietnamPro-Medium.ttf",
+   "package": "Be Vietnam Pro",
+   "version": "Version 1.002",
+   "licence": "OFL-1.1",
+   "font": {
+    "family": "Be Vietnam Pro",
+    "style_name": "Medium",
+    "weight": 500,
+    "italic": false,
+    "version": "Version 1.002",
+    "postscript_name": "BeVietnamPro-Medium"
+   }
+  },
+  {
+   "file": "typst/fonts/BeVietnamPro-Regular.ttf",
+   "sha256": "cd1ef6e9d7db28ad5cdb88a65ccbe693870e60d340b791f349d248342b4fe4c3",
+   "bytes": 132948,
+   "source": "https://raw.githubusercontent.com/google/fonts/5bb28733cec313b63fbd415b574b5ae35c8aa8b8/ofl/bevietnampro/BeVietnamPro-Regular.ttf",
+   "package": "Be Vietnam Pro",
+   "version": "Version 1.002",
+   "licence": "OFL-1.1",
+   "font": {
+    "family": "Be Vietnam Pro",
+    "style_name": "Regular",
+    "weight": 400,
+    "italic": false,
+    "version": "Version 1.002",
+    "postscript_name": "BeVietnamPro-Regular"
+   }
+  },
+  {
+   "file": "typst/fonts/BeVietnamPro-SemiBold.ttf",
+   "sha256": "bd8e27eb02720b9d91e59e4f10a90878643219f25ce6a8d9a4f06a8a88d3bb71",
+   "bytes": 136736,
+   "source": "https://raw.githubusercontent.com/google/fonts/5bb28733cec313b63fbd415b574b5ae35c8aa8b8/ofl/bevietnampro/BeVietnamPro-SemiBold.ttf",
+   "package": "Be Vietnam Pro",
+   "version": "Version 1.002",
+   "licence": "OFL-1.1",
+   "font": {
+    "family": "Be Vietnam Pro",
+    "style_name": "SemiBold",
+    "weight": 600,
+    "italic": false,
+    "version": "Version 1.002",
+    "postscript_name": "BeVietnamPro-SemiBold"
+   }
+  },
+  {
+   "file": "typst/fonts/JetBrainsMonoNL-Bold.ttf",
+   "sha256": "0198e841824025f8876e5c297f0b9b497ee8d6eb9969710a3328e1303f996ec3",
+   "bytes": 210988,
+   "source": "https://github.com/JetBrains/JetBrainsMono/releases/download/v2.304/JetBrainsMono-2.304.zip!fonts/ttf/JetBrainsMonoNL-Bold.ttf",
+   "package": "JetBrains Mono NL",
+   "version": "Version 2.304",
+   "licence": "OFL-1.1",
+   "font": {
+    "family": "JetBrains Mono NL",
+    "style_name": "Bold",
+    "weight": 700,
+    "italic": false,
+    "version": "Version 2.304",
+    "postscript_name": "JetBrainsMonoNL-Bold"
+   }
+  },
+  {
+   "file": "typst/fonts/JetBrainsMonoNL-BoldItalic.ttf",
+   "sha256": "6c2716f2e85101f4109a8c16916061eb38176b3b10342834858d6221ec2fda1b",
+   "bytes": 214132,
+   "source": "https://github.com/JetBrains/JetBrainsMono/releases/download/v2.304/JetBrainsMono-2.304.zip!fonts/ttf/JetBrainsMonoNL-BoldItalic.ttf",
+   "package": "JetBrains Mono NL",
+   "version": "Version 2.304",
+   "licence": "OFL-1.1",
+   "font": {
+    "family": "JetBrains Mono NL",
+    "style_name": "Bold Italic",
+    "weight": 700,
+    "italic": true,
+    "version": "Version 2.304",
+    "postscript_name": "JetBrainsMonoNL-BoldItalic"
+   }
+  },
+  {
+   "file": "typst/fonts/JetBrainsMonoNL-Italic.ttf",
+   "sha256": "c7392a134293e1af1d36fbf04940dd844f632afbf97f8325d1591d3af5096cb8",
+   "bytes": 211624,
+   "source": "https://github.com/JetBrains/JetBrainsMono/releases/download/v2.304/JetBrainsMono-2.304.zip!fonts/ttf/JetBrainsMonoNL-Italic.ttf",
+   "package": "JetBrains Mono NL",
+   "version": "Version 2.304",
+   "licence": "OFL-1.1",
+   "font": {
+    "family": "JetBrains Mono NL",
+    "style_name": "Italic",
+    "weight": 400,
+    "italic": true,
+    "version": "Version 2.304",
+    "postscript_name": "JetBrainsMonoNL-Italic"
+   }
+  },
+  {
+   "file": "typst/fonts/JetBrainsMonoNL-Regular.ttf",
+   "sha256": "fb3b2575d7b0657359707993288f12a7360344d39387bb26050e276d61f6bd2a",
+   "bytes": 208576,
+   "source": "https://github.com/JetBrains/JetBrainsMono/releases/download/v2.304/JetBrainsMono-2.304.zip!fonts/ttf/JetBrainsMonoNL-Regular.ttf",
+   "package": "JetBrains Mono NL",
+   "version": "Version 2.304",
+   "licence": "OFL-1.1",
+   "font": {
+    "family": "JetBrains Mono NL",
+    "style_name": "Regular",
+    "weight": 400,
+    "italic": false,
+    "version": "Version 2.304",
+    "postscript_name": "JetBrainsMonoNL-Regular"
+   }
+  },
+  {
+   "file": "typst/fonts/NotoSansMath-Regular.ttf",
+   "sha256": "d51afd5739c7ba6c44fcab35a88160e25dfb69a2d4ad0bd99533f8d894af1f96",
+   "bytes": 990564,
+   "source": "https://raw.githubusercontent.com/notofonts/notofonts.github.io/4cf78353cd1668040ba8efa13029cd910fcdf9e2/fonts/NotoSansMath/hinted/ttf/NotoSansMath-Regular.ttf",
+   "package": "Noto Sans Math",
+   "version": "Version 3.000",
+   "licence": "OFL-1.1",
+   "font": {
+    "family": "Noto Sans Math",
+    "style_name": "Regular",
+    "weight": 400,
+    "italic": false,
+    "version": "Version 3.000",
+    "postscript_name": "NotoSansMath-Regular"
+   }
+  },
+  {
+   "file": "typst/fonts/NotoSansSymbols2-Regular.ttf",
+   "sha256": "c4a0a80f0041ce4be81e2478faad22776d23edb98ae3f0d19bd37044820ecf9d",
+   "bytes": 671568,
+   "source": "https://raw.githubusercontent.com/notofonts/notofonts.github.io/4cf78353cd1668040ba8efa13029cd910fcdf9e2/fonts/NotoSansSymbols2/hinted/ttf/NotoSansSymbols2-Regular.ttf",
+   "package": "Noto Sans Symbols 2",
+   "version": "Version 2.008",
+   "licence": "OFL-1.1",
+   "font": {
+    "family": "Noto Sans Symbols 2",
+    "style_name": "Regular",
+    "weight": 400,
+    "italic": false,
+    "version": "Version 2.008",
+    "postscript_name": "NotoSansSymbols2-Regular"
+   }
+  },
+  {
+   "file": "typst/fonts/NotoSerif-Bold.ttf",
+   "sha256": "96656aa5cec8f1d6fd0e804c1fad397e1a1cfa082e6642124e0bda68cd8363ce",
+   "bytes": 747144,
+   "source": "https://raw.githubusercontent.com/notofonts/notofonts.github.io/4cf78353cd1668040ba8efa13029cd910fcdf9e2/fonts/NotoSerif/hinted/ttf/NotoSerif-Bold.ttf",
+   "package": "Noto Serif",
+   "version": "Version 2.015",
+   "licence": "OFL-1.1",
+   "font": {
+    "family": "Noto Serif",
+    "style_name": "Bold",
+    "weight": 700,
+    "italic": false,
+    "version": "Version 2.015",
+    "postscript_name": "NotoSerif-Bold"
+   }
+  },
+  {
+   "file": "typst/fonts/NotoSerif-BoldItalic.ttf",
+   "sha256": "c710c5b9cf354ae46e7a10472a08019b28220fafeb5887a482a76856f8f6fc0b",
+   "bytes": 779236,
+   "source": "https://raw.githubusercontent.com/notofonts/notofonts.github.io/4cf78353cd1668040ba8efa13029cd910fcdf9e2/fonts/NotoSerif/hinted/ttf/NotoSerif-BoldItalic.ttf",
+   "package": "Noto Serif",
+   "version": "Version 2.015",
+   "licence": "OFL-1.1",
+   "font": {
+    "family": "Noto Serif",
+    "style_name": "Bold Italic",
+    "weight": 700,
+    "italic": true,
+    "version": "Version 2.015",
+    "postscript_name": "NotoSerif-BoldItalic"
+   }
+  },
+  {
+   "file": "typst/fonts/NotoSerif-Italic.ttf",
+   "sha256": "749e80e313ef711f9373c6cce17c72297ef05490b3dcda7967d1d5d90bf1183f",
+   "bytes": 756796,
+   "source": "https://raw.githubusercontent.com/notofonts/notofonts.github.io/4cf78353cd1668040ba8efa13029cd910fcdf9e2/fonts/NotoSerif/hinted/ttf/NotoSerif-Italic.ttf",
+   "package": "Noto Serif",
+   "version": "Version 2.015",
+   "licence": "OFL-1.1",
+   "font": {
+    "family": "Noto Serif",
+    "style_name": "Italic",
+    "weight": 400,
+    "italic": true,
+    "version": "Version 2.015",
+    "postscript_name": "NotoSerif-Italic"
+   }
+  },
+  {
+   "file": "typst/fonts/NotoSerif-Regular.ttf",
+   "sha256": "19e72cd8d595fae5bd74a5206f5d938512e1183d4fed7abb1ec1be1d7efa5f88",
+   "bytes": 712444,
+   "source": "https://raw.githubusercontent.com/notofonts/notofonts.github.io/4cf78353cd1668040ba8efa13029cd910fcdf9e2/fonts/NotoSerif/hinted/ttf/NotoSerif-Regular.ttf",
+   "package": "Noto Serif",
+   "version": "Version 2.015",
+   "licence": "OFL-1.1",
+   "font": {
+    "family": "Noto Serif",
+    "style_name": "Regular",
+    "weight": 400,
+    "italic": false,
+    "version": "Version 2.015",
+    "postscript_name": "NotoSerif-Regular"
+   }
+  },
+  {
+   "file": "typst/fonts/OFL-BeVietnamPro.txt",
+   "sha256": "6b7f8f73609a25ea78c891e34cf37b06f8a676b7ea986e941e43b009110f2a85",
+   "bytes": 4397,
+   "source": "https://raw.githubusercontent.com/google/fonts/5bb28733cec313b63fbd415b574b5ae35c8aa8b8/ofl/bevietnampro/OFL.txt",
+   "package": "OFL-BeVietnamPro",
+   "version": "",
+   "licence": "OFL-1.1"
+  },
+  {
+   "file": "typst/fonts/OFL-JetBrainsMono.txt",
+   "sha256": "30f0c136e3c88e422d0791acd97238870f9054a9729bc34cf2ff0d4ed8cac4ad",
+   "bytes": 4399,
+   "source": "https://github.com/JetBrains/JetBrainsMono/releases/download/v2.304/JetBrainsMono-2.304.zip!OFL.txt",
+   "package": "OFL-JetBrainsMono",
+   "version": "",
+   "licence": "OFL-1.1"
+  },
+  {
+   "file": "typst/fonts/OFL-Noto.txt",
+   "sha256": "f2095b08bed08b23a6fe26112fcd679a2bee3f002eef077eb05d215ed1051bd8",
+   "bytes": 4374,
+   "source": "https://raw.githubusercontent.com/notofonts/notofonts.github.io/4cf78353cd1668040ba8efa13029cd910fcdf9e2/fonts/LICENSE",
+   "package": "OFL-Noto",
+   "version": "",
+   "licence": "OFL-1.1"
+  }
+ ]
+}

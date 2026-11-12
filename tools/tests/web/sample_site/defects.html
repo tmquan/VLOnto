@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VLOnto — trang mẫu có lỗi cố ý</title>
+<link rel="stylesheet" href="fonts/fonts.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+<header class="top">
+  <h1>VLOnto · Trang mẫu có lỗi cố ý</h1>
+  <nav><a href="#tong-quan">Tổng quan</a><a href="#loi">Lỗi cố ý</a></nav>
+</header>
+<main>
+<section id="tong-quan">
+  <h2>Tổng quan dữ liệu</h2>
+  <div class="cards">
+    <div class="card"><div class="k">Văn bản trong phạm vi</div><div class="v" id="k-docs">–</div></div>
+    <div class="card"><div class="k">Đoạn trích (chunk)</div><div class="v" id="k-chunks">–</div></div>
+  </div>
+  <div id="chart" class="chart"></div>
+</section>
+<section id="loi" class="defects">
+  <h2>Lỗi cố ý (để kiểm tra site_check.py)</h2>
+  <!-- 1. horizontal overflow on narrow screens: unbreakable IRI with white-space: nowrap -->
+  <p class="iri-nowrap">https://tmquan.github.io/VLOnto/id/van-ban/31-2024-QH15/dieu-1/khoan-2/diem-a/phien-ban/2024-08-01</p>
+  <!-- 2. clipped text: fixed-width badge with overflow hidden + ellipsis -->
+  <p>Trạng thái: <span class="badge-clip">Còn hiệu lực một phần (đã sửa đổi, bổ sung)</span></p>
+  <!-- 3. overlapping text: absolutely positioned label on top of a paragraph -->
+  <div class="overlap-demo">
+    <p>Điều 5. Nguyên tắc áp dụng pháp luật: văn bản có hiệu lực pháp lý cao hơn được ưu tiên áp dụng.</p>
+    <span class="stamp">NHÃN CHỒNG LÊN CHỮ</span>
+  </div>
+  <!-- 4. glyphs no vendored font has (CJK) -> tofu / local-font fallback -->
+  <p>Tham chiếu chéo: 法律 (chữ Hán, không có trong phông đã nhúng).</p>
+  <!-- 5. missing image -->
+  <p><img src="img/so-do.png" alt="Sơ đồ quan hệ" width="160" height="40"></p>
+  <!-- 8. Noto Serif without the math routing: ≠ is drawn as "=" + U+0338 (misplaced overlay) -->
+  <p style="font-family: 'Noto Serif', serif">Điều kiện: số hiệu ≠ rỗng.</p>
+  <!-- 9. a too-narrow cell with overflow-wrap:anywhere: "Năm 2024" is broken inside the words -->
+  <p>Cột quá hẹp: <span class="narrow-cell">Năm 2024</span></p>
+</section>
+</main>
+<footer>Dữ liệu mẫu · VLOnto</footer>
+<!-- 6. ES module: works over http://, blocked by CORS for file:// pages -->
+<script type="module" src="js/app.mjs"></script>
+<script src="vendor/echarts/echarts.min.js"></script>
+<script>
+(function () {
+  'use strict';
+  // 7. fetch() of a local JSON file: works over http://, blocked for file:// pages
+  fetch('data/stats.json').then(function (r) { return r.json(); }).then(function (S) {
+    var fmt = new Intl.NumberFormat('vi-VN');
+    document.getElementById('k-docs').textContent = fmt.format(S.documents);
+    document.getElementById('k-chunks').textContent = fmt.format(S.chunks);
+    var chart = echarts.init(document.getElementById('chart'));
+    chart.setOption({ animation: false, textStyle: { fontFamily: '"Be Vietnam Pro", sans-serif' },
+      xAxis: { type: 'category', data: S.by_year.map(function (r) { return String(r[0]); }) }, yAxis: { type: 'value' },
+      series: [{ type: 'bar', data: S.by_year.map(function (r) { return r[1]; }), itemStyle: { color: '#2f52d6' } }] });
+  });
+})();
+</script>
+</body>
+</html>

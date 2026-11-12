@@ -1,0 +1,141 @@
+{
+ "method": "For every edge type and resolution method, 10 edges were drawn at random (seed 11; all 9 for precedent_source) from the final build and judged by reading the document numbers, titles, dates, court names and the raw citation text stored with the edge. 'correct' means the target is the document, article, decision or court the source text refers to; 'wrong' means it is not; the rest could not be decided from the record (truncated evidence, or a decision whose court is unknown). Court assignments read from the judgment header were checked against the header text in a separate query (court part of the header only). The full sample is in spot_checks.md. Earlier builds of the same day were sampled too; the rules for court names and case-to-case links were tightened after those samples (see the notes and the limitations).",
+ "edge_types": {
+  "changes": {
+   "checked": 10,
+   "correct": 8,
+   "wrong": 0,
+   "notes": "#7 (22/2020/TT-BYT partially ends 08/2018/TT-BYT): the stored evidence excerpt stops before the operative verb; #8 (04/2022/NĐ-CP amends 84/2017/NĐ-CP): the amended provision is Art. 19a of Decree 173/2013 as inserted by 84/2017, so the target is arguable."
+  },
+  "legal_basis:parent-acts": {
+   "checked": 10,
+   "correct": 9,
+   "wrong": 1,
+   "notes": "#7: the decree on administrative penalties for cybersecurity and personal data lists the Customs Law 54/2014/QH13 among its basis acts in the source metadata (source error carried over)."
+  },
+  "legal_basis:preamble-citation": {
+   "checked": 10,
+   "correct": 9,
+   "wrong": 0,
+   "notes": "#9: Circular 18/2000/TT-BLĐTBXH mentions Circular 13/2000/TT-BLĐTBXH in its preamble; whether it is a legal basis or a cross-reference cannot be told from the record."
+  },
+  "legal_basis:constitution-preamble": {
+   "checked": 10,
+   "correct": 10,
+   "wrong": 0,
+   "notes": "all ten resolve to the 1992 or 2013 Constitution as named by year, by amending resolution or by date."
+  },
+  "citation:external": {
+   "checked": 10,
+   "correct": 10,
+   "wrong": 0,
+   "notes": "#4: citing circular 76/2023/TT-BTC now has no issue date (the source date 2015-06-25 was rejected by the year check)."
+  },
+  "citation:external_mention": {
+   "checked": 10,
+   "correct": 10,
+   "wrong": 0,
+   "notes": "an earlier sample (build of 11 Nov, morning) had one wrong link: 257/1998/TT-BGTVT cites 'Luật Đầu tư nước…' without a date and was resolved to the 1987 law instead of the 1996 law, which is not in the corpus."
+  },
+  "citation:parent_law": {
+   "checked": 10,
+   "correct": 10,
+   "wrong": 0,
+   "notes": "#9: 12/2025/TT-BNV resolves to Law 41/2024/QH15 (version chosen at the citing document's effective date)."
+  },
+  "citation:parent_law_mention": {
+   "checked": 10,
+   "correct": 10,
+   "wrong": 0,
+   "notes": ""
+  },
+  "decision_provision:docnum-key": {
+   "checked": 10,
+   "correct": 10,
+   "wrong": 0,
+   "notes": ""
+  },
+  "decision_provision:law-name-year": {
+   "checked": 10,
+   "correct": 10,
+   "wrong": 0,
+   "notes": ""
+  },
+  "decision_case:case-number-court": {
+   "checked": 10,
+   "correct": 9,
+   "wrong": 0,
+   "notes": "#4: the citing record 13/2022/QĐ-TA (no date) cites 1/2023/QĐ-TA of the same court; one of the two source numbers is wrong, so the link cannot be checked. Earlier build: 1 of 10 wrong (a provincial appellate judgment linked to a first-instance judgment of its own court; now excluded)."
+  },
+  "decision_case:case-number-date": {
+   "checked": 10,
+   "correct": 10,
+   "wrong": 0,
+   "notes": "same court, same province, or the High Court of the region; #1 crosses provinces but the court is also named next to the citation. Earlier builds: about 6 of 10 wrong before the court-consistency rules, then 1 of 10 wrong (High Court in Hà Nội linked to a Lâm Đồng judgment; now excluded by the region rule)."
+  },
+  "decision_case:precedent-number": {
+   "checked": 10,
+   "correct": 10,
+   "wrong": 0,
+   "notes": "precedent numbers (NN/YYYY/AL) are unambiguous."
+  },
+  "decision_court": {
+   "checked": 10,
+   "correct": 10,
+   "wrong": 0,
+   "notes": "7 read from the source court field; #5, #8 and #10 come from the judgment header (field only 'Tòa án nhân dân') and were checked against the court part of the header text."
+  },
+  "document_issuer": {
+   "checked": 10,
+   "correct": 10,
+   "wrong": 0,
+   "notes": "#6: joint circular 03/2008/TTLT-BTC-UBT is linked to the Ministry of Finance only; the second issuer has no curated code."
+  },
+  "precedent_source": {
+   "checked": 9,
+   "correct": 9,
+   "wrong": 0,
+   "notes": "all 9 edges (the whole table) come from the source metadata of the precedents."
+  },
+  "qa_article": {
+   "checked": 10,
+   "correct": 9,
+   "wrong": 0,
+   "notes": "#1: 'Điều 45 Khoản 3 Luật Đầu tư' is linked to the PPP Investment Law 64/2020/QH14 (gold label of the evaluation set; the truncated reference string cannot settle it)."
+  },
+  "qa_document": {
+   "checked": 10,
+   "correct": 10,
+   "wrong": 0,
+   "notes": ""
+  },
+  "term_related": {
+   "checked": 10,
+   "correct": 10,
+   "wrong": 0,
+   "notes": "relations are copied from the source glossary; #1 (environmental police ↔ food safety) is odd but faithful to the source."
+  },
+  "news_document": {
+   "checked": 10,
+   "correct": 10,
+   "wrong": 0,
+   "notes": ""
+  }
+ },
+ "limitations": [
+  "Courts: 1,237,053 of 1,544,091 decisions (80.1%) are linked to one of 1,345 courts. Not linked: court name anonymised in the source 218,922, court field and header unparsable 79,346, district name used in several provinces without a province 3,885, regional court without province 4,319, rare unparsed names 566.",
+  "Court names, residual errors (measured on the final table): about 30 court nodes carry garbage suffixes or typos from PDF-split or mis-encoded headers (for example 'huyện Ti Ên Lãng Thàn' for Tiên Lãng, 394 decisions; 'Vũ Quang Tĩnh', 'Đăk Hà Tinh', 'Ba Vì Thẩm Phán'); 100 district courts have fewer than 10 decisions (461 decisions in all) and are mostly such variants; 80 district courts (1,232 decisions) have no province. Partially anonymised names ('HUYỆN BÌNH Đ', 'HUYỆN TY') are treated as masked and not linked; one-word names are accepted only for a short list of real ones (Vinh, Huế, Pleiku, Kbang, Lắk, Đakrông, Cư M'gar, M'Đrắk).",
+  "Case-to-case links: 14,600 decision-to-decision edges from 2,562,161 case-citation records; 2,104,370 records cite a decision that is not in the corpus, 46,711 match several decisions with the same date. Date-only matches are kept only when both courts are known and are the same court, in the same province, or the citing court is the Supreme Court or the High Court of the region; 24,602 cross-province, 11,984 unknown-court and 1,336 out-of-region date matches were dropped, after a sample of an earlier build found about 6 of 10 cross-province date matches to be coincidences (numbers restart at every court each year). Final samples: case-number-date 10/10, case-number-court 9/10 with 1 not verifiable; with 10 items the 95% lower confidence bound on precision is about 69%. Known failure patterns: a decision of another court in the same province with the same number and date; wrong decision numbers in the source (a 2022 decision citing a 2023 one); the citing court's own name in the text window counted as the cited court.",
+  "Decision metadata in the source: 16,796 decisions carried the number of a cited law (for example 326/2016/UBTVQH14), so number, symbol and date were dropped; 54,645 dates earlier than a document or decision they cite, 9,981 dates more than a year from the year in the number and 117 out-of-range dates were set to null; 10,213 decisions have no date in the source.",
+  "Citation resolution to an in-scope document: external citations 83.1%, external mentions 68.7%, parent law 97.0%, parent-law mentions 99.0%; the rest cite documents outside the corpus or are too vague. When the citing document has no date, a law cited by name resolves to the only or latest version, which can be an older law of the same name (257/1998/TT-BGTVT linked to the 1987 Foreign Investment Law).",
+  "Legal basis: errors in the source parent-acts metadata are carried over (1 of 10 sampled), and a document mentioned in a preamble can be a cross-reference rather than a legal basis (1 of 10 not decidable).",
+  "Document issue dates: 144 source dates more than one year away from the year in the document number were set to null (kept in issue_date_source); 170 documents have no issue date.",
+  "Validity: 28,660 of 40,816 documents have validity 'unknown' (validity pipeline as of 2026-11-08).",
+  "Issuers: 57 curated issuing bodies; 1,750 documents have no issuer and 1,204 only symbols without a curated code; joint issuers without a curated code are not linked.",
+  "News: the source gives a publication date for only a small part of the news items (87 of 681).",
+  "Glossary: English labels of terms are mostly machine-translated in the source; definitions are not republished (licence).",
+  "Texts: article texts are not in the publishable tables (they stay in the build's local-only article-text table); no judgment text and no person names from court records are stored. Titles and article headings of public legal documents can name officials or award recipients (a pattern scan finds such names in 206 article headings and 6 document titles); they are kept as published by the source.",
+  "About 26.6% of the court-judgment records were still awaiting OCR in the source release and carry no citations.",
+  "Spot checks are small samples (10 per edge type); they catch systematic errors but give only coarse precision estimates."
+ ]
+}

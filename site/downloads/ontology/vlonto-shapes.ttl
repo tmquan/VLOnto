@@ -1,0 +1,185 @@
+# VLOnto SHACL shapes, version 0.1.0 (CC BY 4.0, tmquan).
+# Validate instance data together with the class hierarchy and the concept individuals of vlonto.ttl, so that
+# targetClass shapes also apply to instances of subclasses (for example vlo:Law under vlo:LegalDocument) and
+# sh:class can be checked for concept values (for example vlo:doctype-law a vlo:DocumentType).
+# vlonto.cli does this by adding vlonto.ontology_tools.shacl_support(ontology) to the data graph; pyshacl's
+# ont_graph option gives the same semantics but did not finish within 60 s per shape on this ontology
+# (pyshacl 0.40.2).
+
+@prefix vlo:     <https://tmquan.github.io/VLOnto/ontology#> .
+@prefix vlsh:    <https://tmquan.github.io/VLOnto/shapes#> .
+@prefix vlid:    <https://tmquan.github.io/VLOnto/id/> .
+@prefix sh:      <http://www.w3.org/ns/shacl#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix prov:    <http://www.w3.org/ns/prov#> .
+
+<https://tmquan.github.io/VLOnto/shapes>
+    a owl:Ontology ;
+    rdfs:label "VLOnto SHACL shapes"@en , "Ràng buộc SHACL của VLOnto"@vi ;
+    owl:versionInfo "0.1.0" ;
+    dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
+    dcterms:creator "tmquan" ;
+    owl:imports <https://tmquan.github.io/VLOnto/ontology> .
+
+# ------------------------------------------------------------------------------------------ documents
+vlsh:LegalDocumentShape a sh:NodeShape ;
+    sh:targetClass vlo:LegalDocument ;
+    rdfs:label "Legal document shape"@en ;
+    sh:property [ sh:path vlo:sourceId ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ; sh:pattern "^[0-9]+$" ] ;
+    sh:property [ sh:path vlo:sourceDataset ; sh:minCount 1 ; sh:maxCount 1 ; sh:hasValue vlid:source\/thuvienphapluat-vn-vbpl ] ;
+    sh:property [ sh:path vlo:sourceUrl ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:anyURI ; sh:pattern "^https://thuvienphapluat\\.vn/" ] ;
+    sh:property [ sh:path vlo:documentType ; sh:minCount 1 ; sh:maxCount 1 ; sh:class vlo:DocumentType ] ;
+    sh:property [ sh:path vlo:legalForceRank ; sh:minCount 1 ; sh:maxCount 1 ; sh:class vlo:LegalForceRank ] ;
+    sh:property [ sh:path vlo:validityStatus ; sh:minCount 1 ; sh:maxCount 1 ; sh:class vlo:ValidityStatus ] ;
+    sh:property [ sh:path vlo:title ; sh:minCount 1 ; sh:maxCount 1 ; sh:languageIn ( "vi" ) ; sh:minLength 2 ] ;
+    sh:property [ sh:path vlo:documentNumber ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path vlo:issueDate ; sh:maxCount 1 ; sh:datatype xsd:date ] ;
+    sh:property [ sh:path vlo:effectiveDate ; sh:maxCount 1 ; sh:datatype xsd:date ] ;
+    sh:property [ sh:path vlo:expiryDate ; sh:maxCount 1 ; sh:datatype xsd:date ] ;
+    sh:property [ sh:path vlo:isInForce ; sh:maxCount 1 ; sh:datatype xsd:boolean ] ;
+    sh:property [ sh:path vlo:issuedBy ; sh:class vlo:IssuingBody ] ;
+    sh:property [ sh:path vlo:legalArea ; sh:maxCount 1 ; sh:class vlo:LegalArea ] ;
+    sh:property [ sh:path vlo:replaces ; sh:class vlo:LegalDocument ] ;
+    sh:property [ sh:path vlo:amends ; sh:class vlo:LegalDocument ] ;
+    sh:property [ sh:path vlo:repeals ; sh:class vlo:LegalDocument ] ;
+    sh:property [ sh:path vlo:partiallyRepeals ; sh:class vlo:LegalDocument ] ;
+    sh:property [ sh:path vlo:partiallyTerminates ; sh:class vlo:LegalDocument ] ;
+    sh:property [ sh:path vlo:legalBasis ; sh:class vlo:LegalDocument ] ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] .
+
+# ------------------------------------------------------------------------------------------ provisions
+vlsh:ProvisionShape a sh:NodeShape ;
+    sh:targetClass vlo:Provision ;
+    rdfs:label "Provision shape"@en ;
+    sh:property [ sh:path vlo:inDocument ; sh:minCount 1 ; sh:maxCount 1 ; sh:class vlo:LegalDocument ] ;
+    sh:property [ sh:path vlo:isPartOf ; sh:minCount 1 ; sh:maxCount 1 ;
+                  sh:or ( [ sh:class vlo:LegalDocument ] [ sh:class vlo:Provision ] ) ] ;
+    sh:property [ sh:path vlo:provisionNumber ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path vlo:heading ; sh:maxCount 1 ; sh:maxLength 200 ] ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] .
+
+vlsh:ArticleShape a sh:NodeShape ;
+    sh:targetClass vlo:Article ;
+    sh:property [ sh:path vlo:provisionNumber ; sh:pattern "^[0-9]+[a-zđ]?$" ] ;
+    sh:property [ sh:path vlo:isPartOf ; sh:or ( [ sh:class vlo:LegalDocument ] [ sh:class vlo:Part ] [ sh:class vlo:Chapter ] [ sh:class vlo:Section ] [ sh:class vlo:Appendix ] ) ] .
+
+vlsh:ClauseShape a sh:NodeShape ;
+    sh:targetClass vlo:Clause ;
+    sh:property [ sh:path vlo:isPartOf ; sh:class vlo:Article ] ;
+    sh:property [ sh:path vlo:provisionNumber ; sh:pattern "^[0-9]+[a-zđ]?$" ] .
+
+vlsh:PointShape a sh:NodeShape ;
+    sh:targetClass vlo:Point ;
+    sh:property [ sh:path vlo:isPartOf ; sh:or ( [ sh:class vlo:Clause ] [ sh:class vlo:Article ] ) ] ;
+    sh:property [ sh:path vlo:provisionNumber ; sh:pattern "^[a-zđ]{1,2}$" ] .
+
+# ------------------------------------------------------------------------------------------ agents
+vlsh:IssuingBodyShape a sh:NodeShape ;
+    sh:targetClass vlo:IssuingBody ;
+    sh:property [ sh:path vlo:issuerCode ; sh:minCount 1 ; sh:maxCount 1 ; sh:pattern "^[A-Z0-9]+$" ] ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ] .
+
+vlsh:CourtShape a sh:NodeShape ;
+    sh:targetClass vlo:Court ;
+    sh:property [ sh:path rdfs:label ; sh:minCount 1 ; sh:pattern "^(Tòa|Toà) án " ] ;
+    sh:property [ sh:path vlo:courtLevel ; sh:maxCount 1 ; sh:class vlo:CourtLevel ] .
+
+# ------------------------------------------------------------------------------------------ validity and change
+vlsh:LegalChangeShape a sh:NodeShape ;
+    sh:targetClass vlo:LegalChange ;
+    sh:property [ sh:path vlo:actingDocument ; sh:minCount 1 ; sh:maxCount 1 ; sh:class vlo:LegalDocument ] ;
+    sh:property [ sh:path vlo:affectedDocument ; sh:minCount 1 ; sh:maxCount 1 ; sh:class vlo:LegalDocument ] ;
+    sh:property [ sh:path vlo:changeKind ; sh:minCount 1 ; sh:maxCount 1 ;
+                  sh:in ( vlo:change-replaced vlo:change-amended vlo:change-repealed vlo:change-partially-repealed vlo:change-partially-expired ) ] ;
+    sh:property [ sh:path vlo:evidenceText ; sh:minCount 1 ; sh:maxCount 1 ; sh:maxLength 300 ] ;
+    sh:property [ sh:path vlo:changeEffectiveDate ; sh:maxCount 1 ; sh:datatype xsd:date ] ;
+    sh:property [ sh:path vlo:extractionMethod ; sh:minCount 1 ; sh:hasValue vlo:method-validity-rules-v7 ] ;
+    sh:property [ sh:path vlo:ruleVersion ; sh:minCount 1 ; sh:maxCount 1 ; sh:in ( "v7" ) ] ;
+    sh:property [ sh:path vlo:sourceDataset ; sh:minCount 1 ] .
+
+# ------------------------------------------------------------------------------------------ judiciary
+vlsh:CourtDecisionShape a sh:NodeShape ;
+    sh:targetClass vlo:CourtDecision ;
+    sh:property [ sh:path vlo:sourceId ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path vlo:sourceDataset ; sh:minCount 1 ; sh:maxCount 1 ;
+                  sh:in ( vlid:source\/anle-toaan-gov-vn vlid:source\/cbba-toaan-gov-vn ) ] ;
+    sh:property [ sh:path vlo:sourceUrl ; sh:maxCount 1 ; sh:datatype xsd:anyURI ] ;
+    sh:property [ sh:path vlo:decisionDate ; sh:maxCount 1 ; sh:datatype xsd:date ] ;
+    sh:property [ sh:path vlo:decisionNumber ; sh:maxCount 1 ; sh:datatype xsd:string ] ;
+    sh:property [ sh:path vlo:caseCategory ; sh:maxCount 1 ; sh:class vlo:CaseCategory ] ;
+    sh:property [ sh:path vlo:instanceLevel ; sh:maxCount 1 ; sh:class vlo:InstanceLevel ] ;
+    sh:property [ sh:path vlo:courtLevel ; sh:maxCount 1 ; sh:class vlo:CourtLevel ] ;
+    sh:property [ sh:path vlo:decidedBy ; sh:maxCount 1 ; sh:class vlo:Court ] ;
+    sh:property [ sh:path vlo:appliesProvision ; sh:class vlo:Provision ] ;
+    sh:property [ sh:path vlo:appliesDocument ; sh:class vlo:LegalDocument ] ;
+    sh:property [ sh:path vlo:citesCase ; sh:class vlo:JudicialDocument ] ;
+    sh:property [ sh:path vlo:appliesPrecedent ; sh:class vlo:Precedent ] .
+
+vlsh:PrecedentShape a sh:NodeShape ;
+    sh:targetClass vlo:Precedent ;
+    sh:property [ sh:path vlo:precedentNumber ; sh:minCount 1 ; sh:maxCount 1 ; sh:pattern "^[0-9]{1,3}/[0-9]{4}/AL$" ] ;
+    sh:property [ sh:path vlo:selectedFrom ; sh:class vlo:CourtDecision ] .
+
+# ------------------------------------------------------------------------------------------ Q&A
+vlsh:LegalQuestionShape a sh:NodeShape ;
+    sh:targetClass vlo:LegalQuestion ;
+    sh:property [ sh:path vlo:sourceId ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path vlo:sourceUrl ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:anyURI ] ;
+    sh:property [ sh:path vlo:publishedDate ; sh:maxCount 1 ; sh:datatype xsd:date ] ;
+    sh:property [ sh:path vlo:hasAnswer ; sh:minCount 1 ; sh:maxCount 1 ; sh:class vlo:LegalAnswer ] ;
+    sh:property [ sh:path vlo:legalArea ; sh:maxCount 1 ; sh:class vlo:LegalArea ] ;
+    sh:property [ sh:path vlo:sourceDataset ; sh:hasValue vlid:source\/thuvienphapluat-vn-hdpl ] .
+
+vlsh:LegalAnswerShape a sh:NodeShape ;
+    sh:targetClass vlo:LegalAnswer ;
+    sh:property [ sh:path vlo:answerCitesProvision ; sh:class vlo:Provision ] ;
+    sh:property [ sh:path vlo:answerCitesDocument ; sh:class vlo:LegalDocument ] .
+
+# ------------------------------------------------------------------------------------------ terminology
+vlsh:LegalTermShape a sh:NodeShape ;
+    sh:targetClass vlo:LegalTerm ;
+    sh:property [ sh:path skos:prefLabel ; sh:minCount 1 ; sh:languageIn ( "vi" "en" ) ; sh:uniqueLang true ] ;
+    sh:property [ sh:path skos:inScheme ; sh:minCount 1 ; sh:hasValue vlo:LegalTermScheme ] ;
+    sh:property [ sh:path vlo:relatedTerm ; sh:class vlo:LegalTerm ] ;
+    sh:property [ sh:path vlo:legalArea ; sh:maxCount 1 ; sh:class vlo:LegalArea ] ;
+    sh:property [ sh:path vlo:englishLabelSource ; sh:maxCount 1 ; sh:in ( "mt" "site" ) ] ;
+    sh:property [ sh:path skos:definition ; sh:maxCount 0 ; sh:message "Term definitions are not republished (licence policy)." ] .
+
+# ------------------------------------------------------------------------------------------ news
+vlsh:LegalNewsArticleShape a sh:NodeShape ;
+    sh:targetClass vlo:LegalNewsArticle ;
+    sh:property [ sh:path vlo:sourceId ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path vlo:sourceUrl ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:anyURI ] ;
+    sh:property [ sh:path vlo:newsCategory ; sh:maxCount 1 ; sh:class vlo:NewsCategory ] ;
+    sh:property [ sh:path vlo:mentionsDocument ; sh:class vlo:LegalDocument ] ;
+    sh:property [ sh:path dcterms:title ; sh:maxCount 0 ; sh:message "News titles are not republished (licence policy)." ] .
+
+# ------------------------------------------------------------------------------------------ concepts and provenance
+vlsh:ConceptShape a sh:NodeShape ;
+    sh:targetClass skos:Concept ;
+    sh:property [ sh:path skos:inScheme ; sh:minCount 1 ] ;
+    sh:property [ sh:path skos:prefLabel ; sh:minCount 1 ; sh:uniqueLang true ] .
+
+vlsh:LegalAreaShape a sh:NodeShape ;
+    sh:targetClass vlo:LegalArea ;
+    sh:property [ sh:path skos:prefLabel ; sh:qualifiedValueShape [ sh:languageIn ( "vi" ) ] ; sh:qualifiedMinCount 1 ] ;
+    sh:property [ sh:path skos:prefLabel ; sh:qualifiedValueShape [ sh:languageIn ( "en" ) ] ; sh:qualifiedMinCount 1 ] .
+
+vlsh:SourceDatasetShape a sh:NodeShape ;
+    sh:targetClass vlo:SourceDataset ;
+    sh:property [ sh:path vlo:datasetRevision ; sh:minCount 1 ; sh:maxCount 1 ; sh:pattern "^[0-9a-f]{40}$" ] ;
+    sh:property [ sh:path vlo:licenceLabel ; sh:minCount 1 ; sh:maxCount 1 ] ;
+    sh:property [ sh:path vlo:attributionText ; sh:minCount 1 ] ;
+    sh:property [ sh:path vlo:inclusionPolicy ; sh:minCount 1 ] .
+
+vlsh:EdgeSetShape a sh:NodeShape ;
+    sh:targetClass vlo:EdgeSet ;
+    sh:property [ sh:path vlo:edgeProperty ; sh:minCount 1 ; sh:maxCount 1 ; sh:nodeKind sh:IRI ] ;
+    sh:property [ sh:path vlo:edgeCount ; sh:minCount 1 ; sh:maxCount 1 ; sh:datatype xsd:integer ; sh:minInclusive 0 ] ;
+    sh:property [ sh:path vlo:extractionMethod ; sh:minCount 1 ; sh:class vlo:ExtractionMethod ] ;
+    sh:property [ sh:path prov:wasGeneratedBy ; sh:minCount 1 ; sh:class vlo:BuildActivity ] .

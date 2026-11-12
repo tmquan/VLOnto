@@ -1,0 +1,510 @@
+{
+ "architecture": {
+  "articles": "436,309",
+  "changes": "15,035",
+  "checks": "18/18",
+  "core_triples": "49,923",
+  "sources": [
+   {
+    "n": "40,816",
+    "name": "vbpl",
+    "unit": "documents in scope",
+    "what": "legal documents"
+   },
+   {
+    "n": "109,543",
+    "name": "hdpl",
+    "unit": "Q&As",
+    "what": "legal Q&A"
+   },
+   {
+    "n": "16,701",
+    "name": "tnpl",
+    "unit": "terms",
+    "what": "legal terms"
+   },
+   {
+    "n": "681",
+    "name": "htpl",
+    "unit": "news items",
+    "what": "legal news"
+   },
+   {
+    "n": "1,844",
+    "name": "anle",
+    "unit": "decisions",
+    "what": "precedents, decisions"
+   },
+   {
+    "n": "1,542,247",
+    "name": "cbba",
+    "unit": "decisions",
+    "what": "court judgments"
+   }
+  ],
+  "tables": 27,
+  "triples": "31,516,606"
+ },
+ "changes": {
+  "before_first_year": 99,
+  "first_year": 1995,
+  "kinds": [
+   {
+    "key": "replaced",
+    "label_en": "replaced",
+    "values": [
+     10,
+     1,
+     3,
+     16,
+     39,
+     47,
+     95,
+     60,
+     118,
+     116,
+     165,
+     168,
+     199,
+     247,
+     159,
+     200,
+     203,
+     266,
+     281,
+     367,
+     359,
+     311,
+     383,
+     312,
+     223,
+     235,
+     247,
+     217,
+     178,
+     226,
+     369,
+     419,
+     6
+    ]
+   },
+   {
+    "key": "amended",
+    "label_en": "amended",
+    "values": [
+     0,
+     0,
+     4,
+     12,
+     25,
+     29,
+     60,
+     51,
+     56,
+     59,
+     48,
+     70,
+     60,
+     56,
+     82,
+     88,
+     193,
+     135,
+     98,
+     117,
+     150,
+     152,
+     168,
+     227,
+     217,
+     250,
+     197,
+     234,
+     258,
+     418,
+     698,
+     437,
+     9
+    ]
+   },
+   {
+    "key": "partially_repealed",
+    "label_en": "partially repealed",
+    "values": [
+     0,
+     0,
+     0,
+     0,
+     2,
+     1,
+     2,
+     3,
+     16,
+     12,
+     14,
+     16,
+     20,
+     14,
+     17,
+     20,
+     48,
+     46,
+     43,
+     48,
+     63,
+     96,
+     80,
+     132,
+     65,
+     100,
+     69,
+     209,
+     97,
+     155,
+     223,
+     228,
+     8
+    ]
+   },
+   {
+    "key": "repealed",
+    "label_en": "repealed",
+    "values": [
+     3,
+     0,
+     0,
+     2,
+     2,
+     3,
+     7,
+     11,
+     25,
+     27,
+     40,
+     58,
+     80,
+     115,
+     88,
+     77,
+     68,
+     57,
+     72,
+     73,
+     76,
+     77,
+     81,
+     74,
+     68,
+     44,
+     33,
+     70,
+     68,
+     64,
+     96,
+     91,
+     3
+    ]
+   },
+   {
+    "key": "partially_expired",
+    "label_en": "partially terminated",
+    "values": [
+     0,
+     0,
+     0,
+     1,
+     2,
+     0,
+     3,
+     3,
+     2,
+     0,
+     0,
+     2,
+     1,
+     3,
+     1,
+     11,
+     9,
+     15,
+     21,
+     26,
+     26,
+     38,
+     13,
+     35,
+     22,
+     30,
+     31,
+     19,
+     21,
+     41,
+     47,
+     77,
+     0
+    ]
+   }
+  ],
+  "last_year": 2027,
+  "max_total": 1433,
+  "shown": 14903,
+  "total": 15035,
+  "unknown_year": 33,
+  "years": [
+   1995,
+   1996,
+   1997,
+   1998,
+   1999,
+   2000,
+   2001,
+   2002,
+   2003,
+   2004,
+   2005,
+   2006,
+   2007,
+   2008,
+   2009,
+   2010,
+   2011,
+   2012,
+   2013,
+   2014,
+   2015,
+   2016,
+   2017,
+   2018,
+   2019,
+   2020,
+   2021,
+   2022,
+   2023,
+   2024,
+   2025,
+   2026,
+   2027
+  ]
+ },
+ "doc_types": [
+  {
+   "label_en": "Circular",
+   "label_vi": "Thông tư",
+   "pct_fmt": "45.0%",
+   "value": 18375,
+   "value_fmt": "18,375"
+  },
+  {
+   "label_en": "Decision",
+   "label_vi": "Quyết định",
+   "pct_fmt": "29.4%",
+   "value": 12005,
+   "value_fmt": "12,005"
+  },
+  {
+   "label_en": "Decree",
+   "label_vi": "Nghị định",
+   "pct_fmt": "15.3%",
+   "value": 6239,
+   "value_fmt": "6,239"
+  },
+  {
+   "label_en": "Joint circular",
+   "label_vi": "Thông tư liên tịch",
+   "pct_fmt": "4.8%",
+   "value": 1939,
+   "value_fmt": "1,939"
+  },
+  {
+   "label_en": "Resolution",
+   "label_vi": "Nghị quyết",
+   "pct_fmt": "3.2%",
+   "value": 1320,
+   "value_fmt": "1,320"
+  },
+  {
+   "label_en": "Law",
+   "label_vi": "Luật",
+   "pct_fmt": "1.5%",
+   "value": 624,
+   "value_fmt": "624"
+  },
+  {
+   "label_en": "Ordinance",
+   "label_vi": "Pháp lệnh",
+   "pct_fmt": "0.6%",
+   "value": 225,
+   "value_fmt": "225"
+  },
+  {
+   "label_en": "Joint resolution",
+   "label_vi": "Nghị quyết liên tịch",
+   "pct_fmt": "0.1%",
+   "value": 54,
+   "value_fmt": "54"
+  },
+  {
+   "label_en": "Code",
+   "label_vi": "Bộ luật",
+   "pct_fmt": "0.1%",
+   "value": 30,
+   "value_fmt": "30"
+  },
+  {
+   "label_en": "Constitution",
+   "label_vi": "Hiến pháp",
+   "pct_fmt": "<0.1%",
+   "value": 5,
+   "value_fmt": "5"
+  }
+ ],
+ "documents_total": "40,816",
+ "modules": [
+  {
+   "classes": 12,
+   "datatype_properties": 4,
+   "label_en": "documents",
+   "notation": "documents",
+   "object_properties": 1,
+   "other": 0
+  },
+  {
+   "classes": 8,
+   "datatype_properties": 3,
+   "label_en": "provisions",
+   "notation": "provisions",
+   "object_properties": 3,
+   "other": 0
+  },
+  {
+   "classes": 3,
+   "datatype_properties": 1,
+   "label_en": "agents",
+   "notation": "agents",
+   "object_properties": 1,
+   "other": 0
+  },
+  {
+   "classes": 3,
+   "datatype_properties": 10,
+   "label_en": "validity and change",
+   "notation": "validity-change",
+   "object_properties": 16,
+   "other": 3
+  },
+  {
+   "classes": 0,
+   "datatype_properties": 0,
+   "label_en": "citation and legal basis",
+   "notation": "citation-basis",
+   "object_properties": 5,
+   "other": 0
+  },
+  {
+   "classes": 8,
+   "datatype_properties": 4,
+   "label_en": "judiciary",
+   "notation": "judiciary",
+   "object_properties": 9,
+   "other": 3
+  },
+  {
+   "classes": 2,
+   "datatype_properties": 1,
+   "label_en": "legal Q&A",
+   "notation": "qa",
+   "object_properties": 3,
+   "other": 0
+  },
+  {
+   "classes": 1,
+   "datatype_properties": 2,
+   "label_en": "terminology",
+   "notation": "terminology",
+   "object_properties": 1,
+   "other": 1
+  },
+  {
+   "classes": 2,
+   "datatype_properties": 0,
+   "label_en": "news",
+   "notation": "news",
+   "object_properties": 2,
+   "other": 1
+  },
+  {
+   "classes": 3,
+   "datatype_properties": 1,
+   "label_en": "classification",
+   "notation": "classification",
+   "object_properties": 2,
+   "other": 5
+  },
+  {
+   "classes": 5,
+   "datatype_properties": 9,
+   "label_en": "provenance",
+   "notation": "provenance",
+   "object_properties": 3,
+   "other": 3
+  }
+ ],
+ "validity": [
+  {
+   "key": "unknown",
+   "label_en": "unknown",
+   "pct_fmt": "70.2%",
+   "value": 28660,
+   "value_fmt": "28,660"
+  },
+  {
+   "key": "superseded",
+   "label_en": "superseded",
+   "pct_fmt": "12.7%",
+   "value": 5167,
+   "value_fmt": "5,167"
+  },
+  {
+   "key": "presumed_in_force_amended",
+   "label_en": "presumed in force, amended",
+   "pct_fmt": "6.7%",
+   "value": 2722,
+   "value_fmt": "2,722"
+  },
+  {
+   "key": "expired",
+   "label_en": "no longer in force",
+   "pct_fmt": "5.2%",
+   "value": 2125,
+   "value_fmt": "2,125"
+  },
+  {
+   "key": "in_force",
+   "label_en": "in force",
+   "pct_fmt": "3.7%",
+   "value": 1511,
+   "value_fmt": "1,511"
+  },
+  {
+   "key": "in_force_amended",
+   "label_en": "in force, amended",
+   "pct_fmt": "1.3%",
+   "value": 545,
+   "value_fmt": "545"
+  },
+  {
+   "key": "not_applicable",
+   "label_en": "no longer applicable",
+   "pct_fmt": "0.1%",
+   "value": 47,
+   "value_fmt": "47"
+  },
+  {
+   "key": "not_yet_effective",
+   "label_en": "not yet in force",
+   "pct_fmt": "0.1%",
+   "value": 39,
+   "value_fmt": "39"
+  }
+ ]
+}

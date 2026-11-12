@@ -1,0 +1,351 @@
+{
+ "@context": {
+  "vlo": "https://tmquan.github.io/VLOnto/ontology#",
+  "vlid": "https://tmquan.github.io/VLOnto/id/",
+  "skos": "http://www.w3.org/2004/02/skos/core#",
+  "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+  "xsd": "http://www.w3.org/2001/XMLSchema#",
+  "dcterms": "http://purl.org/dc/terms/",
+  "prov": "http://www.w3.org/ns/prov#",
+  "eli": "http://data.europa.eu/eli/ontology#",
+  "schema": "https://schema.org/",
+  "id": "@id",
+  "type": "@type",
+  "label": {
+   "@id": "rdfs:label",
+   "@container": "@language"
+  },
+  "prefLabel": {
+   "@id": "skos:prefLabel",
+   "@container": "@language"
+  },
+  "inScheme": {
+   "@id": "skos:inScheme",
+   "@type": "@id"
+  },
+  "actingDocument": {
+   "@id": "vlo:actingDocument",
+   "@type": "@id"
+  },
+  "affectedDocument": {
+   "@id": "vlo:affectedDocument",
+   "@type": "@id"
+  },
+  "amendedBy": {
+   "@id": "vlo:amendedBy",
+   "@type": "@id"
+  },
+  "amends": {
+   "@id": "vlo:amends",
+   "@type": "@id"
+  },
+  "answerCitesDocument": {
+   "@id": "vlo:answerCitesDocument",
+   "@type": "@id"
+  },
+  "answerCitesProvision": {
+   "@id": "vlo:answerCitesProvision",
+   "@type": "@id"
+  },
+  "appliesDocument": {
+   "@id": "vlo:appliesDocument",
+   "@type": "@id"
+  },
+  "appliesPrecedent": {
+   "@id": "vlo:appliesPrecedent",
+   "@type": "@id"
+  },
+  "appliesProvision": {
+   "@id": "vlo:appliesProvision",
+   "@type": "@id"
+  },
+  "caseCategory": {
+   "@id": "vlo:caseCategory",
+   "@type": "@id"
+  },
+  "changeKind": {
+   "@id": "vlo:changeKind",
+   "@type": "@id"
+  },
+  "changedBy": {
+   "@id": "vlo:changedBy",
+   "@type": "@id"
+  },
+  "changes": {
+   "@id": "vlo:changes",
+   "@type": "@id"
+  },
+  "cites": {
+   "@id": "vlo:cites",
+   "@type": "@id"
+  },
+  "citesCase": {
+   "@id": "vlo:citesCase",
+   "@type": "@id"
+  },
+  "citesParentLaw": {
+   "@id": "vlo:citesParentLaw",
+   "@type": "@id"
+  },
+  "courtLevel": {
+   "@id": "vlo:courtLevel",
+   "@type": "@id"
+  },
+  "decidedBy": {
+   "@id": "vlo:decidedBy",
+   "@type": "@id"
+  },
+  "documentType": {
+   "@id": "vlo:documentType",
+   "@type": "@id"
+  },
+  "edgeProperty": {
+   "@id": "vlo:edgeProperty",
+   "@type": "@id"
+  },
+  "extractionMethod": {
+   "@id": "vlo:extractionMethod",
+   "@type": "@id"
+  },
+  "hasAnswer": {
+   "@id": "vlo:hasAnswer",
+   "@type": "@id"
+  },
+  "hasPart": {
+   "@id": "vlo:hasPart",
+   "@type": "@id"
+  },
+  "inDocument": {
+   "@id": "vlo:inDocument",
+   "@type": "@id"
+  },
+  "instanceLevel": {
+   "@id": "vlo:instanceLevel",
+   "@type": "@id"
+  },
+  "isLegalBasisOf": {
+   "@id": "vlo:isLegalBasisOf",
+   "@type": "@id"
+  },
+  "isPartOf": {
+   "@id": "vlo:isPartOf",
+   "@type": "@id"
+  },
+  "issuedBy": {
+   "@id": "vlo:issuedBy",
+   "@type": "@id"
+  },
+  "legalArea": {
+   "@id": "vlo:legalArea",
+   "@type": "@id"
+  },
+  "legalBasis": {
+   "@id": "vlo:legalBasis",
+   "@type": "@id"
+  },
+  "legalForceRank": {
+   "@id": "vlo:legalForceRank",
+   "@type": "@id"
+  },
+  "mentionsDocument": {
+   "@id": "vlo:mentionsDocument",
+   "@type": "@id"
+  },
+  "newsCategory": {
+   "@id": "vlo:newsCategory",
+   "@type": "@id"
+  },
+  "partiallyRepealedBy": {
+   "@id": "vlo:partiallyRepealedBy",
+   "@type": "@id"
+  },
+  "partiallyRepeals": {
+   "@id": "vlo:partiallyRepeals",
+   "@type": "@id"
+  },
+  "partiallyTerminatedBy": {
+   "@id": "vlo:partiallyTerminatedBy",
+   "@type": "@id"
+  },
+  "partiallyTerminates": {
+   "@id": "vlo:partiallyTerminates",
+   "@type": "@id"
+  },
+  "refersTo": {
+   "@id": "vlo:refersTo",
+   "@type": "@id"
+  },
+  "relatedTerm": {
+   "@id": "vlo:relatedTerm",
+   "@type": "@id"
+  },
+  "repealedBy": {
+   "@id": "vlo:repealedBy",
+   "@type": "@id"
+  },
+  "repeals": {
+   "@id": "vlo:repeals",
+   "@type": "@id"
+  },
+  "replacedBy": {
+   "@id": "vlo:replacedBy",
+   "@type": "@id"
+  },
+  "replaces": {
+   "@id": "vlo:replaces",
+   "@type": "@id"
+  },
+  "selectedFrom": {
+   "@id": "vlo:selectedFrom",
+   "@type": "@id"
+  },
+  "sourceDataset": {
+   "@id": "vlo:sourceDataset",
+   "@type": "@id"
+  },
+  "validityStatus": {
+   "@id": "vlo:validityStatus",
+   "@type": "@id"
+  },
+  "attributionText": {
+   "@id": "vlo:attributionText",
+   "@language": "vi"
+  },
+  "changeEffectiveDate": {
+   "@id": "vlo:changeEffectiveDate",
+   "@type": "xsd:date"
+  },
+  "datasetRevision": {
+   "@id": "vlo:datasetRevision",
+   "@type": "xsd:string"
+  },
+  "decisionCode": {
+   "@id": "vlo:decisionCode",
+   "@type": "xsd:string"
+  },
+  "decisionDate": {
+   "@id": "vlo:decisionDate",
+   "@type": "xsd:date"
+  },
+  "decisionNumber": {
+   "@id": "vlo:decisionNumber",
+   "@type": "xsd:string"
+  },
+  "documentNumber": {
+   "@id": "vlo:documentNumber",
+   "@type": "xsd:string"
+  },
+  "documentNumberKey": {
+   "@id": "vlo:documentNumberKey",
+   "@type": "xsd:string"
+  },
+  "edgeCount": {
+   "@id": "vlo:edgeCount",
+   "@type": "xsd:integer"
+  },
+  "effectiveDate": {
+   "@id": "vlo:effectiveDate",
+   "@type": "xsd:date"
+  },
+  "englishLabelSource": {
+   "@id": "vlo:englishLabelSource",
+   "@type": "xsd:string"
+  },
+  "evidenceText": {
+   "@id": "vlo:evidenceText",
+   "@language": "vi"
+  },
+  "expiryDate": {
+   "@id": "vlo:expiryDate",
+   "@type": "xsd:date"
+  },
+  "heading": {
+   "@id": "vlo:heading",
+   "@language": "vi"
+  },
+  "inclusionPolicy": {
+   "@id": "vlo:inclusionPolicy",
+   "@language": "vi"
+  },
+  "isInForce": {
+   "@id": "vlo:isInForce",
+   "@type": "xsd:boolean"
+  },
+  "issueDate": {
+   "@id": "vlo:issueDate",
+   "@type": "xsd:date"
+  },
+  "issuerCode": {
+   "@id": "vlo:issuerCode",
+   "@type": "xsd:string"
+  },
+  "licenceLabel": {
+   "@id": "vlo:licenceLabel",
+   "@type": "xsd:string"
+  },
+  "mentionedDate": {
+   "@id": "vlo:mentionedDate",
+   "@type": "xsd:date"
+  },
+  "position": {
+   "@id": "vlo:position",
+   "@type": "xsd:integer"
+  },
+  "precedentNumber": {
+   "@id": "vlo:precedentNumber",
+   "@type": "xsd:string"
+  },
+  "provisionNumber": {
+   "@id": "vlo:provisionNumber",
+   "@type": "xsd:string"
+  },
+  "publishedDate": {
+   "@id": "vlo:publishedDate",
+   "@type": "xsd:date"
+  },
+  "rankLevel": {
+   "@id": "vlo:rankLevel",
+   "@type": "xsd:integer"
+  },
+  "ruleVersion": {
+   "@id": "vlo:ruleVersion",
+   "@type": "xsd:string"
+  },
+  "softwareVersion": {
+   "@id": "vlo:softwareVersion",
+   "@type": "xsd:string"
+  },
+  "sourceId": {
+   "@id": "vlo:sourceId",
+   "@type": "xsd:string"
+  },
+  "sourceStatus": {
+   "@id": "vlo:sourceStatus",
+   "@language": "vi"
+  },
+  "sourceUrl": {
+   "@id": "vlo:sourceUrl",
+   "@type": "xsd:anyURI"
+  },
+  "statusTextConflict": {
+   "@id": "vlo:statusTextConflict",
+   "@type": "xsd:boolean"
+  },
+  "title": {
+   "@id": "vlo:title",
+   "@language": "vi"
+  },
+  "translationModel": {
+   "@id": "vlo:translationModel",
+   "@type": "xsd:string"
+  },
+  "validityAsOf": {
+   "@id": "vlo:validityAsOf",
+   "@type": "xsd:date"
+  },
+  "validityEvidenceSource": {
+   "@id": "vlo:validityEvidenceSource",
+   "@type": "xsd:string"
+  }
+ }
+}

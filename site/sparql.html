@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>/* theme before first paint: ?theme=, else stored choice, else system (css/site.css, js/common.js) */(function(d,w){var t=null,m=/[?&]theme=(light|dark)(?:&|$)/.exec(w.location.search);if(m)t=m[1];else{try{t=w.localStorage.getItem('vlonto.theme')}catch(e){}if(t!=='light'&&t!=='dark'){try{t=w.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}catch(e){t='light'}}}d.setAttribute('data-theme',t);d.style.colorScheme=t})(document.documentElement,window);</script>
+<title>SPARQL Playground · VLOnto</title>
+<meta name="description" content="Run SPARQL queries on the VLOnto knowledge graph in the browser with Oxigraph (WebAssembly), offline.">
+<link rel="stylesheet" href="css/fonts-web.css">
+<link rel="stylesheet" href="css/site.css">
+</head>
+<body class="page-text page-sparql">
+<a class="skip-link" href="#query">Skip to the query editor</a>
+<div id="vl-header"></div>
+<main id="main" class="page">
+  <header class="page-head">
+    <p class="eyebrow">SPARQL playground · Truy vấn SPARQL</p>
+    <h1>Query the knowledge graph in your browser</h1>
+    <p class="lead">Oxigraph runs as WebAssembly inside this page, so queries work offline and nothing leaves your computer.
+      The default dataset is the core subset of the knowledge graph: the ontology plus every document of legal-force rank 0–2
+      (Constitution, codes, laws, National Assembly resolutions, ordinances and Standing Committee resolutions) with their
+      change events, legal-basis links and citations among themselves.</p>
+  </header>
+  <div class="sparql-layout">
+    <aside aria-label="Example queries">
+      <div class="ex-group" id="ex-select-title">Examples · table results (SELECT)</div>
+      <div class="ex-list" id="ex-select" role="group" aria-labelledby="ex-select-title"></div>
+      <div class="ex-group" id="ex-construct-title" style="margin-top:14px">Examples · graph results (CONSTRUCT, drawn in 3D)</div>
+      <div class="ex-list" id="ex-construct" role="group" aria-labelledby="ex-construct-title"></div>
+      <p class="paper-aside">Paper: <a href="https://arxiv.org/abs/2611.11426" target="_blank" rel="noopener" data-paper-link="side">Vietnamese
+        Legal Ontology: Every legal answer, traced to the article that grounds it</a> (Bui &amp; Tran Minh, 2026,
+        arXiv:2611.11426). Query results come from the VLOnto 0.1.0 release and can differ from the paper’s numbers.</p>
+    </aside>
+    <section aria-label="Query editor and results">
+      <div class="card editor-card">
+        <div class="editor-bar">
+          <label class="sr-only" for="dataset">Dataset</label>
+          <select id="dataset" class="select"></select>
+          <span class="grow"></span>
+          <button class="btn" type="button" id="btn-all">Run all 10 examples</button>
+          <button class="btn btn-primary" type="button" id="btn-run" title="Run (Ctrl+Enter)">Run query</button>
+        </div>
+        <label class="sr-only" for="query">SPARQL query</label>
+        <textarea id="query" class="sparql" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+        <div class="status-line" id="status" role="status" aria-live="polite">Loading Oxigraph…</div>
+      </div>
+      <div class="result-card" id="result-card">
+        <div class="result-head">
+          <h2 id="result-title">Results</h2>
+          <div class="row tight">
+            <button class="btn" type="button" id="btn-csv" disabled>Export CSV</button>
+          </div>
+        </div>
+        <div id="graph-wrap" class="hidden">
+          <div class="construct-view" id="graph-view" aria-label="3D view of the CONSTRUCT result"></div>
+          <p class="filter-note" id="graph-note"></p>
+        </div>
+        <div id="result" class="result-table-wrap"></div>
+      </div>
+      <div class="result-card hidden" id="selftest-card">
+        <div class="result-head"><h2>Self-test: the 10 examples</h2><span id="selftest-sum" class="badge"></span></div>
+        <div class="table-wrap"><table class="data selftest" id="selftest"></table></div>
+      </div>
+    </section>
+  </div>
+  <section class="block" id="tips">
+    <h2>Writing queries</h2>
+    <div class="grid grid-2">
+      <div class="card">
+        <h3>Namespaces</h3>
+        <div class="table-wrap" style="box-shadow:none">
+          <table class="data">
+            <thead><tr><th>Prefix</th><th>Namespace</th></tr></thead>
+            <tbody>
+              <tr><td class="mono nowrap">vlo:</td><td class="mono iri-cell">https://tmquan.github.io/<wbr>VLOnto/<wbr>ontology#</td></tr>
+              <tr><td class="mono nowrap">vlid:</td><td class="mono iri-cell">https://tmquan.github.io/<wbr>VLOnto/<wbr>id/</td></tr>
+              <tr><td class="mono nowrap">skos:</td><td class="mono iri-cell">http://www.w3.org/<wbr>2004/<wbr>02/<wbr>skos/<wbr>core#</td></tr>
+              <tr><td class="mono nowrap">rdfs:</td><td class="mono iri-cell">http://www.w3.org/<wbr>2000/<wbr>01/<wbr>rdf-schema#</td></tr>
+              <tr><td class="mono nowrap">eli:</td><td class="mono iri-cell">http://data.europa.eu/<wbr>eli/<wbr>ontology#</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Good to know</h3>
+        <ul class="source-list">
+          <li>Documents are typed by their specific class (<code>vlo:Law</code>, <code>vlo:Decree</code>, …); there is no reasoner, so <code>?d a vlo:LegalDocument</code> matches nothing. Use <code>vlo:documentNumber</code> or a specific class.</li>
+          <li>Shortcut properties such as <code>vlo:replaces</code>, <code>vlo:amends</code> and <code>vlo:legalBasis</code> link documents directly; <code>vlo:LegalChange</code> events carry the date and evidence.</li>
+          <li>Document IRIs in the results open the document in the 3D legal network.</li>
+          <li>Queries run on the main thread; add <code>LIMIT</code> to exploratory queries.</li>
+          <li>The full graph (31.5 million triples) is in the RDF dump listed on the <a href="downloads.html#dl-full">downloads page</a>.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</main>
+<div id="vl-footer"></div>
+<script src="data/site_meta.js"></script>
+<script src="data/stats.js"></script>
+<script src="js/common.js"></script>
+<script src="data/sparql_examples.js"></script>
+<script src="js/sparql-core.js"></script>
+<script src="js/sparql-page.js"></script>
+</body>
+</html>

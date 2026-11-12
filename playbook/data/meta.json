@@ -1,0 +1,48 @@
+{
+ "author": "tmquan",
+ "date": "2026-11-11",
+ "disclaimer": "Not legal advice and not an official legal text. Relations are extracted automatically and may be wrong; read the source documents.",
+ "keyfigures": [
+  {
+   "label": "legal documents",
+   "value": "40,816"
+  },
+  {
+   "label": "articles (Điều)",
+   "value": "436,309"
+  },
+  {
+   "label": "court decisions",
+   "value": "1,544,091"
+  },
+  {
+   "label": "legal Q&As (metadata)",
+   "value": "109,543"
+  },
+  {
+   "label": "RDF triples",
+   "value": "31,516,606"
+  },
+  {
+   "label": "build checks passed",
+   "value": "18 / 18"
+  }
+ ],
+ "keywords": [
+  "VLOnto",
+  "Vietnamese law",
+  "legal ontology",
+  "knowledge graph",
+  "OWL",
+  "SKOS",
+  "ELI",
+  "RDF",
+  "SPARQL",
+  "legal informatics"
+ ],
+ "kicker": "Vietnamese legal ontology and knowledge graph",
+ "lang": "en",
+ "licence": "Ontology and documentation: CC BY 4.0, creator tmquan. Knowledge-graph data: see the licence and attribution appendix.",
+ "subtitle": "Build, validate, query and use the Vietnamese legal knowledge graph",
+ "version": "0.1.0"
+}

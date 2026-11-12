@@ -1,0 +1,12 @@
+PREFIX vlo: <https://tmquan.github.io/VLOnto/ontology#>
+# What replaced the Labour Code 10/2012/QH13?
+SELECT ?number ?date ?evidence WHERE {
+  ?old vlo:documentNumber "10/2012/QH13" .
+  ?change vlo:affectedDocument ?old ;
+          vlo:changeKind vlo:change-replaced ;
+          vlo:actingDocument ?new ;
+          vlo:evidenceText ?evidence .
+  OPTIONAL { ?change vlo:changeEffectiveDate ?date }
+  ?new vlo:documentNumber ?number .
+}
+ORDER BY ?date ?number
