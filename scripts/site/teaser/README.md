@@ -48,4 +48,4 @@ become CSS px. WebGL lines stay one device pixel wide, so the context links are 
 
 draws the same geometry from `site/data/legal_network.js` (straight-segment approximation of the curves, flat discs) and
 drafts the paper's vector layer: call-outs in Libertinus Sans 8.5 pt on thin leaders in the clear margins and a flat
-legend, as in the published Fig. 1. `--color-by validity` shows the site's colouring (its legend needs three rows).
+legend, as in the published Fig. 1. `--color-by validity` shows the site's colouring (its legend needs four rows and collides with the bottom call-outs).

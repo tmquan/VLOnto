@@ -12,7 +12,7 @@
   "hops": 1,
   "citation": false,
   "layers": true,
-  "colorBy_note": "class = every document in the paper's 'Văn bản · Work' colour (the paper's legend, 2 rows); validity = the site's colours (legend about 4 rows)"
+  "colorBy_note": "class = every document in the paper's 'Văn bản · Work' colour (the paper's legend, 1 row of 4 entries); validity = the site's colours (legend 4 rows of 11 entries, which collide with the bottom call-outs)"
  },
  "selection": {
   "doc": "333670",
