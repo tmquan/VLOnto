@@ -1,0 +1,9 @@
+/* Fig. 1 capture page (scripts/site/teaser, not part of the site): the 3D legal network's canvas fills the viewport;
+   the page chrome, side bar, details panel, legend, hint, status line and toasts are hidden, since the paper figure
+   draws its own call-outs and legend. The panel that opens with the selection must not narrow the canvas. */
+html, body.page-scene { margin: 0; overflow: hidden; background: var(--scene-bg); }
+.vl-header, .vl-footer, .vl-footbar, .skip-link, .scene-toolbar, .scene-side, .scene-stage .legend, .scene-stage .hint,
+.stage-tools, .stage-status, .tooltip3d, .scene-panel, body > div[role="status"] { display: none !important; }
+.scene-app { position: fixed; inset: 0; width: 100vw; height: 100vh !important; display: block; }
+.scene-stage { position: absolute; inset: 0; height: 100%; }
+.scene-stage .scene-canvas, .scene-stage.panel-open .scene-canvas { position: absolute; inset: 0; right: 0; bottom: 0; }

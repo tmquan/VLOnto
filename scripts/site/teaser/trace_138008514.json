@@ -1,0 +1,228 @@
+{
+ "about": "Trace of Q&A #138008514 for the paper's Fig. 1 (arXiv:2611.11426); identifiers and short bilingual labels only",
+ "sources": {
+  "kg": "VLOnto v1 build tables (build/kg): documents, changes, structure, articles, provisions_ref, qas, edges_qa_article, terms",
+  "paper": "paper source data/worked_example.json (Fig. 1 and Fig. 5)"
+ },
+ "qa": {
+  "id": "138008514",
+  "published": "2024-03-14",
+  "area": "lao-dong-tien-luong",
+  "sources_cited": 7,
+  "quoted_word_for_word": "Art. 35(1)(d)"
+ },
+ "law": {
+  "doc": "333670",
+  "number": "45/2019/QH14",
+  "vi": "Bộ luật Lao động 2019",
+  "en": "Labor Code 2019",
+  "effective": "2021-01-01"
+ },
+ "replaced": {
+  "doc": "142187",
+  "number": "10/2012/QH13",
+  "vi": "Bộ luật Lao động 2012",
+  "en": "Labor Code 2012",
+  "expired": "2021-01-01",
+  "change": "333670-replaced-142187",
+  "effective": "2021-01-01"
+ },
+ "nodes": [
+  {
+   "id": "333670::chuong-iii",
+   "cls": "chapter",
+   "vi": "Chương III",
+   "en": "Chapter III",
+   "trace": true,
+   "source": "structure"
+  },
+  {
+   "id": "333670::chuong-iii/muc-3",
+   "cls": "section",
+   "vi": "Mục 3",
+   "en": "Section 3",
+   "trace": true,
+   "source": "structure"
+  },
+  {
+   "id": "333670::dieu-35",
+   "cls": "article",
+   "vi": "Điều 35",
+   "en": "Article 35",
+   "trace": true,
+   "source": "articles"
+  },
+  {
+   "id": "333670::dieu-35::khoan-1",
+   "cls": "clause",
+   "vi": "Khoản 1 Điều 35",
+   "en": "Art. 35(1)",
+   "trace": true,
+   "source": "provisions_ref"
+  },
+  {
+   "id": "333670::dieu-35::khoan-1::diem-d",
+   "cls": "point",
+   "vi": "Điểm d khoản 1 Điều 35",
+   "en": "Art. 35(1)(d)",
+   "trace": true,
+   "source": "provisions_ref"
+  },
+  {
+   "id": "qa:138008514/answer",
+   "cls": "answer",
+   "vi": "Trả lời",
+   "en": "Answer #138008514",
+   "trace": true,
+   "source": "qas"
+  },
+  {
+   "id": "qa:138008514",
+   "cls": "question",
+   "vi": "Câu hỏi",
+   "en": "Question #138008514",
+   "trace": true,
+   "source": "qas"
+  },
+  {
+   "id": "333670::chuong-i",
+   "cls": "chapter",
+   "vi": "Chương I",
+   "en": "Chapter I",
+   "trace": false,
+   "source": "structure"
+  },
+  {
+   "id": "333670::dieu-3",
+   "cls": "article",
+   "vi": "Điều 3",
+   "en": "Article 3",
+   "trace": false,
+   "source": "articles"
+  },
+  {
+   "id": "333670::dieu-3::khoan-1",
+   "cls": "clause",
+   "vi": "Khoản 1 Điều 3",
+   "en": "Art. 3(1)",
+   "trace": false,
+   "source": "provisions_ref"
+  },
+  {
+   "id": "term:630",
+   "cls": "term",
+   "vi": "Người lao động",
+   "en": "Employee",
+   "trace": false,
+   "source": "terms"
+  },
+  {
+   "id": "term:641",
+   "cls": "term",
+   "vi": "Hợp đồng lao động",
+   "en": "Labour contract",
+   "trace": false,
+   "source": "terms"
+  }
+ ],
+ "links": [
+  {
+   "source": "doc:142187",
+   "target": "doc:333670",
+   "rel": "replaced by",
+   "trace": true,
+   "provenance": "changes 333670-replaced-142187"
+  },
+  {
+   "source": "doc:333670",
+   "target": "333670::chuong-iii",
+   "rel": "contains",
+   "trace": true,
+   "provenance": "structure"
+  },
+  {
+   "source": "333670::chuong-iii",
+   "target": "333670::chuong-iii/muc-3",
+   "rel": "contains",
+   "trace": true,
+   "provenance": "structure"
+  },
+  {
+   "source": "333670::chuong-iii/muc-3",
+   "target": "333670::dieu-35",
+   "rel": "contains",
+   "trace": true,
+   "provenance": "articles.parent_id"
+  },
+  {
+   "source": "333670::dieu-35",
+   "target": "333670::dieu-35::khoan-1",
+   "rel": "contains",
+   "trace": true,
+   "provenance": "provisions_ref.parent_id"
+  },
+  {
+   "source": "333670::dieu-35::khoan-1",
+   "target": "333670::dieu-35::khoan-1::diem-d",
+   "rel": "contains",
+   "trace": true,
+   "provenance": "provisions_ref.parent_id"
+  },
+  {
+   "source": "qa:138008514/answer",
+   "target": "333670::dieu-35::khoan-1::diem-d",
+   "rel": "cites",
+   "trace": true,
+   "provenance": "edges_qa_article (citation-field-name)"
+  },
+  {
+   "source": "qa:138008514",
+   "target": "qa:138008514/answer",
+   "rel": "answered by",
+   "trace": true,
+   "provenance": "qas"
+  },
+  {
+   "source": "doc:333670",
+   "target": "333670::chuong-i",
+   "rel": "contains",
+   "trace": false,
+   "provenance": "structure"
+  },
+  {
+   "source": "333670::chuong-i",
+   "target": "333670::dieu-3",
+   "rel": "contains",
+   "trace": false,
+   "provenance": "articles.parent_id"
+  },
+  {
+   "source": "333670::dieu-3",
+   "target": "333670::dieu-3::khoan-1",
+   "rel": "contains",
+   "trace": false,
+   "provenance": "provisions_ref.parent_id"
+  },
+  {
+   "source": "333670::dieu-3::khoan-1",
+   "target": "term:630",
+   "rel": "defines",
+   "trace": false,
+   "provenance": "paper data/worked_example.json (definition match 100)"
+  },
+  {
+   "source": "qa:138008514",
+   "target": "term:630",
+   "rel": "mentions",
+   "trace": false,
+   "provenance": "paper data/worked_example.json"
+  },
+  {
+   "source": "qa:138008514",
+   "target": "term:641",
+   "rel": "mentions",
+   "trace": false,
+   "provenance": "paper data/worked_example.json"
+  }
+ ]
+}

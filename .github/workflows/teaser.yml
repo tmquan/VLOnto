@@ -1,0 +1,70 @@
+# Captures the paper's Fig. 1 (arXiv:2611.11426) from the 3D legal network with the harness in scripts/site/teaser,
+# which is not part of the published site: teaser.html is site/network-3d.html with an orthographic camera, the
+# replacement chain and the trace of Q&A #138008514 hung from the Labor Code (teaser.js, teaser_config.json,
+# trace_138008514.json; scripts/site/teaser/README.md). Each capture of the config is written as a PNG of the WebGL
+# canvas, with teaser_capture.json (camera, selection, anchors in figure points, traced paths, page metrics, sha256).
+# Trigger: push to a branch named preview/teaser<anything>, or run it by hand (Actions > teaser-capture > Run workflow;
+# the manual run needs this file on the default branch). Toolchain from the repo's pins, as preview.yml: CPython of
+# tools/versions.lock, Playwright from tools/requirements-web.lock (hash-checked) and the pinned chrome-headless-shell
+# (sha256) run through tools/chrome.sh (scripts/site/ci_setup.sh). Waits are on the page's metrics, scaled by
+# VLONTO_TIMEOUT_SCALE for the 4-CPU runners that draw WebGL with SwiftShader. Actions are pinned to commit SHAs.
+name: teaser-capture
+
+on:
+  push:
+    branches: ['preview/teaser**']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: teaser-capture-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      PYTHONUNBUFFERED: '1'
+      TZ: UTC
+      VLONTO_TIMEOUT_SCALE: '4'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Read the pinned Python version (tools/versions.lock)
+        id: pins
+        run: |
+          v=$(sed -n 's/^PYTHON_VERSION=\([0-9.]*\).*/\1/p' tools/versions.lock)
+          test -n "$v"
+          echo "python=$v" >> "$GITHUB_OUTPUT"
+          echo "TEASER_OUT=$RUNNER_TEMP/teaser" >> "$GITHUB_ENV"
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ steps.pins.outputs.python }}
+      - name: Install Playwright (lock) and the pinned chrome-headless-shell
+        run: bash scripts/site/ci_setup.sh "$RUNNER_TEMP/vlonto"
+      - name: Check the harness (page made from network-3d.html, geometry against three.js)
+        run: |
+          mkdir -p "$TEASER_OUT"
+          python3 scripts/site/teaser/make_page.py --check
+          node scripts/site/teaser/test_core.js "$TEASER_OUT/core_anchors.json"
+          node scripts/site/teaser/test_harness.js
+      - name: Capture Fig. 1
+        timeout-minutes: 100
+        run: '"$VLONTO_PYTHON" scripts/site/teaser/capture.py --out "$TEASER_OUT"'
+      - name: Upload the captures
+        id: upload
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: teaser-${{ github.run_id }}
+          path: ${{ runner.temp }}/teaser
+          retention-days: 14
+          if-no-files-found: warn
+      - name: Write the job summary
+        if: always()
+        continue-on-error: true
+        run: python3 scripts/site/teaser/summary.py "$TEASER_OUT" --append "$GITHUB_STEP_SUMMARY"
