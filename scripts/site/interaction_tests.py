@@ -1594,9 +1594,18 @@ def t_paper_style(c: Ctx):
                 legend = pg.evaluate("document.getElementById('legend').textContent") if not c.mobile else ""
                 if not c.mobile and "Đường truy vết" not in legend:
                     raise RuntimeError(f"legend: {legend[:200]}")
+                # links are curves drawn on the GPU (several segments per link), and the swatches of the legend and of the
+                # link toggles are curves too; the trace swatch keeps its navy core over the gold halo
+                cost = pg.evaluate("window.__VLONTO_METRICS.edgeCost") or {}
+                sw = pg.evaluate("""() => ({ legend: document.querySelectorAll('#legend svg.swatch-curve').length,
+                    trace: document.querySelectorAll('#legend svg.swatch-curve.trace path').length,
+                    toggles: document.querySelectorAll('#edge-toggles svg.swatch-curve').length })""")
+                if not cost.get("curves") or cost.get("vertices", 0) < 3 * cost.get("links", 1) or not sw["toggles"] \
+                        or (not c.mobile and (sw["legend"] < 2 or sw["trace"] != 2)):
+                    raise RuntimeError(f"curved links: cost {cost}, swatches {sw}")
                 return {"chain_docs": m.get("chainTraceDocs"), "ego_edges": m.get("egoEdges"), "ego_lines": m.get("egoLines"), "hover_trace_segments": hovered,
                         "pixels_before": before, "pixels_after": after, "callouts_selected": callout_summary(co1), "callouts_hover": callout_summary(co2),
-                        "shot": shot(pg, "network_45_2019", theme)}
+                        "edge_cost": cost, "curve_swatches": sw, "shot": shot(pg, "network_45_2019", theme)}
             finally:
                 merge(log)
                 ctx.close()
