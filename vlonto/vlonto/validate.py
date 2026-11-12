@@ -339,14 +339,14 @@ def shacl_samples(st, n_per_class=150, seed=7, timeout_s=600):
     rnd = random.Random(seed)
     groups = {}
     docs = T("documents")
-    for cls in docs["doc_class"].unique().to_list():
+    for cls in sorted(docs["doc_class"].unique().to_list()):      # sorted: polars unique() order varies between runs
         groups[f"documents:{cls}"] = docs.filter(pl.col("doc_class") == cls)["iri"].to_list()
     groups["articles"] = T("articles")["iri"].to_list()
     s = T("structure")
-    for k in s["kind"].unique().to_list():
+    for k in sorted(s["kind"].unique().to_list()):
         groups[f"structure:{k}"] = s.filter(pl.col("kind") == k)["iri"].to_list()
     p = T("provisions_ref")
-    for k in p["kind"].unique().to_list():
+    for k in sorted(p["kind"].unique().to_list()):
         groups[f"provisions_ref:{k}"] = p.filter(pl.col("kind") == k)["iri"].to_list()
     for t in ("issuers", "areas", "changes", "courts", "precedents", "terms", "news", "news_categories", "sources"):
         if t in C.COURT_TABLES and not C.INCLUDE_COURTS:
@@ -354,7 +354,7 @@ def shacl_samples(st, n_per_class=150, seed=7, timeout_s=600):
         groups[t] = T(t)["iri"].to_list()
     if C.INCLUDE_COURTS:
         dec = T("decisions")
-        for k in dec["decision_kind"].unique().to_list():
+        for k in sorted(dec["decision_kind"].unique().to_list()):
             for srcname in ("anle", "cbba"):
                 ids = dec.filter((pl.col("decision_kind") == k) & (pl.col("source") == srcname))["iri"].to_list()
                 if ids:
