@@ -20,9 +20,11 @@ This is a reading of the cards by the build agent, not legal advice. Items marke
 General rules, all sources:
 
 1. **No person names.** Fields that hold names of people are never read into KG tables: `vbpl.signer`, `hdpl.author`, `tnpl.updated_by_vi/_en`, and the judgment bodies (`markdown`) of `anle`/`cbba`, which contain names of judges, prosecutors, clerks and (anonymised) parties. Court and issuing-body names are institution names and are kept.
-2. **No body text from `other`-licensed sources.** For `hdpl`, `tnpl` and `htpl` the KG keeps identifiers, URLs, dates, categories/areas and derived edges only. One exception outside the KG: the website's Traces page shows the titles of the questions it traces (see 2.2).
+2. **No body text from `other`-licensed sources.** For `hdpl`, `tnpl` and `htpl` the KG keeps identifiers, URLs, dates, categories/areas and derived edges only.
 3. **Derived edges are VLOnto's own work.** Resolved citation, legal-basis, change and mention edges, with the method that produced them, are released with VLOnto.
 4. **Full statutory text is not redistributed** (see 2.1). Each document and provision keeps its source URL so that users read the text at the source.
+
+Exception to rule 2, on the website only (not in the KG tables or dumps): the Traces page shows the titles of the questions it traces (see 2.2).
 
 ### 2.1 `vbpl` — legal documents (CC BY 4.0 metadata)
 
@@ -77,7 +79,8 @@ Judgment text could be redistributed under the cards, but VLOnto does not need i
 ## 3. Licence of VLOnto outputs
 
 * Ontology (`vlonto.ttl`, `vlonto-shapes.ttl`, documentation): **CC BY 4.0**, creator tmquan.
-* Knowledge-graph tables and RDF dumps: VLOnto's own contributions (resolution, structure, derived edges, validity) are released under **CC BY 4.0**; records derived from the `other`-licensed sources (`hdpl`, `tnpl`, `htpl`) contain only identifiers, links, dates, categories, short labels and derived edges, and remain subject to the source terms of thuvienphapluat.vn. The Traces page data (`site/data/traces/`) also holds the titles of 538 questions (see 2.2).
+* Website Traces page data (`site/data/traces/`): VLOnto's traces, scores and drawings under **CC BY 4.0**; the titles of the 538 traced questions it holds remain subject to the source terms of thuvienphapluat.vn (see 2.2).
+* Knowledge-graph tables and RDF dumps: VLOnto's own contributions (resolution, structure, derived edges, validity) are released under **CC BY 4.0**; records derived from the `other`-licensed sources (`hdpl`, `tnpl`, `htpl`) contain only identifiers, links, dates, categories, short labels and derived edges, and remain subject to the source terms of thuvienphapluat.vn.
 * Every source dataset is described in the graph as a `vlo:SourceDataset` with revision, licence IRI and attribution text, and every node carries `vlo:sourceDataset`.
 
 ## 4. Attribution text (use on the website, in the GitHub repository and in the playbook)
