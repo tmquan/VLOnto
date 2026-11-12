@@ -1,4 +1,4 @@
-# VLOnto SHACL shapes, version 0.1.0 (CC BY 4.0, tmquan).
+# VLOnto SHACL shapes, version 1.0.0 (release v1; CC BY 4.0, tmquan).
 # Validate instance data together with the class hierarchy and the concept individuals of vlonto.ttl, so that
 # targetClass shapes also apply to instances of subclasses (for example vlo:Law under vlo:LegalDocument) and
 # sh:class can be checked for concept values (for example vlo:doctype-law a vlo:DocumentType).
@@ -21,7 +21,7 @@
 <https://tmquan.github.io/VLOnto/shapes>
     a owl:Ontology ;
     rdfs:label "VLOnto SHACL shapes"@en , "Ràng buộc SHACL của VLOnto"@vi ;
-    owl:versionInfo "0.1.0" ;
+    owl:versionInfo "1.0.0" ;
     dcterms:license <https://creativecommons.org/licenses/by/4.0/> ;
     dcterms:creator "tmquan" ;
     owl:imports <https://tmquan.github.io/VLOnto/ontology> .
@@ -103,6 +103,8 @@ vlsh:LegalChangeShape a sh:NodeShape ;
     sh:property [ sh:path vlo:sourceDataset ; sh:minCount 1 ] .
 
 # ------------------------------------------------------------------------------------------ judiciary
+# Court decisions and precedents are populated from release 2.0 (court datasets anle-toaan-gov-vn and cbba-toaan-gov-vn);
+# the shapes below are kept so that a build with VLONTO_INCLUDE_COURTS=1 is validated the same way.
 vlsh:CourtDecisionShape a sh:NodeShape ;
     sh:targetClass vlo:CourtDecision ;
     sh:property [ sh:path vlo:sourceId ; sh:minCount 1 ; sh:maxCount 1 ] ;
