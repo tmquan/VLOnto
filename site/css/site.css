@@ -1260,16 +1260,14 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
 .tl-point { stroke: var(--cls-point); } .tl-term { stroke: var(--cls-term); } .tl-question { stroke: var(--cls-question); }
 .tl-answer { stroke: var(--cls-answer); } .tl-area { stroke: var(--cls-area); } .tl-other_question { stroke: var(--cls-question); }
 .th2, .th, .tc { fill: none; stroke-linecap: round; stroke-linejoin: round; }
-.th2 { stroke: var(--paper-trace-halo-2); stroke-width: 8px; }
-.th { stroke: var(--paper-trace-halo); stroke-width: 5.5px; }
-.tc { stroke: var(--paper-trace-core); stroke-width: 2.4px; }
-.trv-wide .th2 { stroke-width: 11px; } .trv-wide .th { stroke-width: 7.5px; } .trv-wide .tc { stroke-width: 3.2px; }
-.trv-tall .th2 { stroke-width: 9px; } .trv-tall .th { stroke-width: 6px; } .trv-tall .tc { stroke-width: 2.6px; }
+/* the paper's weights in every view (Fig. 6 at panel scale: navy core ~1.3 % of the panel width over a gold halo ~3.9 %);
+   scripts/site/trace_layout.py keeps call-outs 7 units (half the outer halo) clear of every traced segment */
+.th2 { stroke: var(--paper-trace-halo-2); stroke-width: 14px; }
+.th { stroke: var(--paper-trace-halo); stroke-width: 10px; }
+.tc { stroke: var(--paper-trace-core); stroke-width: 4.6px; }
 /* structural path (the primary citation's text is not in the answer): thinner dashed core over a faint halo */
 .th2.s, .th.s { opacity: .4; }
-.tc.s { stroke-width: 1.5px; stroke-dasharray: 3.4 2.6; }
-.trv-wide .tc.s { stroke-width: 2px; stroke-dasharray: 5 4; }
-.trv-tall .tc.s { stroke-width: 1.7px; stroke-dasharray: 4 3; }
+.tc.s { stroke-width: 2.6px; stroke-dasharray: 7 5; }
 .tn { stroke-width: .6px; }
 .trv-wide .tn { stroke-width: .9px; }
 .tn-work { fill: url(#trg-work); stroke: var(--trs-work-rim); } .tn-record { fill: url(#trg-record); stroke: var(--trs-record-rim); }
@@ -1295,7 +1293,7 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
 .trv-wide .tr-lead { stroke-width: 1px; }
 .tr-vi { fill: var(--paper-ink); } .tr-en { fill: var(--paper-ink-2); }
 .tr-fig text { font-family: var(--vlo-font-paper); font-weight: 400; font-style: normal; }
-.trv-card text { font-size: 12px; } .trv-wide text { font-size: 15px; } .trv-tall text { font-size: 12.5px; }
+.trv-card text { font-size: 13.5px; } .trv-wide text { font-size: 15px; } .trv-tall text { font-size: 12.5px; }
 /* --- the page: header notes, flat legend, area tabs (wrap on wide screens, one scrolling row on phones), card grid */
 .traces-page { max-width: 1400px; }
 .traces-page .page-head { padding-bottom: 4px; }

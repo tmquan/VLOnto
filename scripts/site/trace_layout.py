@@ -2,29 +2,37 @@
 """trace_layout.py - build-time drawings of the question traces of traces.html (stdlib only, deterministic).
 
 Each trace of build/traces/<area>.json (question -> answer -> cited provision -> ... -> law, terms, other answers citing
-the same law) is drawn like the figures of the paper (arXiv:2611.11426, Fig. 1 and Fig. 6): a hanging tree seen
-obliquely. The law hangs from the top, its chapters, sections and articles below it, other answers near the floor under
-the articles they cite; the question and its answer stand at the bottom centre under the legal area, and the cited
-provisions climb from the answer to the law along one arm. The 3D positions are projected orthographically from a
-raised viewpoint; far nodes fade, low nodes cast soft floor shadows.
+the same law) is drawn like the figures of the paper (arXiv:2611.11426).
 
-Call-outs never cover graph ink. As in the paper, the graph is drawn at scale 1, 0.92, 0.85 or 0.78 (then 0.7, 0.62)
-and shifted by 0, +-0.15 or +-0.30 of the panel width until both labels of a card (the provision and one term) find
-clear space beside it: boxes may not intersect the bounding box of any node, link, traced segment (with its halo) or
-floor shadow; thin leader lines join them to their nodes. The focus view (Fig. 1) puts the call-outs in two columns
-beside the graph (wide screens) or in bands above and below it (narrow screens).
+The cards are Fig. 6 panels (class Panel), a flat drawing that fills the card width: the question and its answer at the
+floor; the trace as V/W strokes rising from them - one arm through the chain of the provision the call-out names to its
+law, other traced paths to that law as strands beside it, paths to other laws and the question's terms on the opposite
+side, each term with a dark hop to the clause that defines it when that clause was found (Fig. 1, Fig. 5). The rest of
+the law's structure spreads across the top band and the other answers hang, faded, under the articles they cite. The
+two call-outs (the provision and one term) sit at the left and right edges of the panel, level with their nodes, on
+each node's outer side; they may cover the faded background ("bg") but never a foreground node, link or traced
+segment (with its halo), and their leaders cross neither the trace nor a foreground node. Composition variants
+(PANEL_VARIANTS) are tried in order until both call-outs fit.
+
+The focus view keeps Fig. 1: a hanging tree seen obliquely (class Layout3D), the law from the top, its chapters, sections
+and articles below it, the question and its answer at the bottom centre under the legal area, projected orthographically
+from a raised viewpoint; far nodes fade, low nodes cast soft floor shadows. Its call-outs stand in two columns beside the
+graph (wide screens) or in bands above and below it (narrow screens), clear of any node, link, traced segment or shadow.
 
 Text is measured with the advance widths of the vendored Libertinus Sans (font_metrics_libertinus.json, made by
 make_font_metrics.py) plus a 3 % margin. Every random choice comes from a PRNG seeded with the area id, the rank and the
 question id, so the same input gives the same bytes.
 
-Output per trace (graph units are CSS px of a card at scale 1; views map them with [a, tx, ty]):
+Output per trace (graph units of the 3D drawing; the focus views map them with [a, tx, ty]):
   nodes    [[u, v, r, opacity], ...] in the order of the trace's node list
   order    node indices from far to near (drawing order)
   links    [[source, target, colour class, opacity], ...]; curves are cubic with vertical tangents (see curve())
-  trace    [[i, j, style], ...]: style 1 = text-verified path (match >= 0.5), 2 = structural primary path
+  trace    [[i, j, style], ...]: style 1 = text-verified path (match >= 0.5) or a term -> defining clause hop,
+           2 = structural primary path
   shadows  [[u, v, rx, ry, opacity], ...] on the floor
-  views    card / wide / tall: {"w", "h", "t": [a, tx, ty], "c": [call-outs]}; call-out = {"n": node index,
+  views    card / wide / tall: {"w", "h", "t": [a, tx, ty], "c": [call-outs]}; the card carries its own panel drawing
+           in card units ("t" = [1, 0, 0]): "n" [[x, y, r, opacity(, 1 = background)], ...], "s" floor shadows,
+           "o" drawing order (background first), "lo" link opacities; call-out = {"n": node index,
            "b": [x, y, w, h], "l": [[text, 0 = Vietnamese | 1 = English, x, baseline], ...], "k": leader polyline
            [x1, y1, x2, y2(, x3, y3)]: from the box (via the column's inner edge in the focus views) to the node}
 """
@@ -34,7 +42,7 @@ import hashlib
 import json
 import math
 import random
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -100,13 +108,12 @@ CLASSES = ["work", "record", "chapter", "section", "article", "clause", "point",
            "other_question"]
 CONV_H = 0.3                      # the provisions' arms converge above the answer at this height
 ELEV = math.radians(20)           # camera elevation
-CARD = {"w": 360, "h": 168, "m": 3.0, "font": 12.0, "lh": 14.0, "padx": 4.5, "pady": 2.5, "gap": 4.0}
+CARD = {"w": 360, "h": 176, "m": 3.0, "font": 13.5, "lh": 15.5, "padx": 5.0, "pady": 3.0, "gap": 4.0}
 WIDE = {"w": 1000, "m": 6.0, "font": 15.0, "lh": 18.0, "padx": 6.0, "pady": 3.5, "gap": 7.0, "col": 300.0}
 TALL = {"w": 400, "m": 4.0, "font": 12.5, "lh": 15.0, "padx": 4.5, "pady": 2.5, "gap": 5.0, "col": 150.0}
-HALO = {"card": 5.5, "wide": 7.0, "tall": 6.0}       # half-width of the outer halo (keep-out around traced segments)
+# the traced path as in the paper: navy core 4.6, gold halo 10 and pale outer halo 14 (css/site.css, every view)
+HALO = {"card": 7.0, "wide": 7.0, "tall": 7.0}       # half-width of the outer halo (keep-out around traced segments)
 LINK_W = {"card": 0.95, "wide": 1.25, "tall": 1.05}
-SCALES = (1.0, 0.92, 0.85, 0.78, 0.7, 0.62)
-SHIFTS = (0.0, 0.15, -0.15, 0.3, -0.3)
 
 
 def seed_of(*parts) -> int:
@@ -126,6 +133,17 @@ def curve(p, q):
 
 
 # ------------------------------------------------------------------------------------------------ 3D layout
+def bez_poly(p, q, n=16):
+    """the drawn curve between p and q (curve()) as a polyline of n pieces"""
+    p0, p1, p2, p3 = curve(p, q)
+    out = []
+    for i in range(n + 1):
+        u = i / n
+        a, b, c, d = (1 - u) ** 3, 3 * u * (1 - u) ** 2, 3 * u * u * (1 - u), u ** 3
+        out.append((a * p0[0] + b * p1[0] + c * p2[0] + d * p3[0], a * p0[1] + b * p1[1] + c * p2[1] + d * p3[1]))
+    return out
+
+
 class Layout3D:
     def __init__(self, tr: dict, seed: int):
         self.tr, self.rnd = tr, random.Random(seed)
@@ -175,9 +193,14 @@ class Layout3D:
                 x, y, z = P.get(tgt, P[self.w0])
                 P[i] = (x + (side if tgt == self.w0 else -side) * 17.0, self.h(i), z - 9.0)
         terms = [i for i, c in self.cls.items() if c == "term"]
+        defined = {ln["t"]: ln["s"] for ln in self.tr["links"] if ln["kind"] == "defines"}
         for k, t in enumerate(terms):
             off = (k - (len(terms) - 1) / 2.0) * 26.0
-            P[t] = (side * 0.2 * XS + off, self.h(t, 0.02), 20.0 + rnd.uniform(-4, 4))
+            c = defined.get(t)
+            if c in P:          # half way to the clause that defines it, in front
+                P[t] = (0.5 * P[c][0] + 0.3 * off, self.h(t, 0.02), 0.5 * P[c][2] + 12.0 + rnd.uniform(-4, 4))
+            else:
+                P[t] = (side * 0.2 * XS + off, self.h(t, 0.02), 20.0 + rnd.uniform(-4, 4))
         for i in self.nodes:                     # anything not reached (defensive): near the centre
             if i not in P:
                 P[i] = (rnd.uniform(-40, 40), self.h(i), rnd.uniform(-20, 20))
@@ -240,6 +263,217 @@ def project(P: dict, az: float):
         zr = -x * sa + z * ca
         out[i] = (xr, -y * ce + zr * se, zr, (xr, zr * se))       # u, v (down), depth (toward the viewer), floor point
     return out
+
+
+# ------------------------------------------------------------------------------------------------ card: Fig. 6 panel
+# The card is composed like a panel of the paper's Fig. 6, directly in card units: the question at the floor with its
+# answer just above it; the cited provision's chain rising on one side to its law; on the other side the terms the
+# question names, each with a dark hop to the clause that defines it when that clause was found (Fig. 1, Fig. 5), the
+# defining document's chain climbing on, faded, to its law; the rest of the law's structure spread across the top band
+# and the other answers hanging, faded, under the articles they cite. Faded nodes and links are background ("bg"):
+# a call-out box may cover them, as in the paper, but never the trace, its nodes or the other foreground links.
+PANEL_H = {"work": 1.0, "record": 0.985, "area": 0.995, "chapter": 0.86, "section": 0.765, "article": 0.665,
+           "clause": 0.565, "point": 0.48, "term": 0.40, "answer": 0.075, "question": 0.0, "other_question": 0.12}
+PANEL_R = {"work": 5.4, "record": 4.2, "area": 4.6, "chapter": 4.4, "section": 4.2, "article": 4.0, "clause": 3.6,
+           "point": 3.3, "term": 4.8, "question": 5.2, "answer": 4.7, "other_question": 2.8}
+STRUCT = ("chapter", "section", "article", "clause", "point")
+# composition variants, tried in order until both call-outs of a card fit: (flip the provision side, vertex offset,
+# reach of the provision arm, reach of the terms), offsets and reaches as fractions of the card width
+PANEL_VARIANTS = [(flip, xo, dp, dt) for dp, dt in ((0.17, 0.16), (0.14, 0.13), (0.20, 0.19), (0.12, 0.11), (0.24, 0.23))
+                  for flip in (0, 1) for xo in (-0.02, 0.03, -0.07)]
+
+
+class Panel:
+    def __init__(self, tr: dict, seed: int, cfg: dict, side: int, xo: float, dp: float, dt: float, callout_term=None,
+                 callout_provision=None):
+        self.tr, self.rnd = tr, random.Random(seed)
+        self.W, self.H, self.m = cfg["w"], cfg["h"], cfg["m"]
+        self.s, self.xo, self.dp, self.dt, self.callout_term = side, xo, dp, dt, callout_term
+        self.cls = {n["id"]: n["cls"] for n in tr["nodes"]}
+        self.parent, self.children, self.oq, self.defines, self.realizes = {}, defaultdict(list), {}, {}, {}
+        for ln in tr["links"]:
+            s, t, k = ln["s"], ln["t"], ln["kind"]
+            if k == "contains":
+                self.parent[t] = s
+                self.children[s].append(t)
+            elif k == "cites" and self.cls[s] == "other_question":
+                self.oq.setdefault(s, []).append(t)
+            elif k == "defines":
+                self.defines.setdefault(t, s)
+            elif k == "realizes":
+                self.realizes.setdefault(s, t)
+        self.prim = next(p for p in tr["paths"] if p.get("primary"))
+        self.q, self.a, self.w0 = self.prim["nodes"][0], self.prim["nodes"][1], self.prim["nodes"][-1]
+        self.traced = [p for p in tr["paths"] if p["verified"] or p.get("primary")]
+        # the main arm carries the call-out provision (on a traced path in every trace; the primary path otherwise)
+        self.main = next((p for p in sorted(self.traced, key=lambda p: (not p["verified"], not p.get("primary")))
+                          if callout_provision in p["nodes"]), self.prim)
+        self.y0, self.y1 = self.H - 13.0, 13.0                 # floor and top of the node centres
+        self.P, self.fg, self.op = {}, set(), {}
+
+    def Y(self, h):
+        return self.y0 - h * (self.y0 - self.y1)
+
+    def jit(self, a):
+        return self.rnd.uniform(-a, a)
+
+    def clamp(self, x, pad=8.0):
+        return min(max(x, self.m + pad), self.W - self.m - pad)
+
+    @staticmethod
+    def arm_x(h, x0, x1):
+        """x of an arm that leaves the vertex x0 just above the answer and reaches x1 at the top"""
+        t = max(0.0, min(1.0, (h - PANEL_H["answer"]) / (1.0 - PANEL_H["answer"])))
+        return x0 + (x1 - x0) * t ** 0.9
+
+    def run(self):
+        W, s, P, rnd = self.W, self.s, self.P, self.rnd
+        xv = W * (0.5 + s * self.xo)
+        self.xv = xv
+        P[self.q] = (xv, self.Y(0.0))
+        P[self.a] = (xv + s * 1.5, self.Y(PANEL_H["answer"]))
+        self.fg.update((self.q, self.a))
+        # provision arms: the primary path to its law on side s; other traced paths to that law as strands just inside
+        # it; traced paths to other laws on the other side
+        wm = self.main["nodes"][-1]
+        top_of = {wm: self.clamp(xv + s * self.dp * W, 14)}
+        k_other = 0
+        for p in self.traced:
+            w = p["nodes"][-1]
+            if w not in top_of:
+                top_of[w] = self.clamp(xv - s * self.dp * (1.0 - 0.2 * k_other) * W, 14)
+                k_other += 1
+        self.k_other = k_other
+        n_strands = Counter(p["nodes"][-1] for p in self.traced)
+        strands = defaultdict(int)
+        for p in sorted(self.traced, key=lambda p: (p is not self.main, not p.get("primary"), not p["verified"])):
+            w = p["nodes"][-1]
+            k = strands[w]
+            strands[w] += 1
+            sp = 8.5 if n_strands[w] <= 3 else max(5.0, 25.5 / (n_strands[w] - 1))   # bundles of 4+ strands closer
+            off = (-s if w == wm else s) * sp * k                                       # strands step inwards
+            for i in p["nodes"][2:]:
+                if i in P:
+                    continue
+                c = self.cls[i]
+                h = PANEL_H.get(c, 0.6) + (0.0 if c == "work" else self.jit(0.012))
+                x = self.arm_x(h, xv, top_of[w]) + (0.0 if c == "work" else off + self.jit(1.5))
+                P[i] = (self.clamp(x, 6), self.Y(h))
+            self.fg.update(p["nodes"])
+        # terms on the other side, the call-out term outermost; the defining clause just above and inside its term
+        terms = [t["node"] for t in self.tr.get("terms") or [] if t["node"] in self.cls]
+        if self.callout_term in terms:
+            terms = [t for t in terms if t != self.callout_term] + [self.callout_term]
+        n = len(terms)
+        for k, t in enumerate(terms):
+            c = self.defines.get(t)
+            frac = self.dt * (0.45 + 0.55 * (k + 1) / n) + (0.6 * self.dp if k_other else 0.0)   # outside other laws' arms
+            th = PANEL_H["term"] + (0.035 if k % 2 else 0.0) - (0.07 if c is None else 0.0)
+            tx = self.clamp(xv - s * frac * W, 10)
+            P[t] = (tx, self.Y(th))
+            self.fg.add(t)
+            if c is None:
+                continue
+            self.fg.add(c)
+            if c in P:
+                continue
+            hc = th + 0.17
+            P[c] = (self.clamp(tx + s * 0.042 * W, 8), self.Y(hc))
+            chain, x = [], self.parent.get(c)
+            while x is not None and x not in P:
+                chain.append(x)
+                x = self.parent.get(x)
+            for j, anc in enumerate(chain):
+                ha = min(1.0, max(PANEL_H.get(self.cls[anc], 0.8), hc + 0.07 * (j + 1)))
+                f = (ha - hc) / max(0.05, 1.0 - hc)
+                P[anc] = (self.clamp(P[c][0] - s * 0.11 * W * f + self.jit(2.0), 10), self.Y(ha))
+        # area at the top inside the provision arm; the law's record beside it
+        for i, c in sorted(self.cls.items()):
+            if c == "area" and i not in P:
+                P[i] = (self.clamp(xv + s * 0.42 * self.dp * W, 10), self.Y(PANEL_H["area"]))
+                self.fg.add(i)
+        for r, w in sorted(self.realizes.items()):
+            if r not in P and w in P:
+                P[r] = (self.clamp(P[w][0] - s * 13.0, 8), self.Y(PANEL_H["record"]))
+                if w == self.w0:
+                    self.fg.add(r)
+        # other works the answer cites: free spots of the top band, the far side first
+        taken = [x for x, y in P.values() if y < self.Y(0.93)]
+        slots = [self.m + 12 + 17.0 * j for j in range(int((W - 2 * self.m - 24) / 17.0) + 1)]
+        slots.sort(key=lambda x: (s * (x - xv) > 0, abs(x - (xv - s * 0.36 * W))))
+        for w in sorted(i for i, c in self.cls.items() if c == "work" and i not in P):
+            x = next((x for x in slots if all(abs(x - t) > 14 for t in taken)), self.clamp(xv + self.jit(0.3 * W)))
+            taken.append(x)
+            P[w] = (x, self.Y(0.975 + self.jit(0.02)))
+        for r, w in sorted(self.realizes.items()):
+            if r not in P:
+                P[r] = (self.clamp(P.get(w, (xv, 0))[0] + 11.0, 8), self.Y(PANEL_H["record"] - 0.04))
+        # the rest of the structure: subtrees spread across the width, ordered by their parent's x
+        oq_first = defaultdict(list)
+        for o, tg in self.oq.items():
+            oq_first[tg[0]].append(o)
+
+        def weight(i):
+            return 1.0 + 0.45 * len(oq_first.get(i, ())) + sum(weight(c) for c in self.children.get(i, ())
+                                                                 if c not in P and self.cls.get(c) in STRUCT)
+        roots = []
+        for par in sorted(P, key=lambda i: (P[i][0], i)):
+            for c in self.children.get(par, ()):
+                if c not in P and self.cls.get(c) in STRUCT:
+                    roots.append((par, c))
+        orphans = sorted(i for i, c in self.cls.items() if c in STRUCT and i not in P and self.parent.get(i) not in self.cls)
+        roots += [(None, i) for i in orphans]
+        if roots:
+            wts = [weight(c) for _, c in roots]
+            lo, hi = self.m + 8.0, W - self.m - 8.0
+            x = lo
+            for (par, c), wt in zip(roots, wts):
+                span = (hi - lo) * wt / sum(wts)
+                self.place_sub(c, x, x + span)
+                x += span
+        for i, c in sorted(self.cls.items()):                   # anything still unplaced (defensive)
+            if c in STRUCT and i not in P:
+                P[i] = (self.clamp(xv + self.jit(0.3 * W)), self.Y(PANEL_H[c]))
+        # other answers hang under the node they cite first
+        groups = defaultdict(list)
+        for o, tg in sorted(self.oq.items()):
+            groups[next((t for t in tg if t in P), None)].append(o)
+        for t0, os_ in sorted(groups.items(), key=lambda kv: str(kv[0])):
+            bx = P[t0][0] if t0 is not None else xv
+            sp = min(5.4, 46.0 / max(1, len(os_)))
+            for j, o in enumerate(os_):
+                P[o] = (self.clamp(bx + (j - (len(os_) - 1) / 2.0) * sp + self.jit(1.2), 5),
+                        self.Y(0.05 + rnd.uniform(0.0, 0.22)))
+        for i, c in sorted(self.cls.items()):
+            if i not in P:
+                P[i] = (self.clamp(xv + self.jit(0.3 * W)), self.Y(0.6))
+        # opacity: foreground strong, the rest faded
+        for i in sorted(P):
+            c = self.cls[i]
+            if i in self.fg:
+                self.op[i] = 0.95
+            elif c == "other_question":
+                self.op[i] = round(0.3 + 0.2 * rnd.random(), 2)
+            elif c in ("work", "record"):
+                self.op[i] = 0.62
+            else:
+                self.op[i] = round(0.38 + 0.24 * rnd.random(), 2)
+        return P
+
+    def place_sub(self, i, x0, x1):
+        """a background subtree in the interval [x0, x1]: the node in the middle, its children side by side below"""
+        P = self.P
+        c = self.cls[i]
+        P[i] = (self.clamp((x0 + x1) / 2 + self.jit(0.12 * (x1 - x0)), 6), self.Y(PANEL_H[c] + self.jit(0.015)))
+        kids = [k for k in self.children.get(i, ()) if k not in P and self.cls.get(k) in STRUCT]
+        if not kids:
+            return
+        wts = [1.0 + len(self.children.get(k, ())) for k in kids]
+        x = x0
+        for k, wt in zip(kids, wts):
+            span = (x1 - x0) * wt / sum(wts)
+            self.place_sub(k, x, x + span)
+            x += span
 
 
 # ------------------------------------------------------------------------------------------------ geometry
@@ -354,6 +588,10 @@ class TraceGeometry:
             for a, b in zip(p["nodes"], p["nodes"][1:]):
                 e = tuple(sorted((self.idx[a], self.idx[b])))
                 style[e] = 1 if (style.get(e) == 1 or st == 1) else 2
+        q = self.idx[L.q]
+        for tm, c in sorted(self.defined_terms().items()):
+            for e in ((q, self.idx[tm]), (self.idx[tm], self.idx[c])):
+                style[tuple(sorted(e))] = 1
         self.trace = [[a, b, s] for (a, b), s in sorted(style.items())]
         # floor shadows under the low nodes, and one soft shadow under the bottom of the tree
         self.shadows = []
@@ -374,11 +612,19 @@ class TraceGeometry:
         ys1 = [v + r for (u, v), r in zip(self.uv, self.r)] + [s[1] + s[3] for s in self.shadows]
         self.bbox = (min(xs0), min(ys0), max(xs1), max(ys1))
 
+    def defined_terms(self):
+        """term -> the clause that defines it, for the terms of the trace whose defining clause was found"""
+        ids = {n["id"] for n in self.tr["nodes"]}
+        d = {ln["t"]: ln["s"] for ln in self.tr["links"] if ln["kind"] == "defines"}
+        return {t["node"]: d[t["node"]] for t in self.tr.get("terms") or [] if t["node"] in d and d[t["node"]] in ids}
+
     def trace_node_set(self):
         out = set()
         for p in self.tr["paths"]:
             if p["verified"] or p.get("primary"):
                 out.update(p["nodes"])
+        for tm, c in self.defined_terms().items():
+            out.update((tm, c))
         return out
 
     # ---------------------------------------------------------------- views
@@ -460,40 +706,101 @@ class TraceGeometry:
         pts.append((ax - dx / dist * (anchor_r + 0.8), ay - dy / dist * (anchor_r + 0.8)))
         return {"n": k, "b": [r1(x), r1(y), r1(w), r1(h)], "l": lines, "k": [r1(v) for pt in pts for v in pt]}
 
-    def fit(self, region, factor=1.0, shift=0.0, W=None):
-        x0, y0, x1, y1 = region
-        bx0, by0, bx1, by1 = self.bbox
-        a = min((x1 - x0) / (bx1 - bx0), (y1 - y0) / (by1 - by0)) * factor
-        cx = (x0 + x1) / 2 + shift * (W or (x1 - x0))
-        cy = (y0 + y1) / 2
-        tx = cx - a * (bx0 + bx1) / 2
-        ty = cy - a * (by0 + by1) / 2
-        if a * bx0 + tx < x0 - 0.01 or a * bx1 + tx > x1 + 0.01:
-            return None
-        return (a, tx, ty)
-
     def card(self):
+        """Fig. 6 panel (class Panel), composition variants in order until both call-outs fit beside their nodes"""
         cfg = CARD
-        W, H, m = cfg["w"], cfg["h"], cfg["m"]
-        want = [self.idx[x] for x in (self.tr["callouts"].get("provision"), self.tr["callouts"].get("term")) if x]
-        variants = {k: [self.box(k, "card", cfg, mw, False) for mw in (None, 120, 96, 76, 60)] for k in want}
-        stats = {"tries": 0}
+        W, H = cfg["w"], cfg["h"]
+        ca = self.tr["callouts"]
+        want = [self.idx[x] for x in (ca.get("provision"), ca.get("term")) if x]
+        variants = {k: [self.box(k, "card", cfg, mw, False) for mw in (None, 124, 104, 88, 74)] for k in want}
+        tries = 0
         for need in (want, want[:1], []):
-            for s in SCALES:
-                for sh in SHIFTS:
-                    T = self.fit((m, m, W - m, H - m), s, sh, W)
-                    if T is None:
+            for strict in (True, False):                # first: no leader over the trace or a foreground node
+                for vi, (flip, xo, dp, dt) in enumerate(PANEL_VARIANTS):
+                    side = -self.L.side if flip else self.L.side
+                    pan = Panel(self.tr, self.seed, cfg, side, xo, dp, dt, ca.get("term"), ca.get("provision"))
+                    geo = self.panel_geo(pan, pan.run())
+                    tries += 1
+                    # each box on the outer side of its node: the side of the node seen from the vertex
+                    pref = {k: (1 if geo["X"][k][0] > pan.xv + 0.5 else (-1 if geo["X"][k][0] < pan.xv - 0.5 else sd))
+                            for k, sd in ((self.idx[x], sd) for x, sd in ((ca.get("provision"), side), (ca.get("term"), -side)) if x)}
+                    rects = Rects(geo["ink"])
+                    res = self.place_pair(need, variants, geo, rects, cfg, pref, strict)
+                    if res is None:
                         continue
-                    stats["tries"] += 1
-                    X, R, ink = self.ink(T, "card")
-                    res = self.place_pair(need, variants, X, R, Rects(ink), cfg)
-                    if res is not None:
-                        return {"w": W, "h": H, "t": [round(T[0], 4), r1(T[1]), r1(T[2])], "c": res,
-                                "scale": s, "shift": sh, "tries": stats["tries"], "dropped": len(want) - len(need)}
+                    hits = sum(1 for c in res if not rects.free(c["b"][0], c["b"][1], c["b"][0] + c["b"][2], c["b"][1] + c["b"][3]))
+                    over = sum(self.leader_over(c, geo)[0] + self.leader_over(c, geo)[1] for c in res)
+                    return {"w": W, "h": H, "t": [1, 0, 0], "c": res, "n": geo["n"], "s": geo["s"], "o": geo["o"],
+                            "lo": geo["lo"], "variant": vi, "tries": tries, "dropped": len(want) - len(need), "ink": hits,
+                            "over": over, "arms": self.arms(geo["X"], pan.xv)}
         raise RuntimeError("no card layout")
 
-    def candidates(self, k, variants, X, R, rects, cfg):
+    def panel_geo(self, pan, P):
+        """card nodes [x, y, r, opacity(, 1 = background)], link opacities, floor shadows, drawing order and the
+        foreground ink that a call-out may not cover (nodes, links between foreground nodes, traced segments + halo)"""
+        X = [P[i] for i in self.ids]
+        R = [PANEL_R[c] for c in self.cls]
+        fg = [i in pan.fg for i in self.ids]
+        op = [pan.op[i] for i in self.ids]
+        traced = {(a, b) for a, b, _ in self.trace}
+        lo = []
+        for s, t, _, _ in self.links:
+            e = tuple(sorted((s, t)))
+            lo.append(0.9 if e in traced else (0.85 if fg[s] and fg[t] else round(min(op[s], op[t]) * 0.85, 2)))
+        lw, halo, m = LINK_W["card"] / 2 + 0.6, HALO["card"] + 0.6, 1.5
+        ink = [[x - r - m, y - r - m, x + r + m, y + r + m] for (x, y), r, f in zip(X, R, fg) if f]
+        for s, t, _, _ in self.links:
+            if fg[s] and fg[t] and tuple(sorted((s, t))) not in traced:
+                (x1, y1), (x2, y2) = X[s], X[t]
+                ink.append([min(x1, x2) - lw, min(y1, y2) - lw, max(x1, x2) + lw, max(y1, y2) + lw])
+        for s, t, _ in self.trace:
+            (x1, y1), (x2, y2) = X[s], X[t]
+            ink.append([min(x1, x2) - halo, min(y1, y2) - halo, max(x1, x2) + halo, max(y1, y2) + halo])
+        bgbox = [[x - r, y - r, x + r, y + r] for (x, y), r, f in zip(X, R, fg) if not f]
+        sh = []
+        low = [k for k in range(len(X)) if X[k][1] > pan.Y(0.32)]
+        if low:
+            xs = [X[k][0] for k in low]
+            sh.append([r1((min(xs) + max(xs)) / 2), r1(pan.y0 + 5.0), r1((max(xs) - min(xs)) / 2 + 12.0), 3.4, 0.09])
+        for k in low:
+            sh.append([r1(X[k][0]), r1(pan.y0 + 4.4), r1(R[k] * 1.9), r1(R[k] * 0.55), round(0.08 + (0.08 if fg[k] else 0.0), 2)])
+        order = sorted(range(len(X)), key=lambda k: (fg[k], op[k], k))
+        nodes = [[r1(x), r1(y), r, op[k]] + ([] if fg[k] else [1]) for k, ((x, y), r) in enumerate(zip(X, R))]
+        tp = [(s, t, bez_poly(X[s], X[t])) for s, t, _ in self.trace]
+        return {"X": X, "R": R, "fg": fg, "ink": ink, "bgbox": bgbox, "lo": lo, "s": sh, "o": order, "n": nodes, "tp": tp}
+
+    def arms(self, X, xv):
+        """traced strokes leaving the vertex (question or answer): [style, side] each (side -1 = left of the vertex)"""
+        q, a = self.idx[self.L.q], self.idx[self.L.a]
+        out = []
+        for s, t, st in self.trace:
+            if {s, t} == {q, a} or not ({s, t} & {q, a}):
+                continue
+            o = t if s in (q, a) else s
+            out.append([st, -1 if X[o][0] < xv else 1])
+        return out
+
+    @staticmethod
+    def leader_over(c, geo):
+        """(pieces of traced curves, foreground nodes) that the leader of call-out c crosses, away from its own node"""
+        X, R, fg, k = geo["X"], geo["R"], geo["fg"], c["n"]
+        (ax, ay), near = X[k], R[k] + 3.0
+        pts = list(zip(c["k"][0::2], c["k"][1::2]))
+        tx = fx = 0
+        for p, q in zip(pts, pts[1:]):
+            for _, _, poly in geo["tp"]:
+                for u, v in zip(poly, poly[1:]):
+                    if segs_cross(p, q, u, v) and math.hypot(u[0] - ax, u[1] - ay) > near and math.hypot(v[0] - ax, v[1] - ay) > near:
+                        tx += 1
+            fx += sum(1 for j, (xy, r) in enumerate(zip(X, R)) if j != k and fg[j] and seg_circle(p, q, xy, r + 0.3))
+        return tx, fx
+
+    def candidates(self, k, variants, geo, rects, cfg, pref=None, strict=False):
+        """call-out boxes for node k, best first: as in the paper, at the left or right edge of the panel on the node's
+        outer side, level with the node; the leader may run over the faded background but not over other foreground
+        nodes or the trace"""
         W, H, m, gap = cfg["w"], cfg["h"], cfg["m"], cfg["gap"]
+        X, R, bgbox = geo["X"], geo["R"], geo["bgbox"]
         (ax, ay), ar = X[k], R[k]
         out = []
         for parts, w, h in variants[k]:
@@ -507,22 +814,30 @@ class TraceGeometry:
                 if not (x + w < ax - ar - 3 or x > ax + ar + 3):
                     continue
                 for g0, g1 in rects.free_gaps(x - gap / 2, x + w + gap / 2, m, H - m):
-                    if g1 - g0 < h:
+                    if g1 - g0 < h + 0.2:
                         continue
-                    y = min(max(ay - h / 2, g0), g1 - h)
+                    y = min(max(ay - h / 2, g0 + 0.1), g1 - h - 0.1)          # 0.1 inside: rounding never reaches ink
                     c = self.emit_box(k, parts, x, y, w, h, cfg, (ax, ay), ar)
                     p, e = c["k"][:2], c["k"][-2:]
                     L = math.hypot(e[0] - p[0], e[1] - p[1])
-                    cross = sum(1 for j, (xy, r) in enumerate(zip(X, R)) if j != k and r > 0 and seg_circle(p, e, xy, r + 0.5))
-                    score = L + 0.6 * abs((y + h / 2) - ay) + 9.0 * cross + 0.02 * w * h
+                    tx, fgx = self.leader_over(c, geo)
+                    if strict and (tx or fgx):
+                        continue
+                    bgx = sum(1 for j, (xy, r) in enumerate(zip(X, R)) if j != k and not geo["fg"][j] and seg_circle(p, e, xy, r + 0.5))
+                    score = 0.25 * L + 0.6 * abs((y + h / 2) - ay) + 12.0 * fgx + 1.5 * bgx + 30.0 * tx + 0.02 * w * h
+                    if not (x <= m + 0.5 or x + w >= W - m - 0.5):
+                        score += 26.0                 # not at the panel's edge
+                    if pref and k in pref and (x + w / 2 - ax) * pref[k] < 0:
+                        score += 40.0                 # card: the box on the inner side of its node
+                    score += 1.5 * sum(1 for b in bgbox if x < b[2] and x + w > b[0] and y < b[3] and y + h > b[1])
                     out.append((score, c))
         out.sort(key=lambda t: t[0])
         return out[:40]
 
-    def place_pair(self, need, variants, X, R, rects, cfg):
+    def place_pair(self, need, variants, geo, rects, cfg, pref=None, strict=False):
         if not need:
             return []
-        cands = [self.candidates(k, variants, X, R, rects, cfg) for k in need]
+        cands = [self.candidates(k, variants, geo, rects, cfg, pref, strict) for k in need]
         if any(not c for c in cands):
             return None
         if len(need) == 1:
@@ -677,7 +992,7 @@ class TraceGeometry:
 
     def export(self):
         card = self.card()
-        meta = {k: card.pop(k) for k in ("scale", "shift", "tries", "dropped")}
+        meta = {k: card.pop(k) for k in ("variant", "tries", "dropped", "ink", "over", "arms")}
         views = {"card": card, "wide": self.wide(), "tall": self.tall()}
         meta["crossings"] = sum(self.crossings(v) for v in views.values())
         return {"nodes": [[r1(u), r1(v), r1(r), round(o, 2)] for (u, v), r, o in zip(self.uv, self.r, self.op)],

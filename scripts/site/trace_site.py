@@ -178,6 +178,17 @@ def check_area(src: dict, area_id: str) -> list:
     return p
 
 
+def arms_stats(acc: dict, arms: list, tr: dict):
+    """card shape: a V or W has traced strokes on both sides of the vertex, a single arm on one side only"""
+    sides = {sd for _, sd in arms}
+    dark = {sd for st, sd in arms if st == 1}
+    acc["v_w" if len(sides) > 1 else "single"] += 1
+    acc["dark_v_w" if len(dark) > 1 else "dark_single"] += 1
+    defined = {ln["t"] for ln in tr["links"] if ln["kind"] == "defines"}
+    acc["with_term_arm"] += any(t["node"] in defined for t in tr.get("terms") or [])
+    acc["strokes"][str(len(arms))] = acc["strokes"].get(str(len(arms)), 0) + 1
+
+
 def write_js(j2j, value, name: str, out: Path, tmp: Path, src_name: str) -> int:
     src = tmp / src_name
     src.write_text(json.dumps(value, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
@@ -207,7 +218,10 @@ def build(traces: Path | None, site: Path) -> dict:
             return rep
         src_index = json.loads((traces / "index.json").read_text(encoding="utf-8"))
         font = TL.Font()
-        areas, problems, layout = [], [], {"traces": 0, "callouts_dropped": 0, "scales": {}, "shifts": {}, "ink_hits": 0}
+        areas, problems = [], []
+        layout = {"traces": 0, "callouts_dropped": 0, "ink_hits": 0, "crossings": 0, "leaders_over_trace": 0,
+                  "card_callouts": 0, "card_callouts_at_edge": 0, "variants": {},
+                  "arms": {"single": 0, "v_w": 0, "dark_single": 0, "dark_v_w": 0, "with_term_arm": 0, "strokes": {}}}
         for a in src_index["areas"]:
             raw = (traces / a["file"]).read_bytes()
             src = json.loads(raw.decode("utf-8"))
@@ -218,10 +232,17 @@ def build(traces: Path | None, site: Path) -> dict:
                 traces_out.append(c)
                 layout["traces"] += 1
                 layout["callouts_dropped"] += meta["dropped"]
-                layout["crossings"] = layout.get("crossings", 0) + meta["crossings"]
-                layout["scales"][str(meta["scale"])] = layout["scales"].get(str(meta["scale"]), 0) + 1
-                layout["shifts"][str(meta["shift"])] = layout["shifts"].get(str(meta["shift"]), 0) + 1
-                layout["ink_hits"] += sum(1 for v in ("wide", "tall") for co in c["g"]["views"][v]["c"] if co.pop("ink", False))
+                layout["crossings"] += meta["crossings"]
+                layout["leaders_over_trace"] += meta["over"]
+                cv = c["g"]["views"]["card"]
+                for co in cv["c"]:
+                    b = co["b"]
+                    layout["card_callouts"] += 1
+                    layout["card_callouts_at_edge"] += b[0] <= TL.CARD["m"] + 0.6 or b[0] + b[2] >= cv["w"] - TL.CARD["m"] - 0.6
+                layout["variants"][str(meta["variant"])] = layout["variants"].get(str(meta["variant"]), 0) + 1
+                layout["ink_hits"] += meta["ink"] + sum(1 for v in ("wide", "tall") for co in c["g"]["views"][v]["c"]
+                                                        if co.pop("ink", False))
+                arms_stats(layout["arms"], meta["arms"], tr)
             payload = {"v": 1, "area": nfc(src["area"]), "traces": traces_out}
             bad = licence_scan(payload)
             if bad:

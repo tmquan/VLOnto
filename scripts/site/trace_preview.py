@@ -150,14 +150,19 @@ def standalone(svg: str, css: str, defs: str, bg: str) -> str:
 
 # ------------------------------------------------------------------------------------------------ checks
 def ink_boxes(svg: str):
-    """node circle boxes, link / traced-segment path boxes (endpoints of the vertical-tangent curves) and call-out boxes"""
+    """node circle boxes, link / traced-segment path boxes (endpoints of the vertical-tangent curves) and call-out boxes;
+    background nodes and links (class "bg": faded, a call-out may cover them) are not ink, as in the browser test"""
     nodes = [(float(cx) - float(r), float(cy) - float(r), float(cx) + float(r), float(cy) + float(r))
-             for cx, cy, r in re.findall(r'<circle class="tn[^"]*" cx="([-\d.]+)" cy="([-\d.]+)" r="([-\d.]+)"', svg)]
+             for cl, cx, cy, r in re.findall(r'<circle class="(tn[^"]*)" cx="([-\d.]+)" cy="([-\d.]+)" r="([-\d.]+)"', svg)
+             if " bg" not in cl]
     paths = []
-    for d in re.findall(r'<path class="(?:tl|th2|th|tc)[^"]*" d="([^"]+)"', svg):
+    half = {"tl": 0.6, "th2": 7.0, "th": 5.0, "tc": 2.3}           # half the stroke widths of css/site.css
+    for cl, d in re.findall(r'<path class="((?:tl|th2|th|tc)[^"]*)" d="([^"]+)"', svg):
+        if " bg" in cl:
+            continue
         nums = [float(x) for x in re.findall(r"-?[\d.]+", d)]
-        xs, ys = nums[0::2], nums[1::2]
-        paths.append((min(xs), min(ys), max(xs), max(ys)))
+        xs, ys, w = nums[0::2], nums[1::2], half[cl.split()[0]]
+        paths.append((min(xs) - w, min(ys) - w, max(xs) + w, max(ys) + w))
     boxes = [tuple(float(v) for v in m) for m in re.findall(r'<rect class="tr-box" x="([-\d.]+)" y="([-\d.]+)" width="([-\d.]+)" height="([-\d.]+)"', svg)]
     boxes = [(x, y, x + w, y + h) for x, y, w, h in boxes]
     return nodes, paths, boxes
