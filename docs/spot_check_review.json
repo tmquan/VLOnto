@@ -7,7 +7,7 @@
    "checked": 10,
    "correct": 10,
    "wrong": 0,
-   "notes": "Release v1 sample (judged 2026-11-12): pipeline/validity.py now writes the change relations in a fixed order, so this sample differs from the 0.1.0 one; all ten are supported by the stored evidence sentence (replacement or 'hết hiệu lực' of the whole act for the seven replaced, a repealed clause for #1, 'sửa đổi, bổ sung một số điều' for #4; #9's excerpt is cut inside 'hết hiệu lực'). 0.1.0 sample: 8 correct, 2 not decidable because the stored excerpt stopped before the operative verb."
+   "notes": "Release v1 sample (judged 2026-11-12): pipeline/validity.py now writes the change relations in a fixed order, so this sample differs from the 0.1.0 one; all ten are supported by the stored evidence sentence: a repealed clause for #1 (partially_repealed); 'sửa đổi, bổ sung một số điều' for #4 (amended); for the eight replaced, 'thay thế' in #2, #6, #7 and #8 and 'hết hiệu lực' of the whole earlier act in #3, #5, #9 and #10 (#9's excerpt is cut inside 'hết hiệu lực'). 0.1.0 sample: 8 correct, 2 not decidable: #7 because the stored excerpt stops before the operative verb, #8 because the amended provision is Art. 19a of Decree 173/2013 as inserted by 84/2017, so the target is arguable."
   },
   "legal_basis:parent-acts": {
    "checked": 10,
