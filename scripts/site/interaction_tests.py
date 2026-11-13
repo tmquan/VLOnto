@@ -15,9 +15,12 @@ Checks (each records pass/fail, details, console errors, page errors, failed and
   downloads     every listed download exists and its sha256 matches the page
   about         navigation has the 9 pages (index.html first, traces.html among them) + the Paper link; tool cards link to
                 existing pages; paper card
-  traces        traces.html: one 3D scene of all 540 traces; 27 area tabs (ARIA, keyboard, scrolling inside their box),
-                lazy area files, a question in each of three areas lights its trace (core / halo pixels), call-outs clean,
-                Fig. 5 hop panel; node click; Escape; deep link #area=&q= per theme and the theme switch; no overflow
+  traces        traces.html: all 540 traces and 27 areas in one 3D scene; one list of the 540 questions under 27 area
+                headings with a search (VI / EN, diacritic-insensitive; 'n of 540') and arrow keys; three questions chosen
+                light their traces (core / halo pixels), call-outs clean (a must under the open hop panel is occluded),
+                Fig. 5 hop panel; the focus volume (alpha by distance to the trace); a click on a question node chooses
+                it; node click; Escape; one static camera; deep links (#area=&q= per theme, #q=, #area=) and the theme
+                switch; EN / VI; no overflow
   redirect      ontology-3d.html#class=... (old playground address) forwards to index.html and keeps the hash
   theme         toggle on every page re-renders canvas / charts / CONSTRUCT view / pyLODE frame; persistence (storage and
                 ?theme= carry), system preference, ?theme=dark
@@ -1570,11 +1573,12 @@ JS_OVERLAYS = """() => { const R = {}, out = [];
   return out; }"""
 
 
-def callout_faults(co):
+def callout_faults(co, must=True):
     """the paper's rule for one placement run: no two visible call-outs intersect, no visible call-out covers a projected
     node centre (the nodes the run saw: every visible node in the playground and the CONSTRUCT view, the highlighted
     documents in the legal network), no call-out is cut by the canvas edge (the run's W x H, 0.5 px tolerance; longer
-    or shorter text per language mode changes the boxes), and no selected or traced call-out was dropped"""
+    or shorter text per language mode changes the boxes), and no selected or traced call-out was dropped (must=False:
+    the caller judges that by its own geometry, as the traces page does with its hop panel)"""
     if not co:
         return ["no call-out placement recorded"]
     boxes = [(p["id"], p["box"]) for p in co.get("placed", [])]
@@ -1590,7 +1594,7 @@ def callout_faults(co):
         faults.append(f"{len(covered)} node centres under call-outs, e.g. {covered[:3]}")
     if cut:
         faults.append(f"{len(cut)} call-outs cut by the canvas edge ({W}x{H}), e.g. {cut[:3]}")
-    if co.get("mustHidden"):
+    if must and co.get("mustHidden"):
         faults.append(f"{co['mustHidden']} selected or traced call-outs hidden")
     return faults
 
@@ -1966,47 +1970,129 @@ def t_paper_style(c: Ctx):
 # ------------------------------------------------------------------ question traces (traces.html)
 # geometry of the trace drawings as rendered: every call-out box against the boxes of the nodes (circles) and of the
 # links and traced segments (paths, widened by half their stroke); each text line inside its box; boxes inside the view
-JS_TRACES = """() => { const M = window.__VLONTO_METRICS || {}, T = M.traces || {}, tabs = Array.from(document.querySelectorAll('#tr-tabs [role=tab]'));
-  const tl = document.getElementById('tr-tabs'), tp = document.getElementById('tr-panel'), pn = document.getElementById('panel'), l = document.getElementById('tr-list');
-  return { available: T.available, webgl: T.webgl, fallback: T.fallback, graph: T.graph, area: T.area, loaded: (T.loaded || []).slice(),
-    listItems: l.querySelectorAll('.tr-item').length, listArea: l.getAttribute('data-area'),
-    current: Array.from(l.querySelectorAll('.tr-item[aria-current="true"]')).map(b => +b.getAttribute('data-rank')),
+JS_TRACES = """() => { const M = window.__VLONTO_METRICS || {}, T = M.traces || {}, pn = document.getElementById('panel'), l = document.getElementById('tr-list');
+  const items = Array.from(l.querySelectorAll('.tr-item')), groups = Array.from(l.querySelectorAll('.tr-group'));
+  return { available: T.available, webgl: T.webgl, fallback: T.fallback, graph: T.graph, loaded: (T.loaded || []).slice(),
+    listItems: items.length, groups: groups.length, groupSizes: groups.map(s => s.querySelectorAll('.tr-item').length),
+    groupOrder: groups.map(s => s.getAttribute('data-area')), shownItems: items.filter(b => !b.closest('li').hidden).length,
+    tabs: document.querySelectorAll('[role=tab]').length, query: T.query, count: (document.getElementById('tr-count') || {}).textContent || '',
+    current: items.filter(b => b.getAttribute('aria-current') === 'true').map(b => b.id),
     selected: T.selected, segments: T.traceSegments, verified: T.traceVerified, structural: T.traceStructural, hops: T.hops, edgeCost: T.edgeCost || null,
     labels: T.labels, flights: T.flights, fps: T.fps, themeRenders: T.themeRenders, linksShown: T.linksShown, clicked: T.clicked || null,
-    tabs: tabs.length, tablist: tl.getAttribute('role'), selTabs: tabs.filter(t => t.getAttribute('aria-selected') === 'true').map(t => t.getAttribute('data-area')),
-    tabindex0: tabs.filter(t => t.tabIndex === 0).length, controls: tabs.every(t => t.getAttribute('aria-controls') === 'tr-panel'),
-    labelledby: tp.getAttribute('aria-labelledby'), strip: { scroll: tl.scrollWidth, client: tl.clientWidth, overflowX: getComputedStyle(tl).overflowX },
+    hover: T.hover || null, focusValue: T.focusValue, scrolledTo: T.scrolledTo || null, sideOpen: document.getElementById('app').classList.contains('side-open'),
     panelOpen: !pn.classList.contains('hidden'), panelHops: pn.querySelectorAll('.hop').length, hash: location.hash,
     active: document.activeElement ? (document.activeElement.id || document.activeElement.className || document.activeElement.tagName) : null,
-    areaScripts: Array.from(document.scripts).map(s => s.getAttribute('src') || '').filter(s => s.indexOf('data/traces/') === 0).sort() }; }"""
+    traceScripts: Array.from(document.scripts).map(s => s.getAttribute('src') || '').filter(s => s.indexOf('data/traces/') === 0).sort() }; }"""
 # a selection is complete when the camera has arrived and a call-out run newer than `runs` shows the question's call-out
+# (or the question's node lies under the open hop panel: occluded, no call-out to wait for - the page's map is static
+# and the panel may cover its right part; the panel's box grown by the 4 px the page keeps call-outs clear of overlays)
 JS_TRACE_DONE = """(a) => { const M = window.__VLONTO_METRICS, T = M.traces, S = T.selected, C = M.callouts;
-  return !!S && S.area === a.area && S.rank === a.rank && T.traceSegments > 0 && T.hops === 5 && window.VLApp.traces.settle() &&
-    !!C && C.runs > a.runs && C.placed.some(p => p.id === S.q && p.sel); }"""
-JS_AREA_DONE = """(id) => { const T = window.__VLONTO_METRICS.traces, l = document.getElementById('tr-list');
-  return T.area === id && l.getAttribute('data-area') === id && l.querySelectorAll('.tr-item').length === 20 && window.VLApp.traces.settle(); }"""
+  if (!(!!S && S.area === a.area && S.rank === a.rank && T.traceSegments > 0 && T.hops === 5 && window.VLApp.traces.settle() &&
+    !!C && C.runs > a.runs)) return false;
+  if (C.placed.some(p => p.id === S.q && p.sel)) return true;
+  const pt = window.VLApp.traces.project(S.q), h = document.getElementById('canvas-host').getBoundingClientRect(), pn = document.getElementById('panel');
+  const r = pn && !pn.classList.contains('hidden') ? pn.getBoundingClientRect() : null;
+  return !!pt && !!r && r.width > 1 && pt.x >= r.left - h.left - 4 && pt.x <= r.right - h.left + 4 && pt.y >= r.top - h.top - 4 && pt.y <= r.bottom - h.top + 4; }"""
+# the must-show call-outs of the selection (the question; the provision; on wide screens the law): each one's node on
+# the canvas (VLApp.traces.project, CSS px in the canvas host), placed or not, and the open hop panel's box in the same
+# coordinates (getBoundingClientRect)
+JS_TRACE_MUSTS = """() => { const A = window.VLApp.traces, s = A.snapshot(), C = window.__VLONTO_METRICS.callouts || {};
+  const h = document.getElementById('canvas-host').getBoundingClientRect(), pn = document.getElementById('panel');
+  const r = pn && !pn.classList.contains('hidden') ? pn.getBoundingClientRect() : null, placed = new Set((C.placed || []).map(p => p.id));
+  return { canvas: [h.width, h.height], panel: r && r.width > 1 ? [r.left - h.left, r.top - h.top, r.right - h.left, r.bottom - h.top] : null,
+    musts: s.labels.filter(l => l.must).map(l => { const p = A.project(l.id);
+      return { id: l.id, placed: placed.has(l.id), x: p ? p.x : null, y: p ? p.y : null, inside: !!(p && p.inside) }; }) }; }"""
+PANEL_PAD = 4      # px: the page keeps call-outs this far from overlays (traces3d.js obstacles()), so a node this close
+                   # to the hop panel is under it too
+
+
+def trace_musts(pg):
+    """the selection's must-show call-outs by geometry: (occluded, hidden on the free canvas, geometry). A must whose node
+    lies under the open hop panel's box is occluded - the static map lets the panel cover its right part - and is not a
+    fault; every other must without a place is (a node off the canvas included: the whole map is framed in view)."""
+    g = pg.evaluate(JS_TRACE_MUSTS)
+    P, (cw, ch) = g["panel"], g["canvas"]
+
+    def under(m):
+        return (P is not None and m["x"] is not None and m["inside"] and 0 <= m["x"] <= cw and 0 <= m["y"] <= ch
+                and P[0] - PANEL_PAD <= m["x"] <= P[2] + PANEL_PAD and P[1] - PANEL_PAD <= m["y"] <= P[3] + PANEL_PAD)
+    occluded = [m["id"] for m in g["musts"] if not m["placed"] and under(m)]
+    free_hidden = [m["id"] for m in g["musts"] if not m["placed"] and not under(m)]
+    return occluded, free_hidden, g
+
+
+# the search as the page runs it (js/traces3d.js fold / words / hasWord / applySearch), checked against what the list
+# shows: in every shown entry each word of the query (no case, no diacritics, đ -> d, its edge punctuation dropped) starts
+# a word (letters and digits) of its title, gloss, law names or number or area names, and in no hidden entry
+JS_SEARCH_CHECK = """(q) => { const fold = s => String(s || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase();
+  const A = {}; (window.VLONTO.traces_index.areas || []).forEach(a => { A[a.id] = a.label_vi + ' ' + a.label_en; });
+  const toks = fold(q).split(/\\s+/).map(w => w.replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, '')).filter(Boolean), items = Array.from(document.querySelectorAll('#tr-list .tr-item'));
+  const starts = (hay, w) => { for (let i = hay.indexOf(w); i >= 0; i = hay.indexOf(w, i + 1)) if (i === 0 || !/[a-z0-9]/.test(hay[i - 1])) return true; return false; };
+  const hit = b => { const a = b.getAttribute('data-area'), x = window.VLApp.traces.question(a, +b.getAttribute('data-rank'));
+    const hay = fold([x.vi, x.en, x.law.vi, x.law.en, x.law.number, A[a]].join(' ')); return toks.every(t => starts(hay, t)); };
+  const shown = items.filter(b => !b.closest('li').hidden), hidden = items.filter(b => b.closest('li').hidden), none = document.getElementById('tr-none');
+  return { n: shown.length, wrong: shown.filter(b => !hit(b)).slice(0, 3).map(b => b.id), missed: hidden.filter(hit).slice(0, 3).map(b => b.id),
+    heads: Array.from(document.querySelectorAll('#tr-list .tr-group')).filter(s => !s.hidden).length, ids: shown.map(b => b.id),
+    count: (document.getElementById('tr-count') || {}).textContent || '', none: none && !none.hidden ? none.textContent : null }; }"""
 TRACE_PICKS = [("lao-dong-tien-luong", 3), ("thue-phi-le-phi", 5), ("bao-hiem", 8)]
-# the language of what traces3d.js writes: list entries (title .tr-q, gloss .tr-g), hop headings, legend, tab labels
+# the language of what traces3d.js writes: list entries (title .tr-q, gloss .tr-g), the area headings (name, spoken
+# count), the search (placeholder, label), the live count line, hop headings, legend
 JS_TRACES_LANG = """() => { const M = window.__VLONTO_METRICS || {}, items = Array.from(document.querySelectorAll('#tr-list .tr-item')).slice(0, 20);
+  const s = document.getElementById('tr-search'), c = document.getElementById('tr-count'), A = {};
+  ((window.VLONTO.traces_index || {}).areas || []).forEach(a => { A[a.id] = [a.label_vi, a.label_en]; });
   return { lang: document.documentElement.getAttribute('data-lang'), labelsLang: M.labelsLang, items: items.length,
     glosses: items.filter(b => b.querySelector('.tr-g')).length,
     viTitles: items.filter(b => { const q = b.querySelector('.tr-q'); return !!q && q.getAttribute('lang') === 'vi'; }).length,
     hops: Array.from(document.querySelectorAll('#panel .hop h3')).map(e => e.textContent.replace(/\\s+/g, ' ').trim()),
     legend: (document.getElementById('legend') || {}).textContent || '',
-    tabs: Array.from(document.querySelectorAll('#tr-tabs [role=tab]')).slice(0, 3).map(b => b.getAttribute('aria-label') || '') }; }"""
+    heads: Array.from(document.querySelectorAll('#tr-list .tr-group')).slice(0, 3).map(g => ({ area: g.getAttribute('data-area'),
+      name: g.querySelector('.tr-head-name').textContent.replace(/\\s+/g, ' ').trim(), viPart: !!g.querySelector('.tr-head-name [lang=vi]'),
+      spoken: (g.querySelector('.tr-head .sr-only') || {}).textContent || '', labels: A[g.getAttribute('data-area')] })),
+    placeholder: s ? s.getAttribute('placeholder') : null, searchLabel: s ? s.getAttribute('aria-label') : null,
+    count: c ? c.textContent : '', countLive: c ? c.getAttribute('aria-live') : null }; }"""
+# the side's strings in each mode (js/i18n-pages.js traces.search.*, js/i18n-3d.js tr3d.count / tr3d.groupCount; EN–VI
+# shows the English of these ui / text keys)
+TRACES_UI = {"en": {"placeholder": "Search questions, laws, areas", "count": "{n} of 540 questions", "spoken": "{n} questions"},
+             "vi": {"placeholder": "Tìm câu hỏi, văn bản, lĩnh vực", "count": "{n} trên 540 câu hỏi", "spoken": "{n} câu hỏi"}}
+
+
+def traces_side_lang(s, mode):
+    """faults of the headings, search and count line of a JS_TRACES_LANG state in a mode"""
+    ui, bad = TRACES_UI["vi" if mode == "vi" else "en"], []
+    for h in s["heads"]:
+        vi, en = h["labels"]
+        want = en if mode == "en" else vi if mode == "vi" else f"{vi} · {en}"
+        if h["name"] != want or (mode == "envi" and not h["viPart"]):
+            bad.append(f"heading {h['area']}: {h['name']!r}, expected {want!r}")
+        if h["spoken"] != ui["spoken"].format(n=20):
+            bad.append(f"heading {h['area']} count reads {h['spoken']!r}")
+    if s["placeholder"] != ui["placeholder"]:
+        bad.append(f"search placeholder {s['placeholder']!r}")
+    if s["count"] != ui["count"].format(n=540) or s["countLive"] != "polite":
+        bad.append(f"count line {s['count']!r} (aria-live {s['countLive']})")
+    return bad
 
 
 def t_traces(c: Ctx):
-    """traces.html: the 540 traced answers in one 3D scene (js/traces3d.js, data/traces/graph.js). 27 area tabs in an ARIA
-    tablist that scrolls inside its own box (keyboard: arrows, Home, End), the open area's 20 questions in the list (lazy
-    area files), three areas opened and one question selected in each: the trace lit in the canvas (core and halo pixels),
-    the question, provision, law, term and area call-outs placed with no overlap and no node centre covered, the Fig. 5
-    hop panel with five boxes, the list entry marked; a click on a node opens its details; Escape clears the selection;
-    the deep link #area=lao-dong-tien-luong&q=3 per theme, and the theme switch keeps the trace; one static map (tabs and
-    picks leave the camera where it is, Zoom to selection flies, Reset view shows the whole map); no page wider than the
-    screen, no console errors; screenshots."""
+    """traces.html: all 540 traced answers and all 27 areas in one 3D place (js/traces3d.js, data/traces/graph.js; the
+    list data/traces/questions.js). No area tabs and no dimming by area: one side list of the 540 questions under 27 area
+    headings, with a search (Vietnamese and English words, diacritic-insensitive; the 'n of 540' live line) and arrow
+    keys; a choice waiting for its area's file says 'Loading' in the hop panel and closing the panel drops it; three
+    questions chosen from the list (one per area): the trace lit in the canvas (core and halo pixels), the
+    question, provision, law, term and area call-outs placed with no overlap and no node centre covered (the must-show
+    ones - question, provision, the law on wide screens - wherever their node is on the free canvas: a node under the
+    open hop panel is occluded, not a fault, as the static map lets the panel cover its right part), the Fig. 5 hop panel
+    with five boxes, the entry marked; the focus volume (the chosen trace solid, every other node at the transfer
+    function of its 3D distance to the trace, nothing dimmed by area); a click on a question node in the scene chooses
+    it (hover: its question in a tooltip), a click on another node opens its details; Escape clears; deep links (v1's
+    #area=<id>&q=<rank> per theme with the theme switch, the new #q=<area>:<rank>, #area=<id> alone: the list at the
+    area, nothing chosen); one static map (choosing, searching and the list leave the camera where it is, Zoom to
+    selection flies, Reset view shows the whole map); EN and VI: headings, search, count line, list, hop panel, legend
+    and call-outs in one language; no page wider than the screen, no console errors; screenshots."""
     res = {"test": "traces", "checks": []}
     logs = {"console_errors": [], "page_errors": [], "failed_requests": [], "external_requests": []}
+    CAM = "() => { const c = window.VLApp.traces.camera(); return c ? [c.pos, c.target].map(v => v.map(x => Math.round(x * 100) / 100)) : null; }"
+    MOVES = "() => window.__VLONTO_METRICS.traces.cameraMoves || 0"
 
     def merge(log):
         for k in logs:
@@ -2023,73 +2109,123 @@ def t_traces(c: Ctx):
     def runs(pg):
         return (pg.evaluate(JS_CALLOUTS) or {}).get("runs", 0)
 
-    def open_area(pg, area):
-        pg.locator(f"#tr-tab-{area}").click()
-        pg.wait_for_function(JS_AREA_DONE, arg=area, timeout=T_(90000))
+    def side(pg, open_):
+        """phones: the list (with its search) is a sheet behind the 'Questions' button"""
+        if c.mobile and pg.evaluate("() => document.getElementById('app').classList.contains('side-open')") != open_:
+            pg.locator("#btn-list-m").click()
+
+    def clear(pg):
+        """nothing chosen and the focus volume faded out (Escape; on phones first closes an open sheet)"""
+        for _ in range(2):
+            if not pg.evaluate("() => !!window.__VLONTO_METRICS.traces.selected || document.getElementById('app').classList.contains('side-open')"):
+                break
+            pg.keyboard.press("Escape")
+        pg.wait_for_function("() => !window.__VLONTO_METRICS.traces.selected && window.__VLONTO_METRICS.traces.focusValue === 0 && window.VLApp.traces.settle()",
+                             timeout=T_(30000))
 
     def select(pg, area, rank):
         r0 = runs(pg)
-        if c.mobile and not pg.evaluate("() => document.getElementById('app').classList.contains('side-open')"):
-            pg.locator("#btn-list-m").click()
-        pg.locator(f'#tr-list .tr-item[data-rank="{rank}"]').click()
+        side(pg, True)
+        pg.locator(f"#tr-item-{area}-{rank}").click()
         pg.wait_for_function(JS_TRACE_DONE, arg={"area": area, "rank": rank, "runs": r0}, timeout=T_(90000))
         pg.wait_for_timeout(400)
         return pg.evaluate(JS_TRACES), pg.evaluate(JS_CALLOUTS)
 
-    def judge(s, co, where):
-        """the selected trace: drawn, five hops, list entry marked, call-outs clean (the question's never forced on desktop)"""
+    def judge(s, co, where, pg):
+        """the chosen trace: drawn, five hops, list entry marked, call-outs clean (the question's never forced on desktop).
+        The must-show call-outs (question, provision; the law on wide screens) are judged by geometry: one whose node
+        lies under the open hop panel is occluded, not a fault (the static map lets the panel cover its right part);
+        every must on the free canvas has its call-out (trace_musts)"""
         S = s["selected"] or {}
-        faults = callout_faults(co)
+        faults = callout_faults(co, must=False)
+        occluded, free_hidden, geo = trace_musts(pg)
+        if free_hidden:
+            faults.append(f"{len(free_hidden)} selected or traced call-outs hidden on the free canvas: {free_hidden[:4]}")
         q = [p for p in co.get("placed", []) if p["id"] == S.get("q")]
-        if not q or (q[0]["forced"] and not c.mobile):
+        if S.get("q") not in occluded and (not q or (q[0]["forced"] and not c.mobile)):
             faults.append(f"question call-out {'forced' if q else 'missing'}")
-        if co.get("shown", 0) < (2 if c.mobile else 3):
-            faults.append(f"only {co.get('shown')} call-outs shown")
-        if s["segments"] < 3 or s["panelHops"] != 5 or not s["panelOpen"] or s["current"] != [S.get("rank")] or f"q={S.get('rank')}" not in s["hash"]:
+        if co.get("shown", 0) < len(geo["musts"]) - len(occluded):
+            faults.append(f"only {co.get('shown')} call-outs shown for {len(geo['musts']) - len(occluded)} must-show ones on the free canvas")
+        want_hash = f"#q={S.get('area')}:{S.get('rank')}"
+        if (s["segments"] < 3 or s["panelHops"] != 5 or not s["panelOpen"] or s["current"] != [f"tr-item-{S.get('area')}-{S.get('rank')}"]
+                or s["hash"] not in (want_hash, f"#area={S.get('area')}&q={S.get('rank')}")):
             faults.append(f"segments {s['segments']}, hops {s['panelHops']}, panel {s['panelOpen']}, list {s['current']}, hash {s['hash']}")
         if faults:
             raise RuntimeError(f"{where}: {'; '.join(faults)}; call-outs {callout_summary(co)}")
         return {"selected": {k: S.get(k) for k in ("q", "provision", "law", "term", "areaNode", "fg", "segments")},
                 "verified_segments": s["verified"], "structural_segments": s["structural"], "callouts": callout_summary(co),
-                "placed": [p["id"] for p in co["placed"]]}
+                "placed": [p["id"] for p in co["placed"]], "occluded_by_panel": occluded, "panel": geo["panel"]}
 
     ctx, pg, log = c.open("traces.html", ready_timeout=T_(240000))
     try:
         if pg.evaluate("() => { const h = document.getElementById('hint'); return !!h && !h.classList.contains('hidden'); }"):
             pg.locator("#hint-close").click()             # the first-visit hint: dismissed like a visitor would
-        def tabs():
+
+        def one_place():
             s = pg.evaluate(JS_TRACES)
-            ok = (s["available"] and s["webgl"] and not s["fallback"] and s["tabs"] == 27 and s["tablist"] == "tablist" and len(s["selTabs"]) == 1
-                  and s["tabindex0"] == 1 and s["controls"] and s["labelledby"] == "tr-tab-" + s["selTabs"][0]
+            areas = pg.evaluate("window.VLApp.traces.areas()")
+            ok = (s["available"] and s["webgl"] and not s["fallback"] and s["tabs"] == 0 and s["listItems"] == 540 and s["groups"] == 27
+                  and s["groupSizes"] == [20] * 27 and s["groupOrder"] == areas and s["shownItems"] == 540 and s["count"] == "540 of 540 questions"
                   and (s["graph"] or {}).get("traces") == 540 and (s["graph"] or {}).get("nodes", 0) > 10000
-                  and (s["edgeCost"] or {}).get("curves") and s["edgeCost"]["segments"] > s["edgeCost"]["links"])
+                  and (s["edgeCost"] or {}).get("curves") and s["edgeCost"]["segments"] > s["edgeCost"]["links"]
+                  and not s["selected"] and s["focusValue"] == 0 and s["labels"] == 27)
             if not ok:
                 raise RuntimeError(f"state {json.dumps(s, ensure_ascii=False)[:900]}")
-            return {"tabs": s["tabs"], "selected": s["selTabs"], "graph": s["graph"], "fps": s["fps"], "links_shown": s["linksShown"],
-                    "edge_cost": s["edgeCost"]}
-        check("one WebGL scene of all traces (540 traces, > 10,000 nodes, links drawn as curves); 27 area tabs in an ARIA tablist, "
-              "one selected, roving tabindex", tabs, pg)
+            return {"list": s["listItems"], "groups": s["groups"], "count": s["count"], "graph": s["graph"], "fps": s["fps"],
+                    "links_shown": s["linksShown"], "edge_cost": s["edgeCost"], "area_labels": s["labels"]}
+        check("one WebGL scene of all traces (540 traces, > 10,000 nodes, links drawn as curves); no area tabs: one list of the 540 "
+              "questions under 27 area headings ('540 of 540'); nothing chosen, nothing faded, the 27 areas named", one_place, pg)
 
-        def strip():
-            s = pg.evaluate(JS_TRACES)
-            last = pg.evaluate("Array.from(document.querySelectorAll('#tr-tabs [role=tab]')).pop().getAttribute('data-area')")
-            pg.locator(f"#tr-tab-{last}").scroll_into_view_if_needed()
-            pg.wait_for_timeout(200)
-            box = pg.evaluate("""(id) => { const t = document.getElementById('tr-tab-' + id).getBoundingClientRect(), s = document.getElementById('tr-tabs').getBoundingClientRect();
-                return { inside: t.left >= s.left - 1 && t.right <= s.right + 1, tab: [Math.round(t.left), Math.round(t.right)], strip: [Math.round(s.left), Math.round(s.right)] }; }""", last)
+        def side_scroll():
+            side(pg, True)
+            box = pg.evaluate("""() => { const sd = document.getElementById('side'), items = sd.querySelectorAll('.tr-item'), last = items[items.length - 1];
+                last.scrollIntoView({ block: 'nearest' });
+                const r = last.getBoundingClientRect(), s = sd.getBoundingClientRect(), hd = sd.querySelector('.tr-side-head').getBoundingClientRect();
+                return { inside: r.top >= s.top - 1 && r.bottom <= s.bottom + 1, overflowY: getComputedStyle(sd).overflowY, scroll: sd.scrollHeight,
+                         client: sd.clientHeight, headAtTop: Math.abs(hd.top - s.top) <= 1.5, last: last.id }; }""")
             w = no_hscroll(c, pg, "traces")
-            if s["strip"]["overflowX"] not in ("auto", "scroll") or s["strip"]["scroll"] <= s["strip"]["client"] or not box["inside"]:
-                raise RuntimeError(f"tab strip {s['strip']}, last tab {box}")
-            return {"strip": s["strip"], "last_tab": box, "page_width": w}
-        check("the tab strip scrolls inside its own box (the last tab reachable); the page is no wider than the screen", strip, pg)
+            pg.evaluate("() => { document.getElementById('side').scrollTop = 0; }")
+            side(pg, False)
+            if box["overflowY"] not in ("auto", "scroll") or box["scroll"] <= box["client"] or not box["inside"] or not box["headAtTop"]:
+                raise RuntimeError(f"side {box}")
+            return {"side": box, "page_width": w}
+        check("the list scrolls inside the side (the last entry reachable, the search head stays on top); the page is no wider "
+              "than the screen", side_scroll, pg)
 
         def lazy():
             s = pg.evaluate(JS_TRACES)
-            want = sorted(["data/traces/index.js", "data/traces/graph.js", "data/traces/" + s["area"] + ".js"])
-            if s["listItems"] != 20 or s["listArea"] != s["area"] or s["areaScripts"] != want:
-                raise RuntimeError(f"list {s['listItems']} ({s['listArea']}), scripts {s['areaScripts']}")
-            return {"area": s["area"], "list": s["listItems"], "scripts": s["areaScripts"]}
-        check("only the graph and the open area's file are loaded; the list shows the area's 20 questions", lazy, pg)
+            want = sorted(["data/traces/index.js", "data/traces/graph.js", "data/traces/questions.js"])
+            if s["traceScripts"] != want or s["loaded"]:
+                raise RuntimeError(f"scripts {s['traceScripts']}, area files {s['loaded']}")
+            return {"scripts": s["traceScripts"]}
+        check("on load only the index, the graph and the questions file are loaded (an area's file when one of its questions is "
+              "chosen)", lazy, pg)
+
+        def loading():
+            # a choice waits for its area's file: the hop panel says so at once; closing the panel (its x, or Escape)
+            # drops the choice, so it does not land when the file arrives
+            clear(pg)          # on phones Escape first closes the list sheet: start with it closed
+            out = pg.evaluate("""async () => {
+              const A = window.VLApp.traces, pn = document.getElementById('panel'), M = window.__VLONTO_METRICS.traces;
+              const fresh = A.areas().filter((a) => (M.loaded || []).indexOf(a) < 0), r = {};
+              for (const [how, area] of [['close', fresh[0]], ['escape', fresh[1]]]) {
+                const p = A.select(area, 1), st = pn.querySelector('.tr-status');
+                const x = { area, open: !pn.classList.contains('hidden'), status: st ? st.textContent.trim() : null };
+                if (how === 'close') pn.querySelector('[data-close]').click();
+                else document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+                await p;
+                await new Promise((f) => setTimeout(f, 300));
+                Object.assign(x, { selected: M.selected, closed: pn.classList.contains('hidden'), segments: M.traceSegments, hash: location.hash });
+                r[how] = x;
+              }
+              return r; }""")
+            bad = [f"{k}: {v}" for k, v in out.items() if not v["open"] or "Loading" not in (v["status"] or "") or v["selected"]
+                   or not v["closed"] or v["segments"] or "q=" in v["hash"]]
+            if bad:
+                raise RuntimeError("; ".join(bad))
+            return out
+        check("a question whose area file is not loaded yet: the hop panel says 'Loading' at once; closing it (x or Escape) drops "
+              "the choice", loading, pg)
 
         def legend():
             if c.mobile:
@@ -2105,13 +2241,36 @@ def t_traces(c: Ctx):
             return {"entries": L["entries"], "flat_swatches": L["flat"]}
         check("flat bilingual legend with the traced and the structural path", legend, pg)
 
+        def search():
+            side(pg, True)
+            c0, m0 = pg.evaluate(CAM), pg.evaluate(MOVES)
+            out = {}
+            for k, q in (("vi", "thue"), ("vi_marks", "thuế"), ("en", "retirement"), ("none", "zzqxv")):
+                pg.fill("#tr-search", q)
+                pg.wait_for_function("(q) => window.__VLONTO_METRICS.traces.query === q", arg=q, timeout=T_(15000))
+                r = pg.evaluate(JS_SEARCH_CHECK, q)
+                out[k] = {"q": q, "n": r["n"], "count": r["count"], "heads": r["heads"], "wrong": r["wrong"], "missed": r["missed"], "none": r["none"], "ids": r["ids"]}
+            pg.fill("#tr-search", "")
+            pg.wait_for_function("() => window.__VLONTO_METRICS.traces.query === '' && window.__VLONTO_METRICS.traces.shown === 540", timeout=T_(15000))
+            c1, m1 = pg.evaluate(CAM), pg.evaluate(MOVES)
+            side(pg, False)
+            bad = [k for k, v in out.items() if v["wrong"] or v["missed"] or v["count"] != f"{v['n']} of 540 questions"]
+            if (bad or not 0 < out["vi"]["n"] < 540 or out["vi"]["ids"] != out["vi_marks"]["ids"] or not 0 < out["en"]["n"] < 540
+                    or out["none"]["n"] != 0 or out["none"]["heads"] != 0 or not out["none"]["none"] or "zzqxv" not in out["none"]["none"]
+                    or c0 != c1 or m0 != m1):
+                raise RuntimeError(f"search {json.dumps({k: {x: y for x, y in v.items() if x != 'ids'} for k, v in out.items()}, ensure_ascii=False)}; "
+                                   f"faults {bad}; camera {c0} -> {c1}, moves {m0} -> {m1}")
+            return {k: {x: y for x, y in v.items() if x != "ids"} for k, v in out.items()}
+        check("search: a Vietnamese word with or without its diacritics, an English word and a query with no hit filter the list "
+              "('n of 540' live line, empty headings hidden); the camera stays", search, pg)
+
         def three():
             out = []
             for area, rank in TRACE_PICKS:
-                open_area(pg, area)
+                clear(pg)
                 before = trace_pixels(pg, "#canvas-host", "light")
                 s, co = select(pg, area, rank)
-                d = judge(s, co, f"{area} #{rank}")
+                d = judge(s, co, f"{area} #{rank}", pg)
                 after = trace_pixels(pg, "#canvas-host", "light")
                 # the trace's own pixels, as in the paper-style check: its core outside the call-out boxes and the gold
                 # band next to that core (a raw gold count also follows the pale answer nodes that fade on selection)
@@ -2124,23 +2283,32 @@ def t_traces(c: Ctx):
                     d["shot"] = c.shot(pg, "traces_selected")
                 out.append(d)
             return {"traces": out, "page_width": no_hscroll(c, pg, "traces with a trace selected")}
-        check("three areas: tab -> 20 questions -> a question lights its trace (core / halo pixels), call-outs clean, five hops", three, pg)
+        check("three questions from the one list (three areas): each lights its trace (core / halo pixels), call-outs clean, five hops",
+              three, pg)
 
         def focus():
             f = pg.evaluate("""() => {
-              const T = (window.__VLONTO_METRICS || {}).traces || {}, A = window.VLApp && window.VLApp.traces;
-              const s = A && A.snapshot ? A.snapshot() : null;
-              if (!s || !T.focus || !T.selected) return null;
-              let one = 0, faint = 0;
-              for (const v of s.alpha) { if (v >= 0.999) one++; else if (v <= T.focus.rest + 1e-6) faint++; }
-              return { n: s.alpha.length, one, faint, fg: T.selected.fg, focus: T.focus,
+              const A = window.VLApp.traces, T = window.__VLONTO_METRICS.traces, s = A.snapshot(), G = window.VLONTO.traces_graph;
+              if (!s || !T.selected || !s.focusVolume) return null;
+              const fv = s.focusVolume, tf = d => fv.rest + (1 - fv.rest) * Math.exp(-((d / fv.sigma) ** 2));
+              const t = G.t.find(x => A.areas()[x.a] === T.selected.area && x.r === T.selected.rank);
+              let worst = 0; s.alpha.forEach((a, i) => { worst = Math.max(worst, Math.abs(a - tf(s.dist[i]))); });
+              const order = s.dist.map((d, i) => [d, i]).filter(x => x[0] > 0).sort((a, b) => a[0] - b[0]);
+              const samples = [0.02, 0.1, 0.25, 0.5, 0.9].map(q => order[Math.floor(q * (order.length - 1))]).map(x => ({ id: G.i[x[1]], d: Math.round(x[0]), alpha: s.alpha[x[1]] }));
+              const far = {}; s.dist.forEach((d, i) => { if (d > 2.5 * fv.sigma) far[G.h[i]] = Math.max(far[G.h[i]] || 0, s.alpha[i]); });
+              return { n: s.alpha.length, fgSolid: t.f.every(i => s.alpha[i] === 1 && s.dist[i] === 0), fg: t.f.length, worst, samples,
+                       focus: fv, farAreas: Object.keys(far).length, farMax: Math.max(...Object.values(far)),
                        core: s.traceStyle.v.widths.core, paperCore: (window.VL.TRACE_W || {}).core };
             }""")
-            # the picked trace at full strength and drawn bolder than the paper's widths; nearly all the rest faded back
-            if not f or f["one"] < f["fg"] or f["faint"] < 0.8 * f["n"] or f["core"] < 1.25 * f["paperCore"]:
+            # the chosen trace at full strength, drawn bolder than the paper's widths; the rest at the transfer function of
+            # its distance (falling as d grows); far from the trace every area at the same floor (no dimming by area)
+            falls = bool(f) and all(a["alpha"] >= b["alpha"] for a, b in zip(f["samples"], f["samples"][1:])) and f["samples"][0]["alpha"] > f["samples"][-1]["alpha"] + 0.5
+            if (not f or not f["fgSolid"] or f["worst"] > 2e-3 or not falls or f["focus"]["value"] != 1
+                    or abs(f["farMax"] - f["focus"]["rest"]) > 0.01 or f["core"] < 1.25 * f["paperCore"]):
                 raise RuntimeError(f"focus: {f}")
-            return {k: f[k] for k in ("n", "one", "faint", "fg", "core", "paperCore")}
-        check("a picked trace is bold and the rest of the graph fades back", focus, pg)
+            return {k: f[k] for k in ("n", "fg", "worst", "samples", "focus", "farAreas", "farMax", "core", "paperCore")}
+        check("focus volume: the chosen trace solid and bold; every other node at alpha = rest + (1 - rest) exp(-(d/sigma)^2) of "
+              "its distance d to the trace, falling with d; no dimming by area", focus, pg)
 
         def node_click():
             S = pg.evaluate("window.__VLONTO_METRICS.traces.selected")
@@ -2158,75 +2326,121 @@ def t_traces(c: Ctx):
             return {"target": hit["id"], "clicked": s["clicked"], "same": s["clicked"] == hit["id"]}
         check("a click on a node of the trace opens its details", node_click, pg)
 
-        def keyboard():
-            ids = pg.evaluate("Array.from(document.querySelectorAll('#tr-tabs [role=tab]')).map(t => t.getAttribute('data-area'))")
-            cur = pg.evaluate("window.__VLONTO_METRICS.traces.area")
-            i = ids.index(cur)
-            pg.focus(f"#tr-tab-{cur}")
-            pg.keyboard.press("ArrowRight")
-            nxt = ids[(i + 1) % len(ids)]
-            pg.wait_for_function(JS_AREA_DONE, arg=nxt, timeout=T_(90000))
-            s1 = pg.evaluate(JS_TRACES)
-            pg.keyboard.press("End")
-            pg.wait_for_function("(id) => window.__VLONTO_METRICS.traces.area === id", arg=ids[-1], timeout=T_(90000))
-            pg.keyboard.press("Home")
-            pg.wait_for_function(JS_AREA_DONE, arg=ids[0], timeout=T_(90000))
-            s2 = pg.evaluate(JS_TRACES)
-            if s1["active"] != f"tr-tab-{nxt}" or s1["selTabs"] != [nxt] or s2["active"] != f"tr-tab-{ids[0]}" or "#area=" + ids[0] not in s2["hash"]:
-                raise RuntimeError(f"after ArrowRight {s1['active']} {s1['selTabs']}; after End/Home {s2['active']} {s2['hash']}")
-            if c.mobile:
-                pg.locator("#btn-list-m").click()
-            pg.focus('#tr-list .tr-item[data-rank="1"]')
-            pg.keyboard.press("ArrowDown")
-            down = pg.evaluate("() => document.activeElement && document.activeElement.id")
+        def click_question():
+            clear(pg)
+            c0, m0 = pg.evaluate(CAM), pg.evaluate(MOVES)
+            # a question node on the canvas itself (not under an overlay) where the pick finds that question node
+            hit = pg.evaluate("""(picks) => { const A = window.VLApp.traces, host = document.getElementById('canvas-host'), b = host.getBoundingClientRect();
+                for (const [area, rank] of picks) { const q = A.question(area, rank), p = q && A.project(q.node);
+                  if (!p || !p.inside) continue;
+                  for (const [dx, dy] of [[0, 0], [2, 0], [-2, 0], [0, 2], [0, -2]]) { const x = b.left + p.x + dx, y = b.top + p.y + dy, e = document.elementFromPoint(x, y);
+                    if (e && e.tagName === 'CANVAS' && host.contains(e) && A.pick(x, y) === q.node) return { area, rank, node: q.node, x, y, vi: q.vi, en: q.en }; } }
+                return null; }""", [list(p) for p in reversed(TRACE_PICKS)])
+            if not hit:
+                raise RuntimeError("no question node of the picks is clickable on the canvas")
+            pg.mouse.move(hit["x"], hit["y"])
+            pg.wait_for_function("(id) => window.__VLONTO_METRICS.traces.hover === id && !document.getElementById('tip').classList.contains('hidden')",
+                                 arg=hit["node"], timeout=T_(15000))
+            tip = pg.evaluate("() => document.getElementById('tip').querySelector('b').textContent")
+            if hit["vi"][:30] not in tip or hit["en"][:30] not in tip:       # EN–VI: the title and its gloss
+                raise RuntimeError(f"tooltip {tip!r} for {hit}")
             r0 = runs(pg)
+            pg.mouse.click(hit["x"], hit["y"])
+            pg.wait_for_function(JS_TRACE_DONE, arg={"area": hit["area"], "rank": hit["rank"], "runs": r0}, timeout=T_(90000))
+            s = pg.evaluate(JS_TRACES)
+            c1, m1 = pg.evaluate(CAM), pg.evaluate(MOVES)
+            if s["hash"] != f"#q={hit['area']}:{hit['rank']}" or c0 != c1 or m0 != m1:
+                raise RuntimeError(f"after the click: hash {s['hash']}, camera {c0} -> {c1}, moves {m0} -> {m1}")
+            return {"chose": [hit["area"], hit["rank"]], "tooltip": tip[:160], "hash": s["hash"]}
+        check("hover on a question node shows its question; a click on it chooses that question (the camera stays)", click_question, pg)
+
+        def keyboard():
+            clear(pg)
+            side(pg, True)
+            first, second, last = pg.evaluate("() => { const it = Array.from(document.querySelectorAll('#tr-list .tr-item')); return [it[0].id, it[1].id, it[it.length - 1].id]; }")
+            pg.focus("#tr-search")
+            seen = []
+            for key in ("ArrowDown", "ArrowDown", "End", "Home", "ArrowUp"):
+                pg.keyboard.press(key)
+                seen.append(pg.evaluate("() => document.activeElement && document.activeElement.id"))
+            pg.keyboard.press("ArrowDown")
+            pg.keyboard.press("ArrowDown")
+            r0 = runs(pg)
+            area0 = second.split("tr-item-")[1].rsplit("-", 1)[0]
             pg.keyboard.press("Enter")
-            pg.wait_for_function(JS_TRACE_DONE, arg={"area": ids[0], "rank": 2, "runs": r0}, timeout=T_(90000))
-            pg.keyboard.press("Escape")
-            pg.wait_for_function("() => !window.__VLONTO_METRICS.traces.selected && document.getElementById('panel').classList.contains('hidden')", timeout=T_(15000))
+            pg.wait_for_function(JS_TRACE_DONE, arg={"area": area0, "rank": 2, "runs": r0}, timeout=T_(90000))
+            clear(pg)
             s3 = pg.evaluate(JS_TRACES)
-            if down != "tr-item-2" or s3["segments"] != 0 or "q=" in s3["hash"] or s3["current"]:
-                raise RuntimeError(f"list ArrowDown -> {down}; after Escape {s3['segments']} segments, hash {s3['hash']}, list {s3['current']}")
-            return {"arrow_right": nxt, "loaded": len(s2["loaded"]), "list_arrow_down": down, "after_escape": s3["hash"]}
-        check("keyboard: ArrowRight / End / Home on the tabs, ArrowDown + Enter in the list select, Escape clears", keyboard, pg)
+            if seen != [first, second, last, first, "tr-search"] or s3["segments"] != 0 or "q=" in s3["hash"] or s3["current"]:
+                raise RuntimeError(f"keys -> {seen} (want {[first, second, last, first, 'tr-search']}); after Escape {s3['segments']} segments, "
+                                   f"hash {s3['hash']}, list {s3['current']}")
+            return {"keys": seen, "chose": [area0, 2], "after_escape": s3["hash"]}
+        check("keyboard: ArrowDown from the search into the list, arrows / End / Home, ArrowUp back to the search, Enter chooses, "
+              "Escape clears", keyboard, pg)
 
         def static_map():
-            """one static map: a tab click and a question pick change the drawing only (the camera stays, and the page
-            makes no camera move of its own); Zoom to selection flies to the trace; Reset view brings back the whole map
-            (the view js/traces3d.js frames clear of the hop panel, the legend and the hint) and lifts the dimming"""
-            cam = "() => { const c = window.VLApp.traces.camera(); return c ? [c.pos, c.target].map(v => v.map(x => Math.round(x * 100) / 100)) : null; }"
-            moves = "() => window.__VLONTO_METRICS.traces.cameraMoves || 0"
+            """one static map: choosing from the list, searching and further list clicks change the drawing only (the
+            camera stays, and the page makes no camera move of its own); Zoom to selection flies to the trace; Reset view
+            brings back the whole map (the view js/traces3d.js frames across the canvas, clear of the legend and the hint -
+            the open hop panel may cover its right part) and clears the choice and the focus"""
             flights = "() => window.__VLONTO_METRICS.traces.flights || 0"
+            clear(pg)
+            c0, m0 = pg.evaluate(CAM), pg.evaluate(MOVES)
             area, rank = TRACE_PICKS[1]
-            c0, m0 = pg.evaluate(cam), pg.evaluate(moves)
-            open_area(pg, area)
-            c1, m1 = pg.evaluate(cam), pg.evaluate(moves)
             s, co = select(pg, area, rank)
-            c2, m2 = pg.evaluate(cam), pg.evaluate(moves)
-            if not (c0 == c1 == c2) or not (m0 == m1 == m2):
-                raise RuntimeError(f"the camera moved: tab {c0} -> {c1}, pick -> {c2}; camera moves by the page {m0}, {m1}, {m2}")
+            c1, m1 = pg.evaluate(CAM), pg.evaluate(MOVES)
+            side(pg, True)
+            pg.fill("#tr-search", "lao dong")
+            pg.wait_for_function("() => window.__VLONTO_METRICS.traces.query === 'lao dong'", timeout=T_(15000))
+            c2, m2 = pg.evaluate(CAM), pg.evaluate(MOVES)
+            pg.fill("#tr-search", "")
+            pg.wait_for_function("() => window.__VLONTO_METRICS.traces.query === ''", timeout=T_(15000))
+            area2, rank2 = TRACE_PICKS[0]
+            select(pg, area2, rank2)
+            c3, m3 = pg.evaluate(CAM), pg.evaluate(MOVES)
+            if not (c0 == c1 == c2 == c3) or not (m0 == m1 == m2 == m3):
+                raise RuntimeError(f"the camera moved: choose {c0} -> {c1}, search -> {c2}, list click -> {c3}; camera moves by the page {m0}, {m1}, {m2}, {m3}")
             f0 = pg.evaluate(flights)
+            side(pg, False)
             pg.locator("#btn-zoom").click()
             pg.wait_for_function("(f) => (window.__VLONTO_METRICS.traces.flights || 0) > f && window.VLApp.traces.settle()", arg=f0, timeout=T_(30000))
-            c3 = pg.evaluate(cam)
-            if c3 == c2:
-                raise RuntimeError(f"Zoom to selection left the camera at {c2}")
+            c4 = pg.evaluate(CAM)
+            if c4 == c3:
+                raise RuntimeError(f"Zoom to selection left the camera at {c3}")
             f1 = pg.evaluate(flights)
             pg.locator("#btn-reset-m" if c.mobile else "#btn-reset").click()
             pg.wait_for_function("(f) => (window.__VLONTO_METRICS.traces.flights || 0) > f && window.VLApp.traces.settle()", arg=f1, timeout=T_(30000))
-            c4 = pg.evaluate(cam)
+            c5 = pg.evaluate(CAM)
             v = pg.evaluate("() => { const v = window.VLApp.traces.view(); return [v.home.pos, v.home.target].map(a => a.map(x => Math.round(x * 100) / 100)); }")
-            st = pg.evaluate("() => ({ sel: window.__VLONTO_METRICS.traces.selected, dim: window.__VLONTO_METRICS.traces.dim })")
-            if c4 != v or st["sel"] or st["dim"]:
-                raise RuntimeError(f"Reset view: camera {c4}, whole map {v}, selection {st['sel']}, dimmed {st['dim']}")
-            return {"camera": c0, "pick": [area, rank], "zoomed": c3, "home": c4, "moves": [m0, m2], "callouts": callout_summary(co)}
-        check("one static map: a tab click and a question pick leave the camera where it is; Zoom to selection flies to the "
-              "trace; Reset view shows the whole map", static_map, pg)
+            st = pg.evaluate("() => ({ sel: window.__VLONTO_METRICS.traces.selected, focus: window.__VLONTO_METRICS.traces.focusValue })")
+            if c5 != v or st["sel"] or st["focus"] != 0:
+                raise RuntimeError(f"Reset view: camera {c5}, whole map {v}, choice {st['sel']}, focus {st['focus']}")
+            return {"camera": c0, "picks": [[area, rank], [area2, rank2]], "zoomed": c4, "home": c5, "moves": [m0, m3], "callouts": callout_summary(co)}
+        check("one static map: choosing, searching and list clicks leave the camera where it is; Zoom to selection flies to the "
+              "trace; Reset view shows the whole map and clears the choice", static_map, pg)
+
+        def links():
+            clear(pg)
+            pg.evaluate("() => { location.hash = '#q=bao-hiem:8'; }")
+            pg.wait_for_function(JS_TRACE_DONE, arg={"area": "bao-hiem", "rank": 8, "runs": 0}, timeout=T_(90000))
+            s1 = pg.evaluate(JS_TRACES)
+            pg.evaluate("() => { location.hash = '#area=thue-phi-le-phi'; }")
+            pg.wait_for_function("() => !window.__VLONTO_METRICS.traces.selected && window.__VLONTO_METRICS.traces.scrolledTo === 'thue-phi-le-phi'", timeout=T_(30000))
+            pg.wait_for_timeout(300)
+            s2 = pg.evaluate(JS_TRACES)
+            head = pg.evaluate("""() => { const h = document.getElementById('tr-h-thue-phi-le-phi'), sd = document.getElementById('side');
+                const r = h.getBoundingClientRect(), s = sd.getBoundingClientRect(); return { visible: r.top >= s.top - 1 && r.bottom <= s.bottom + 1 && r.height > 0 }; }""")
+            side(pg, False)
+            if s1["selected"]["area"] != "bao-hiem" or s1["selected"]["rank"] != 8 or s1["hops"] != 5 or s2["selected"] or s2["panelOpen"] or not head["visible"]:
+                raise RuntimeError(f"#q=bao-hiem:8 -> {s1['selected']}; #area=thue-phi-le-phi -> chosen {s2['selected']}, panel {s2['panelOpen']}, heading {head}")
+            return {"q_link": [s1["selected"]["area"], s1["selected"]["rank"]], "area_link": s2["scrolledTo"], "heading_in_view": head["visible"]}
+        check("deep links: #q=bao-hiem:8 chooses that question; #area=thue-phi-le-phi alone scrolls the list to its heading and "
+              "chooses nothing", links, pg)
     finally:
         merge(log)
         ctx.close()
 
-    # deep link per theme (emulated system setting), then the header switch to the other theme keeps the trace
+    # v1's deep link per theme (emulated system setting), then the header switch to the other theme keeps the trace
     for theme in c.themes:
         def deep(theme=theme):
             area, rank = TRACE_PICKS[0]
@@ -2237,7 +2451,7 @@ def t_traces(c: Ctx):
                 applied = pg.evaluate("document.documentElement.getAttribute('data-theme')")
                 if applied != theme:
                     raise RuntimeError(f"theme {applied}, expected {theme}")
-                d1 = judge(pg.evaluate(JS_TRACES), pg.evaluate(JS_CALLOUTS), f"deep link ({theme})")
+                d1 = judge(pg.evaluate(JS_TRACES), pg.evaluate(JS_CALLOUTS), f"deep link ({theme})", pg)
                 px1 = trace_pixels(pg, "#canvas-host", theme)
                 if px1["core"] < 30 or px1["halo"] < 60:
                     raise RuntimeError(f"deep link ({theme}): trace pixels {px1}")
@@ -2248,7 +2462,7 @@ def t_traces(c: Ctx):
                 pg.wait_for_function("(n) => (window.__VLONTO_METRICS.themeRenders || 0) > n", arg=n0, timeout=T_(30000))
                 pg.wait_for_function(JS_TRACE_DONE, arg={"area": area, "rank": rank, "runs": r0}, timeout=T_(60000))
                 pg.wait_for_timeout(400)
-                d2 = judge(pg.evaluate(JS_TRACES), pg.evaluate(JS_CALLOUTS), f"after switching to {other}")
+                d2 = judge(pg.evaluate(JS_TRACES), pg.evaluate(JS_CALLOUTS), f"after switching to {other}", pg)
                 px2 = trace_pixels(pg, "#canvas-host", other)
                 if px2["core"] < 30 or px2["halo"] < 60:
                     raise RuntimeError(f"after switching to {other}: trace pixels {px2}")
@@ -2257,10 +2471,11 @@ def t_traces(c: Ctx):
             finally:
                 merge(log)
                 ctx.close()
-        check(f"deep link #area=lao-dong-tien-luong&q=3 lights the trace ({theme}); the theme switch keeps it", deep)
+        check(f"deep link #area=lao-dong-tien-luong&q=3 (v1) lights the trace ({theme}); the theme switch keeps it", deep)
 
-    # the page in EN and in VI (?lang=): one language in the list, the hop panel, the legend, the tabs and the call-outs;
-    # the header switch back to EN–VI re-renders them as v1 (title over gloss, paired hop headings) and keeps the trace
+    # the page in EN and in VI (?lang=): one language in the headings, search, count line, list, hop panel, legend and
+    # call-outs; the header switch back to EN–VI renders them as v1 (title over gloss, paired headings and hop headings)
+    # and keeps the trace
     def lang_state(pg):
         return pg.evaluate(JS_TRACES_LANG)
 
@@ -2271,10 +2486,10 @@ def t_traces(c: Ctx):
             try:
                 pg.wait_for_function(JS_TRACE_DONE, arg={"area": area, "rank": rank, "runs": 0}, timeout=T_(120000))
                 pg.wait_for_timeout(400)
-                d1 = judge(pg.evaluate(JS_TRACES), pg.evaluate(JS_CALLOUTS), f"in {mode}")
+                d1 = judge(pg.evaluate(JS_TRACES), pg.evaluate(JS_CALLOUTS), f"in {mode}", pg)
                 s = lang_state(pg)
                 hops = " | ".join(s["hops"])
-                bad = []
+                bad = traces_side_lang(s, mode)
                 if s["lang"] != mode or s["labelsLang"] != mode:
                     bad.append(f"mode {s['lang']}, call-outs {s['labelsLang']}")
                 if s["glosses"]:
@@ -2288,8 +2503,6 @@ def t_traces(c: Ctx):
                 if not c.mobile and not (("Traced answer" in s["legend"] and "Đường truy vết" not in s["legend"]) if mode == "en"
                                          else ("Đường truy vết" in s["legend"] and "Traced answer" not in s["legend"])):
                     bad.append(f"legend: {s['legend'][:160]}")
-                if not all(("Q&As" in t) if mode == "en" else ("hỏi đáp" in t) for t in s["tabs"]):
-                    bad.append(f"tab labels: {s['tabs']}")
                 if bad:
                     raise RuntimeError(f"{mode}: " + "; ".join(bad))
                 shot = c.shot(pg, f"traces_lang_{mode}")
@@ -2297,15 +2510,19 @@ def t_traces(c: Ctx):
                 set_lang(c, pg, "envi")
                 pg.wait_for_function(JS_TRACE_DONE, arg={"area": area, "rank": rank, "runs": r0}, timeout=T_(60000))
                 pg.wait_for_timeout(400)
-                d2 = judge(pg.evaluate(JS_TRACES), pg.evaluate(JS_CALLOUTS), f"{mode} -> EN–VI")
+                d2 = judge(pg.evaluate(JS_TRACES), pg.evaluate(JS_CALLOUTS), f"{mode} -> EN–VI", pg)
                 s2 = lang_state(pg)
-                if s2["labelsLang"] != "envi" or s2["glosses"] != s2["items"] or not s2["hops"][0].startswith("1 Question Câu hỏi"):
-                    raise RuntimeError(f"back to EN–VI: call-outs {s2['labelsLang']}, glosses {s2['glosses']}/{s2['items']}, hops {s2['hops'][:2]}")
-                return {"callouts": d1["callouts"], "hops": s["hops"], "tabs": s["tabs"][:2], "back": d2["callouts"], "shot": shot}
+                bad2 = traces_side_lang(s2, "envi")
+                if s2["labelsLang"] != "envi" or s2["glosses"] != s2["items"] or not s2["hops"][0].startswith("1 Question Câu hỏi") or bad2:
+                    raise RuntimeError(f"back to EN–VI: call-outs {s2['labelsLang']}, glosses {s2['glosses']}/{s2['items']}, hops {s2['hops'][:2]}; {bad2}")
+                return {"callouts": d1["callouts"], "hops": s["hops"], "heads": [h["name"] for h in s["heads"]], "placeholder": s["placeholder"],
+                        "count": s["count"], "back": {"callouts": d2["callouts"], "heads": [h["name"] for h in s2["heads"]],
+                                                      "placeholder": s2["placeholder"], "count": s2["count"]}, "shot": shot}
             finally:
                 merge(log)
                 ctx.close()
-        check(f"traces in {mode.upper()}: list, hop panel, legend, tabs and call-outs in one language; the header switch back to EN–VI keeps the trace", lang)
+        check(f"traces in {mode.upper()}: headings, search, count line, list, hop panel, legend and call-outs in one language; the "
+              f"header switch back to EN–VI pairs the headings and keeps the trace", lang)
     res["log"] = logs
     return res
 
