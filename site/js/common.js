@@ -1,5 +1,6 @@
-/* VLOnto website - shared runtime (classic script; works from file:// and http://).
-   Header/nav and footer injection, the module palette used by every view and legend, labels of the validity and
+/* VLOnto website - shared runtime (classic script; works from file:// and http://). Needs js/i18n.js (loaded in <head>).
+   Header/nav and footer injection (texts from js/i18n.js: one language per mode, the EN · VI · EN–VI switch next to the
+   theme toggle), the module palette used by every view and legend, labels of the validity and
    change-kind concepts (from vlonto.ttl), formatting, an accessible search combobox, lazy <script> loading,
    downloads (Blob URLs) and the page-ready flag used by tests (window.__VLONTO_READY / __VLONTO_METRICS). */
 (function () {
@@ -82,10 +83,12 @@
     quads.forEach(function (q) { if (!named(q.subject) && !named(q.predicate) && !named(q.object)) kept.push(q); });
     return { quads: kept, hidden: quads.length - kept.length };
   };
-  /* "Tư pháp (tòa án) · Judiciary: from v2" for each module of a later release (release scope above) */
+  /* "Tư pháp (tòa án) · Judiciary: from v2" (envi), "Judiciary: from v2" (en), "Tư pháp (tòa án): từ v2" (vi) for each
+     module of a later release (release scope above) */
   VL.laterModulesNote = function (later) {
     return VL.MODULES.filter(function (m) { return later[m.id]; }).map(function (m) {
-      return '<span lang="vi">' + VL.esc(VL.cap(m.vi) + (m.scope_vi ? ' (' + m.scope_vi + ')' : '')) + '</span> · ' + VL.esc(VL.cap(m.en)) + ': from v' + later[m.id];
+      return VL.TH(VL.pair(VL.cap(m.vi) + (m.scope_vi ? ' (' + m.scope_vi + ')' : ''), VL.cap(m.en))) + ': ' +
+        VL.esc(VL.U('common.fromRelease', { n: later[m.id] }));
     }).join('<br>');
   };
   VL.NS = {
@@ -110,17 +113,18 @@
   ];
 
   /* index.html is the 3D ontology playground (the landing page); about.html is the overview; ontology-3d.html redirects;
-     vi = a Vietnamese label shown before the English one ("Truy vết · Traces") */
+     key = the navigation label in js/i18n.js, one language per mode ('Traces' in en and envi, 'Truy vết' in vi; in envi
+     the Vietnamese is the link's tooltip); label = the English, for scripts and tests */
   VL.PAGES = [
-    { href: 'index.html', label: '3D Ontology' },
-    { href: 'network-3d.html', label: '3D Legal Network' },
-    { href: 'sparql.html', label: 'SPARQL' },
-    { href: 'traces.html', label: 'Traces', vi: 'Truy vết' },
-    { href: 'dashboard.html', label: 'Dashboard' },
-    { href: 'ontology.html', label: 'Ontology docs' },
-    { href: 'playbook.html', label: 'Playbook' },
-    { href: 'downloads.html', label: 'Downloads' },
-    { href: 'about.html', label: 'About' }
+    { href: 'index.html', label: '3D Ontology', key: 'chrome.nav.index' },
+    { href: 'network-3d.html', label: '3D Legal Network', key: 'chrome.nav.network' },
+    { href: 'sparql.html', label: 'SPARQL', key: 'chrome.nav.sparql' },
+    { href: 'traces.html', label: 'Traces', key: 'chrome.nav.traces' },
+    { href: 'dashboard.html', label: 'Dashboard', key: 'chrome.nav.dashboard' },
+    { href: 'ontology.html', label: 'Ontology docs', key: 'chrome.nav.ontology' },
+    { href: 'playbook.html', label: 'Playbook', key: 'chrome.nav.playbook' },
+    { href: 'downloads.html', label: 'Downloads', key: 'chrome.nav.downloads' },
+    { href: 'about.html', label: 'About', key: 'chrome.nav.about' }
   ];
 
   /* One module palette for every view, legend and chart (11 VLOnto modules + aligned external terms). */
@@ -144,7 +148,8 @@
   VL.moduleColor = function (id) { return (VL.MODULE[id] || VL.MODULE.provenance).color; };
   VL.moduleVar = function (id) { return (VL.MODULE[id] || VL.MODULE.provenance).v; };
 
-  /* ValidityStatus and ChangeKind concepts (skos:prefLabel en/vi from vlonto.ttl). */
+  /* ValidityStatus and ChangeKind concepts (skos:prefLabel en/vi from vlonto.ttl); activeVi / passiveVi = the rdfs:label
+     @vi of the change properties (vlo:replaces 'thay thế', vlo:replacedBy 'được thay thế bởi', ...). */
   VL.VALIDITY = {
     in_force: { en: 'in force', vi: 'còn hiệu lực', color: '#22C55E', inForce: true },
     in_force_amended: { en: 'in force, amended', vi: 'còn hiệu lực, đã được sửa đổi', color: '#A3E635', inForce: true },
@@ -157,11 +162,11 @@
   };
   VL.VALIDITY_ORDER = ['in_force', 'in_force_amended', 'presumed_in_force_amended', 'not_yet_effective', 'superseded', 'expired', 'not_applicable', 'unknown'];
   VL.CHANGE = {
-    replaced: { en: 'replaced', vi: 'thay thế', color: '#FF8A3D', active: 'replaces', passive: 'replaced by' },
-    amended: { en: 'amended', vi: 'sửa đổi, bổ sung', color: '#FACC15', active: 'amends', passive: 'amended by' },
-    repealed: { en: 'repealed', vi: 'bãi bỏ', color: '#EF4444', active: 'repeals', passive: 'repealed by' },
-    partially_repealed: { en: 'partially repealed', vi: 'bãi bỏ một phần', color: '#FB7185', active: 'partially repeals', passive: 'partially repealed by' },
-    partially_expired: { en: 'partially terminated', vi: 'hết hiệu lực một phần', color: '#C084FC', active: 'partially terminates', passive: 'partially terminated by' }
+    replaced: { en: 'replaced', vi: 'thay thế', color: '#FF8A3D', active: 'replaces', passive: 'replaced by', activeVi: 'thay thế', passiveVi: 'được thay thế bởi' },
+    amended: { en: 'amended', vi: 'sửa đổi, bổ sung', color: '#FACC15', active: 'amends', passive: 'amended by', activeVi: 'sửa đổi, bổ sung', passiveVi: 'được sửa đổi, bổ sung bởi' },
+    repealed: { en: 'repealed', vi: 'bãi bỏ', color: '#EF4444', active: 'repeals', passive: 'repealed by', activeVi: 'bãi bỏ', passiveVi: 'bị bãi bỏ bởi' },
+    partially_repealed: { en: 'partially repealed', vi: 'bãi bỏ một phần', color: '#FB7185', active: 'partially repeals', passive: 'partially repealed by', activeVi: 'bãi bỏ một phần', passiveVi: 'bị bãi bỏ một phần bởi' },
+    partially_expired: { en: 'partially terminated', vi: 'hết hiệu lực một phần', color: '#C084FC', active: 'partially terminates', passive: 'partially terminated by', activeVi: 'làm hết hiệu lực một phần', passiveVi: 'bị làm hết hiệu lực một phần bởi' }
   };
   VL.EDGE = {
     basis: { en: 'legal basis', vi: 'căn cứ pháp lý', color: '#5B9BFF' },
@@ -338,14 +343,22 @@
     parts.push('theme=' + t);
     return href + '?' + parts.join('&') + hash;
   };
-  /* href for an internal page (scripts that navigate use this so the theme travels like it does on links) */
-  VL.href = function (h) { return carryTheme() ? VL.withTheme(h, VL.theme()) : h; };
+  /* href for an internal page (scripts that navigate use this so the theme and the language travel like they do on
+     links; js/i18n.js carries ?lang= on clicked links) */
+  VL.href = function (h) {
+    if (carryTheme()) h = VL.withTheme(h, VL.theme());
+    if (VL.carryLang && VL.carryLang()) h = VL.withLang(h, VL.lang());
+    return h;
+  };
   var themeButtons = [];
+  /* aria-label 'Dark theme' with aria-pressed (one language; English in envi), tooltip = the action (VL.T: the pair in
+     envi, as the button shows no text) */
   function syncThemeButtons() {
     var dark = VL.theme() === 'dark';
     themeButtons.forEach(function (b) {
       b.setAttribute('aria-pressed', dark ? 'true' : 'false');
-      b.setAttribute('title', dark ? 'Switch to light theme' : 'Switch to dark theme');
+      b.setAttribute('aria-label', VL.U('chrome.theme.dark'));
+      b.setAttribute('title', VL.T(dark ? 'chrome.theme.toLight' : 'chrome.theme.toDark'));
     });
   }
   function postTheme(win, t) {
@@ -382,7 +395,6 @@
     var b = document.createElement('button');
     b.type = 'button';
     b.className = 'vl-theme-btn';
-    b.setAttribute('aria-label', 'Dark theme');
     b.innerHTML = '<svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/>' +
       '<path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>' +
       '<svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20.2 14.6A8.3 8.3 0 0 1 9.4 3.8a8.3 8.3 0 1 0 10.8 10.8z"/></svg>';
@@ -473,27 +485,92 @@
     return VL.nfc(lang === 'vi' ? (m.attribution_vi || fb) : (m.attribution_en || fb));
   };
 
-  /* ------------------------------------------------------------------ header / footer */
+  /* ------------------------------------------------------------------ header / footer
+     Built once per page by VL.chrome() and refreshed in place on 'vl:lang' (js/i18n.js), so focus stays where it is:
+     brand, navigation, menu button, theme toggle and the language switch EN · VI · EN–VI (in the header next to the
+     theme toggle; in the menu sheet on phones), then the footer or, on the full-screen scenes (opts.scene), the compact
+     footbar. One language per mode; in envi the Vietnamese is the tooltip of the navigation links and buttons. */
+  var chromeTop = null, footerEl = null, footerScene = false;
+  function tipAttr(key, vars) { var t = VL.tip(key, vars); return t ? ' title="' + VL.esc(t) + '"' : ''; }
+  function setTip(el, key, vars) { var t = VL.tip(key, vars); if (t) el.setAttribute('title', t); else el.removeAttribute('title'); }
+  function headerText(top) {
+    var nav = top.querySelector('.vl-nav');
+    nav.setAttribute('aria-label', VL.U('chrome.nav.main'));
+    VL.$$('a[data-nav-key]', nav).forEach(function (a) {
+      var k = a.getAttribute('data-nav-key');
+      a.textContent = VL.U(k);
+      setTip(a, k);
+    });
+    var paper = nav.querySelector('a.ext');
+    if (paper) {
+      paper.querySelector('.vl-paper-label').textContent = VL.U('chrome.nav.paper');
+      paper.querySelector('.sr-only').textContent = VL.U('chrome.nav.paperNewTab');
+    }
+    var brand = top.querySelector('.vl-brand');
+    brand.setAttribute('aria-label', VL.U('chrome.brand.home'));
+    brand.querySelector('.tag').textContent = VL.U('chrome.brand.tag');
+    var mb = top.querySelector('.vl-menu-btn');
+    mb.querySelector('.vl-menu-label').textContent = VL.U('chrome.menu');
+    setTip(mb, 'chrome.menu');
+    var lab = top.querySelector('#vl-lang-label');
+    if (lab) lab.textContent = VL.U('chrome.lang.group');
+  }
+  function footerHtml(scene) {
+    var S = window.VLONTO.stats || {}, cv = { short: VL.PAPER.short, arxiv: VL.PAPER.arxiv };
+    var citeLink = '<a href="' + VL.PAPER.url + '" target="_blank" rel="noopener" data-paper-link="footer"' + tipAttr('chrome.cite', cv) + '>' +
+      VL.esc(VL.U('chrome.cite', cv)) + '</a>';
+    function link(href, key) { return '<a href="' + href + '"' + tipAttr(key) + '>' + VL.esc(VL.U(key)) + '</a>'; }
+    if (scene) {
+      return '<strong>' + VL.esc(VL.U('chrome.bar.notAdvice')) + '</strong>' +
+        '<span class="grow">' + VL.esc(VL.U('chrome.bar.data')).replace(/\[(md|lg|xl):([^\]]*)\]/g, '<span class="fb-$1">$2</span>') + '</span>' +
+        citeLink + link('about.html#licences', 'chrome.bar.attribution');
+    }
+    return '<div class="inner">' +
+      '<div><h2>' + VL.esc(VL.U('chrome.foot.sources')) + '</h2><p>' + VL.esc(VL.attribution(VL.lang() === 'vi' ? 'vi' : 'en')) + '</p>' +
+      '<p class="cite-line">' + citeLink + '</p></div>' +
+      '<div><h2>' + VL.esc(VL.U('chrome.foot.notAdvice')) + '</h2><p class="disclaimer">' + VL.esc(VL.U('chrome.foot.disclaimer')) + '</p>' +
+      '<p>' + VL.esc(VL.U('chrome.foot.validity', { date: S.validity_as_of || '2026-11-08' })) + '</p>' +
+      '<p>' + VL.esc(VL.U('chrome.foot.licences')) + '</p></div>' +
+      '<div class="meta">' + VL.esc(VL.releaseLabel()) + ' · ' + VL.esc(VL.U('chrome.foot.built', { date: S.build_date || '2026-11-11' })) +
+      ' · ' + link('downloads.html', 'chrome.foot.downloads') + ' · ' + link('about.html#cite', 'chrome.foot.howToCite') +
+      ' · ' + link('about.html#licences', 'chrome.foot.licencesLink') + '</div>' +
+      '</div>';
+  }
+  document.addEventListener('vl:lang', function () {
+    if (chromeTop) headerText(chromeTop);
+    if (footerEl) footerEl.innerHTML = footerHtml(footerScene);
+    syncThemeButtons();
+    VL.$$('[data-vl-paper][data-filled]').forEach(function (el) { el.removeAttribute('data-filled'); });
+    VL.paperBlocks(document);
+    M.chromeLang = VL.lang();
+  });
   VL.chrome = function (opts) {
     opts = opts || {};
     var here = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
     if (!/\.html$/.test(here)) here = 'index.html';
     var nav = VL.PAGES.map(function (p) {
-      return '<a href="' + p.href + '"' + (p.href === here ? ' aria-current="page"' : '') + '>' +
-        (p.vi ? '<span lang="vi">' + VL.esc(p.vi) + '</span> · ' : '') + VL.esc(p.label) + '</a>';
+      return '<a href="' + p.href + '" data-nav-key="' + p.key + '"' + (p.href === here ? ' aria-current="page"' : '') + '>' + VL.esc(p.label) + '</a>';
     }).join('') +
       '<a class="ext" href="' + VL.PAPER.url + '" target="_blank" rel="noopener" data-paper-link="nav" title="' +
-      VL.esc(VL.PAPER.title) + ' (arXiv:' + VL.PAPER.arxiv + ')">Paper' + VL.ICON.external + '<span class="sr-only"> (arXiv, opens in a new tab)</span></a>';
+      VL.esc(VL.PAPER.title) + ' (arXiv:' + VL.PAPER.arxiv + ')"><span class="vl-paper-label">Paper</span>' + VL.ICON.external +
+      '<span class="sr-only"> (arXiv, opens in a new tab)</span></a>';
     var hdr = document.getElementById('vl-header');
     if (hdr) {
       hdr.outerHTML = '<header class="vl-header" id="vl-top">' +
-        '<a class="vl-brand" href="index.html" aria-label="VLOnto home: 3D ontology playground">' + LOGO +
-        '<span><span class="name">VLOnto</span><br><span class="tag">Vietnamese Legal Ontology</span></span></a>' +
-        '<nav class="vl-nav" id="vl-nav" aria-label="Main">' + nav + '</nav>' +
-        '<div class="vl-tools"><button class="vl-menu-btn" type="button" aria-expanded="false" aria-controls="vl-nav">' + VL.ICON.menu + '<span>Menu</span></button></div></header>';
-      var top = document.getElementById('vl-top');
-      top.querySelector('.vl-tools').insertBefore(VL.themeButton(), top.querySelector('.vl-menu-btn'));
-      var btn = top.querySelector('.vl-menu-btn');
+        '<a class="vl-brand" href="index.html">' + LOGO +
+        '<span><span class="name">VLOnto</span><br><span class="tag"></span></span></a>' +
+        '<nav class="vl-nav" id="vl-nav">' + nav + '</nav>' +
+        '<div class="vl-tools"><button class="vl-menu-btn" type="button" aria-expanded="false" aria-controls="vl-nav">' + VL.ICON.menu +
+        '<span class="vl-menu-label">Menu</span></button></div></header>';
+      var top = chromeTop = document.getElementById('vl-top');
+      var btn = top.querySelector('.vl-menu-btn'), tools = top.querySelector('.vl-tools');
+      tools.insertBefore(VL.langSwitch({ className: 'vl-lang-bar' }), btn);
+      tools.insertBefore(VL.themeButton(), btn);
+      /* phones: the language switch sits in the menu sheet, under the pages (css/site.css) */
+      var row = VL.el('div', { 'class': 'vl-lang-row' }, '<span class="vl-lang-label" id="vl-lang-label"></span>');
+      row.appendChild(VL.langSwitch({ labelledby: 'vl-lang-label', className: 'vl-lang-sheet' }));
+      top.querySelector('.vl-nav').appendChild(row);
+      headerText(top);
       btn.addEventListener('click', function () {
         var open = !top.classList.contains('open');
         top.classList.toggle('open', open);
@@ -509,27 +586,13 @@
     }
     var ftr = document.getElementById('vl-footer');
     if (ftr) {
-      var S = window.VLONTO.stats || {};
-      var citeLink = '<a href="' + VL.PAPER.url + '" target="_blank" rel="noopener" data-paper-link="footer">Cite: ' +
-        VL.esc(VL.PAPER.short) + ', arXiv:' + VL.PAPER.arxiv + '</a>';
-      if (opts.scene) {
-        ftr.outerHTML = '<footer class="vl-footbar"><strong>Not legal advice.</strong>' +
-          '<span class="grow">Data: <span class="fb-md">four public </span>datasets by TMQuan<span class="fb-lg"> (thuvienphapluat.vn)</span>' +
-          '<span class="fb-xl">; relations are extracted automatically and may be wrong</span>.</span>' +
-          citeLink + '<a href="about.html#licences">Attribution</a></footer>';
-      } else {
-        ftr.outerHTML = '<footer class="vl-footer"><div class="inner">' +
-          '<div><h2>Sources and attribution</h2><p>' + VL.esc(VL.attribution('en')) + '</p>' +
-          '<p class="cite-line">' + citeLink + '</p></div>' +
-          '<div><h2>Not legal advice</h2><p class="disclaimer">VLOnto is not an official legal text and is not legal advice.</p>' +
-          '<p>Validity is derived automatically (as of ' + VL.esc(S.validity_as_of || '2026-11-08') + ') and is unknown for many documents. ' +
-          'Always read the document at its source before relying on it.</p>' +
-          '<p>Ontology and VLOnto’s own data: CC BY 4.0. Fonts: SIL OFL 1.1. Libraries: MIT / Apache-2.0 (see Downloads).</p></div>' +
-          '<div class="meta">' + VL.esc(VL.releaseLabel()) + ' · built ' + VL.esc(S.build_date || '2026-11-11') +
-          ' · <a href="downloads.html">Downloads and checksums</a> · <a href="about.html#cite">How to cite</a> · <a href="about.html#licences">Licences</a></div>' +
-          '</div></footer>';
-      }
+      footerScene = !!opts.scene;
+      footerEl = document.createElement('footer');
+      footerEl.className = footerScene ? 'vl-footbar' : 'vl-footer';
+      footerEl.innerHTML = footerHtml(footerScene);
+      ftr.parentNode.replaceChild(footerEl, ftr);
     }
+    M.chromeLang = VL.lang();
     /* the release name and version wherever a page carries a placeholder */
     VL.$$('[data-vl-release]').forEach(function (e) { e.textContent = VL.releaseLabel(); });
     VL.$$('[data-vl-version]').forEach(function (e) { e.textContent = VL.VERSION; });
@@ -601,20 +664,20 @@
           sel.removeAllRanges();
           sel.addRange(r);
         } catch (e) { /* no selection API */ }
-        VL.toast('Text selected: press Ctrl+C (\u2318C on a Mac) to copy');
+        VL.toast(VL.U('common.selected'));
       } else {
-        VL.toast('Copying is not available here');
+        VL.toast(VL.U('common.noCopy'));
       }
     }
     function legacy() {
       var ok = false;
       try { ok = legacyCopy(text); } catch (e) { ok = false; }
       if (focused && focused.focus) { try { focused.focus(); } catch (e) { /* ignore */ } }
-      if (ok) { M.lastCopy = 'execCommand'; VL.toast('Copied to clipboard'); } else selectShown();
+      if (ok) { M.lastCopy = 'execCommand'; VL.toast(VL.U('common.copied')); } else selectShown();
     }
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        return navigator.clipboard.writeText(text).then(function () { M.lastCopy = 'clipboard'; VL.toast('Copied to clipboard'); },
+        return navigator.clipboard.writeText(text).then(function () { M.lastCopy = 'clipboard'; VL.toast(VL.U('common.copied')); },
           function () { legacy(); }).catch(function () { selectShown(); });
       }
     } catch (e) { /* clipboard getter threw */ }
@@ -636,15 +699,16 @@
   VL.paperHtml = function (variant) {
     var P = VL.PAPER, id = 'bib-' + (++paperSeq), panel = variant === 'panel';
     var link = '<a class="paper-link" href="' + P.url + '" target="_blank" rel="noopener" data-paper-link="' + (panel ? 'panel' : 'card') + '">' +
-      'arXiv:' + P.arxiv + VL.ICON.external + '<span class="sr-only"> (opens in a new tab)</span></a>';
+      'arXiv:' + P.arxiv + VL.ICON.external + '<span class="sr-only">' + VL.esc(VL.U('common.newTab')) + '</span></a>';
+    /* the paper's title stays English (lang="en") in every mode */
     var head = panel ?
       '<p class="paper-title" lang="en">' + VL.esc(P.title) + '</p>' :
       '<h3 class="paper-title" lang="en">' + VL.esc(P.title) + '</h3>';
     var about = head + '<p class="paper-meta">' + VL.esc(P.authors) + ' · 2026 · ' + link + ' (cs.CL)</p>' +
-      '<p class="paper-note">' + VL.esc(P.note) + '</p>';
-    var cite = '<div class="cite-head">' + (panel ? '<span class="muted-small">BibTeX</span>' : '<h3>Cite (BibTeX)</h3>') +
-      '<button class="btn btn-xs" type="button" data-copy-bib="' + id + '">' + VL.ICON.copy + 'Copy</button></div>' +
-      '<pre class="code bibtex" id="' + id + '" tabindex="0" aria-label="BibTeX for the paper">' + VL.esc(P.bibtex) + '</pre>';
+      '<p class="paper-note">' + VL.esc(VL.U('common.paper.note', { release: VL.releaseLabel() })) + '</p>';
+    var cite = '<div class="cite-head">' + (panel ? '<span class="muted-small">BibTeX</span>' : '<h3>' + VL.esc(VL.U('common.paper.cite')) + '</h3>') +
+      '<button class="btn btn-xs" type="button" data-copy-bib="' + id + '"' + tipAttr('common.copy') + '>' + VL.ICON.copy + VL.esc(VL.U('common.copy')) + '</button></div>' +
+      '<pre class="code bibtex" id="' + id + '" tabindex="0" aria-label="' + VL.esc(VL.U('common.paper.bibAria')) + '">' + VL.esc(P.bibtex) + '</pre>';
     return panel ? '<div class="paper-box">' + about + cite + '</div>' : '<div class="paper-about">' + about + '</div><div class="paper-cite">' + cite + '</div>';
   };
   VL.paperBlocks = function (root) {
@@ -695,7 +759,7 @@
       if (!q) { close(); return; }
       items = (opts.source(q) || []).slice(0, max);
       if (!items.length) {
-        list.innerHTML = '<li class="empty" role="option" aria-disabled="true">No match</li>';
+        list.innerHTML = '<li class="empty" role="option" aria-disabled="true">' + VL.esc(VL.U('common.noMatch')) + '</li>';
       } else {
         list.innerHTML = items.map(function (it, i) {
           return '<li role="option" id="' + lid + '-' + i + '" aria-selected="false" data-i="' + i + '">' +

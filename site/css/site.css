@@ -607,10 +607,35 @@ kbd { font-size: 12px; border: 1px solid var(--line-2); border-bottom-width: 2px
   font: 600 14px/1.2 var(--vlo-font-sans); padding: 8px 12px; cursor: pointer;
 }
 .vl-menu-btn svg { width: 18px; height: 18px; }
-@media (max-width: 1380px) {     /* the header needs about 1,352 px with the tag line and nine pages + Paper */
-  .vl-brand .tag { display: none; }
+/* language switch EN · VI · EN–VI (js/i18n.js VL.langSwitch): a radio group next to the theme toggle; on phones it sits
+   in the menu sheet. Segments are 28 px high, so the two-tone focus ring and its 6 px halo (40 px in all) stay inside
+   the 52-56 px header; the group has no overflow clip, and the focused segment is lifted above its neighbours. */
+.vl-lang {
+  display: inline-flex; flex: 0 0 auto; align-items: stretch;
+  background: var(--chrome-btn-bg); border: 1px solid var(--chrome-btn-line); border-radius: 8px;
 }
-@media (max-width: 1290px) {     /* ... and about 1,263 px without it; below, the menu button */
+.vl-lang button {
+  font: 600 12px/1.2 var(--vlo-font-sans); color: var(--chrome-fg-2); background: transparent; border: 0; margin: 0;
+  min-height: 28px; padding: 6px 7px; cursor: pointer; white-space: nowrap;
+}
+.vl-lang button + button { border-left: 1px solid var(--chrome-btn-line); }
+.vl-lang button:first-child { border-radius: 7px 0 0 7px; }
+.vl-lang button:last-child { border-radius: 0 7px 7px 0; }
+.vl-lang button:hover { color: #fff; background: var(--chrome-current); }
+.vl-lang button[aria-checked="true"] { color: #0b1122; background: var(--chrome-current-line); }   /* 7.6:1 text, 6.3:1 vs. the other segments */
+.vl-lang button:focus-visible {
+  position: relative; z-index: 1; outline: 3px solid var(--focus-2); outline-offset: 1px; box-shadow: 0 0 0 6px var(--focus-halo);
+}
+@media (forced-colors: active) { .vl-lang button[aria-checked="true"] { outline: 2px solid CanvasText; outline-offset: -4px; } }
+.vl-lang-row { display: none; }   /* the copy in the menu sheet, for phones */
+/* Widths the header needs, from the advances of the embedded Be Vietnam Pro faces at the CSS sizes of brand, nine
+   pages + Paper, switch (112 px) and theme toggle (the same model gives 1,352 / 1,264 px for the v1 header with
+   'Truy vết · Traces', whose measured widths were 1,352 / 1,263 px): EN and EN–VI 1,404 px with the tag line and
+   1,316 px without; VI (longer page names) 1,511 / 1,401 px. Below the first width the tag line goes, below the second
+   the pages move into the menu (at least 24 px to spare; 1440 px keeps 36 px in EN / EN–VI and 39 px in VI). */
+@media (max-width: 1429px) { .vl-brand .tag { display: none; } }
+@media (max-width: 1539px) { :root[data-lang="vi"] .vl-brand .tag { display: none; } }
+@media (max-width: 1339px) {
   .vl-menu-btn { display: inline-flex; }
   .vl-tools { margin-left: auto; }
   .vl-nav {
@@ -622,10 +647,28 @@ kbd { font-size: 12px; border: 1px solid var(--line-2); border-bottom-width: 2px
   .vl-header.open .vl-nav { display: flex; }
   .vl-nav a { padding: 11px 12px; font-size: 15px; }
 }
+@media (max-width: 1429px) {     /* the same, for the Vietnamese page names */
+  :root[data-lang="vi"] .vl-menu-btn { display: inline-flex; }
+  :root[data-lang="vi"] .vl-tools { margin-left: auto; }
+  :root[data-lang="vi"] .vl-nav {
+    display: none; position: absolute; top: var(--header-h); right: 0; left: 0;
+    flex-direction: column; align-items: stretch; gap: 0;
+    background: var(--chrome-menu-bg); border-bottom: 1px solid var(--chrome-menu-line); padding: 6px 12px 12px;
+    box-shadow: 0 16px 30px rgba(0, 0, 0, .35);
+  }
+  :root[data-lang="vi"] .vl-header.open .vl-nav { display: flex; }
+  :root[data-lang="vi"] .vl-nav a { padding: 11px 12px; font-size: 15px; }
+}
 @media (max-width: 600px) {
   :root { --header-h: 52px; }
   .vl-header { padding: 0 12px; gap: 10px; }
   .vl-brand .name { font-size: 18px; }
+  .vl-tools .vl-lang-bar { display: none; }
+  .vl-lang-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    margin-top: 6px; padding: 12px 12px 4px; border-top: 1px solid var(--chrome-menu-line);   /* room for the ring and halo */
+  }
+  .vl-lang-label { color: var(--chrome-muted); font-size: 14px; font-weight: 600; }
 }
 
 /* ------------------------------------------------------------------ footer */
@@ -659,6 +702,18 @@ kbd { font-size: 12px; border: 1px solid var(--line-2); border-bottom-width: 2px
   .vl-footbar > * { margin-right: 6px; }
   .vl-footbar .fb-md { display: none; }
 }
+
+/* ------------------------------------------------------------------ language layer (js/i18n.js, docs/i18n.md)
+   Pairs from VL.TH read "Tiếng Việt · English": <span lang="vi">…</span> · <span class="en" lang="en">…</span>, the
+   English muted with --pair-en (zero specificity: a view's own rule for its pairs wins). While a page loads
+   (html.vl-i18n-boot), elements with data-i18n stay hidden until js/i18n.js has put in the text of the mode, so no
+   wrong language flashes; at DOMContentLoaded everything shows. The switch itself is in the header section. */
+:root { --pair-en: var(--muted); }
+.vl-header, .vl-footer, .vl-footbar { --pair-en: var(--chrome-muted); }
+.scene-app, .query-drawer, .construct-view { --pair-en: var(--scene-muted); }
+:where(span.en[lang="en"]) { color: var(--pair-en); }
+:root.vl-i18n-boot [data-i18n]:not([data-i18n-ok]) { visibility: hidden; }
+:root.vl-i18n-boot [data-i18n-placeholder]:not([data-i18n-ok])::placeholder { color: transparent; }
 
 /* ------------------------------------------------------------------ text pages */
 .page { max-width: var(--page-w); margin: 0 auto; padding: 0 24px; }
@@ -1133,6 +1188,14 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
 @media (max-width: 900px) { .playbook-layout { grid-template-columns: minmax(0, 1fr); } .toc { position: static; max-height: none; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--surface); } .toc summary { margin: 0; } .toc details[open] > summary { margin-bottom: 10px; } }
 .placeholder { text-align: left; padding: 28px; }
 
+/* ================================================================== CONTENT-PAGES TRACK: language (phase 2)
+   Owned by the content-pages track (docs/i18n.md): index.html (side panel, filters), traces.html, ontology-3d.html,
+   dashboard.html/js, about.html, downloads.html, playbook.html/js, ontology.html, ontology-page.js, home.js and the
+   other page scripts. That track adds its rules only between this line and the end marker below; nobody else edits
+   here. */
+
+/* ================================================================== end of CONTENT-PAGES TRACK */
+
 /* ------------------------------------------------------------------ scene docking: panel (right / bottom sheet) and query drawer */
 .muted-small { font-size: 12px; line-height: 1.45; color: var(--scene-muted); }
 .side-note, .side-about { font-size: 12.5px; line-height: 1.5; color: var(--scene-muted); margin: 8px 0 0; }
@@ -1406,3 +1469,11 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
   .tr-app .scene-panel { max-height: 46%; }
   .tr-fallback { padding: 10px; }
 }
+
+
+/* ================================================================== 3D TRACK: language (phase 2)
+   Owned by the 3D track (docs/i18n.md): network3d.js, ontology3d.js, traces3d.js, paper3d.js, labels3d.js,
+   trace-draw.js, sparql-page.js, sparql-core.js, network-3d.html, sparql.html. That track adds its rules only between
+   this line and the end marker below; nobody else edits here. */
+
+/* ================================================================== end of 3D TRACK */

@@ -1087,10 +1087,10 @@
     if (state.sel >= 0) { computeEgo(); select(state.sel, false); }
   }
   VL.$$('[data-hops]').forEach(function (b) { b.addEventListener('click', function () { setHops(+b.getAttribute('data-hops')); }); });
-  VL.$$('[data-lang]').forEach(function (b) {
+  VL.$$('button[data-lang]').forEach(function (b) {
     b.addEventListener('click', function () {
       state.lang = b.getAttribute('data-lang');
-      pressed('[data-lang]', 'data-lang', state.lang);
+      pressed('button[data-lang]', 'data-lang', state.lang);
       buildLayerLabels();
       if (state.sel >= 0) select(state.sel, false); else scheduleCull();
       renderLegend();

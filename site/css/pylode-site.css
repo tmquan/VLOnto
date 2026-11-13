@@ -54,6 +54,11 @@ body code { font-size: .92em; }
 html { color-scheme: light; }
 html[data-theme="dark"] { color-scheme: dark; }
 .vl-doc-bar .vl-doc-right { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; }
+/* language (js/i18n.js, loaded with data-doc-lang="en"): the reference stays English; the bar follows the site's mode,
+   with a one-line Vietnamese note in VI; the bar's texts stay hidden while the page loads until they are in */
+.vl-doc-note { display: none; color: #ffd59a; }
+html[data-lang="vi"] .vl-doc-note { display: inline; }
+html.vl-i18n-boot [data-i18n]:not([data-i18n-ok]) { visibility: hidden; }
 .vl-doc-bar .vl-paper-link { color: #a9c0ff; font-weight: 600; }
 .vl-theme-btn {
   display: inline-grid; place-items: center; width: 32px; height: 32px; padding: 0; flex: 0 0 auto;

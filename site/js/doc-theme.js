@@ -3,7 +3,9 @@
    (?theme=, else localStorage 'vlonto.theme', else prefers-color-scheme). This file adds the toggle to the doc bar,
    remembers the choice, follows the ontology page that embeds this file in an iframe (postMessage, both ways),
    follows the system setting while nothing was chosen, and carries the theme on links back to the site where
-   storage is not shared (file://). Classic script, no dependencies. */
+   storage is not shared (file://). The toggle's labels follow the language mode of js/i18n.js (loaded in <head> with
+   data-doc-lang="en": the reference stays English; i18n.js also carries ?lang= on links and follows the embedding
+   page); without it they are English. Classic script, no dependencies. */
 (function () {
   'use strict';
   var root = document.documentElement, KEY = 'vlonto.theme';
@@ -14,12 +16,16 @@
   var embedded = window.parent && window.parent !== window;
   var btn = null, stats = { received: 0, storage: 0, requests: 0 };
   function cur() { return root.getAttribute('data-theme') === 'dark' ? 'dark' : 'light'; }
+  var VL = window.VL || {};
+  function say(key, en, pair) { return VL.i18n && VL.i18n.has(key) ? (pair ? VL.T(key) : VL.U(key)) : en; }
   function sync() {
     if (!btn) return;
     var dark = cur() === 'dark';
     btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
-    btn.setAttribute('title', dark ? 'Switch to light theme' : 'Switch to dark theme');
+    btn.setAttribute('aria-label', say('chrome.theme.dark', 'Dark theme'));
+    btn.setAttribute('title', dark ? say('chrome.theme.toLight', 'Switch to light theme', true) : say('chrome.theme.toDark', 'Switch to dark theme', true));
   }
+  document.addEventListener('vl:lang', sync);
   function apply(t, store, tellParent) {
     if (t !== 'light' && t !== 'dark') return;
     root.setAttribute('data-theme', t);
@@ -33,7 +39,6 @@
     btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'vl-theme-btn';
-    btn.setAttribute('aria-label', 'Dark theme');
     btn.innerHTML = '<svg class="i-sun" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/>' +
       '<path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>' +
       '<svg class="i-moon" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M20.2 14.6A8.3 8.3 0 0 1 9.4 3.8a8.3 8.3 0 1 0 10.8 10.8z"/></svg>';

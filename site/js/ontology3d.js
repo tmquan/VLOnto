@@ -875,10 +875,10 @@
     status();
     M.visibleNodes = current.nodes.filter(nodeVisible).length;
   }
-  VL.$$('[data-lang]').forEach(function (b) {
+  VL.$$('button[data-lang]').forEach(function (b) {
     b.addEventListener('click', function () {
       state.lang = b.getAttribute('data-lang');
-      VL.$$('[data-lang]').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      VL.$$('button[data-lang]').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
       relabel();
       if (state.selected) openPanel(state.selected.inst ? instancePanel(state.selected) : nodePanel(state.selected));
       else if (state.selectedLink) openPanel(linkPanel(state.selectedLink));
