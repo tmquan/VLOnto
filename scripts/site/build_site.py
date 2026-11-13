@@ -15,6 +15,8 @@ Steps (idempotent; re-run after the KG or Playbook tracks change their outputs):
      fails if a linked figure is missing) and SHA256SUMS.txt (regenerated from every file in downloads/ on each run)
      under site/downloads/ (the Playbook track's files there are never touched)
   4. pyLODE documentation: site/ontology/vlonto.html = ontology/vlonto.html + viewport, web fonts and site styles
+  4b. social previews: Open Graph and Twitter card tags in every page's <head> (SOCIAL_*; crawlers of Facebook,
+     LinkedIn and X read the static HTML), image img/vlonto-network-3d-social.png (scripts/site/social_image.py)
   5. site/data/site_files.js (every file of the site with bytes + sha256) and the static downloads.html
   6. checks: every file <= 50 MB, whole site <= 150 MB, text files are NFC, no file from build/kg_local
 Never writes data/playbook_html.js, downloads/VLOnto-playbook.pdf or downloads/playbook.md (Playbook track).
@@ -42,6 +44,21 @@ NUMBER_WORDS = {2: "two", 3: "three", 4: "four", 5: "five", 6: "six", 7: "seven"
 HF_SOURCE = "https://huggingface.co/datasets/tmquan/"
 REPO_URL = "https://github.com/tmquan/VLOnto"
 SITE_URL = "https://tmquan.github.io/VLOnto/"
+# link previews on Facebook, LinkedIn and X (Open Graph + Twitter cards): crawlers read the static <head>, never run JS.
+# The image is the 3D legal network (network-3d.html), cropped to 1200 x 630 from the CI capture of the paper's Fig. 1
+# (teaser run 43336356396, teaser_class_pr3.png) with scripts/site/social_image.py.
+SOCIAL_IMAGE = "img/vlonto-network-3d-social.png"
+SOCIAL_IMAGE_SIZE = (1200, 630)
+SOCIAL_IMAGE_ALT = ("VLOnto 3D legal network of Vietnamese law: documents layered by legal force, with change and legal-basis links; "
+                    "the Labour Code 2019 (45/2019/QH14) is selected")
+SOCIAL_SITE = ("VLOnto: Vietnamese Legal Ontology and Knowledge Graph",
+               "Vietnamese law as an ontology and a knowledge graph: legal documents with their validity, change and legal-basis "
+               "links, citations, legal Q&As and terms, in 3D views, SPARQL and a dashboard. Every legal answer, traced to the "
+               "article that grounds it.")
+SOCIAL_PAGES = {"index.html": SOCIAL_SITE, "ontology-3d.html": SOCIAL_SITE}   # the landing page and its old address
+SOCIAL_URL = {"index.html": "", "ontology-3d.html": ""}                         # og:url, relative to SITE_URL
+SOCIAL_BEGIN = "<!-- social preview (Open Graph, Twitter cards): written by scripts/site/build_site.py; edit the title and description instead -->"
+SOCIAL_END = "<!-- /social preview -->"
 TWINS = ["stats", "dashboard", "ontology_graph", "legal_network", "legal_network_lite", "sparql_examples", "manifest",
          "vlonto_core_ttl", "vlonto_ontology_ttl"]
 MAX_FILE = 50 * 1024 * 1024
@@ -117,6 +134,70 @@ I18N_BODY = '<script src="js/i18n-3d.js"></script>\n<script src="js/i18n-pages.j
 # The paper (cite by title, authors, arXiv link and BibTeX only; numbers on the site are from this release).
 PAPER_URL = "https://arxiv.org/abs/2611.11426"
 PAPER_CITE = "Cite: Bui &amp; Tran Minh (2026), arXiv:2611.11426"
+
+
+def page_title_desc(src: str):
+    """The page's own <title> text and <meta name="description"> content (either may be empty)."""
+    t = re.search(r"<title[^>]*>(.*?)</title>", src, re.S)
+    title = html.unescape(re.sub(r"<[^>]+>", "", t.group(1))).strip() if t else ""
+    d = re.search(r'<meta\b[^>]*\bname="description"[^>]*>', src)
+    c = re.search(r'(?<![-\w])content="([^"]*)"', d.group(0)) if d else None   # not data-i18n-content=
+    return title, (html.unescape(c.group(1)).strip() if c else "")
+
+
+def social_meta(page: str, title: str, desc: str) -> str:
+    """The social-preview block of one page: Open Graph and Twitter card tags with absolute https URLs."""
+    title, desc = SOCIAL_PAGES.get(page, (title, desc or SOCIAL_SITE[1]))
+    url, img = SITE_URL + SOCIAL_URL.get(page, page), SITE_URL + SOCIAL_IMAGE
+
+    def esc(s):
+        return html.escape(" ".join(s.split()), quote=True)
+    tags = [("property", "og:type", "website"), ("property", "og:site_name", "VLOnto"), ("property", "og:title", title),
+            ("property", "og:description", desc), ("property", "og:url", url), ("property", "og:image", img),
+            ("property", "og:image:secure_url", img), ("property", "og:image:type", "image/png"),
+            ("property", "og:image:width", str(SOCIAL_IMAGE_SIZE[0])), ("property", "og:image:height", str(SOCIAL_IMAGE_SIZE[1])),
+            ("property", "og:image:alt", SOCIAL_IMAGE_ALT), ("property", "og:locale", "en_US"), ("property", "og:locale:alternate", "vi_VN"),
+            ("name", "twitter:card", "summary_large_image"), ("name", "twitter:title", title), ("name", "twitter:description", desc),
+            ("name", "twitter:image", img), ("name", "twitter:image:alt", SOCIAL_IMAGE_ALT)]
+    return "\n".join([SOCIAL_BEGIN] + [f'<meta {a}="{k}" content="{esc(v)}">' for a, k, v in tags] + [SOCIAL_END])
+
+
+def apply_social(src: str, page: str) -> str:
+    """Write or rewrite the social-preview block in a page's <head>, on the lines after its description (else after
+    <title>). Idempotent: a page that already has the up-to-date block comes back unchanged."""
+    i = src.find(SOCIAL_BEGIN)
+    if i >= 0:
+        j = src.find(SOCIAL_END, i)
+        if j < 0:
+            raise SystemExit(f"{page}: social preview block without its end marker")
+        src = src[:i] + src[j + len(SOCIAL_END) + 1:]
+    title, desc = page_title_desc(src)
+    m = re.search(r'<meta\b[^>]*\bname="description"[^>]*>\n', src) or re.search(r"</title>\n", src)
+    if not m:
+        raise SystemExit(f"{page}: no <title> line to put the social preview after")
+    return src[:m.end()] + social_meta(page, title, desc) + "\n" + src[m.end():]
+
+
+def check_social_meta(site: Path):
+    """Every page carries the up-to-date social-preview block for its own title and description, and the image is a
+    1200 x 630 PNG under 1 MB (Facebook and LinkedIn previews; their crawlers read the static HTML only)."""
+    pages = sorted(site.glob("*.html")) + sorted((site / "ontology").glob("*.html"))
+    bad = []
+    for p in pages:
+        rel = p.relative_to(site).as_posix()
+        t = p.read_text(encoding="utf-8")
+        if t.count(SOCIAL_BEGIN) != 1 or apply_social(t, rel) != t:
+            bad.append(rel)
+            continue
+        for k in ("og:title", "og:description"):     # real text, never a dictionary key such as 'traces.page.description'
+            v = re.search(r'<meta property="%s" content="([^"]*)">' % k, t).group(1)
+            if len(v) < (12 if k == "og:title" else 40) or re.fullmatch(r"[\w-]+(\.[\w-]+)+", v):
+                bad.append(f"{rel} ({k}: {v[:40]})")
+    b = (site / SOCIAL_IMAGE).read_bytes() if (site / SOCIAL_IMAGE).exists() else b""
+    size = (int.from_bytes(b[16:20], "big"), int.from_bytes(b[20:24], "big")) if b[12:16] == b"IHDR" else None
+    if bad or b[:8] != b"\x89PNG\r\n\x1a\n" or size != SOCIAL_IMAGE_SIZE or len(b) >= 1_000_000:
+        raise SystemExit(f"social preview: pages without the up-to-date block {bad}; image {SOCIAL_IMAGE}: size {size}, {len(b)} bytes")
+    return len(pages)
 
 
 def check_lang_head(site: Path):
@@ -459,7 +540,15 @@ def main(argv=None) -> int:
     # 4. pyLODE documentation
     py = (repo / "ontology" / "vlonto.html").read_text(encoding="utf-8")
     (site / "ontology").mkdir(exist_ok=True)
-    (site / "ontology" / "vlonto.html").write_text(patch_pylode(py), encoding="utf-8")
+    (site / "ontology" / "vlonto.html").write_text(apply_social(patch_pylode(py), "ontology/vlonto.html"), encoding="utf-8")
+
+    # 4b. social previews (Open Graph, Twitter cards) in the <head> of every page; downloads.html gets its block below
+    for p in sorted(site.glob("*.html")):
+        if p.name != "downloads.html":
+            t = p.read_text(encoding="utf-8")
+            u = apply_social(t, p.name)
+            if u != t:
+                p.write_text(u, encoding="utf-8")
 
     # data for the pages: attribution + KG table list
     dd = json.loads((V / "build" / "kg" / "data_dictionary.json").read_text(encoding="utf-8"))
@@ -504,7 +593,7 @@ def main(argv=None) -> int:
     files = site_files(site)
     # the count includes downloads.html itself and data/site_files.js, which are written after this listing
     n_total = len([f for f in files if f["path"] != "downloads.html"]) + 2
-    (site / "downloads.html").write_text(unicodedata.normalize("NFC", downloads_html(files, tables, rdf_dump, stats, n_total)), encoding="utf-8")
+    (site / "downloads.html").write_text(unicodedata.normalize("NFC", apply_social(downloads_html(files, tables, rdf_dump, stats, n_total), "downloads.html")), encoding="utf-8")
     files = site_files(site)
     payload = {"generated_by": "scripts/site/build_site.py", "files": files,
                "playbook_present": meta["playbook_present"], "playbook_pdf_present": meta["playbook_pdf_present"]}
@@ -514,6 +603,7 @@ def main(argv=None) -> int:
     # 6. checks
     rep["theme_head_pages"] = check_theme_head(site)
     rep["lang_head_pages"] = check_lang_head(site)
+    rep["social_pages"] = check_social_meta(site)
     import i18n_check   # the language layer's dictionaries and the keys the site uses (docs/i18n.md)
     rep["i18n"] = {k: v for k, v in i18n_check.check(site).items() if k != "errors"}
     files = site_files(site)
