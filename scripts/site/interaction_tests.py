@@ -121,7 +121,8 @@ class Ctx:
     def shot(self, pg, name: str) -> str:
         p = self.out / "shots" / f"{name}__{self.mode}__{self.vp[0]}x{self.vp[1]}.png"
         p.parent.mkdir(parents=True, exist_ok=True)
-        pg.screenshot(path=str(p))
+        # a screenshot waits for a frame: on a software renderer a frame of the full network can take seconds
+        pg.screenshot(path=str(p), timeout=T_(60000))
         return str(p.relative_to(self.out))
 
 
@@ -544,6 +545,8 @@ def t_sparql(c: Ctx, examples):
     check("release v1: CONSTRUCT results leave out the terms populated from v2", construct_scope)
 
     def csv():
+        # example s1's 27 rows hold on the core subset; the scope check before this one leaves the ontology selected
+        pg.evaluate("document.getElementById('dataset').value = 'core'")
         pg.evaluate("window.VLApp.runExample('s1')")
         pg.wait_for_function("window.__VLONTO_METRICS.lastQuery && window.__VLONTO_METRICS.lastQuery.count === 27", timeout=T_(30000))
         with pg.expect_download(timeout=T_(20000)) as d:
@@ -1827,7 +1830,11 @@ def t_traces(c: Ctx):
                 s, co = select(pg, area, rank)
                 d = judge(s, co, f"{area} #{rank}")
                 after = trace_pixels(pg, "#canvas-host", "light")
-                if after["core"] - before["core"] < 30 or after["halo"] - before["halo"] < 60:
+                # the trace's own pixels, as in the paper-style check: its core outside the call-out boxes and the gold
+                # band next to that core (a raw gold count also follows the pale answer nodes that fade on selection)
+                d_core = after["core_out"] - before["core_out"]
+                d_halo = after["halo_near_core"] - before["halo_near_core"]
+                if d_core < 30 or d_halo < max(60, d_core // 2):
                     raise RuntimeError(f"{area} #{rank}: trace pixels {before} -> {after}")
                 d.update({"area": area, "rank": rank, "pixels": [before, after]})
                 if area == TRACE_PICKS[0][0]:
