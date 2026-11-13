@@ -1,6 +1,8 @@
 /* VLOnto website - SPARQL in the browser with the vendored Oxigraph (WebAssembly embedded in a classic script).
    Shared by sparql.html and the query mode of the 3D ontology playground (index.html). Data comes from data/vlonto_core_ttl.js and
-   data/vlonto_ontology_ttl.js (window.VLONTO[...] strings), loaded on demand with <script> tags (no fetch). */
+   data/vlonto_ontology_ttl.js (window.VLONTO[...] strings), loaded on demand with <script> tags (no fetch).
+   Text follows the language mode of js/i18n.js (dictionary js/i18n-3d.js, keys sqc.*): dataset names (S.dsLabel), error
+   messages (S.errorText: the engine's own message stays as Oxigraph writes it) and the notes of the result tables. */
 (function () {
   'use strict';
   var VL = window.VL;
@@ -12,6 +14,8 @@
     ontology: { label: 'Ontology only · vlonto.ttl', parts: [['vlonto_ontology_ttl', BASE_ONTO]] },
     both: { label: 'Ontology + core subset', parts: [['vlonto_ontology_ttl', BASE_ONTO], ['vlonto_core_ttl', BASE_ID]] }
   };
+  /* the name of a dataset in the language mode (label = the English, for scripts and tests) */
+  S.dsLabel = function (k) { return VL.i18n && VL.i18n.has('sqc.ds.' + k) ? VL.U('sqc.ds.' + k) : (S.DATASETS[k] || {}).label; };
 
   /* Website-owned CONSTRUCT examples (graph results drawn in 3D). Expected triple counts on the core subset are
      checked by scripts/site/interaction_tests.py. */
@@ -85,12 +89,20 @@
     return null;
   };
 
+  /* an error as parts: line, col and the engine's own message (raw), so that S.errorText can write it in any mode;
+     message = the English text (metrics, tests) */
   function niceError(e) {
+    if (e && e.code === 'noForm') return { code: 'noForm', line: 1, col: 1, raw: e.message, message: 'Syntax error at line 1, column 1: ' + e.message };
     var msg = String(e && e.message ? e.message : e).replace(/^Error:\s*/, '');
     var m = /error at (\d+):(\d+):\s*(.*)$/i.exec(msg);
-    if (m) return { message: 'Syntax error at line ' + m[1] + ', column ' + m[2] + ': ' + m[3], line: +m[1], col: +m[2] };
-    return { message: msg };
+    if (m) return { message: 'Syntax error at line ' + m[1] + ', column ' + m[2] + ': ' + m[3], line: +m[1], col: +m[2], raw: m[3] };
+    return { message: msg, raw: msg };
   }
+  S.errorText = function (err) {
+    if (!err) return '';
+    if (!err.line || !VL.U) return err.message;
+    return VL.U('sqc.syntax', { line: VL.fmt(err.line), col: VL.fmt(err.col), msg: err.code === 'noForm' ? VL.U('sqc.noForm') : err.raw });
+  };
 
   /* run a query; returns {form, vars, rows, boolean, quads, ms, count, error} */
   S.run = function (ctx, q) {
@@ -98,7 +110,7 @@
     var t0 = performance.now();
     var res = { form: form || '?', ms: 0 };
     try {
-      if (!form) throw new Error('error at 1:1: expected a SELECT, CONSTRUCT, ASK or DESCRIBE query');
+      if (!form) { var nf = new Error('expected a SELECT, CONSTRUCT, ASK or DESCRIBE query'); nf.code = 'noForm'; throw nf; }
       if (form === 'SELECT') {
         var json = JSON.parse(ctx.store.query(q, { results_format: 'application/sparql-results+json' }));
         res.vars = json.head.vars || [];
@@ -137,7 +149,7 @@
     if (t.type === 'uri') {
       var doc = VL.docIdFromIri(t.value);
       var label = VL.shortIri(t.value);
-      if (doc) return '<a class="iri" href="network-3d.html#doc=' + encodeURIComponent(doc) + '" title="' + VL.esc(t.value) + ' (open in the 3D legal network)">' + VL.wbr(label) + '</a>';
+      if (doc) return '<a class="iri" href="network-3d.html#doc=' + encodeURIComponent(doc) + '" title="' + VL.esc(t.value + ' ' + VL.U('sqc.openNetwork')) + '">' + VL.wbr(label) + '</a>';
       return '<span class="iri" title="' + VL.esc(t.value) + '">' + VL.wbr(label) + '</span>';
     }
     if (t.type === 'bnode') return '<span class="iri">_:' + VL.esc(t.value) + '</span>';
@@ -154,7 +166,7 @@
     var cls = opts.dark ? 'rt' : 'results';
     var vars = res.vars, rows = res.rows;
     if (res.quads) { vars = ['s', 'p', 'o']; rows = S.quadRows(res.quads); }
-    if (!rows || !rows.length) { host.innerHTML = '<p class="muted">No rows.</p>'; return; }
+    if (!rows || !rows.length) { host.innerHTML = '<p class="muted">' + VL.UH('sqc.noRows') + '</p>'; return; }
     var h = '<table class="' + cls + '"><thead><tr>' + vars.map(function (v) { return '<th>?' + VL.esc(v) + '</th>'; }).join('') + '</tr></thead><tbody>';
     rows.slice(0, max).forEach(function (r) {
       h += '<tr>' + vars.map(function (v) {
@@ -163,7 +175,7 @@
       }).join('') + '</tr>';
     });
     h += '</tbody></table>';
-    if (rows.length > max) h += '<p class="muted">Showing the first ' + VL.fmt(max) + ' of ' + VL.fmt(rows.length) + ' rows; export CSV for all.</p>';
+    if (rows.length > max) h += '<p class="muted">' + VL.UH('sqc.showing', { max: VL.fmt(max), n: VL.fmt(rows.length) }) + '</p>';
     host.innerHTML = h;
   };
 
@@ -176,17 +188,19 @@
     return '\ufeff' + out.join('\r\n') + '\r\n';
   };
 
-  /* labels and classes of IRIs (for drawing graph results) */
+  /* labels and classes of IRIs (for drawing graph results): label = the English (or untagged) label, label_vi = the
+     Vietnamese one (rdfs:label or skos:prefLabel @vi) where the dataset has it */
   S.describeIris = function (ctx, iris) {
     var out = {};
     iris = iris.filter(function (x) { return /^https?:/.test(x); }).slice(0, 400);
     if (!iris.length) return out;
     var values = iris.map(function (x) { return '<' + x.replace(/[<>"{}|\\^`\s]/g, '') + '>'; }).join(' ');
     var q = 'PREFIX vlo: <https://tmquan.github.io/VLOnto/ontology#>\nPREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\nPREFIX skos: <http://www.w3.org/2004/02/skos/core#>\n' +
-      'SELECT ?s ?num ?title ?label ?pref ?type WHERE { VALUES ?s { ' + values + ' }\n' +
+      'SELECT ?s ?num ?title ?label ?pref ?lvi ?pvi ?type WHERE { VALUES ?s { ' + values + ' }\n' +
       ' OPTIONAL { ?s vlo:documentNumber ?num } OPTIONAL { ?s vlo:title ?title }\n' +
       ' OPTIONAL { ?s rdfs:label ?label FILTER(LANG(?label) = "en" || LANG(?label) = "") }\n' +
-      ' OPTIONAL { ?s skos:prefLabel ?pref FILTER(LANG(?pref) = "en") }\n OPTIONAL { ?s a ?type } }';
+      ' OPTIONAL { ?s skos:prefLabel ?pref FILTER(LANG(?pref) = "en") }\n' +
+      ' OPTIONAL { ?s rdfs:label ?lvi FILTER(LANG(?lvi) = "vi") }\n OPTIONAL { ?s skos:prefLabel ?pvi FILTER(LANG(?pvi) = "vi") }\n OPTIONAL { ?s a ?type } }';
     try {
       var json = JSON.parse(ctx.store.query(q, { results_format: 'application/sparql-results+json' }));
       json.results.bindings.forEach(function (b) {
@@ -195,6 +209,8 @@
         if (b.title && !o.title) o.title = b.title.value;
         if (b.label && !o.label) o.label = b.label.value;
         if (b.pref && !o.label) o.label = b.pref.value;
+        if (b.lvi && !o.label_vi) o.label_vi = b.lvi.value;
+        if (b.pvi && !o.label_vi) o.label_vi = b.pvi.value;
         if (b.type && o.types.indexOf(b.type.value) < 0) o.types.push(b.type.value);
       });
     } catch (e) { /* labels are optional */ }
@@ -226,11 +242,12 @@
     var info = S.describeIris(ctx, order.map(function (k) { return nodes[k].iri; }).filter(Boolean));
     order.forEach(function (k) {
       var n = nodes[k], d = n.iri ? info[n.iri] : null;
-      n.number = d && d.number; n.title = d && d.title; n.label = d && d.label; n.types = d ? d.types : [];
+      n.number = d && d.number; n.title = d && d.title; n.label = d && d.label; n.label_vi = d && d.label_vi; n.types = d ? d.types : [];
       (lits[k] || []).forEach(function (l) {
         if (l[0] === 'vlo:documentNumber' && !n.number) n.number = l[1];
         if (l[0] === 'vlo:title' && !n.title) n.title = l[1];
-        if ((l[0] === 'rdfs:label' || l[0] === 'skos:prefLabel') && !n.label) n.label = l[1];
+        if ((l[0] === 'rdfs:label' || l[0] === 'skos:prefLabel') && l[2] === 'vi') { if (!n.label_vi) n.label_vi = l[1]; }
+        else if ((l[0] === 'rdfs:label' || l[0] === 'skos:prefLabel') && !n.label) n.label = l[1];
       });
     });
     return { nodes: order.map(function (k) { return nodes[k]; }), links: links, literals: lits, truncated: truncated };

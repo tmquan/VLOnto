@@ -12,6 +12,7 @@
    * VL.ColorLines()     thin lines of constant pixel width, each in its own colour: a selection's other links,
                          emphasised in their link-type colours but not traced
    * VL.Callouts()       screen-space placement of the call-outs: text never hides graph ink, call-outs never overlap
+   * VL.fitLegend()      moves the legend up above the status line where the two would meet on the stage's bottom edge
    Classic script (works from file://); load after vendor/three/three.iife.min.js, js/common.js and js/labels3d.js. */
 (function () {
   'use strict';
@@ -40,16 +41,35 @@
     return { font: VL.PAPER_FONT, bg: sel ? P.selBg : P.calloutBg, border: sel ? P.selLine : P.calloutLine, borderPx: sel ? 1.5 : 1,
       radius: 1.5, leaderColor: P.leader, ink: P.ink, ink2: P.ink2 };
   };
-  /* "Vietnamese · English" parts of a call-out: one line when short, else Vietnamese over English (as in Fig. 1) */
-  VL.paperLines = function (vi, en, P, opts) {
-    opts = opts || {};
-    vi = vi ? VL.nfc(vi) : ''; en = en ? VL.nfc(en) : '';
-    if (vi && en && vi !== en) {
-      if (vi.length + en.length + 3 <= (opts.oneLine || 34)) return [[{ text: vi, color: P.ink }, { text: ' · ' + en, color: P.ink2 }]];
-      return [[{ text: vi, color: P.ink }], [{ text: en, color: P.ink2 }]];
+  /* ------------------------------------------------------------------ call-out text in the language mode
+     (js/i18n.js, docs/i18n.md). EN and VI: one line in that language (the other one where a record has none, e.g. a
+     Vietnamese document title in EN). EN–VI: the paper's "Tiếng Việt · English" in its two greys, on one line when
+     short, else Vietnamese over the English gloss (as in Fig. 1). opts: oneLine (characters on one line, default 34),
+     twoLines (EN–VI always on two lines), secondary (the whole call-out in the second grey: external terms). */
+  function tlLines(t, P, opts) {
+    var a = VL.nfc(t.primary), b = VL.nfc(t.secondary);
+    if (b) {
+      if (!opts.twoLines && a.length + b.length + 3 <= (opts.oneLine || 34)) return [[{ text: a, color: P.ink }, { text: ' · ' + b, color: P.ink2 }]];
+      return [[{ text: a, color: P.ink }], [{ text: b, color: P.ink2 }]];
     }
-    var only = vi || en;
-    return [[{ text: only, color: opts.secondary ? P.ink2 : P.ink }]];
+    return [[{ text: a, color: opts.secondary ? P.ink2 : P.ink }]];
+  }
+  /* parts of a call-out for a pair of data fields (Vietnamese, English) */
+  VL.paperLines = function (vi, en, P, opts) { return tlLines(VL.TL(VL.pair(vi || '', en || '')), P, opts || {}); };
+  /* parts of a call-out for a dictionary entry (js/i18n-3d.js) or a {vi, en} record, placeholders filled */
+  VL.paperTL = function (x, vars, P, opts) { return tlLines(VL.TL(x, vars), P, opts || {}); };
+  /* {vi, en} of a dictionary entry with its {placeholders} filled, in both languages whatever the mode (call-outs and
+     labels that pass the pair on to VL.paperLines); a value may be text or a {vi, en} record */
+  VL.kpair = function (key, vars) {
+    var e = (VL.i18n && VL.i18n.get(key)) || { en: key, vi: '' };
+    function fill(s, l) {
+      return String(s || '').replace(/\{(\w+)\}/g, function (m0, k) {
+        var v = vars ? vars[k] : null;
+        if (v != null && typeof v === 'object') v = v[l] || v.en || v.vi;
+        return v != null ? String(v) : m0;
+      });
+    }
+    return VL.pair(fill(e.vi, 'vi'), fill(e.en, 'en'));
   };
 
   /* ------------------------------------------------------------------ light and fog */
@@ -532,7 +552,8 @@
         grid.add(bo, bo.x0, bo.y0, bo.x1, bo.y1);
         prev[it.id] = c.key;
         placed.push({ id: it.id, must: !!I.must, sel: !!I.sel, box: [r1(bo.x0), r1(bo.y0), r1(bo.x1), r1(bo.y1)],
-          anchor: [r1(I.x), r1(I.y)], leader: c.lead ? [r1(c.lead.x0), r1(c.lead.y0), r1(c.lead.x1), r1(c.lead.y1)] : null, forced: !!c.forced });
+          anchor: [r1(I.x), r1(I.y)], leader: c.lead ? [r1(c.lead.x0), r1(c.lead.y0), r1(c.lead.x1), r1(c.lead.y1)] : null, forced: !!c.forced,
+          text: I.s.textLines ? I.s.textLines() : null, style: I.s.textStyle ? I.s.textStyle() : null });
         shown++;
       }
       items.forEach(function (I) {
@@ -603,5 +624,24 @@
     };
     self.forget = function (id) { if (id == null) prev = {}; else delete prev[id]; };
     return self;
+  };
+
+  /* ------------------------------------------------------------------ legend and status line */
+  /* The legend (bottom left, up to 720 px wide in the paper style) and the status line (bottom right of the canvas, further
+     left when the details panel is open) share the bottom edge of the stage. Where they would meet (the details panel
+     open, a narrow window, long EN-VI legend rows), the stage gets .legend-lift and the legend moves up above the status
+     line (css/site.css, 3D TRACK). The test is horizontal only, so the lift cannot undo itself; once lifted, a margin
+     keeps the legend still while the status width changes with the frame rate. Returns true when the lift changed (the
+     caller re-places its call-outs, which avoid the legend). */
+  VL.fitLegend = function (stage, legend, status) {
+    if (!stage) return false;
+    var was = stage.classList.contains('legend-lift'), lift = false;
+    if (legend && status && !legend.hidden && !legend.classList.contains('hidden') && legend.offsetParent !== null && status.offsetParent !== null) {
+      var a = legend.getBoundingClientRect(), b = status.getBoundingClientRect();
+      lift = a.width > 1 && b.width > 1 && b.left - a.right < (was ? 24 : 8);
+    }
+    if (lift === was) return false;
+    stage.classList.toggle('legend-lift', lift);
+    return true;
   };
 })();

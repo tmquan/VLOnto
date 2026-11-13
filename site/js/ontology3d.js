@@ -5,7 +5,11 @@
    the module colour, thin class-tinted links fading with depth, bilingual call-outs (Libertinus Sans, white box, thin
    grey leader) and the selection's chain and neighbourhood, or a CONSTRUCT result, as the traced path: a navy core over a
    pale-gold halo with everything else faded. Labels are canvas sprites (js/labels3d.js) drawn at a constant pixel size and
-   culled in screen space so that no two labels overlap and no label is cut by the canvas edge or hidden under an overlay. */
+   culled in screen space so that no two labels overlap and no label is cut by the canvas edge or hidden under an overlay.
+   Text follows the language mode of js/i18n.js (docs/i18n.md; dictionary js/i18n-3d.js, keys o3d.*): call-outs and legend
+   in one language or as "Tiếng Việt · English" pairs, panel labels, status lines and the query drawer in one language; the
+   per-view label toggle of v1 is gone. A mode change ('vl:lang') rebuilds them in place and keeps the camera, the
+   selection, the query result and the filters. */
 (function () {
   'use strict';
   var VL = window.VL, M = window.__VLONTO_METRICS;
@@ -24,9 +28,9 @@
   var EXAMPLES = ((window.VLONTO.sparql_examples || {}).queries) || [];
   var app = VL.$('#app'), stage = VL.$('#stage'), host = VL.$('#canvas-host');
   var panel = VL.$('#panel'), drawer = VL.$('#drawer'), legendEl = VL.$('#legend'), statusEl = VL.$('#status');
-  /* label language: 'both' = the paper's "Vietnamese · English" call-outs (default), or one language */
+  /* the labels follow the global language mode (VL.lang()) */
   var state = {
-    lang: 'both', modules: {}, showExternal: true, showSchemes: true,
+    modules: {}, showExternal: true, showSchemes: true,
     links: { subClassOf: true, property: true, alignment: true, inScheme: true },
     particles: true, selected: null, selectedLink: null, view: 'ontology', cm: 'overlay', legendOpen: !VL.isMobile()
   };
@@ -96,19 +100,32 @@
     return (k && P.cls[k]) || VL.moduleColor(n.module || 'provenance');
   }
   function nodeVar(n) { var k = paperKey(n); return k ? VL.PAPER_CLASS[k].v : VL.moduleVar(n.module || 'provenance'); }
-  function kindLabel(n) {
-    if (n.inst) return 'instance';
-    return { 'class': 'class', external: 'external term', scheme: 'concept scheme' }[n.kind] || n.kind;
-  }
+  function kindKey(n) { return n.inst ? 'o3d.kind.instance' : ({ 'class': 'o3d.kind.class', external: 'o3d.kind.external', scheme: 'o3d.kind.scheme' }[n.kind] || null); }
+  function kindLabel(n) { var k = kindKey(n); return k ? VL.U(k) : n.kind; }            // one language (tooltips, search)
+  function kindHtml(n) { var k = kindKey(n); return k ? VL.TH(k) : VL.esc(n.kind); }    // a pair (panel badge)
+  function namePair(n) { return VL.pair(n.label_vi || '', n.label_en || ''); }
+  /* a data value of unknown language (a record's label, title or literal): marked lang="vi" when it is Vietnamese and
+     the page is not, so screen readers read it in Vietnamese */
+  var VI_TEXT = /[àáâãèéêìíòóôõùúýăđĩũơưạ-ỹ]/i;
+  function dataHtml(s) { s = VL.nfc(String(s == null ? '' : s)); return VI_TEXT.test(s) && VL.i18n.htmlLang() !== 'vi' ? '<span lang="vi">' + VL.esc(s) + '</span>' : VL.esc(s); }
+  /* the short name of a node in one language (chips, tooltips, search): EN and EN–VI English, VI Vietnamese */
   function labelText(n) {
-    if (n.inst) return n.short;
-    return (state.lang === 'vi' && n.label_vi) ? n.label_vi : n.label_en;
+    if (n.inst) return instShort(n);
+    return VL.U(namePair(n));
   }
-  /* call-out lines: "Vietnamese · English" (Vietnamese over English when long) or the chosen language only */
+  function chipText(n) { return n.inst ? dataHtml(instShort(n)) : VL.UH(namePair(n)); }
+  /* a record of a CONSTRUCT result: its number, else its label in the mode (the ontology's @vi label where there is
+     one), else its title */
+  function instShort(n) { return VL.short(n.number || (n.label || n.label_vi ? VL.U(VL.pair(n.label_vi || '', n.label || '')) : '') || n.title || n.id, 28); }
+  /* call-out lines in the language mode (js/paper3d.js VL.paperLines): EN–VI "Tiếng Việt · English" on one line when
+     short, else Vietnamese over English; EN or VI one line */
   function labelLines(n) {
-    if (n.inst) return [[{ text: n.short, color: P.ink }]];
-    if (state.lang === 'both') return VL.paperLines(n.label_vi, n.label_en, P, { secondary: n.kind === 'external' });
-    return [[{ text: labelText(n), color: n.kind === 'external' ? P.ink2 : P.ink }]];
+    M.labelsLang = VL.lang();
+    if (n.inst) {
+      if (!n.number && (n.label || n.label_vi)) return VL.paperLines(VL.short(n.label_vi || '', 28), VL.short(n.label || '', 28), P);
+      return [[{ text: instShort(n), color: P.ink }]];
+    }
+    return VL.paperLines(n.label_vi, n.label_en, P, { secondary: n.kind === 'external' });
   }
 
   /* ------------------------------------------------------------------ visibility */
@@ -297,6 +314,7 @@
   }
   function relabel() {
     current.nodes.forEach(function (n) { if (n.__label) n.__label.setLines(labelLines(n)); });
+    M.labelsLang = VL.lang();
     scheduleCull();
   }
   function priority(n) {
@@ -425,15 +443,15 @@
   function particleColor(l) { return inTrace(l) ? P.halo : linkBaseColor(l); }
   function linkTooltip(l) {
     var s = nodeOf(l.source), t = nodeOf(l.target);
-    var name = l.type === 'property' ? (state.lang === 'vi' && l.label_vi ? l.label_vi : l.label_en) :
-      (l.type === 'result' ? l.pred : (l.type === 'instance' ? 'instance of' : l.label_en));
-    return '<b>' + VL.esc(name) + '</b><br><span class="t-sub">' + VL.esc(s ? labelText(s) : '') + ' → ' + VL.esc(t ? labelText(t) : '') + '</span>';
+    var name = l.type === 'result' ? VL.esc(l.pred) : (l.type === 'instance' ? VL.UH('o3d.instanceOf') : VL.UH(VL.pair(l.label_vi, l.label_en)));
+    return '<b>' + name + '</b><br><span class="t-sub">' + (s ? chipText(s) : '') + ' → ' + (t ? chipText(t) : '') + '</span>';
   }
   function nodeTooltip(n) {
-    if (n.inst) return '<b>' + VL.esc(n.number || n.label || n.id) + '</b>' + (n.title ? '<br><span class="t-sub">' + VL.esc(VL.short(n.title, 70)) + '</span>' : '');
+    if (n.inst) return '<b>' + (n.number ? VL.esc(n.number) : chipText(n)) + '</b>' + (n.title ? '<br><span class="t-sub" lang="vi">' + VL.esc(VL.short(n.title, 70)) + '</span>' : '');
     var m = VL.MODULE[n.module] || {};
-    return '<b>' + VL.esc(n.label_en) + '</b>' + (n.label_vi ? ' · ' + VL.esc(n.label_vi) : '') +
-      '<br><span class="t-sub">' + VL.esc(kindLabel(n)) + ' · ' + VL.esc(m.en || n.module) + (n.instances != null ? ' · ' + VL.fmt(n.instances) + ' instances' : '') + '</span>';
+    return '<b>' + VL.TH(namePair(n)) + '</b>' +
+      '<br><span class="t-sub">' + VL.esc(kindLabel(n)) + ' · ' + (m.en ? VL.UH(m) : VL.esc(n.module)) +
+      (n.instances != null ? ' · ' + VL.UH('o3d.tip.instances', { n: n.instances === 1 ? 1 : VL.fmt(n.instances) }) : '') + '</span>';
   }
 
   /* ------------------------------------------------------------------ layout forces
@@ -632,8 +650,11 @@
   window.VLApp.measureFps = measureFps;
   function status() {
     var vis = current.nodes.filter(nodeVisible).length;
-    statusEl.textContent = vis + ' of ' + current.nodes.length + ' nodes · ' + (M.fps ? M.fps + ' fps' : '');
+    statusEl.textContent = VL.U('o3d.status', { vis: VL.fmt(vis), n: VL.fmt(current.nodes.length) }) + ' · ' + (M.fps ? VL.fmt(M.fps) + ' fps' : '');
+    fitLegend();
   }
+  /* legend above the status line where the two would meet (js/paper3d.js); the call-outs avoid the legend */
+  function fitLegend() { if (VL.fitLegend(stage, legendEl, statusEl)) scheduleCull(); }
 
   /* ------------------------------------------------------------------ selection + panel */
   /* the selection's neighbourhood (incident links) plus its chain: the subclass links up to the top of its hierarchy,
@@ -695,13 +716,14 @@
     resizeLabels();
     closePanel();
   }
-  function openPanel(html) {
+  function openPanel(html, keepScroll) {
+    var st = panel.scrollTop;
     panel.innerHTML = html;
     panel.classList.remove('hidden');
     stage.classList.add('panel-open');
-    if (VL.isMobile()) setDrawer(false);
+    if (VL.isMobile() && !keepScroll) setDrawer(false);
     relayout();
-    panel.scrollTop = 0;
+    panel.scrollTop = keepScroll ? st : 0;
   }
   function closePanel() {
     panel.classList.add('hidden');
@@ -711,93 +733,105 @@
   function chip(id) {
     var n = current.byId[id] || byId[id];
     if (!n) return '<span class="plain">' + VL.esc(id) + '</span>';
-    return '<button type="button" class="linkish" data-node="' + VL.esc(n.id) + '"><span class="swatch" style="background:' + nodeVar(n) + '"></span>' + VL.esc(labelText(n)) + '</button>';
+    return '<button type="button" class="linkish" data-node="' + VL.esc(n.id) + '"><span class="swatch" style="background:' + nodeVar(n) + '"></span>' + chipText(n) + '</button>';
   }
-  function section(title, body) { return body ? '<h3>' + VL.esc(title) + '</h3>' + body : ''; }
-  function closeBtn() { return '<button class="btn btn-xs panel-close" type="button" data-act="close" aria-label="Close details">' + VL.ICON.close + '</button>'; }
+  /* panel helpers: a section heading and a field label in one language (VL.UH), a control's Vietnamese tooltip in EN–VI */
+  function section(k, vars, body) { return body ? '<h3>' + VL.UH(k, vars) + '</h3>' + body : ''; }
+  function dtk(k) { return '<dt>' + VL.UH(k) + '</dt>'; }
+  function tipAttr(x, vars) { var t = VL.tip(x, vars); return t ? ' title="' + VL.esc(t) + '"' : ''; }
+  function closeBtn() { return '<button class="btn btn-xs panel-close" type="button" data-act="close" aria-label="' + VL.esc(VL.U('o3d.close')) + '"' + tipAttr('o3d.close') + '>' + VL.ICON.close + '</button>'; }
+  function actBtn(attrs, k) { return '<button class="btn btn-xs" type="button" ' + attrs + tipAttr(k) + '>' + VL.UH(k) + '</button>'; }
+  /* the name of a term: EN–VI as in v1 (the English heading, the Vietnamese under it), EN or VI one language */
+  function titleHtml(en, vi) {
+    if (VL.lang() !== 'envi') return '<h2>' + VL.UH(VL.pair(vi || '', en || '')) + '</h2>';
+    return '<h2>' + VL.esc(en || vi) + '</h2>' + (vi && en ? '<p class="vi" lang="vi">' + VL.esc(vi) + '</p>' : '');
+  }
+  /* definitions: both in EN–VI (English first, as in v1), else the mode's language (the other one where it is missing) */
+  function defsHtml(en, vi) {
+    var mode = VL.lang(), h = '';
+    if (mode !== 'vi' && en) h += '<p class="def">' + VL.esc(en) + '</p>';
+    if (mode !== 'en' && vi) h += '<p class="def' + (mode === 'envi' ? ' vi-def' : '') + '" lang="vi">' + VL.esc(vi) + '</p>';
+    if (mode === 'vi' && !vi && en) h += '<p class="def" lang="en">' + VL.esc(en) + '</p>';
+    if (mode === 'en' && !en && vi) h += '<p class="def" lang="vi">' + VL.esc(vi) + '</p>';
+    return h;
+  }
   function nodePanel(n) {
     var m = VL.MODULE[n.module] || VL.MODULE.provenance;
     var pk = paperKey(n), pc = pk ? VL.PAPER_CLASS[pk] : null;
     var h = closeBtn();
-    h += '<div class="panel-kind">' + (pc ? '<span class="badge" title="Class colour of the paper\u2019s figures"><span class="swatch" style="background:' + pc.v + '"></span><span lang="vi">' +
-      VL.esc(pc.vi) + '</span> · ' + VL.esc(pc.en) + '</span>' : '') +
-      '<span class="badge"><span class="swatch" style="background:' + VL.moduleVar(n.module || 'provenance') + '"></span>' + VL.esc(m.en) + ' · <span lang="vi">' + VL.esc(m.vi) + '</span></span>' +
-      '<span class="badge">' + VL.esc(kindLabel(n)) + '</span></div>';
-    h += '<h2>' + VL.esc(n.label_en) + '</h2>';
-    if (n.label_vi) h += '<p class="vi" lang="vi">' + VL.esc(n.label_vi) + '</p>';
+    h += '<div class="panel-kind">' + (pc ? '<span class="badge" title="' + VL.esc(VL.U('o3d.paperColour')) + '"><span class="swatch" style="background:' + pc.v + '"></span>' + VL.TH(pc) + '</span>' : '') +
+      '<span class="badge"><span class="swatch" style="background:' + VL.moduleVar(n.module || 'provenance') + '"></span>' + VL.TH(m) + '</span>' +
+      '<span class="badge">' + kindHtml(n) + '</span></div>';
+    h += titleHtml(n.label_en, n.label_vi);
     h += '<dl class="kv"><dt>IRI</dt><dd><span class="iri">' + VL.wbr(n.iri) + '</span></dd>' +
       '<dt>CURIE</dt><dd class="iri">' + VL.esc(n.id) + '</dd>';
-    if (n.instances != null) h += '<dt>' + (n.kind === 'scheme' ? 'Concepts' : 'Instances') + '</dt><dd>' + VL.fmt(n.instances) + (n.kind === 'class' ? ' in the knowledge graph' : '') + '</dd>';
+    if (n.instances != null) h += dtk(n.kind === 'scheme' ? 'o3d.k.concepts' : 'o3d.k.instances') + '<dd>' + (n.kind === 'class' ? VL.UH('o3d.v.inKg', { n: VL.fmt(n.instances) }) : VL.fmt(n.instances)) + '</dd>';
     h += '</dl>';
-    if (n.definition_en) h += '<p class="def">' + VL.esc(n.definition_en) + '</p>';
-    if (n.definition_vi) h += '<p class="def vi-def" lang="vi">' + VL.esc(n.definition_vi) + '</p>';
+    h += defsHtml(n.definition_en, n.definition_vi);
     var sup = (n.superclasses || []).filter(function (x) { return byId[x]; });
     var supOther = (n.superclasses || []).filter(function (x) { return !byId[x]; });
-    h += section('Superclasses', (sup.length || supOther.length) ? '<div class="chip-list">' + sup.map(chip).join('') + supOther.map(function (x) { return '<span class="plain">' + VL.esc(x) + '</span>'; }).join('') + '</div>' : '');
-    h += section('Subclasses', (superOf[n.id] || []).length ? '<div class="chip-list">' + superOf[n.id].map(chip).join('') + '</div>' : '');
+    h += section('o3d.h.superclasses', null, (sup.length || supOther.length) ? '<div class="chip-list">' + sup.map(chip).join('') + supOther.map(function (x) { return '<span class="plain">' + VL.esc(x) + '</span>'; }).join('') + '</div>' : '');
+    h += section('o3d.h.subclasses', null, (superOf[n.id] || []).length ? '<div class="chip-list">' + superOf[n.id].map(chip).join('') + '</div>' : '');
     var al = (alignOut[n.id] || []);
-    h += section('Aligned with', al.length ? '<ul class="plist">' + al.map(function (l) {
-      return '<li><span class="p-arrow">' + VL.esc(l.label_en) + '</span> ' + chip(sid(l.target)) + '</li>'; }).join('') + '</ul>' : '');
+    h += section('o3d.h.alignedWith', null, al.length ? '<ul class="plist">' + al.map(function (l) {
+      return '<li><span class="p-arrow">' + VL.UH(VL.pair(l.label_vi, l.label_en)) + '</span> ' + chip(sid(l.target)) + '</li>'; }).join('') + '</ul>' : '');
     var ai = (alignIn[n.id] || []);
-    h += section('VLOnto terms aligned to it', ai.length ? '<ul class="plist">' + ai.map(function (l) {
-      return '<li>' + chip(sid(l.source)) + ' <span class="p-arrow">' + VL.esc(l.label_en) + '</span></li>'; }).join('') + '</ul>' : '');
-    h += section('Concept scheme', (schemeOf[n.id] || []).length ? '<div class="chip-list">' + schemeOf[n.id].map(chip).join('') + '</div>' : '');
-    h += section('Classes with concepts in this scheme', (schemeMembers[n.id] || []).length ? '<div class="chip-list">' + schemeMembers[n.id].map(chip).join('') + '</div>' : '');
+    h += section('o3d.h.alignedToIt', null, ai.length ? '<ul class="plist">' + ai.map(function (l) {
+      return '<li>' + chip(sid(l.source)) + ' <span class="p-arrow">' + VL.UH(VL.pair(l.label_vi, l.label_en)) + '</span></li>'; }).join('') + '</ul>' : '');
+    h += section('o3d.h.scheme', null, (schemeOf[n.id] || []).length ? '<div class="chip-list">' + schemeOf[n.id].map(chip).join('') + '</div>' : '');
+    h += section('o3d.h.schemeMembers', null, (schemeMembers[n.id] || []).length ? '<div class="chip-list">' + schemeMembers[n.id].map(chip).join('') + '</div>' : '');
     var op = outProps[n.id] || [], ip = inProps[n.id] || [];
-    h += section('Outgoing properties (' + op.length + ')', op.length ? '<ul class="plist">' + op.map(function (l) {
-      return '<li><button type="button" class="linkish p-name" data-link="' + l.key + '">' + VL.esc(propName(l)) + '</button> <span class="p-arrow">→</span> ' + chip(sid(l.target)) +
+    h += section('o3d.h.outgoing', { n: VL.fmt(op.length) }, op.length ? '<ul class="plist">' + op.map(function (l) {
+      return '<li><button type="button" class="linkish p-name" data-link="' + l.key + '">' + VL.UH(propName(l)) + '</button> <span class="p-arrow">→</span> ' + chip(sid(l.target)) +
         '<div class="muted-small mono">' + VL.esc(l.id || '') + '</div></li>'; }).join('') + '</ul>' : '');
-    h += section('Incoming properties (' + ip.length + ')', ip.length ? '<ul class="plist">' + ip.map(function (l) {
-      return '<li>' + chip(sid(l.source)) + ' <span class="p-arrow">→</span> <button type="button" class="linkish p-name" data-link="' + l.key + '">' + VL.esc(propName(l)) + '</button>' +
+    h += section('o3d.h.incoming', { n: VL.fmt(ip.length) }, ip.length ? '<ul class="plist">' + ip.map(function (l) {
+      return '<li>' + chip(sid(l.source)) + ' <span class="p-arrow">→</span> <button type="button" class="linkish p-name" data-link="' + l.key + '">' + VL.UH(propName(l)) + '</button>' +
         '<div class="muted-small mono">' + VL.esc(l.id || '') + '</div></li>'; }).join('') + '</ul>' : '');
     var at = n.attributes || [];
-    h += section('Datatype properties (' + at.length + ')', at.length ? '<ul class="plist">' + at.map(function (a) {
-      return '<li><span class="p-name">' + VL.esc(state.lang === 'vi' && a.label_vi ? a.label_vi : a.label_en) + '</span> <span class="p-arrow">→</span> <span class="iri">' + VL.esc(VL.shortIri(a.range || '')) + '</span>' +
+    h += section('o3d.h.datatype', { n: VL.fmt(at.length) }, at.length ? '<ul class="plist">' + at.map(function (a) {
+      return '<li><span class="p-name">' + VL.UH(VL.pair(a.label_vi || '', a.label_en || '')) + '</span> <span class="p-arrow">→</span> <span class="iri">' + VL.esc(VL.shortIri(a.range || '')) + '</span>' +
         '<div class="muted-small mono">' + VL.esc(a.id) + '</div></li>'; }).join('') + '</ul>' : '');
     var ex = n.examples || [];
     if (ex.length) {
-      h += '<h3>' + (n.kind === 'scheme' ? 'Concepts' : 'Example instances') + '</h3><ul class="plist">' + ex.map(function (e) {
-        var lab = VL.nfc(e.label || (state.lang === 'vi' && e.label_vi ? e.label_vi : e.label_en) || e.iri);
+      h += '<h3>' + VL.UH(n.kind === 'scheme' ? 'o3d.k.concepts' : 'o3d.h.examples') + '</h3><ul class="plist">' + ex.map(function (e) {
+        var lab = e.label ? dataHtml(e.label) : (e.label_vi || e.label_en ? VL.UH(VL.pair(e.label_vi || '', e.label_en || '')) : VL.esc(e.iri));
         var doc = VL.docIdFromIri(e.iri);
-        if (doc) return '<li><a href="network-3d.html#doc=' + encodeURIComponent(doc) + '">' + VL.esc(lab) + '</a><div class="muted-small">Opens in the 3D legal network</div></li>';
-        return '<li>' + VL.esc(lab) + (e.notation ? ' <span class="muted-small mono">' + VL.esc(e.notation) + '</span>' : '') + '<div class="iri muted-small">' + VL.wbr(VL.shortIri(e.iri)) + '</div></li>';
+        if (doc) return '<li><a href="network-3d.html#doc=' + encodeURIComponent(doc) + '">' + lab + '</a><div class="muted-small">' + VL.UH('o3d.opensNetwork') + '</div></li>';
+        return '<li>' + lab + (e.notation ? ' <span class="muted-small mono">' + VL.esc(e.notation) + '</span>' : '') + '<div class="iri muted-small">' + VL.wbr(VL.shortIri(e.iri)) + '</div></li>';
       }).join('') + '</ul>';
     }
-    h += '<div class="panel-actions"><button class="btn btn-xs" type="button" data-act="focus">Focus</button>' +
-      '<button class="btn btn-xs" type="button" data-copy="' + VL.esc(n.iri) + '">Copy IRI</button>' +
-      (n.kind === 'class' ? '<button class="btn btn-xs" type="button" data-act="query-class" data-cls="' + VL.esc(n.id) + '">Query instances</button>' : '') + '</div>';
+    h += '<div class="panel-actions">' + actBtn('data-act="focus"', 'o3d.focus') +
+      actBtn('data-copy="' + VL.esc(n.iri) + '"', 'o3d.copyIri') +
+      (n.kind === 'class' ? actBtn('data-act="query-class" data-cls="' + VL.esc(n.id) + '"', 'o3d.queryInstances') : '') + '</div>';
     return h;
   }
-  function propName(l) { return state.lang === 'vi' && l.label_vi ? l.label_vi : l.label_en; }
+  function propName(l) { return VL.pair(l.label_vi || '', l.label_en || ''); }
   function linkPanel(l) {
     var s = nodeOf(l.source), t = nodeOf(l.target), h = closeBtn();
     if (l.type === 'property') {
       var m = VL.MODULE[l.module] || VL.MODULE.provenance;
       var iri = VL.expandIri(l.id);
-      h += '<div class="panel-kind"><span class="badge"><span class="swatch" style="background:' + VL.moduleVar(l.module) + '"></span>' + VL.esc(m.en) + '</span><span class="badge">object property</span></div>';
-      h += '<h2>' + VL.esc(l.label_en) + '</h2>' + (l.label_vi ? '<p class="vi" lang="vi">' + VL.esc(l.label_vi) + '</p>' : '');
-      h += '<dl class="kv"><dt>IRI</dt><dd><span class="iri">' + VL.wbr(iri) + '</span></dd><dt>Domain</dt><dd>' + chip(s.id) + '</dd><dt>Range</dt><dd>' + chip(t.id) + '</dd>';
-      if (l.inverse_of) h += '<dt>Inverse of</dt><dd class="iri">' + VL.esc(l.inverse_of) + '</dd>';
-      if ((l.aligned_to || []).length) h += '<dt>Aligned to</dt><dd class="iri">' + l.aligned_to.map(VL.esc).join(', ') + '</dd>';
+      h += '<div class="panel-kind"><span class="badge"><span class="swatch" style="background:' + VL.moduleVar(l.module) + '"></span>' + VL.TH(m) + '</span><span class="badge">' + VL.TH('o3d.objectProperty') + '</span></div>';
+      h += titleHtml(l.label_en, l.label_vi);
+      h += '<dl class="kv"><dt>IRI</dt><dd><span class="iri">' + VL.wbr(iri) + '</span></dd>' + dtk('o3d.k.domain') + '<dd>' + chip(s.id) + '</dd>' + dtk('o3d.k.range') + '<dd>' + chip(t.id) + '</dd>';
+      if (l.inverse_of) h += dtk('o3d.k.inverseOf') + '<dd class="iri">' + VL.esc(l.inverse_of) + '</dd>';
+      if ((l.aligned_to || []).length) h += dtk('o3d.k.alignedTo') + '<dd class="iri">' + l.aligned_to.map(VL.esc).join(', ') + '</dd>';
       h += '</dl>';
-      if (l.definition_en) h += '<p class="def">' + VL.esc(l.definition_en) + '</p>';
-      h += '<div class="panel-actions"><button class="btn btn-xs" type="button" data-copy="' + VL.esc(iri) + '">Copy IRI</button>' +
-        '<button class="btn btn-xs" type="button" data-act="query-prop" data-prop="' + VL.esc(l.id) + '">Query this property</button></div>';
+      h += defsHtml(l.definition_en, l.definition_vi);
+      h += '<div class="panel-actions">' + actBtn('data-copy="' + VL.esc(iri) + '"', 'o3d.copyIri') +
+        actBtn('data-act="query-prop" data-prop="' + VL.esc(l.id) + '"', 'o3d.queryProperty') + '</div>';
       return h;
     }
-    var kinds = { subClassOf: 'subclass axiom', alignment: 'alignment', inScheme: 'scheme membership', instance: 'instance of', result: 'CONSTRUCT triple' };
-    h += '<div class="panel-kind"><span class="badge">' + VL.esc(kinds[l.type] || l.type) + '</span></div>';
-    h += '<h2>' + VL.esc(l.type === 'result' ? l.pred : (l.type === 'instance' ? 'instance of' : l.label_en)) + '</h2>';
-    if (l.label_vi && l.type !== 'result') h += '<p class="vi" lang="vi">' + VL.esc(l.label_vi) + '</p>';
-    h += '<dl class="kv"><dt>From</dt><dd>' + chip(s.id) + '</dd><dt>To</dt><dd>' + chip(t.id) + '</dd>';
-    if (l.predIri) h += '<dt>Predicate</dt><dd><span class="iri">' + VL.wbr(l.predIri) + '</span></dd>';
+    var kinds = { subClassOf: 'o3d.link.subClassOf', alignment: 'o3d.link.alignment', inScheme: 'o3d.link.inScheme', instance: 'o3d.instanceOf', result: 'o3d.link.result' };
+    h += '<div class="panel-kind"><span class="badge">' + (kinds[l.type] ? VL.TH(kinds[l.type]) : VL.esc(l.type)) + '</span></div>';
+    if (l.type === 'result') h += '<h2>' + VL.esc(l.pred) + '</h2>';
+    else if (l.type === 'instance') h += '<h2>' + VL.UH('o3d.instanceOf') + '</h2>';
+    else h += titleHtml(l.label_en, l.label_vi);
+    h += '<dl class="kv">' + dtk('o3d.k.from') + '<dd>' + chip(s.id) + '</dd>' + dtk('o3d.k.to') + '<dd>' + chip(t.id) + '</dd>';
+    if (l.predIri) h += dtk('o3d.k.predicate') + '<dd><span class="iri">' + VL.wbr(l.predIri) + '</span></dd>';
     h += '</dl>';
-    var expl = {
-      subClassOf: 'Every instance of the first class is also an instance of the second (rdfs:subClassOf).',
-      alignment: 'A sub-class or sub-property axiom that maps the VLOnto term to a term of an external vocabulary.',
-      inScheme: 'The concepts of this class are organised in the SKOS concept scheme (skos:inScheme).'
-    }[l.type];
-    if (expl) h += '<p class="def">' + VL.esc(expl) + '</p>';
+    var expl = { subClassOf: 'o3d.expl.subClassOf', alignment: 'o3d.expl.alignment', inScheme: 'o3d.expl.inScheme' }[l.type];
+    if (expl) h += '<p class="def">' + VL.UH(expl) + '</p>';
     return h;
   }
   function instancePanel(n) {
@@ -805,14 +839,14 @@
     var cls = n.cls ? current.byId[n.cls] || byId[n.cls] : null;
     var pk = paperKey(n), pc = pk ? VL.PAPER_CLASS[pk] : null;
     h += '<div class="panel-kind"><span class="badge"><span class="swatch" style="background:' + nodeVar(n) + '"></span>' +
-      (pc ? '<span lang="vi">' + VL.esc(pc.vi) + '</span> · ' + VL.esc(pc.en) : 'instance') + '</span>' + (cls ? '<span class="badge">' + VL.esc(cls.label_en) + '</span>' : '') + '</div>';
-    h += '<h2>' + VL.esc(n.number || n.label || n.id) + '</h2>';
+      (pc ? VL.TH(pc) : VL.TH('o3d.kind.instance')) + '</span>' + (cls ? '<span class="badge">' + VL.UH(namePair(cls)) + '</span>' : '') + '</div>';
+    h += '<h2>' + (n.number ? VL.esc(n.number) : (n.label || n.label_vi ? VL.UH(VL.pair(n.label_vi || '', n.label || '')) : VL.esc(n.id))) + '</h2>';
     if (n.title && n.title !== n.number) h += '<p class="vi" lang="vi">' + VL.esc(n.title) + '</p>';
-    h += '<dl class="kv">' + (n.iri ? '<dt>IRI</dt><dd><span class="iri">' + VL.wbr(n.iri) + '</span></dd>' : '') + (cls ? '<dt>Class</dt><dd>' + chip(cls.id) + '</dd>' : '') + '</dl>';
+    h += '<dl class="kv">' + (n.iri ? '<dt>IRI</dt><dd><span class="iri">' + VL.wbr(n.iri) + '</span></dd>' : '') + (cls ? dtk('o3d.k.class') + '<dd>' + chip(cls.id) + '</dd>' : '') + '</dl>';
     var lits = (view.literals || {})[n.id] || [];
-    if (lits.length) h += '<h3>Values in the result</h3><ul class="plist">' + lits.slice(0, 12).map(function (l) { return '<li><span class="p-arrow mono">' + VL.esc(l[0]) + '</span> ' + VL.esc(VL.short(l[1], 160)) + '</li>'; }).join('') + '</ul>';
+    if (lits.length) h += '<h3>' + VL.UH('o3d.h.values') + '</h3><ul class="plist">' + lits.slice(0, 12).map(function (l) { return '<li><span class="p-arrow mono">' + VL.esc(l[0]) + '</span> ' + dataHtml(VL.short(l[1], 160)) + '</li>'; }).join('') + '</ul>';
     var doc = VL.docIdFromIri(n.iri);
-    if (doc) h += '<div class="panel-actions"><a class="btn btn-xs" href="network-3d.html#doc=' + encodeURIComponent(doc) + '">Open in the 3D legal network</a></div>';
+    if (doc) h += '<div class="panel-actions"><a class="btn btn-xs" href="network-3d.html#doc=' + encodeURIComponent(doc) + '"' + tipAttr('o3d.openNetwork') + '>' + VL.UH('o3d.openNetwork') + '</a></div>';
     return h;
   }
   panel.addEventListener('click', function (e) {
@@ -839,8 +873,9 @@
     var html = VL.MODULES.filter(function (m) { return m.id !== 'external' && !SCOPE.laterModules[m.id]; }).map(function (m) {
       var on = state.modules[m.id] !== false;
       var c = counts[m.id] || 0;
-      return '<button type="button" class="chip" data-mod="' + m.id + '" aria-pressed="' + on + '" title="' + VL.esc(m.vi) + '">' +
-        '<span class="swatch" style="background:' + m.v + '"></span>' + VL.esc(m.en) + (c ? ' · ' + c : '') + '</button>';
+      /* a control: the module's name in one language, the Vietnamese as its tooltip in EN–VI */
+      return '<button type="button" class="chip" data-mod="' + m.id + '" aria-pressed="' + on + '"' + tipAttr(m) + '>' +
+        '<span class="swatch" style="background:' + m.v + '"></span>' + VL.UH(m) + (c ? ' · ' + VL.fmt(c) : '') + '</button>';
     }).join('');
     VL.$('#module-chips').innerHTML = html;
     var note = VL.$('#module-later'), text = VL.laterModulesNote(SCOPE.laterModules);
@@ -875,34 +910,40 @@
     status();
     M.visibleNodes = current.nodes.filter(nodeVisible).length;
   }
+  /* the label language follows the global switch (js/i18n.js): v1's per-view label toggle (button[data-lang], in its own
+     side section of index.html) is taken out of the page */
   VL.$$('button[data-lang]').forEach(function (b) {
-    b.addEventListener('click', function () {
-      state.lang = b.getAttribute('data-lang');
-      VL.$$('button[data-lang]').forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
-      relabel();
-      if (state.selected) openPanel(state.selected.inst ? instancePanel(state.selected) : nodePanel(state.selected));
-      else if (state.selectedLink) openPanel(linkPanel(state.selectedLink));
-      M.labelLang = state.lang;
-    });
+    var sec = b.closest('.side-section');
+    if (sec && sec.querySelectorAll('button').length === sec.querySelectorAll('button[data-lang]').length) sec.remove();
+    else b.remove();
   });
   function counts() {
-    VL.$('#cnt-external').textContent = nodes.filter(function (n) { return n.kind === 'external'; }).length;
-    VL.$('#cnt-schemes').textContent = nodes.filter(function (n) { return n.kind === 'scheme'; }).length;
+    VL.$('#cnt-external').textContent = VL.fmt(nodes.filter(function (n) { return n.kind === 'external'; }).length);
+    VL.$('#cnt-schemes').textContent = VL.fmt(nodes.filter(function (n) { return n.kind === 'scheme'; }).length);
     ['subClassOf', 'property', 'alignment', 'inScheme'].forEach(function (t) {
-      VL.$('#cnt-' + t).textContent = links.filter(function (l) { return l.type === t; }).length;
+      VL.$('#cnt-' + t).textContent = VL.fmt(links.filter(function (l) { return l.type === t; }).length);
     });
   }
 
+  /* search: every name in both languages, IRI and CURIE are searched in every mode; a suggestion shows the name in the
+     mode's language with the other one under it */
   var searchIndex = [];
-  nodes.forEach(function (n) {
-    searchIndex.push({ t: 'node', id: n.id, main: n.label_en, sub: [n.label_vi, n.id].filter(Boolean).join(' · '), kind: kindLabel(n), color: nodeVar(n),
-      hay: [VL.fold(n.label_en), VL.fold(n.label_vi || ''), VL.fold(n.id), VL.fold(n.id.split(':')[1] || ''), VL.fold(n.iri)], boost: n.kind === 'class' ? 3 : 1 });
-  });
-  links.forEach(function (l) {
-    if (l.type !== 'property') return;
-    searchIndex.push({ t: 'link', key: l.key, main: l.label_en, sub: [l.label_vi, l.id].filter(Boolean).join(' · '), kind: 'property', color: VL.moduleVar(l.module),
-      hay: [VL.fold(l.label_en), VL.fold(l.label_vi || ''), VL.fold(l.id || ''), VL.fold((l.id || '').split(':')[1] || '')], boost: 0 });
-  });
+  function buildSearch() {
+    var vi = VL.lang() === 'vi';
+    searchIndex = [];
+    nodes.forEach(function (n) {
+      var main = VL.U(namePair(n)), other = vi ? n.label_en : n.label_vi;
+      searchIndex.push({ t: 'node', id: n.id, main: main, sub: [other !== main ? other : null, n.id].filter(Boolean).join(' · '), kind: kindLabel(n), color: nodeVar(n),
+        hay: [VL.fold(n.label_en), VL.fold(n.label_vi || ''), VL.fold(n.id), VL.fold(n.id.split(':')[1] || ''), VL.fold(n.iri)], boost: n.kind === 'class' ? 3 : 1 });
+    });
+    links.forEach(function (l) {
+      if (l.type !== 'property') return;
+      var main = VL.U(propName(l)), other = vi ? l.label_en : l.label_vi;
+      searchIndex.push({ t: 'link', key: l.key, main: main, sub: [other !== main ? other : null, l.id].filter(Boolean).join(' · '), kind: VL.U('o3d.kind.property'), color: VL.moduleVar(l.module),
+        hay: [VL.fold(l.label_en), VL.fold(l.label_vi || ''), VL.fold(l.id || ''), VL.fold((l.id || '').split(':')[1] || '')], boost: 0 });
+    });
+  }
+  buildSearch();
   function searchSource(q) {
     var qf = VL.fold(q.trim());
     if (!qf) return [];
@@ -936,6 +977,12 @@
     var p = graph.graph2ScreenCoords(n.x, n.y, n.z), r = host.getBoundingClientRect();
     return { x: r.left + p.x, y: r.top + p.y, inside: p.x > 0 && p.y > 0 && p.x < r.width && p.y < r.height };
   };
+  /* the camera (position and orbit target, rounded): tests check that a language switch keeps it */
+  function camState(cam, target) {
+    if (!cam || !target) return null;
+    return [cam.position.x, cam.position.y, cam.position.z, target.x, target.y, target.z].map(function (v) { return Math.round(v * 1000) / 1000; });
+  }
+  window.VLApp.camera = function () { return graph ? camState(graph.camera(), graph.controls().target) : null; };
   window.VLApp.state = function () {
     return { selected: state.selected && state.selected.id, view: view.mode, nodes: graph.graphData().nodes.length, links: graph.graphData().links.length,
       panelOpen: !panel.classList.contains('hidden'), panelText: panel.textContent.slice(0, 400) };
@@ -961,7 +1008,7 @@
   function exportPng() {
     var r = graph.renderer();
     r.render(graph.scene(), graph.camera());
-    r.domElement.toBlob(function (b) { VL.downloadBlob(b, 'vlonto-ontology-3d.png'); VL.toast('PNG exported'); }, 'image/png');
+    r.domElement.toBlob(function (b) { VL.downloadBlob(b, 'vlonto-ontology-3d.png'); VL.toast(VL.U('o3d.toast.png')); }, 'image/png');
   }
   window.VLApp.exportPng = function () { var r = graph.renderer(); r.render(graph.scene(), graph.camera()); return r.domElement.toDataURL('image/png').length; };
 
@@ -1005,15 +1052,16 @@
     scheme: '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1.2L12.8 7 7 12.8 1.2 7z" fill="currentColor"/></svg>',
     external: '<svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true"><path d="M7 1.3l5 2.9v5.7L7 12.7 2 9.9V4.2z" fill="currentColor"/></svg>'
   };
-  /* the paper's legend row: "Vietnamese · English" entries; the paper's classes present in the view first, then the
-     modules outside the paper's palette, then shapes, link kinds and the traced path */
-  function bi(vi, en) { return '<span lang="vi">' + VL.esc(VL.cap(vi)) + '</span> · ' + VL.esc(VL.cap(en)); }
+  /* the paper's legend row: "Tiếng Việt · English" entries in EN–VI, one language in EN or VI; the paper's classes
+     present in the view first, then the modules outside the paper's palette, then shapes, link kinds and the traced path */
+  function bi(vi, en) { return VL.TH(VL.pair(VL.cap(vi || ''), VL.cap(en || ''))); }
+  function biKey(k) { var e = VL.i18n.get(k) || { vi: '', en: k }; return bi(e.vi, e.en); }
   var FAMILY = { documents: 1, provisions: 1, qa: 1, terminology: 1, classification: 1 };   // modules coloured like a paper class
   function renderLegend() {
     var btn = VL.$('#btn-legend');
     btn.setAttribute('aria-expanded', state.legendOpen ? 'true' : 'false');
     legendEl.classList.toggle('hidden', !state.legendOpen);
-    if (!state.legendOpen) return;
+    if (!state.legendOpen) { fitLegend(); return; }
     var keys = {}, mods = {};
     current.nodes.forEach(function (n) {
       if (!nodeVisible(n)) return;
@@ -1026,21 +1074,22 @@
     var famOnly = VL.MODULES.filter(function (m) { return mods[m.id] && FAMILY[m.id]; });
     var h = '<ul class="lg-classes">' + cls.map(function (c) {
       return '<li><span class="swatch" style="background:' + c.v + '"></span>' + bi(c.vi, c.en) + '</li>';
-    }).join('') + '<li><span class="swatch trace" aria-hidden="true"></span>' + bi('Đường truy vết', view.mode !== 'ontology' ? 'traced result' : 'traced path') + '</li></ul>';
+    }).join('') + '<li><span class="swatch trace" aria-hidden="true"></span>' + biKey(view.mode !== 'ontology' ? 'o3d.lg.tracedResult' : 'o3d.lg.tracedPath') + '</li></ul>';
     if (other.length) {
       h += '<div class="legend-sub"><ul class="lg-modules">' + other.map(function (m) {
-        return '<li><span class="swatch" style="background:' + m.v + '"></span>' + (m.id === 'external' ? bi('khái niệm ngoài', 'external terms') : bi(m.vi, m.en)) + '</li>';
+        return '<li><span class="swatch" style="background:' + m.v + '"></span>' + (m.id === 'external' ? biKey('o3d.lg.externalTerms') : bi(m.vi, m.en)) + '</li>';
       }).join('') + '</ul></div>';
     }
     h += '<div class="legend-sub"><ul class="lg-marks">' +
-      '<li>' + SHAPES['class'] + bi('lớp', 'class (size ~ instances)') + '</li><li>' + SHAPES.scheme + bi('lược đồ khái niệm', 'concept scheme') + '</li>' +
-      '<li>' + SHAPES.external + bi('khái niệm ngoài', 'external term') + '</li>' +
-      '<li><span class="swatch line" style="background:linear-gradient(90deg,var(--cls-work),var(--cls-article),var(--cls-term))"></span>' + bi('lớp con của', 'subclass of') + '</li>' +
-      '<li><span class="swatch line" style="background:linear-gradient(90deg,var(--mod-validity-change),var(--mod-agents),var(--mod-documents))"></span>' + bi('thuộc tính', 'object property') + '</li>' +
-      '<li><span class="swatch line" style="background:var(--o3d-link-alignment)"></span>' + bi('liên kết ngoài', 'alignment') + '</li>' +
-      '</ul>' + (famOnly.length ? '<p class="lg-note">' + VL.esc('Other classes take the colour of their module: ' + famOnly.map(function (m) { return m.en; }).join(', ') + '.') + '</p>' : '') + '</div>';
+      '<li>' + SHAPES['class'] + biKey('o3d.lg.class') + '</li><li>' + SHAPES.scheme + biKey('o3d.lg.scheme') + '</li>' +
+      '<li>' + SHAPES.external + biKey('o3d.lg.external') + '</li>' +
+      '<li><span class="swatch line" style="background:linear-gradient(90deg,var(--cls-work),var(--cls-article),var(--cls-term))"></span>' + biKey('o3d.lg.subclassOf') + '</li>' +
+      '<li><span class="swatch line" style="background:linear-gradient(90deg,var(--mod-validity-change),var(--mod-agents),var(--mod-documents))"></span>' + biKey('o3d.lg.property') + '</li>' +
+      '<li><span class="swatch line" style="background:var(--o3d-link-alignment)"></span>' + biKey('o3d.lg.alignment') + '</li>' +
+      '</ul>' + (famOnly.length ? '<p class="lg-note">' + VL.UH('o3d.lg.otherClasses', { list: famOnly.map(function (m) { return VL.U(m); }).join(', ') }) + '</p>' : '') + '</div>';
     legendEl.innerHTML = h;
     M.legendEntries = VL.$$('li', legendEl).length;
+    fitLegend();
   }
   function showHint() {
     if (VL.store.get('hint-onto3d') === 'off') return;
@@ -1086,6 +1135,7 @@
       var sz = stageSize();
       graph.width(sz.w).height(sz.h);
       resizeLabels();
+      VL.fitLegend(stage, legendEl, statusEl);
       scheduleCull();
     });
   }
@@ -1096,18 +1146,23 @@
   var ctxPromise = null;
   var qText = VL.$('#qd-text'), qStatus = VL.$('#qd-status'), qResult = VL.$('#qd-result'), qSel = VL.$('#qd-example');
   VL.$('#qd-close').innerHTML = VL.ICON.close;
-  (function fillExamples() {
-    var h = '<optgroup label="Graph results (CONSTRUCT, drawn in 3D)">' + VL.Sparql.CONSTRUCT_EXAMPLES.map(function (e, i) {
-      return '<option value="c' + i + '">' + VL.esc(e.title_en) + '</option>'; }).join('') + '</optgroup>';
-    h += '<optgroup label="Table results (SELECT)">' + EXAMPLES.map(function (e, i) {
-      return '<option value="s' + i + '">' + VL.esc(e.title_en) + '</option>'; }).join('') + '</optgroup>';
+  /* the example menu: group names and example titles in one language (EN and EN–VI English, VI Vietnamese); a mode
+     change rebuilds it and keeps the chosen example */
+  function fillExamples() {
+    var keep = qSel.value;
+    var h = '<optgroup label="' + VL.esc(VL.U('o3d.q.groupConstruct')) + '">' + VL.Sparql.CONSTRUCT_EXAMPLES.map(function (e, i) {
+      return '<option value="c' + i + '">' + VL.UH(VL.pair(e.title_vi, e.title_en)) + '</option>'; }).join('') + '</optgroup>';
+    h += '<optgroup label="' + VL.esc(VL.U('o3d.q.groupSelect')) + '">' + EXAMPLES.map(function (e, i) {
+      return '<option value="s' + i + '">' + VL.UH(VL.pair(e.title_vi, e.title_en)) + '</option>'; }).join('') + '</optgroup>';
     qSel.innerHTML = h;
-    qText.value = VL.Sparql.CONSTRUCT_EXAMPLES[0].query;
-  })();
+    if (keep) qSel.value = keep;
+  }
+  fillExamples();
+  qText.value = VL.Sparql.CONSTRUCT_EXAMPLES[0].query;
   qSel.addEventListener('change', function () {
     var v = qSel.value, i = +v.slice(1);
     qText.value = v[0] === 'c' ? VL.Sparql.CONSTRUCT_EXAMPLES[i].query : EXAMPLES[i].query;
-    setQStatus('Example loaded. Press Run (Ctrl+Enter).', '');
+    setQStatus(function () { return VL.U('o3d.q.loaded'); }, '');
   });
   qText.addEventListener('keydown', function (e) {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); runQuery(); }
@@ -1127,15 +1182,30 @@
   VL.$('#qd-run').addEventListener('click', runQuery);
   VL.$('#qd-back').addEventListener('click', backToOntology);
   VL.$('#qd-close').addEventListener('click', function () { setDrawer(false); });
+  function minText() {
+    var b = VL.$('#qd-min'), k = drawer.classList.contains('min') ? 'o3d.q.showEditor' : 'o3d.q.hideEditor', t = VL.tip(k);
+    b.textContent = VL.U(k);
+    if (t) b.setAttribute('title', t); else b.removeAttribute('title');
+  }
   VL.$('#qd-min').addEventListener('click', function () {
     var min = !drawer.classList.contains('min');
     drawer.classList.toggle('min', min);
     stage.classList.toggle('drawer-min', min);
-    VL.$('#qd-min').textContent = min ? 'Show editor' : 'Hide editor';
+    minText();
     VL.$('#qd-min').setAttribute('aria-expanded', min ? 'false' : 'true');
     relayout();
   });
-  function setQStatus(msg, cls) { qStatus.textContent = msg; qStatus.className = 'qd-status' + (cls ? ' ' + cls : ''); }
+  /* status of the drawer: msg is text or a function that composes it in the current mode, so a mode change can render
+     the last status again */
+  var qLast = null;
+  function setQStatus(msg, cls) {
+    qLast = { msg: msg, cls: cls };
+    qStatus.textContent = typeof msg === 'function' ? msg() : msg;
+    qStatus.className = 'qd-status' + (cls ? ' ' + cls : '');
+  }
+  /* the last result table of the drawer, drawn again on a mode change (its notes are in the mode's language) */
+  var qTable = null;
+  function renderQTable(res, opts) { qTable = res ? [res, opts] : null; if (res) VL.Sparql.renderTable(qResult, res, opts); else qResult.innerHTML = ''; }
   function setDrawer(open) {
     state.drawerOpen = open;
     drawer.classList.toggle('hidden', !open);
@@ -1153,14 +1223,14 @@
   }
   function ensureStore() {
     if (!ctxPromise) {
-      setQStatus('Loading Oxigraph (WebAssembly) and the triple store: ontology + core subset…', '');
+      setQStatus(function () { return VL.U('o3d.q.loading'); }, '');
       ctxPromise = VL.Sparql.createStore('both').then(function (ctx) {
         M.storeTriples = ctx.triples;
         M.storeLoadMs = ctx.loadMs;
-        setQStatus('Triple store ready: ' + VL.fmt(ctx.triples) + ' triples (ontology + core subset) loaded in ' + VL.fmt(ctx.loadMs) + ' ms. Press Run.', 'ok');
+        setQStatus(function () { return VL.U('o3d.q.ready', { n: VL.fmt(ctx.triples), ms: VL.fmt(ctx.loadMs) }); }, 'ok');
         return ctx;
       }, function (e) {
-        setQStatus('Could not load the triple store: ' + e.message, 'err');
+        setQStatus(function () { return VL.U('o3d.q.loadError', { msg: e.message }); }, 'err');
         ctxPromise = null;
         throw e;
       });
@@ -1177,17 +1247,17 @@
   }
   function runQuery() {
     var q = qText.value;
-    setQStatus('Running…', '');
+    setQStatus(function () { return VL.U('o3d.q.running'); }, '');
     return ensureStore().then(function (ctx) {
       var res = VL.Sparql.run(ctx, q);
       M.lastQuery = { form: res.form, count: res.count, ms: res.ms, error: res.error ? res.error.message : null };
-      if (res.error) { setQStatus(res.error.message, 'err'); highlightError(res.error); qResult.innerHTML = ''; return res; }
+      if (res.error) { setQStatus(function () { return VL.Sparql.errorText(res.error); }, 'err'); highlightError(res.error); renderQTable(null); return res; }
       if (res.form === 'SELECT') {
-        setQStatus('SELECT returned ' + VL.fmt(res.count) + ' row' + (res.count === 1 ? '' : 's') + ' in ' + res.ms + ' ms. Graph results (CONSTRUCT) are drawn in 3D.', 'ok');
-        VL.Sparql.renderTable(qResult, res, { dark: true, max: 300 });
+        setQStatus(function () { return VL.U('o3d.q.select', { n: res.count === 1 ? 1 : VL.fmt(res.count), ms: VL.fmt(res.ms) }); }, 'ok');
+        renderQTable(res, { dark: true, max: 300 });
       } else if (res.form === 'ASK') {
-        setQStatus('ASK → ' + (res.boolean ? 'true' : 'false') + ' (' + res.ms + ' ms)', 'ok');
-        qResult.innerHTML = '';
+        setQStatus(function () { return VL.U('o3d.q.ask', { v: res.boolean ? 'true' : 'false', ms: VL.fmt(res.ms) }); }, 'ok');
+        renderQTable(null);
       } else {
         drawConstruct(ctx, res);
       }
@@ -1202,8 +1272,8 @@
     M.constructHiddenLater = sc.hidden;
     var g = VL.Sparql.quadsToGraph(ctx, sc.quads, 500);
     if (!g.nodes.length) {
-      setQStatus(res.form + ' returned no triples (' + res.ms + ' ms).', 'ok');
-      qResult.innerHTML = '';
+      setQStatus(function () { return VL.U('o3d.q.none', { form: res.form, ms: VL.fmt(res.ms) }); }, 'ok');
+      renderQTable(null);
       return;
     }
     var mode = state.cm;
@@ -1223,8 +1293,8 @@
       (gn.types || []).forEach(function (t) { var c = VL.shortIri(t); if (!cls && byId[c] && byId[c].kind === 'class') cls = c; });
       var module = cls ? byId[cls].module : ((gn.iri || '').indexOf(VL.NS.vlo) === 0 ? 'provenance' : 'documents');
       var node = { id: gn.id, inst: true, kind: 'instance', iri: gn.iri, cls: cls, module: module, color: VL.moduleColor(module),
-        number: gn.number ? VL.nfc(gn.number) : null, title: gn.title ? VL.nfc(gn.title) : null, label: gn.label ? VL.nfc(gn.label) : null };
-      node.short = VL.short(node.number || node.label || node.title || gn.id, 28);
+        number: gn.number ? VL.nfc(gn.number) : null, title: gn.title ? VL.nfc(gn.title) : null, label: gn.label ? VL.nfc(gn.label) : null,
+        label_vi: gn.label_vi ? VL.nfc(gn.label_vi) : null };
       node.__r = radius(node);
       add[gn.id] = node; cnodes.push(node); resultNodes.add(node);
     });
@@ -1269,9 +1339,11 @@
     renderLegend();
     setTimeout(function () { fitView(700, mode === 'overlay' ? Array.from(resultNodes) : null); }, 60);
     var lit = Object.keys(g.literals).reduce(function (a, k) { return a + g.literals[k].length; }, 0);
-    setQStatus(res.form + ' returned ' + VL.fmt(res.count) + ' triples in ' + res.ms + ' ms → ' + VL.fmt(cnodes.length) + ' new nodes and ' + VL.fmt(clinks.length) +
-      ' links drawn (' + mode + ')' + (lit ? '; ' + VL.fmt(lit) + ' literal values are listed below' : '') + (g.truncated ? '; result truncated to 500 nodes' : '') + '.', 'ok');
-    VL.Sparql.renderTable(qResult, res, { dark: true, max: 200 });
+    setQStatus(function () {
+      return VL.U('o3d.q.drawn', { form: res.form, n: VL.fmt(res.count), ms: VL.fmt(res.ms), nodes: VL.fmt(cnodes.length), links: VL.fmt(clinks.length), mode: VL.U('o3d.mode.' + mode) }) +
+        (lit ? VL.U('o3d.q.literals', { n: VL.fmt(lit) }) : '') + (g.truncated ? VL.U('o3d.q.truncated') : '') + '.';
+    }, 'ok');
+    renderQTable(res, { dark: true, max: 200 });
     M.view = 'construct-' + mode;
     M.constructTriples = res.count;
     M.graphNodes = data.nodes.length;
@@ -1297,7 +1369,7 @@
     M.graphLinks = links.length;
     status();
   }
-  function backToOntology() { closePanel(); restoreBase(true); setQStatus('Back to the ontology graph.', ''); }
+  function backToOntology() { closePanel(); restoreBase(true); setQStatus(function () { return VL.U('o3d.q.back'); }, ''); }
   window.VLApp.back = backToOntology;
 
   /* ------------------------------------------------------------------ hash (#class=vlo:Article) */
@@ -1312,6 +1384,32 @@
   }
   window.addEventListener('hashchange', applyHash);
 
+  /* ------------------------------------------------------------------ language switch (js/i18n.js 'vl:lang'): call-outs,
+     legend, module chips, counts, search suggestions, the example menu, the drawer's status and table and the open
+     panel are rendered again in the new mode; the camera, the selection, the query result and the filters stay */
+  function applyLang() {
+    M.langRenders = (M.langRenders || 0) + 1;
+    buildSearch();
+    renderChips();
+    counts();
+    renderLegend();
+    fillExamples();
+    minText();
+    if (qLast) setQStatus(qLast.msg, qLast.cls);
+    if (qTable) renderQTable(qTable[0], qTable[1]);
+    if (graph) { relabel(); resizeLabels(); status(); } else M.labelsLang = VL.lang();
+    if (!panel.classList.contains('hidden')) {
+      if (state.selected) openPanel(state.selected.inst ? instancePanel(state.selected) : nodePanel(state.selected), true);
+      else if (state.selectedLink) openPanel(linkPanel(state.selectedLink), true);
+    }
+  }
+  document.addEventListener('vl:lang', applyLang);
+  /* tests: the call-out lines of a node as drawn (text of each line), or null */
+  window.VLApp.labelLines = function (id) {
+    var n = current.byId[id] || byId[id];
+    return n && n.__label ? n.__label.__opts.lines.map(function (ln) { return ln.map(function (p) { return p.text; }).join(''); }) : null;
+  };
+
   /* ------------------------------------------------------------------ start */
   renderChips();
   counts();
@@ -1320,6 +1418,6 @@
     build();
   }).catch(function (e) {
     console.error(e);
-    VL.$('#veil').innerHTML = '<div>Could not start the 3D view: ' + VL.esc(e.message) + '</div>';
+    VL.$('#veil').innerHTML = '<div>' + VL.UH('o3d.startError', { msg: e.message }) + '</div>';
   });
 })();

@@ -158,6 +158,32 @@ def panel_has(pg, *texts, timeout=T_(30000)):
     return True
 
 
+def set_lang(c: Ctx, pg, mode: str):
+    """the header's language switch (js/i18n.js): the bar on wide screens, the menu sheet on phones (closed again after);
+    waits for <html data-lang>. The 3D views re-render on the 'vl:lang' event (window.__VLONTO_METRICS.labelsLang)."""
+    if c.mobile:
+        pg.click(".vl-menu-btn")
+        pg.click(f".vl-lang-sheet [data-vl-lang={mode}]")
+        if pg.evaluate("() => { const b = document.querySelector('.vl-menu-btn'); return !!b && b.getAttribute('aria-expanded') === 'true'; }"):
+            pg.click(".vl-menu-btn")
+    else:
+        pg.click(f".vl-lang-bar [data-vl-lang={mode}]")
+    pg.wait_for_function("(m) => document.documentElement.getAttribute('data-lang') === m", arg=mode, timeout=T_(10000))
+
+
+def stable_value(pg, js: str, timeout=T_(20000)):
+    """a value read twice 400 ms apart without a change (the camera once a flight has ended)"""
+    t_end = time.time() + timeout / 1000
+    prev = pg.evaluate(js)
+    while time.time() < t_end:
+        pg.wait_for_timeout(400)
+        cur = pg.evaluate(js)
+        if cur == prev:
+            return cur
+        prev = cur
+    return prev
+
+
 def t_ontology(c: Ctx):
     res = {"test": "playground (index.html)", "checks": []}
     ctx, pg, log = c.open("index.html")          # the 3D ontology playground is the landing page
@@ -323,19 +349,41 @@ def t_ontology(c: Ctx):
     check("CONSTRUCT in replace mode (class hierarchy) and back", construct_replace)
 
     def labels_vi():
-        if c.mobile:
-            pg.click("#btn-side-m")
-        pg.click("[data-lang=vi]")
-        if c.mobile:
-            pg.click("#btn-side-m")
+        # the playground's own label toggle is gone: the header's language switch (EN / VI / EN–VI) relabels the
+        # call-outs (labelsLang, VLApp.labelLines) and the legend, keeps the camera, and EN–VI comes back as before
+        if pg.evaluate("document.querySelectorAll('button[data-lang]').length"):
+            raise RuntimeError("the per-view label toggle (button[data-lang]) is still on the page")
         pg.click("#btn-reset2")
         pg.wait_for_timeout(1500)
+        cam = stable_value(pg, "() => window.VLApp.camera()")
+        r0 = (pg.evaluate(JS_CALLOUTS) or {}).get("runs", 0)
+        set_lang(c, pg, "vi")
+        pg.wait_for_function("window.__VLONTO_METRICS.labelsLang === 'vi'", timeout=T_(15000))
+        co = wait_callouts(pg, r0)
+        lines = json.dumps(pg.evaluate("() => window.VLApp.labelLines('vlo:Article')"), ensure_ascii=False)
+        if "Điều" not in lines or "Article" in lines:
+            raise RuntimeError(f"vlo:Article call-out in VI: {lines}")
+        faults = callout_faults(co)
+        if faults:
+            raise RuntimeError("call-outs in VI: " + "; ".join(faults))
+        cam2 = pg.evaluate("() => window.VLApp.camera()")
+        if cam2 != cam:
+            raise RuntimeError(f"the language switch moved the camera: {cam} -> {cam2}")
+        legend = pg.evaluate("document.getElementById('legend').textContent") if not c.mobile else ""
+        if not c.mobile and ("Văn bản" not in legend or "Work" in legend):
+            raise RuntimeError(f"legend in VI: {legend[:200]}")
         m = M()
         shot = c.shot(pg, "ontology3d_labels_vi")
-        if m.get("labelLang") != "vi":
-            raise RuntimeError("label language not switched")
-        return {"labels_shown": m.get("labelsShown"), "labels_hidden": m.get("labelsHidden"), "shot": shot}
-    check("EN/VI label toggle", labels_vi)
+        r1 = (pg.evaluate(JS_CALLOUTS) or {}).get("runs", 0)
+        set_lang(c, pg, "envi")
+        pg.wait_for_function("window.__VLONTO_METRICS.labelsLang === 'envi'", timeout=T_(15000))
+        wait_callouts(pg, r1)
+        back = json.dumps(pg.evaluate("() => window.VLApp.labelLines('vlo:Article')"), ensure_ascii=False)
+        if "Điều" not in back or "Article" not in back:
+            raise RuntimeError(f"vlo:Article call-out back in EN–VI: {back}")
+        return {"labels_shown": m.get("labelsShown"), "labels_hidden": m.get("labelsHidden"), "vi_lines": lines, "envi_lines": back,
+                "callouts_vi": callout_summary(co), "shot": shot}
+    check("header language switch: call-outs and legend in VI with the camera kept, back to EN–VI; no per-view label toggle", labels_vi)
 
     def png():
         n = pg.evaluate("window.VLApp.exportPng()")
@@ -470,6 +518,38 @@ def t_network(c: Ctx):
         return {"before": before, "after": after, "legend": legend[:120], "shot": shot}
     check("issue-year filter and colour by type", filters)
 
+    def lang_switch():
+        # the header switch re-renders the details panel, the legend and the call-outs in VI and keeps the selection and
+        # the camera; the per-view label toggle is gone; EN–VI comes back with the v1 headings
+        pg.evaluate("() => window.VLApp.selectById('333670')")
+        pg.wait_for_function("window.__VLONTO_METRICS.panelLoaded === '333670' && window.__VLONTO_METRICS.chainTraceDocs >= 2", timeout=T_(120000))
+        cam = stable_value(pg, "() => window.VLApp.camera()")
+        r0 = (pg.evaluate(JS_CALLOUTS) or {}).get("runs", 0)
+        set_lang(c, pg, "vi")
+        pg.wait_for_function("window.__VLONTO_METRICS.labelsLang === 'vi'", timeout=T_(30000))
+        info = pg.evaluate("""() => ({ heads: Array.from(document.querySelectorAll('#panel h3')).map(e => e.textContent.trim()),
+            legend: document.getElementById('legend').textContent, selected: window.VLApp.state().selected, camera: window.VLApp.camera(),
+            toggles: document.querySelectorAll('button[data-lang]').length })""")
+        heads = " | ".join(info["heads"])
+        if "Chuỗi thay thế" not in heads or "Replacement chain" in heads:
+            raise RuntimeError(f"panel headings in VI: {heads[:300]}")
+        if not c.mobile and (re.search(r"\b(Traced|In force|Legend)\b", info["legend"]) or not re.search("[ăâđêôơưạ-ỹ]", info["legend"], re.I)):
+            raise RuntimeError(f"legend in VI: {info['legend'][:200]}")
+        if info["selected"] != "333670" or info["camera"] != cam:
+            raise RuntimeError(f"the switch lost the selection or moved the camera: {info['selected']}, {cam} -> {info['camera']}")
+        if info["toggles"]:
+            raise RuntimeError("the per-view label toggle (button[data-lang]) is still on the page")
+        co = wait_callouts(pg, r0, "doc-333670", timeout=T_(60000))
+        faults = callout_faults(co)
+        if faults:
+            raise RuntimeError("call-outs in VI: " + "; ".join(faults))
+        shot = c.shot(pg, "network3d_lang_vi")
+        set_lang(c, pg, "envi")
+        pg.wait_for_function("window.__VLONTO_METRICS.labelsLang === 'envi'", timeout=T_(30000))
+        panel_has(pg, "Replacement chain", "Bộ luật Lao động")
+        return {"headings_vi": info["heads"][:8], "callouts_vi": callout_summary(co), "shot": shot}
+    check("header language switch: panel, legend and call-outs in VI, selection and camera kept; back to EN–VI", lang_switch)
+
     def fps_default():
         f = pg.evaluate("ms => window.VLApp.measureFps(ms)", 3000)
         return {"dataset": M().get("dataset"), "fps": f, "edges": M().get("edges"), "renderer": M().get("webglRenderer")}
@@ -560,6 +640,25 @@ def t_sparql(c: Ctx, examples):
             raise RuntimeError(f"unexpected CSV: {lines[:2]} ({len(lines)} lines)")
         return {"filename": dl.suggested_filename, "lines": len(lines), "header": lines[0], "first": lines[1], "bom": data[:3] == b"\xef\xbb\xbf"}
     check("CSV export of a SELECT result", csv)
+
+    def know_full():
+        # 'Good to know': the full graph's size comes from the data (VLONTO.stats.rdf_triples), in the mode's number
+        # format (EN 6,963,753 / VI 6.963.753), never the 0.1.0 figure (31.5 million); the syntax error reads in VI too
+        n = pg.evaluate("() => (window.VLONTO.stats || {}).rdf_triples || (((window.VLONTO.site_meta || {}).rdf_dump || {}).triples)")
+        en = pg.evaluate("document.getElementById('sq-know-full').textContent")
+        if not n or f"{n:,}" not in en or "31.5" in en:
+            raise RuntimeError(f"good-to-know full graph: {n} / {en!r}")
+        set_lang(c, pg, "vi")
+        vi = pg.evaluate("document.getElementById('sq-know-full').textContent")
+        lq = pg.evaluate("window.VLApp.run('SELEC ?x WHERE { ?x ?p ?o }', 'core')")
+        msg = pg.evaluate("document.getElementById('status').textContent")
+        set_lang(c, pg, "envi")
+        if f"{n:,}".replace(",", ".") not in vi or "31,5" in vi:
+            raise RuntimeError(f"VI number format: {vi!r}")
+        if not lq.get("error") or "dòng 1" not in msg:
+            raise RuntimeError(f"VI syntax error message: {msg!r}")
+        return {"triples": n, "en": en.strip()[:160], "vi": vi.strip()[:160], "vi_error": msg[:160]}
+    check("good to know: the full graph's size from the data (EN 6,963,753 / VI 6.963.753); the syntax error in VI", know_full)
     res["log"] = log
     ctx.close()
     return res
@@ -1393,23 +1492,44 @@ JS_TRACE_PX_GEOM = """(sel) => { const el = document.querySelector(sel), co = (w
 # trace widths in CSS px (VL.TRACE_W)
 JS_CALLOUTS = "() => window.__VLONTO_METRICS.callouts || null"
 TRACE_CAP = {"core": 2.8, "halo": 6.4, "halo2": 9.2}
+# the overlays on the stage of a 3D view (legend, status line, hint, stage tools) do not meet: the paper legend can be
+# 720 px wide and the status line moves left when the details panel opens, so the legend moves up above it
+# (VL.fitLegend in js/paper3d.js); returns the pairs that meet
+JS_OVERLAYS = """() => { const R = {}, out = [];
+  [['legend', '#legend'], ['status', '#status'], ['hint', '#hint'], ['tools', '.stage-tools']].forEach(([k, s]) => {
+    const e = document.querySelector(s);
+    if (!e || e.offsetParent === null) return;
+    const r = e.getBoundingClientRect();
+    if (r.width > 1 && r.height > 1) R[k] = r;
+  });
+  const ks = Object.keys(R);
+  for (let i = 0; i < ks.length; i++) for (let j = i + 1; j < ks.length; j++) {
+    const a = R[ks[i]], b = R[ks[j]];
+    if (a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom) out.push(ks[i] + ' meets ' + ks[j]);
+  }
+  return out; }"""
 
 
 def callout_faults(co):
     """the paper's rule for one placement run: no two visible call-outs intersect, no visible call-out covers a projected
     node centre (the nodes the run saw: every visible node in the playground and the CONSTRUCT view, the highlighted
-    documents in the legal network), and no selected or traced call-out was dropped"""
+    documents in the legal network), no call-out is cut by the canvas edge (the run's W x H, 0.5 px tolerance; longer
+    or shorter text per language mode changes the boxes), and no selected or traced call-out was dropped"""
     if not co:
         return ["no call-out placement recorded"]
     boxes = [(p["id"], p["box"]) for p in co.get("placed", [])]
     inter = [(a[0], b[0]) for i, a in enumerate(boxes) for b in boxes[i + 1:]
              if a[1][0] < b[1][2] and b[1][0] < a[1][2] and a[1][1] < b[1][3] and b[1][1] < a[1][3]]
     covered = [(pid, nid) for pid, b in boxes for nid, x, y in co.get("nodes", []) if b[0] < x < b[2] and b[1] < y < b[3]]
+    W, H = co.get("W"), co.get("H")
+    cut = [pid for pid, b in boxes if W and H and (b[0] < -0.5 or b[1] < -0.5 or b[2] > W + 0.5 or b[3] > H + 0.5)]
     faults = []
     if inter:
         faults.append(f"{len(inter)} pairs of intersecting call-outs, e.g. {inter[:3]}")
     if covered:
         faults.append(f"{len(covered)} node centres under call-outs, e.g. {covered[:3]}")
+    if cut:
+        faults.append(f"{len(cut)} call-outs cut by the canvas edge ({W}x{H}), e.g. {cut[:3]}")
     if co.get("mustHidden"):
         faults.append(f"{co['mustHidden']} selected or traced call-outs hidden")
     return faults
@@ -1696,6 +1816,89 @@ def t_paper_style(c: Ctx):
                     ctx.close()
             return out
         check(f"pages outside the 3D views keep their palette ({theme})", others)
+
+    # the call-outs in EN and in VI (one language, other widths than EN–VI) follow the same rule in each view: the
+    # playground's default view, 45/2019/QH14 in the legal network, the first CONSTRUCT example (light theme)
+    for mode in ("en", "vi"):
+        def placement(mode=mode):
+            out, q = {}, f"?lang={mode}"
+            ctx, pg, log = c.open("index.html", query=q)
+            try:
+                pg.wait_for_timeout(1500)
+                co = wait_callouts(pg)
+                faults = callout_faults(co)
+                lang = pg.evaluate("window.__VLONTO_METRICS.labelsLang")
+                if faults or lang != mode:
+                    raise RuntimeError(f"playground default view ({mode}, call-outs {lang}): " + "; ".join(faults))
+                out["playground"] = callout_summary(co)
+            finally:
+                merge(log)
+                ctx.close()
+            ctx, pg, log = c.open("network-3d.html", query=q, ready_timeout=T_(240000))
+            try:
+                runs = (pg.evaluate(JS_CALLOUTS) or {}).get("runs", 0)
+                pg.evaluate("() => window.VLApp.selectById('333670')")
+                pg.wait_for_function("window.__VLONTO_METRICS.panelLoaded === '333670' && window.__VLONTO_METRICS.chainTraceDocs >= 2", timeout=T_(120000))
+                pg.wait_for_timeout(1800)
+                co = wait_callouts(pg, runs, "doc-333670", timeout=T_(60000))
+                faults = callout_faults(co)
+                lang = pg.evaluate("window.__VLONTO_METRICS.labelsLang")
+                if faults or lang != mode:
+                    raise RuntimeError(f"45/2019/QH14 ({mode}, call-outs {lang}): " + "; ".join(faults))
+                out["network"] = callout_summary(co)
+            finally:
+                merge(log)
+                ctx.close()
+            ctx, pg, log = c.open("sparql.html", query=q)
+            try:
+                pg.locator("#ex-construct button").first.click()
+                pg.wait_for_function("!!window.__VLONTO_METRICS.constructDrawn && !!window.__VLONTO_METRICS.callouts", timeout=T_(120000))
+                pg.wait_for_timeout(2000)
+                co = pg.evaluate(JS_CALLOUTS)
+                faults = callout_faults(co)
+                lang = pg.evaluate("window.__VLONTO_METRICS.labelsLang")
+                if faults or lang != mode:
+                    raise RuntimeError(f"CONSTRUCT ({mode}, call-outs {lang}): " + "; ".join(faults))
+                out["construct"] = callout_summary(co)
+            finally:
+                merge(log)
+                ctx.close()
+            return out
+        check(f"call-outs in {mode.upper()} (light): playground default view, 45/2019/QH14, CONSTRUCT clear of the ink, of each other and of the canvas edge", placement)
+
+    # with the details panel open the status line moves left and meets the paper legend (up to 720 px wide; EN–VI rows
+    # are the longest): the legend moves up above it (VL.fitLegend), in each mode
+    def overlays():
+        out = {}
+        for mode in ("en", "vi", "envi"):
+            q = f"?lang={mode}"
+            ctx, pg, log = c.open("network-3d.html", query=q, ready_timeout=T_(240000))
+            try:
+                pg.evaluate("() => window.VLApp.selectById('333670')")
+                pg.wait_for_function("window.__VLONTO_METRICS.panelLoaded === '333670'", timeout=T_(120000))
+                pg.wait_for_timeout(1200)
+                meets = pg.evaluate(JS_OVERLAYS)
+                if meets:
+                    raise RuntimeError(f"45/2019/QH14 ({mode}): " + "; ".join(meets))
+                out[f"network {mode}"] = "apart"
+            finally:
+                merge(log)
+                ctx.close()
+            ctx, pg, log = c.open("index.html", query=q)
+            try:
+                pg.wait_for_timeout(1200)
+                pg.evaluate("() => window.VLApp.select('vlo:Article')")
+                pg.wait_for_function("window.__VLONTO_METRICS.selected === 'vlo:Article'", timeout=T_(30000))
+                pg.wait_for_timeout(1200)
+                meets = pg.evaluate(JS_OVERLAYS)
+                if meets:
+                    raise RuntimeError(f"playground, vlo:Article open ({mode}): " + "; ".join(meets))
+                out[f"playground {mode}"] = "apart"
+            finally:
+                merge(log)
+                ctx.close()
+        return out
+    check("legend, status line, hint and stage tools apart with the details panel open (45/2019/QH14, the playground's vlo:Article) in EN, VI and EN–VI", overlays)
     res["log"] = logs
     return res
 
@@ -1723,6 +1926,14 @@ JS_TRACE_DONE = """(a) => { const M = window.__VLONTO_METRICS, T = M.traces, S =
 JS_AREA_DONE = """(id) => { const T = window.__VLONTO_METRICS.traces, l = document.getElementById('tr-list');
   return T.area === id && l.getAttribute('data-area') === id && l.querySelectorAll('.tr-item').length === 20 && window.VLApp.traces.settle(); }"""
 TRACE_PICKS = [("lao-dong-tien-luong", 3), ("thue-phi-le-phi", 5), ("bao-hiem", 8)]
+# the language of what traces3d.js writes: list entries (title .tr-q, gloss .tr-g), hop headings, legend, tab labels
+JS_TRACES_LANG = """() => { const M = window.__VLONTO_METRICS || {}, items = Array.from(document.querySelectorAll('#tr-list .tr-item')).slice(0, 20);
+  return { lang: document.documentElement.getAttribute('data-lang'), labelsLang: M.labelsLang, items: items.length,
+    glosses: items.filter(b => b.querySelector('.tr-g')).length,
+    viTitles: items.filter(b => { const q = b.querySelector('.tr-q'); return !!q && q.getAttribute('lang') === 'vi'; }).length,
+    hops: Array.from(document.querySelectorAll('#panel .hop h3')).map(e => e.textContent.replace(/\\s+/g, ' ').trim()),
+    legend: (document.getElementById('legend') || {}).textContent || '',
+    tabs: Array.from(document.querySelectorAll('#tr-tabs [role=tab]')).slice(0, 3).map(b => b.getAttribute('aria-label') || '') }; }"""
 
 
 def t_traces(c: Ctx):
@@ -1937,6 +2148,54 @@ def t_traces(c: Ctx):
                 merge(log)
                 ctx.close()
         check(f"deep link #area=lao-dong-tien-luong&q=3 lights the trace ({theme}); the theme switch keeps it", deep)
+
+    # the page in EN and in VI (?lang=): one language in the list, the hop panel, the legend, the tabs and the call-outs;
+    # the header switch back to EN–VI re-renders them as v1 (title over gloss, paired hop headings) and keeps the trace
+    def lang_state(pg):
+        return pg.evaluate(JS_TRACES_LANG)
+
+    for mode in ("en", "vi"):
+        def lang(mode=mode):
+            area, rank = TRACE_PICKS[0]
+            ctx, pg, log = c.open(f"traces.html#area={area}&q={rank}", query=f"?lang={mode}", ready_timeout=T_(240000))
+            try:
+                pg.wait_for_function(JS_TRACE_DONE, arg={"area": area, "rank": rank, "runs": 0}, timeout=T_(120000))
+                pg.wait_for_timeout(400)
+                d1 = judge(pg.evaluate(JS_TRACES), pg.evaluate(JS_CALLOUTS), f"in {mode}")
+                s = lang_state(pg)
+                hops = " | ".join(s["hops"])
+                bad = []
+                if s["lang"] != mode or s["labelsLang"] != mode:
+                    bad.append(f"mode {s['lang']}, call-outs {s['labelsLang']}")
+                if s["glosses"]:
+                    bad.append(f"{s['glosses']} list entries still carry the second language")
+                if mode == "vi" and s["viTitles"] != s["items"]:
+                    bad.append(f"{s['items'] - s['viTitles']} list entries without the Vietnamese title")
+                if mode == "en" and (not hops.startswith("1 Question") or "Câu hỏi" in hops):
+                    bad.append(f"hop headings: {hops[:200]}")
+                if mode == "vi" and (not hops.startswith("1 Câu hỏi") or re.search(r"\b(Question|Answer|Provision)\b", hops)):
+                    bad.append(f"hop headings: {hops[:200]}")
+                if not c.mobile and not (("Traced answer" in s["legend"] and "Đường truy vết" not in s["legend"]) if mode == "en"
+                                         else ("Đường truy vết" in s["legend"] and "Traced answer" not in s["legend"])):
+                    bad.append(f"legend: {s['legend'][:160]}")
+                if not all(("Q&As" in t) if mode == "en" else ("hỏi đáp" in t) for t in s["tabs"]):
+                    bad.append(f"tab labels: {s['tabs']}")
+                if bad:
+                    raise RuntimeError(f"{mode}: " + "; ".join(bad))
+                shot = c.shot(pg, f"traces_lang_{mode}")
+                r0 = runs(pg)
+                set_lang(c, pg, "envi")
+                pg.wait_for_function(JS_TRACE_DONE, arg={"area": area, "rank": rank, "runs": r0}, timeout=T_(60000))
+                pg.wait_for_timeout(400)
+                d2 = judge(pg.evaluate(JS_TRACES), pg.evaluate(JS_CALLOUTS), f"{mode} -> EN–VI")
+                s2 = lang_state(pg)
+                if s2["labelsLang"] != "envi" or s2["glosses"] != s2["items"] or not s2["hops"][0].startswith("1 Question Câu hỏi"):
+                    raise RuntimeError(f"back to EN–VI: call-outs {s2['labelsLang']}, glosses {s2['glosses']}/{s2['items']}, hops {s2['hops'][:2]}")
+                return {"callouts": d1["callouts"], "hops": s["hops"], "tabs": s["tabs"][:2], "back": d2["callouts"], "shot": shot}
+            finally:
+                merge(log)
+                ctx.close()
+        check(f"traces in {mode.upper()}: list, hop panel, legend, tabs and call-outs in one language; the header switch back to EN–VI keeps the trace", lang)
     res["log"] = logs
     return res
 
