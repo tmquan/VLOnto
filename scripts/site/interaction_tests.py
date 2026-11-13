@@ -1993,6 +1993,7 @@ JS_LANG = r"""() => {
   const hdr = document.querySelector('.vl-header');
   let stored = null; try { stored = window.localStorage.getItem('vlonto.lang'); } catch (e) { stored = 'blocked'; }
   return { lang: M.lang || null, data: de.getAttribute('data-lang'), html: de.getAttribute('lang'), changes: M.langChanges || 0,
+           missing: (M.i18nMissing || []).slice(0, 12),
            labels: M.labelsLang === undefined ? null : M.labelsLang,
            nav: links.map(a => a.textContent.replace(/\s+/g, ' ').trim()), tip: links.map(a => a.getAttribute('title') || ''),
            mixed, clipped, scroll: se.scrollWidth, inner: window.innerWidth,
@@ -2065,6 +2066,8 @@ def t_lang(c: Ctx):
             p.append(f"{when}: clipped header controls {s['clipped'][:4]}")
         if s["checked"] and s["checked"] != [want]:
             p.append(f"{when}: the switch shows {s['checked']} as selected")
+        if s["missing"]:
+            p.append(f"{when}: dictionary keys missing at run time {s['missing']}")
         if page in SCENES and s["labels"] != want:
             p.append(f"{when}: 3D labels drawn in {s['labels']}")
         return p
