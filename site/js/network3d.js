@@ -93,6 +93,9 @@
   var BEND = 0.18, LAYER_GAP = 150 * ZS, LIFT_MAX = 0.4 * LAYER_GAP;
   /* #curves=0 draws straight links (one segment each) to compare the frame rate of the curves with straight lines */
   var CURVES = params.curves !== '0';
+  /* a software renderer (no GPU: SwiftShader, llvmpipe) draws coarser curves, so that a frame of the full network
+     costs about what straight links did; #curves=full keeps the full detail there too */
+  var SOFT_GL = false, CURVE_FULL = params.curves === 'full';
   var CV_VS = [
     'attribute float aT; attribute vec3 aA; attribute vec3 aB; attribute float aAlpha;',
     '#ifdef INST_COLOR',
@@ -141,12 +144,13 @@
   /* segments per link: fewer for the bulk (basis and citation links, fainter) and on the full dataset */
   function segsFor(k) {
     if (!CURVES) return 1;
-    var full = D && D.N > 20000;
-    return KINDS.indexOf(k) >= 0 ? (full ? 8 : 10) : (full ? 4 : 6);
+    var full = D && D.N > 20000, change = KINDS.indexOf(k) >= 0;
+    if (SOFT_GL && !CURVE_FULL) return change ? (full ? 4 : 6) : (full ? 2 : 3);
+    return change ? (full ? 8 : 10) : (full ? 4 : 6);
   }
   /* per-frame cost of the visible links: vertices through the shader and line segments drawn (straight: 2 and 1) */
   function edgeCost() {
-    var c = { curves: CURVES, links: 0, vertices: 0, segments: 0 };
+    var c = { curves: CURVES, detail: SOFT_GL && !CURVE_FULL ? 'reduced' : 'full', links: 0, vertices: 0, segments: 0 };
     EDGE_KEYS.forEach(function (k) {
       var eo = edgeObjs[k];
       if (!eo || !state.edges[k]) return;
@@ -218,6 +222,8 @@
       var gl = renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info');
       M.webglRenderer = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
     } catch (e) { M.webglRenderer = null; }
+    SOFT_GL = /swiftshader|llvmpipe|softpipe|software|basic render/i.test(M.webglRenderer || '');
+    M.curveDetail = !CURVES ? 'straight' : SOFT_GL && !CURVE_FULL ? 'reduced' : 'full';
     window.addEventListener('resize', onResize);
     requestAnimationFrame(loop);
   }

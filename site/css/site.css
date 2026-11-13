@@ -1308,7 +1308,8 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
   padding: 5px 12px; background: var(--scene-side); border-bottom: 1px solid var(--scene-line); }
 .tr-title { flex: 0 0 auto; margin: 0; font: 400 17px/1.2 var(--vlo-font-paper); color: var(--scene-strong); white-space: nowrap; }
 .tr-tabs { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: nowrap; gap: 5px; overflow-x: auto;
-  padding: 4px 3px 6px; scrollbar-width: thin; scrollbar-color: var(--scene-scroll) transparent; -webkit-overflow-scrolling: touch; }
+  padding: 7px; scroll-padding-inline: 7px;   /* room for the focus ring and its 6 px halo, which the scroller would clip */
+  scrollbar-width: thin; scrollbar-color: var(--scene-scroll) transparent; -webkit-overflow-scrolling: touch; }
 .tr-tabs [role="tab"] { flex: 0 0 auto; display: inline-flex; align-items: baseline; gap: 5px; white-space: nowrap; cursor: pointer;
   font: 500 12.5px/1.25 var(--vlo-font-sans); color: var(--scene-fg-2); background: var(--scene-surface-2);
   border: 1px solid var(--scene-ctl-line); border-radius: 7px; padding: 5px 9px; }
@@ -1397,7 +1398,7 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
 @media (max-width: 760px) {
   .tr-bar { padding: 3px 6px; gap: 6px; }
   .tr-title { display: none; }
-  .tr-tabs { padding: 5px 2px 7px; }
+  .tr-tabs { padding: 7px; }
   .tr-tabs [role="tab"] { padding: 7px 9px; font-size: 12px; }
   .tr-toolbar .tr-toolbar-area { flex: 1 1 auto; min-width: 0; font-size: 13px; line-height: 1.2; color: var(--scene-fg-2); overflow-wrap: anywhere; }
   .tr-side { top: auto; bottom: 0; height: 62%; border-top: 1px solid var(--scene-line); border-radius: 14px 14px 0 0; padding: 0 0 10px; }
