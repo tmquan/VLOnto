@@ -240,13 +240,20 @@
   VL.wbr = function (s) {
     return VL.esc(s).replace(/(&amp;|[\/#?=._-])/g, '$1<wbr>');
   };
-  var NF = new Intl.NumberFormat('en-US');
-  VL.fmt = function (n) { return (n == null || n === '' || isNaN(n)) ? '–' : NF.format(n); };
+  /* numbers follow the language mode: Vietnamese grouping and decimal comma in VI (40.816; 1,1), English otherwise
+     (40,816; 1.1). Pages that show numbers re-render on 'vl:lang' like their text. */
+  var NF_EN = new Intl.NumberFormat('en-US'), NF_VI = new Intl.NumberFormat('vi-VN');
+  var NFC_VI0 = new Intl.NumberFormat('vi-VN', { notation: 'compact', maximumFractionDigits: 0 }),
+    NFC_VI1 = new Intl.NumberFormat('vi-VN', { notation: 'compact', maximumFractionDigits: 1 });
+  function viMode() { return !!(VL.lang && VL.lang() === 'vi'); }
+  VL.numberFormat = function () { return viMode() ? NF_VI : NF_EN; };
+  VL.fmt = function (n) { return (n == null || n === '' || isNaN(n)) ? '–' : VL.numberFormat().format(n); };
   VL.compact = function (n) {
     if (n == null) return '–';
+    if (viMode() && n >= 1e4) return (n >= 1e6 ? NFC_VI1 : NFC_VI0).format(n);     // 41 N, 1,2 Tr (as 41k, 1.2M)
     if (n >= 1e6) return (Math.round(n / 1e5) / 10) + 'M';
     if (n >= 1e4) return Math.round(n / 1e3) + 'k';
-    return NF.format(n);
+    return VL.numberFormat().format(n);
   };
   VL.fold = function (s) {
     return VL.nfc(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D').toLowerCase();
