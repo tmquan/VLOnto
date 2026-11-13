@@ -5,7 +5,10 @@
    Paper style (arXiv:2611.11426, Fig. 1 / Fig. 6; js/paper3d.js): white figure ground, the encodings (legal-force layers,
    validity, document type or area, change / legal-basis / citation links) in the paper's pastel register, points shaded
    like the paper's spheres, depth fade, bilingual call-outs with leader lines, and the selection drawn as the traced
-   answer: its links as a navy core over a pale-gold halo (thicker along its replacement chain), everything else faded. */
+   answer: its links as a navy core over a pale-gold halo (thicker along its replacement chain), everything else faded.
+   Text follows the language mode of js/i18n.js (docs/i18n.md; dictionary js/i18n-3d.js, keys net.*): call-outs and the
+   legend in one language or as "Tiếng Việt · English" pairs, panel labels and sentences in one language, numbers through
+   VL.fmt; a mode change ('vl:lang') rebuilds them in place and keeps the camera, the selection and the filters. */
 (function () {
   'use strict';
   var VL = window.VL, M = window.__VLONTO_METRICS;
@@ -42,10 +45,10 @@
   var app = VL.$('#app'), stage = VL.$('#stage'), host = VL.$('#canvas-host'), panel = VL.$('#panel');
   var tip = VL.$('#tip'), legendEl = VL.$('#legend'), statusEl = VL.$('#status');
   var params = VL.params();
-  /* lang: 'both' = the paper's "Vietnamese · English" call-outs and legend (default), or one language */
+  /* the labels follow the global language mode (VL.lang()); there is no per-view label language */
   var state = {
     ds: params.ds === 'full' || params.ds === 'lite' ? params.ds : (VL.isMobile() ? 'lite' : 'full'),
-    colorBy: 'validity', hops: 1, lang: 'both', layers: true, sel: -1, legendOpen: !VL.isMobile(),
+    colorBy: 'validity', hops: 1, layers: true, sel: -1, legendOpen: !VL.isMobile(),
     edges: { replaced: true, amended: true, repealed: true, partially_repealed: true, partially_expired: true, basis: true, citation: null },
     y0: null, y1: null, yUnknown: true
   };
@@ -235,9 +238,12 @@
     camera.updateProjectionMatrix();
     updatePointScale();
     updateLabelSizes();
+    VL.fitLegend(stage, legendEl, statusEl);
     needsRender = true;
     scheduleCull();
   }
+  /* legend above the status line where the two would meet (js/paper3d.js); the call-outs avoid the legend */
+  function fitLegend() { if (VL.fitLegend(stage, legendEl, statusEl)) scheduleCull(); }
   function updatePointScale() {
     if (!pointsMat) return;
     pointsMat.uniforms.uScale.value = renderer.domElement.height / (2 * Math.tan(camera.fov * Math.PI / 360));
@@ -460,16 +466,16 @@
     });
   }
   function updateLabelSizes() { var w = worldPerPx(); labels.forEach(function (s) { s.fit(w); }); }
+  /* "Bậc 0 · Hiến pháp" over "Rank 0 · Constitution" (EN–VI), or one line in EN or VI; short names of the layers
+     (net.rank.N), the data's own names where the dictionary has none */
   function rankLabel(r) {
-    var rk = (D.net.ranks || [])[r] || {};
-    var short = { 0: ['Constitution', 'Hiến pháp'], 1: ['Codes, laws, NA resolutions', 'Bộ luật, luật, nghị quyết QH'], 2: ['Ordinances, NASC resolutions', 'Pháp lệnh, nghị quyết UBTVQH'],
-      3: ['Decrees, joint resolutions', 'Nghị định, nghị quyết liên tịch'], 4: ['Prime Minister decisions', 'Quyết định của Thủ tướng'], 5: ['Circulars, other decisions', 'Thông tư, quyết định khác'] }[r];
-    var en = 'Rank ' + r + ' · ' + (short ? short[0] : (rk.en || '')), vi = 'Hạng ' + r + ' · ' + (short ? short[1] : (rk.vi || rk.en || ''));
-    if (state.lang === 'both') return [[{ text: vi, color: P.ink }], [{ text: en, color: P.ink2 }]];
-    return [[{ text: state.lang === 'vi' ? vi : en, color: P.ink }]];
+    var rk = (D.net.ranks || [])[r] || {}, k = 'net.rank.' + r;
+    var name = VL.i18n.has(k) ? VL.kpair(k) : VL.pair(rk.vi || rk.en || '', rk.en || '');
+    return VL.paperTL('net.rank.label', { r: r, name: name }, P, { twoLines: true });
   }
   function buildLayerLabels() {
     clearLabels(false);
+    M.labelsLang = VL.lang();
     if (!state.layers) return;
     var E = D.extent * 1.06;
     for (var r = 0; r <= 5; r++) {
@@ -711,7 +717,8 @@
     var i0 = state.sel;
     if (i0 < 0) { scheduleCull(); return; }
     /* the selected document: its title over its number and year, like the paper's call-outs (pale gold = selected) */
-    var meta = (D.num[i0] || 'no number') + (D.year[i0] > 0 ? ' · ' + D.year[i0] : '');
+    var meta = (D.num[i0] || VL.T('net.noNumber')) + (D.year[i0] > 0 ? ' · ' + D.year[i0] : '');
+    M.labelsLang = VL.lang();
     var main = D.title[i0] ? [[{ text: VL.short(D.title[i0], 46), color: P.ink }], [{ text: meta, color: P.ink2 }]] : [[{ text: meta, color: P.ink }]];
     docLabel(i0, main, { px: 25, pri: 1000, sel: true, must: true });
     chainIdx.forEach(function (j) { if (j !== i0) docLabel(j, docLines(j), { px: 21, pri: 900, must: true }); });
@@ -825,8 +832,8 @@
         setHover(i);
         if (i < 0) { tip.classList.add('hidden'); return; }
         var t = D.net.types[D.type[i]] || {}, v = VL.VALIDITY[D.net.validity[D.validity[i]]] || VL.VALIDITY.unknown;
-        tip.innerHTML = '<b>' + VL.esc(D.num[i] || '–') + '</b> ' + VL.esc(VL.short(D.title[i], 60)) +
-          '<div class="t-sub">' + VL.esc(t.en || '') + (D.year[i] > 0 ? ' · ' + D.year[i] : '') + ' · ' + VL.esc(v.en) + '</div>';
+        tip.innerHTML = '<b>' + VL.esc(D.num[i] || '–') + '</b> <span lang="vi">' + VL.esc(VL.short(D.title[i], 60)) + '</span>' +
+          '<div class="t-sub">' + VL.UH(VL.pair(t.vi, t.en)) + (D.year[i] > 0 ? ' · ' + D.year[i] : '') + ' · ' + VL.UH(v) + '</div>';
         tip.classList.remove('hidden');
         var hr = stage.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
         var lx = Math.min(hr.width - tw - 8, x - hr.left + 14), ly = y - hr.top + 14;
@@ -857,42 +864,63 @@
     if (shards[key]) return Promise.resolve(shards[key]);
     return VL.loadScript('data/' + key + '.js').then(function () { shards[key] = window.VLONTO[key]; return shards[key]; });
   }
+  /* document titles are Vietnamese data: on a page in English their element says lang="vi" (and UI text inside it says
+     the page language again) */
+  var VI_TEXT = /[àáâãèéêìíòóôõùúýăđĩũơưạ-ỹ]/i;
+  function viAttr(s) { return VL.i18n.htmlLang() !== 'vi' && VI_TEXT.test(String(s || '')) ? ' lang="vi"' : ''; }
+  function pageLangAttr() { var l = VL.i18n.htmlLang(); return l !== 'vi' ? ' lang="' + l + '"' : ''; }
   function docChip(fi) {
     var id = String(DL.ids[fi]), i = D.idx[id];
     var v = VL.VALIDITY[DL.validity_names[DL.validity[fi]]] || VL.VALIDITY.unknown;
     var label = DL.numbers[fi] || VL.short(DL.titles[fi], 34);
     var title = VL.esc((DL.numbers[fi] ? DL.numbers[fi] + ' · ' : '') + DL.titles[fi] + (DL.year[fi] > 0 ? ' (' + DL.year[fi] + ')' : ''));
-    return '<button type="button" class="linkish" data-doc="' + VL.esc(id) + '" title="' + title + '"><span class="swatch" style="background:' + v.v + '"></span>' + VL.esc(label) +
-      (i == null ? ' <span class="muted-small">(full)</span>' : '') + '</button>';
+    var la = viAttr(DL.titles[fi]);
+    return '<button type="button" class="linkish" data-doc="' + VL.esc(id) + '" title="' + title + '"' + la + '><span class="swatch" style="background:' + v.v + '"></span>' + VL.esc(label) +
+      (i == null ? ' <span class="muted-small"' + (la ? pageLangAttr() : '') + '>' + VL.UH('net.chip.full') + '</span>' : '') + '</button>';
   }
   function chipList(list, max) {
     max = max || 12;
     var h = '<div class="chip-list">' + list.slice(0, max).map(docChip).join('') + '</div>';
-    if (list.length > max) h += '<p class="muted-small">and ' + VL.fmt(list.length - max) + ' more</p>';
+    if (list.length > max) h += '<p class="muted-small">' + VL.UH('net.more', { n: VL.fmt(list.length - max) }) + '</p>';
     return h;
   }
   function chainHtml(fi) {
     var chain = replacementChain(fi);
     if (!chain) return '';
     var items = chain.map(function (x) {
-      var lab = (DL.numbers[x] || VL.short(DL.titles[x], 24)) + (DL.year[x] > 0 ? ' (' + DL.year[x] + ')' : '');
-      return x === fi ? '<span class="cur">' + VL.esc(lab) + '</span>' : '<button type="button" class="linkish" data-doc="' + VL.esc(String(DL.ids[x])) + '">' + VL.esc(lab) + '</button>';
+      var lab = (DL.numbers[x] || VL.short(DL.titles[x], 24)) + (DL.year[x] > 0 ? ' (' + DL.year[x] + ')' : ''), la = viAttr(lab);
+      return x === fi ? '<span class="cur"' + la + '>' + VL.esc(lab) + '</span>' : '<button type="button" class="linkish" data-doc="' + VL.esc(String(DL.ids[x])) + '"' + la + '>' + VL.esc(lab) + '</button>';
     });
-    return '<h3>Replacement chain</h3><div class="chain">' + items.join('<span class="arrow" aria-hidden="true">→</span>') + '</div>';
+    return '<h3>' + VL.UH('net.chain') + '</h3><div class="chain">' + items.join('<span class="arrow" aria-hidden="true">→</span>') + '</div>';
   }
+  /* panel helpers: a field label (one language), a control's Vietnamese tooltip in EN–VI, a count that picks the
+     singular of the English (en_one) */
+  function dt(k, vars) { return '<dt>' + VL.UH(k, vars) + '</dt>'; }
+  /* which evidence set the validity (pipeline/validity.py evidence_source): the code in English as in v1, a Vietnamese
+     description in VI */
+  var EVIDENCE = { status: 'net.ev.status', text: 'net.ev.text', 'status+text': 'net.ev.statusText', none: 'net.ev.none' };
+  function evidenceText(c) { return EVIDENCE[c] ? VL.U(EVIDENCE[c]) : c; }
+  function tipAttr(k, vars) { var t = VL.tip(k, vars); return t ? ' title="' + VL.esc(t) + '"' : ''; }
+  function nv(c) { return c === 1 ? 1 : VL.fmt(c); }
+  function actBtn(act, k) { return '<button class="btn btn-xs" type="button" data-act="' + act + '"' + tipAttr(k) + '>' + VL.UH(k) + '</button>'; }
   function validityBox(v, fi, row) {
     var V = VL.VALIDITY[v] || VL.VALIDITY.unknown;
     var asof = (window.VLONTO.site_meta && window.VLONTO.site_meta.validity_as_of) || '2026-11-08';
     var replacedBy = (DL.byAffected[fi] || []).filter(function (ci) { return DL.changes[ci][2] === 0 || DL.changes[ci][2] === 2; });
-    var by = replacedBy.length ? ' Replaced or repealed by ' + replacedBy.slice(0, 3).map(function (ci) { return '<button type="button" class="linkish" data-doc="' + VL.esc(String(DL.ids[DL.changes[ci][0]])) + '">' + VL.esc(DL.numbers[DL.changes[ci][0]] || 'a later act') + '</button>' + (DL.changes[ci][3] ? ' (from ' + VL.esc(DL.changes[ci][3]) + ')' : ''); }).join(', ') + '.' : '';
+    var list = replacedBy.slice(0, 3).map(function (ci) {
+      return '<button type="button" class="linkish" data-doc="' + VL.esc(String(DL.ids[DL.changes[ci][0]])) + '">' + VL.esc(DL.numbers[DL.changes[ci][0]] || VL.U('net.laterAct')) + '</button>' +
+        (DL.changes[ci][3] ? ' ' + VL.UH('net.fromDate', { date: DL.changes[ci][3] }) : '');
+    }).join(', ');
+    var by = replacedBy.length ? ' ' + VL.UH('net.replacedBy', null, { html: { list: list } }) : '';
+    function strong(k) { return '<strong>' + VL.UH(k) + '</strong>'; }
     var h;
-    if (v === 'superseded') h = '<div class="warn-scene" role="note"><strong>Superseded.</strong> An extracted change relation says this document was replaced or repealed; do not rely on it.' + by + '</div>';
-    else if (v === 'expired') h = '<div class="warn-scene" role="note"><strong>No longer in force</strong>' + (row && row[2] ? ' since ' + VL.esc(row[2]) : '') + ' according to the source.' + by + '</div>';
-    else if (v === 'not_applicable') h = '<div class="warn-scene" role="note"><strong>No longer applicable</strong> according to the source status.' + by + '</div>';
-    else if (v === 'not_yet_effective') h = '<div class="muted-scene" role="note"><strong>Not yet in force</strong>' + (row && row[1] ? '; effective from ' + VL.esc(row[1]) : '') + '.</div>';
-    else if (v === 'unknown') h = '<div class="muted-scene" role="note"><strong>Validity unknown.</strong> Neither a source status nor an extracted change relation is available. Check the source before relying on this document.</div>';
-    else h = '<div class="ok-scene" role="note"><strong>' + VL.esc(V.en.charAt(0).toUpperCase() + V.en.slice(1)) + '</strong> (derived, as of ' + VL.esc(asof) + ').' + (v !== 'in_force' ? ' Some provisions were amended; read the consolidated text at the source.' : '') + '</div>';
-    if (row && row[7]) h += '<div class="warn-scene" role="note">The source status says in force, but a later act’s text says it was superseded. Check manually.</div>';
+    if (v === 'superseded') h = '<div class="warn-scene" role="note">' + strong('net.v.superseded') + ' ' + VL.UH('net.v.supersededText') + by + '</div>';
+    else if (v === 'expired') h = '<div class="warn-scene" role="note">' + strong('net.v.expired') + (row && row[2] ? ' ' + VL.UH('net.v.since', { date: row[2] }) : '') + ' ' + VL.UH('net.v.perSource') + by + '</div>';
+    else if (v === 'not_applicable') h = '<div class="warn-scene" role="note">' + strong('net.v.notApplicable') + ' ' + VL.UH('net.v.perSourceStatus') + by + '</div>';
+    else if (v === 'not_yet_effective') h = '<div class="muted-scene" role="note">' + strong('net.v.notYet') + (row && row[1] ? VL.UH('net.v.effectiveFrom', { date: row[1] }) : '') + '.</div>';
+    else if (v === 'unknown') h = '<div class="muted-scene" role="note">' + strong('net.v.unknown') + ' ' + VL.UH('net.v.unknownText') + '</div>';
+    else h = '<div class="ok-scene" role="note"><strong>' + VL.esc(VL.cap(VL.U(V))) + '</strong> ' + VL.UH('net.v.derived', { date: asof }) + (v !== 'in_force' ? ' ' + VL.UH('net.v.amended') : '') + '</div>';
+    if (row && row[7]) h += '<div class="warn-scene" role="note">' + VL.UH('net.v.conflict') + '</div>';
     return h;
   }
   function changeGroups(fi, row, shard) {
@@ -901,11 +929,12 @@
     KINDS.forEach(function (k, ki) {
       var act = (DL.byActing[fi] || []).filter(function (ci) { return DL.changes[ci][2] === ki; });
       var aff = (DL.byAffected[fi] || []).filter(function (ci) { return DL.changes[ci][2] === ki; });
-      if (act.length) groups.push([VL.CHANGE[k].active, act.map(function (ci) { return DL.changes[ci][1]; }), null]);
-      if (aff.length) groups.push([VL.CHANGE[k].passive, aff.map(function (ci) { return DL.changes[ci][0]; }), aff]);
+      var C = VL.CHANGE[k];
+      if (act.length) groups.push([VL.pair(C.activeVi, C.active), act.map(function (ci) { return DL.changes[ci][1]; }), null]);
+      if (aff.length) groups.push([VL.pair(C.passiveVi, C.passive), aff.map(function (ci) { return DL.changes[ci][0]; }), aff]);
     });
     groups.forEach(function (g) {
-      h += '<h3>' + VL.esc(g[0]) + ' (' + g[1].length + ')</h3>' + chipList(g[1], 10);
+      h += '<h3>' + VL.UH(g[0]) + ' (' + VL.fmt(g[1].length) + ')</h3>' + chipList(g[1], 10);
       if (g[2] && shard) {
         var ev = g[2].slice(0, 2).map(function (ci) { return shard.evidence[String(ci)]; }).filter(Boolean);
         ev.forEach(function (e) { h += '<p class="evidence" lang="vi">“' + VL.esc(VL.short(e, 220)) + '”</p>'; });
@@ -913,57 +942,62 @@
     });
     return h;
   }
+  /* the document's details: field labels and sentences in one language, values (type, issuer, area, legal force,
+     validity) as pairs; the title and the source status stay as the source writes them (Vietnamese) */
+  var panelArgs = null;
   function docPanel(i, fi, sh) {
+    panelArgs = [i, fi, sh];
     var id = D.ids[i], t = D.net.types[D.type[i]] || {}, v = D.net.validity[D.validity[i]] || 'unknown', V = VL.VALIDITY[v] || VL.VALIDITY.unknown;
     var row = null;
     if (sh && fi != null) row = sh.rows[fi - sh.start];
-    var issuers = (row && row[5] && row[5].length ? row[5] : (D.issuer[i] >= 0 ? [D.issuer[i]] : [])).map(function (x) { var r = D.net.issuers[x]; return r ? (state.lang === 'vi' ? r[1] : r[2] + ' (' + r[1] + ')') : ''; }).filter(Boolean);
+    var issuers = (row && row[5] && row[5].length ? row[5] : (D.issuer[i] >= 0 ? [D.issuer[i]] : [])).map(function (x) { var r = D.net.issuers[x]; return r ? VL.TH(VL.pair(r[1], r[2])) : ''; }).filter(Boolean);
     var area = D.net.areas[D.area[i]];
     var rk = (D.net.ranks || [])[D.rank[i]] || {};
     var title = row && row[8] ? row[8] : D.title[i];
-    var h = '<button class="btn btn-xs panel-close" type="button" data-act="close" aria-label="Close details">' + VL.ICON.close + '</button>';
-    h += '<div class="panel-kind"><span class="badge"><span class="swatch" style="background:' + VL.typeVar(t.code) + '"></span>' + VL.esc(t.en || '') + ' · <span lang="vi">' + VL.esc(t.vi || '') + '</span></span>' +
-      '<span class="badge"><span class="swatch" style="background:' + V.v + '"></span>' + VL.esc(state.lang === 'vi' ? V.vi : V.en) + '</span></div>';
+    var tp = VL.pair(t.vi || '', t.en || '');
+    var h = '<button class="btn btn-xs panel-close" type="button" data-act="close" aria-label="' + VL.esc(VL.U('net.close')) + '"' + tipAttr('net.close') + '>' + VL.ICON.close + '</button>';
+    h += '<div class="panel-kind"><span class="badge"><span class="swatch" style="background:' + VL.typeVar(t.code) + '"></span>' + VL.TH(tp) + '</span>' +
+      '<span class="badge"><span class="swatch" style="background:' + V.v + '"></span>' + VL.TH(V) + '</span></div>';
     h += '<h2 lang="vi">' + VL.esc(title) + '</h2>';
-    h += '<p class="vi"><span class="nowrap">' + VL.esc(D.num[i] || 'no number') + '</span>' + (D.year[i] > 0 ? ' · ' + D.year[i] : '') + '</p>';
+    h += '<p class="vi"><span class="nowrap">' + (D.num[i] ? VL.esc(D.num[i]) : VL.TH('net.noNumber')) + '</span>' + (D.year[i] > 0 ? ' · ' + D.year[i] : '') + '</p>';
     h += '<dl class="kv">';
-    h += '<dt>Number</dt><dd class="mono nowrap">' + VL.esc(D.num[i] || '–') + '</dd>';
-    h += '<dt>Type</dt><dd>' + VL.esc(t.en || '–') + ' · <span lang="vi">' + VL.esc(t.vi || '') + '</span></dd>';
-    h += '<dt>Issuer</dt><dd>' + (issuers.length ? issuers.map(VL.esc).join('; ') : '–') + '</dd>';
-    h += '<dt>Area</dt><dd>' + (area ? VL.esc(area[2]) + ' · <span lang="vi">' + VL.esc(area[1]) + '</span>' : '–') + '</dd>';
-    h += '<dt>Legal force</dt><dd>Rank ' + D.rank[i] + ' · ' + VL.esc(rk.en || '') + '</dd>';
+    h += dt('net.k.number') + '<dd class="mono nowrap">' + VL.esc(D.num[i] || '–') + '</dd>';
+    h += dt('net.k.type') + '<dd>' + (t.en || t.vi ? VL.TH(tp) : '–') + '</dd>';
+    h += dt('net.k.issuer') + '<dd>' + (issuers.length ? issuers.join('; ') : '–') + '</dd>';
+    h += dt('net.k.area') + '<dd>' + (area ? VL.TH(VL.pair(area[1], area[2])) : '–') + '</dd>';
+    h += dt('net.k.force') + '<dd>' + VL.TH('net.rank.label', { r: D.rank[i], name: VL.pair(rk.vi || rk.en || '', rk.en || '') }) + '</dd>';
     if (row) {
-      h += '<dt>Issued</dt><dd class="nowrap">' + VL.esc(row[0] || '–') + '</dd>';
-      h += '<dt>In force from</dt><dd class="nowrap">' + VL.esc(row[1] || '–') + '</dd>';
-      if (row[2]) h += '<dt>No longer in force</dt><dd class="nowrap">' + VL.esc(row[2]) + '</dd>';
-      if (row[3]) h += '<dt>Source status</dt><dd lang="vi">' + VL.esc(row[3]) + '</dd>';
+      h += dt('net.k.issued') + '<dd class="nowrap">' + VL.esc(row[0] || '–') + '</dd>';
+      h += dt('net.k.inForceFrom') + '<dd class="nowrap">' + VL.esc(row[1] || '–') + '</dd>';
+      if (row[2]) h += dt('net.k.noLonger') + '<dd class="nowrap">' + VL.esc(row[2]) + '</dd>';
+      if (row[3]) h += dt('net.k.sourceStatus') + '<dd lang="vi">' + VL.esc(row[3]) + '</dd>';
     }
-    h += '<dt>Validity</dt><dd>' + VL.esc(V.en) + ' · <span lang="vi">' + VL.esc(V.vi) + '</span>' + (row && row[6] ? '<div class="muted-small">evidence: ' + VL.esc(row[6]) + '</div>' : '') + '</dd>';
+    h += dt('net.k.validity') + '<dd>' + VL.TH(V) + (row && row[6] ? '<div class="muted-small">' + VL.UH('net.k.evidence', { e: evidenceText(row[6]) }) + '</div>' : '') + '</dd>';
     h += '</dl>';
-    if (!DL || fi == null) return h + '<p class="muted-small">Loading details…</p>';
+    if (!DL || fi == null) return h + '<p class="muted-small">' + VL.UH('net.loadingDetails') + '</p>';
     h += validityBox(v, fi, row);
     h += chainHtml(fi);
     h += changeGroups(fi, row, sh);
     var bo = DL.basisOut[fi] || [];
-    if (bo.length) h += '<h3>Legal basis (' + bo.length + ')</h3>' + chipList(bo, 10);
+    if (bo.length) h += '<h3>' + VL.UH('net.h.basis', { n: VL.fmt(bo.length) }) + '</h3>' + chipList(bo, 10);
     var C = DL.counts;
-    h += '<h3>Links and use</h3><dl class="kv">' +
-      '<dt>Basis for</dt><dd>' + VL.fmt(C.basis_in[fi]) + ' documents</dd>' +
-      '<dt>Citations</dt><dd>cites ' + VL.fmt(C.cite_out[fi]) + ' · cited by ' + VL.fmt(C.cite_in[fi]) + ' documents</dd>' +
-      '<dt>Q&amp;As</dt><dd>' + VL.fmt(C.qa[fi]) + ' legal Q&amp;As cite it</dd>' +
-      '<dt>News</dt><dd>' + VL.fmt(C.news[fi]) + ' articles mention it</dd>' +
-      '<dt>Articles</dt><dd>' + VL.fmt(C.n_articles[fi]) + '</dd></dl>';
-    h += '<h3>Source and identifiers</h3><dl class="kv">';
+    h += '<h3>' + VL.UH('net.h.links') + '</h3><dl class="kv">' +
+      dt('net.k.basisFor') + '<dd>' + VL.UH('net.v.documents', { n: nv(C.basis_in[fi]) }) + '</dd>' +
+      dt('net.k.citations') + '<dd>' + VL.UH('net.v.citations', { a: VL.fmt(C.cite_out[fi]), b: VL.fmt(C.cite_in[fi]) }) + '</dd>' +
+      dt('net.k.qa') + '<dd>' + VL.UH('net.v.qa', { n: VL.fmt(C.qa[fi]) }) + '</dd>' +
+      dt('net.k.news') + '<dd>' + VL.UH('net.v.news', { n: VL.fmt(C.news[fi]) }) + '</dd>' +
+      dt('net.k.articles') + '<dd>' + VL.fmt(C.n_articles[fi]) + '</dd></dl>';
+    h += '<h3>' + VL.UH('net.h.source') + '</h3><dl class="kv">';
     if (row && row[4]) {
       var url = row[4].charAt(0) === '=' ? row[4].slice(1) : sh.url_prefix + row[4];
-      h += '<dt>Source</dt><dd><a href="' + VL.esc(url) + '" target="_blank" rel="noopener">Read the text at thuvienphapluat.vn</a></dd>';
+      h += dt('net.k.source') + '<dd><a href="' + VL.esc(url) + '" target="_blank" rel="noopener"' + tipAttr('net.readSource') + '>' + VL.UH('net.readSource') + '</a></dd>';
     }
     var iri = VL.NS.id + 'document/' + id;
     h += '<dt>IRI</dt><dd><span class="iri">' + VL.wbr(iri) + '</span></dd></dl>';
-    h += '<div class="panel-actions"><button class="btn btn-xs" type="button" data-act="focus">Focus</button>' +
-      '<button class="btn btn-xs" type="button" data-act="hops">' + (state.hops === 1 ? 'Show 2 hops' : 'Show 1 hop') + '</button>' +
-      '<button class="btn btn-xs" type="button" data-copy="' + VL.esc(iri) + '">Copy IRI</button>' +
-      (D.rank[i] <= 2 ? '<a class="btn btn-xs" href="sparql.html#q=' + encodeURIComponent('PREFIX vlo: <https://tmquan.github.io/VLOnto/ontology#>\nSELECT ?p ?o WHERE {\n  <' + iri + '> ?p ?o\n}') + '">Query in SPARQL</a>' : '') + '</div>';
+    h += '<div class="panel-actions">' + actBtn('focus', 'net.focus') + actBtn('hops', state.hops === 1 ? 'net.show2' : 'net.show1') +
+      '<button class="btn btn-xs" type="button" data-copy="' + VL.esc(iri) + '"' + tipAttr('net.copyIri') + '>' + VL.UH('net.copyIri') + '</button>' +
+      (D.rank[i] <= 2 ? '<a class="btn btn-xs" href="sparql.html#q=' + encodeURIComponent('PREFIX vlo: <https://tmquan.github.io/VLOnto/ontology#>\nSELECT ?p ?o WHERE {\n  <' + iri + '> ?p ?o\n}') + '"' + tipAttr('net.querySparql') + '>' +
+        VL.UH('net.querySparql') + '</a>' : '') + '</div>';
     return h;
   }
   function select(i, fly) {
@@ -1003,6 +1037,7 @@
     hoverIdx = -1;
     hoverLabel = null;
     M.hoverDoc = null;
+    panelArgs = null;
     clearLabels(true);
     closePanel();
     scheduleCull();
@@ -1035,15 +1070,21 @@
     id = String(id);
     if (D && D.idx[id] != null) { select(D.idx[id], true); return Promise.resolve(true); }
     if (D && D.name === 'lite') {
-      VL.toast('Not in the lite subset: loading the full network');
+      VL.toast(VL.U('net.toast.loadingFull'));
       return switchDataset('full').then(function () { if (D.idx[id] != null) { select(D.idx[id], true); return true; } return false; });
     }
-    VL.toast('Document ' + id + ' is not in the network');
+    VL.toast(VL.U('net.toast.notFound', { id: id }));
     return Promise.resolve(false);
   }
   window.VLApp.selectById = selectById;
   /* tests: hover a document (id, or null to end the hover) as the pointer would; returns the traced segments */
   window.VLApp.hoverDoc = function (id) { var i = id == null || !D ? -1 : D.idx[String(id)]; setHover(i == null ? -1 : i); return M.traceSegments; };
+  /* the camera (position and orbit target, rounded): tests check that a language switch keeps it */
+  function camState(cam, target) {
+    if (!cam || !target) return null;
+    return [cam.position.x, cam.position.y, cam.position.z, target.x, target.y, target.z].map(function (v) { return Math.round(v * 1000) / 1000; });
+  }
+  window.VLApp.camera = function () { return camera && controls ? camState(camera, controls.target) : null; };
   window.VLApp.state = function () {
     return { dataset: D && D.name, nodes: D && D.N, selected: state.sel >= 0 ? D.ids[state.sel] : null, panelOpen: !panel.classList.contains('hidden'),
       panelText: panel.textContent, egoHop1: M.egoHop1, labelsShown: M.labelsShown };
@@ -1065,7 +1106,7 @@
     res.sort(function (a, b) { return b[0] - a[0]; });
     return res.slice(0, 12).map(function (x) {
       var i = x[1], t = D.net.types[D.type[i]] || {}, v = VL.VALIDITY[D.net.validity[D.validity[i]]] || VL.VALIDITY.unknown;
-      return { i: i, main: D.num[i] || VL.short(D.title[i], 40), sub: VL.short(D.title[i], 64) + (D.year[i] > 0 ? ' · ' + D.year[i] : ''), kind: t.en || '', color: v.v };
+      return { i: i, main: D.num[i] || VL.short(D.title[i], 40), sub: VL.short(D.title[i], 64) + (D.year[i] > 0 ? ' · ' + D.year[i] : ''), kind: VL.U(VL.pair(t.vi, t.en)), color: v.v };
     });
   }
   function onPick(it) { select(it.i, true); if (VL.isMobile()) setSide(false); }
@@ -1087,15 +1128,6 @@
     if (state.sel >= 0) { computeEgo(); select(state.sel, false); }
   }
   VL.$$('[data-hops]').forEach(function (b) { b.addEventListener('click', function () { setHops(+b.getAttribute('data-hops')); }); });
-  VL.$$('button[data-lang]').forEach(function (b) {
-    b.addEventListener('click', function () {
-      state.lang = b.getAttribute('data-lang');
-      pressed('button[data-lang]', 'data-lang', state.lang);
-      buildLayerLabels();
-      if (state.sel >= 0) select(state.sel, false); else scheduleCull();
-      renderLegend();
-    });
-  });
   VL.$('#show-layers').addEventListener('change', function (e) {
     state.layers = e.target.checked;
     layerGroup.visible = state.layers;
@@ -1107,11 +1139,10 @@
      citation links of the knowledge graph, which are recorded at document and article level. */
   function citationNote() {
     var kg = ((window.VLONTO || {}).site_meta || {}).kg_counts || {}, eo = edgeObjs.citation;
-    var s = 'Citation lines join a citing and a cited document once per pair' + (eo ? ' (' + VL.fmt(eo.m) + ' pairs in this view)' : '') + '.';
+    var s = VL.U('net.citeNote.pairs') + (eo ? VL.U('net.citeNote.view', { n: VL.fmt(eo.m) }) : '') + '.';
     if (kg.citation_links) {
-      s += ' The knowledge graph records ' + VL.fmt(kg.citation_links) + ' citation links' +
-        (kg.citation_links_article_level ? ', ' + VL.fmt(kg.citation_links_article_level) + ' of them to a specific article' : '') +
-        '; links between the same two documents count as one pair here.';
+      s += VL.U('net.citeNote.kg', { n: VL.fmt(kg.citation_links) }) +
+        (kg.citation_links_article_level ? VL.U('net.citeNote.article', { n: VL.fmt(kg.citation_links_article_level) }) : '') + VL.U('net.citeNote.end');
     }
     return s;
   }
@@ -1127,10 +1158,12 @@
     var host2 = VL.$('#edge-toggles');
     var h = EDGE_KEYS.map(function (k) {
       var lab = k === 'basis' ? VL.EDGE.basis : k === 'citation' ? VL.EDGE.citation : VL.CHANGE[k];
-      var eo = edgeObjs[k], tip = k === 'citation' ? ' title="' + VL.esc(citationNote()) + '"' : '';
+      /* a control: one language, the Vietnamese as its tooltip in EN–VI (the citation toggle keeps its note instead) */
+      var name = VL.pair(lab.vi, lab.en), vt = VL.tip(name);
+      var eo = edgeObjs[k], tip = k === 'citation' ? ' title="' + VL.esc(citationNote()) + '"' : (vt ? ' title="' + VL.esc(vt) + '"' : '');
       return '<label class="check"' + tip + '><input type="checkbox" data-edge="' + k + '"' + (state.edges[k] ? ' checked' : '') + '>' +
-        curveSwatch(edgeColor(k)) + '<span class="lbl">' + VL.esc(lab.en) +
-        (lab.qual ? ' <span class="qual">(' + VL.esc(lab.qual) + ')</span>' : '') + '</span><span class="count">' + (eo ? VL.fmt(eo.m) : '') + '</span></label>';
+        curveSwatch(edgeColor(k)) + '<span class="lbl">' + VL.UH(name) +
+        (lab.qual ? ' <span class="qual">(' + VL.UH(VL.pair(lab.qualVi, lab.qual)) + ')</span>' : '') + '</span><span class="count">' + (eo ? VL.fmt(eo.m) : '') + '</span></label>';
     }).join('');
     host2.innerHTML = h + '<p class="side-note" id="citation-note">' + VL.esc(citationNote()) + '</p>';
   }
@@ -1171,7 +1204,7 @@
   VL.$('#btn-legend').addEventListener('click', function () { state.legendOpen = !state.legendOpen; renderLegend(); scheduleCull(); });
   VL.$('#btn-png').addEventListener('click', function () {
     renderer.render(scene, camera);
-    renderer.domElement.toBlob(function (b) { VL.downloadBlob(b, 'vlonto-legal-network-3d.png'); VL.toast('PNG exported'); }, 'image/png');
+    renderer.domElement.toBlob(function (b) { VL.downloadBlob(b, 'vlonto-legal-network-3d.png'); VL.toast(VL.U('net.toast.png')); }, 'image/png');
   });
   function resetView() { clearSelection(); fitAll(800); }
   host.addEventListener('keydown', function (e) {
@@ -1195,14 +1228,10 @@
   function renderLegend() {
     VL.$('#btn-legend').setAttribute('aria-expanded', state.legendOpen ? 'true' : 'false');
     legendEl.classList.toggle('hidden', !state.legendOpen);
-    if (!state.legendOpen || !D) return;
-    /* entries as in the paper's legend: "Vietnamese · English" (or the chosen language), shortened per part */
-    function bi(vi, en) {
-      vi = VL.cap(VL.short(vi || en || '', 26)); en = VL.cap(VL.short(en || vi || '', 24));
-      if (state.lang === 'vi') return VL.esc(vi);
-      if (state.lang === 'en') return VL.esc(en);
-      return '<span lang="vi">' + VL.esc(vi) + '</span> · ' + VL.esc(en);
-    }
+    if (!state.legendOpen || !D) { fitLegend(); return; }
+    /* entries as in the paper's legend: "Tiếng Việt · English" in EN–VI, one language in EN or VI, each part shortened */
+    function bi(vi, en) { return VL.TH(VL.pair(VL.cap(VL.short(vi || '', 26)), VL.cap(VL.short(en || '', 24)))); }
+    function biKey(k) { var e = VL.i18n.get(k) || { vi: '', en: k }; return bi(e.vi, e.en); }
     var items = [], cnt = {};
     if (state.colorBy === 'validity') {
       for (var i = 0; i < D.N; i++) cnt[D.validity[i]] = (cnt[D.validity[i]] || 0) + 1;
@@ -1219,20 +1248,21 @@
       var nA = TH.areas.length;
       order.slice(0, nA).forEach(function (x) { var ar = D.net.areas[+x]; items.push([areaColor(+x), ar ? ar[1] : x, ar ? ar[2] : x, cnt[x]]); });
       var rest = order.slice(nA).reduce(function (s, x) { return s + cnt[x]; }, 0);
-      if (rest) items.push([TH.areaOther, 'lĩnh vực khác', 'other areas', rest]);
-      if (cnt[-1]) items.push([TH.areaNone, 'chưa có lĩnh vực', 'no area', cnt[-1]]);
+      var oa = VL.i18n.get('net.lg.otherAreas') || {}, na = VL.i18n.get('net.lg.noArea') || {};
+      if (rest) items.push([TH.areaOther, oa.vi, oa.en, rest]);
+      if (cnt[-1]) items.push([TH.areaNone, na.vi, na.en, cnt[-1]]);
     }
-    var title = { validity: ['Hiệu lực', 'Validity'], type: ['Loại văn bản', 'Document type'], area: ['Lĩnh vực', 'Legal area'] }[state.colorBy];
-    var h = '<h3>' + bi(title[0], title[1]) + '</h3><ul>' + items.map(function (it) {
+    var h = '<h3>' + biKey({ validity: 'net.lg.validity', type: 'net.lg.type', area: 'net.lg.area' }[state.colorBy]) + '</h3><ul>' + items.map(function (it) {
       return '<li><span class="swatch" style="background:' + it[0] + '"></span>' + bi(it[1], it[2]) + '</li>';
     }).join('') + '</ul>';
     var ek = enabledKinds();
     h += '<div class="legend-sub"><ul>' + ek.map(function (k) {
       var lab = k === 'basis' ? VL.EDGE.basis : k === 'citation' ? VL.EDGE.citation : VL.CHANGE[k];
       return '<li>' + curveSwatch(edgeColor(k)) + bi(lab.vi, lab.en) + '</li>';
-    }).join('') + '<li>' + curveSwatch(null) + bi('đường truy vết', 'traced chain, hovered link') + '</li></ul></div>';
+    }).join('') + '<li>' + curveSwatch(null) + biKey('net.lg.trace') + '</li></ul></div>';
     legendEl.innerHTML = h;
     M.legendEntries = VL.$$('li', legendEl).length;
+    fitLegend();
   }
   /* ------------------------------------------------------------------ theme switch (light / dark): clear colour, point
      fade colour, node colours, edges (rebuilt with the theme palette and opacity), layer planes and every label sprite;
@@ -1265,10 +1295,54 @@
   function status() {
     if (!D) return;
     var e = EDGE_KEYS.reduce(function (s, k) { return s + (state.edges[k] && edgeObjs[k] ? (edgeObjs[k].shown || 0) : 0); }, 0);
-    statusEl.textContent = VL.fmt(D.visibleCount) + ' documents · ' + VL.fmt(e) + ' links shown' + (M.fps ? ' · ' + M.fps + ' fps' : '');
-    VL.$('#ds-note').textContent = D.name === 'lite' ? 'Lite: all documents of legal-force rank 0–2 plus the most connected ones (' + VL.fmt(D.N) + ').' :
-      'Full: all ' + VL.fmt(D.N) + ' documents. Citation links are off by default for speed.';
+    statusEl.textContent = VL.U('net.status', { docs: VL.fmt(D.visibleCount), links: VL.fmt(e) }) + (M.fps ? ' · ' + VL.fmt(M.fps) + ' fps' : '');
+    fitLegend();
+    VL.$('#ds-note').textContent = VL.U(D.name === 'lite' ? 'net.ds.lite' : 'net.ds.full', { n: VL.fmt(D.N) });
   }
+
+  /* ------------------------------------------------------------------ the page's own text that the declarative
+     attributes cannot hold (numbers in the mode's format, markup inside a sentence): dataset buttons, hint, paper line,
+     canvas role description, meta description */
+  var LITE_N = 6000;   // size of the lite subset (data/legal_network_lite.js: rank 0–2 plus the most connected documents)
+  function dsCount(name) {
+    var V = window.VLONTO || {}, key = name === 'full' ? 'legal_network' : 'legal_network_lite';
+    if (V[key] && V[key].nodes) return V[key].nodes.length;
+    return name === 'full' ? (((V.site_meta || {}).kg_counts || {}).documents || null) : LITE_N;
+  }
+  function renderStatic() {
+    VL.$$('[data-ds]').forEach(function (b) {
+      var ds = b.getAttribute('data-ds'), k = 'net.dataset.' + ds, vars = { n: VL.fmt(dsCount(ds)) }, t = VL.tip(k, vars);
+      b.textContent = VL.U(k, vars);
+      if (t) b.setAttribute('title', t); else b.removeAttribute('title');
+    });
+    var md = document.querySelector('meta[name="description"]');
+    if (md) md.setAttribute('content', VL.U('net.page.description', { n: VL.fmt(dsCount('full')) }));
+    var hb = VL.$('#hint-body');
+    if (hb) hb.innerHTML = VL.UH('net.hint.body', null, { html: { act: '<span class="desk-only">' + VL.UH('net.hint.click') + '</span><span class="touch-only">' +
+      VL.UH('net.hint.tap') + '</span>', num: '<span class="nowrap">45/2019/QH14</span>' } });
+    var pp = VL.$('#net-paper');
+    if (pp) pp.innerHTML = VL.UH('net.paper', { release: VL.releaseLabel() }, { html: { title: '<a href="' + VL.esc(VL.PAPER.url) +
+      '" target="_blank" rel="noopener" data-paper-link="side" lang="en">' + VL.esc(VL.PAPER.title) + '</a>' } });
+    host.setAttribute('aria-roledescription', VL.U('net.canvas.role'));
+  }
+  renderStatic();
+  /* language switch (js/i18n.js 'vl:lang'): layer and node call-outs, legend, link toggles, status lines, the open
+     panel and the page's own text are rebuilt in the new mode, then the call-outs are placed again; the camera, the
+     filters, the selection and the hovered neighbour stay */
+  function applyLang() {
+    renderStatic();
+    tip.classList.add('hidden');
+    M.langRenders = (M.langRenders || 0) + 1;
+    if (!D || !renderer || !pointsObj) { M.labelsLang = VL.lang(); return; }
+    buildLayerLabels();
+    if (state.sel >= 0) egoLabels(); else scheduleCull();
+    renderEdgeToggles();
+    renderLegend();
+    status();
+    if (panelArgs && state.sel >= 0 && !panel.classList.contains('hidden')) openPanel(docPanel(panelArgs[0], panelArgs[1], panelArgs[2]), true);
+    needsRender = true;
+  }
+  document.addEventListener('vl:lang', applyLang);
 
   /* ------------------------------------------------------------------ dataset switching + start */
   function switchDataset(name) {
@@ -1277,7 +1351,7 @@
       veil = VL.el('div', { 'class': 'loading-veil', id: 'veil' }, '<div><div class="spin"></div><span id="veil-text"></span></div>');
       stage.appendChild(veil);
     }
-    VL.$('#veil-text').textContent = name === 'full' ? 'Loading all 40,816 documents…' : 'Loading 6,000 documents…';
+    VL.$('#veil-text').textContent = name === 'full' ? VL.U('net.loadingAll', { n: VL.fmt(dsCount('full')) }) : VL.U('net.loadingN', { n: VL.fmt(dsCount('lite')) });
     var keepSel = state.sel >= 0 && D ? D.ids[state.sel] : null;
     clearSelection();
     var t0 = performance.now();
@@ -1330,7 +1404,7 @@
   }).catch(function (e) {
     console.error(e);
     var v = VL.$('#veil-text');
-    if (v) v.textContent = 'Could not load the network: ' + (e && e.message);
+    if (v) v.textContent = VL.U('net.loadError', { msg: e && e.message });
   });
   window.addEventListener('hashchange', function () { var p = VL.params(); if (p.doc) selectById(p.doc); });
 })();
