@@ -21,10 +21,11 @@
   function render() {
     var traces = document.body.classList.contains('page-traces'), canvas = document.getElementById('canvas-host');
     if (!traces) {
-      set('play-hint-desk', VL.UH('play.hint.desk', null, { html: { key: '<kbd>/</kbd>' } }));
-      /* classes the paper names, as the playground draws them: Văn bản · Work, Điều · Article, Thuật ngữ · Term */
-      var ex = ['work', 'article', 'term'].map(function (k) { var c = VL.PAPER_CLASS[k]; return VL.TH(VL.pair(c.vi, c.en)); }).join(', ');
-      set('play-about', VL.UH('play.about.text', null, { html: { examples: ex,
+      set('play-hint-desk', VL.UH('o3d.hint.desk', null, { html: { key: '<kbd>/</kbd>' } }));
+      /* the external vocabularies of the release as the playground found them in the data (js/ontology3d.js
+         VL.playVocabs: ELI, SKOS, PROV-O, ORG, schema.org in v1) */
+      var vocabs = (VL.playVocabs && VL.playVocabs.length ? VL.playVocabs : ['ELI', 'SKOS', 'PROV-O', 'ORG', 'schema.org']).map(esc).join(', ');
+      set('play-about', VL.UH('o3d.about.text', null, { html: { vocabs: '<span' + langAttr('en') + '>' + vocabs + '</span>',
         link: '<a href="ontology.html">' + esc(VL.U('play.ontologyPage')) + '</a>' } }));
       if (canvas) canvas.setAttribute('aria-roledescription', VL.U('play.canvas.role'));
     } else {
