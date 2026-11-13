@@ -15,7 +15,11 @@
      (js/trace-draw.js, the build-time drawing in the area file).
    Points and lines follow js/network3d.js (custom point shader with soft pastel spheres, LineSegments, depth fade,
    render on demand); paper3d.js, labels3d.js and common.js are used as they are.
-   window.__VLONTO_METRICS.traces and .callouts, and window.VLApp.traces, serve the interaction tests. */
+   window.__VLONTO_METRICS.traces and .callouts, and window.VLApp.traces, serve the interaction tests.
+   Text follows the language mode of js/i18n.js (docs/i18n.md; dictionary js/i18n-3d.js, keys tr3d.*): EN shows the
+   questions' English glosses, VI the Vietnamese titles, EN–VI both (as in v1); tabs, list, hop panel, node panel,
+   legend, call-outs and status lines likewise. A mode change ('vl:lang') renders them again in place and keeps the
+   area, the selected trace, the camera, the open panel and the list's scroll and focus. */
 (function () {
   'use strict';
   var VL = window.VL, M = window.__VLONTO_METRICS, TD = VL.TraceDraw;
@@ -26,16 +30,25 @@
   var T = M.traces = { available: false, tabs: 0, area: null, loaded: [], selected: null, traceSegments: 0, hops: 0, listItems: 0,
     renders: 0, frames: 0, errors: [], webgl: null, fallback: false, flights: 0, themeRenders: 0 };
   var esc = VL.esc, fmt = VL.fmt;
+  /* a count that picks the English singular (en_one) */
+  function nv(c) { return c === 1 ? 1 : fmt(c); }
+  function tipAttr(k, vars) { var t = VL.tip(k, vars); return t ? ' title="' + esc(t) + '"' : ''; }
   var app = VL.$('#app'), stage = VL.$('#stage'), host = VL.$('#canvas-host'), panel = VL.$('#panel'), tip = VL.$('#tip');
   var legendEl = VL.$('#legend'), statusEl = VL.$('#status'), tabsEl = VL.$('#tr-tabs'), listEl = VL.$('#tr-list');
   var fbEl = VL.$('#tr-fallback'), veil = VL.$('#veil');
   var EXT = VL.ICON.external;
-  function f2(x) { return x == null ? '–' : Number(x).toFixed(2); }
+  /* a match score with two decimals, in the mode's number format (0.92; 0,92 in VI) */
+  function f2(x) {
+    if (x == null) return '–';
+    var dec = '.';
+    try { (VL.numberFormat().formatToParts(1.5) || []).forEach(function (p) { if (p.type === 'decimal') dec = p.value; }); } catch (e) { /* old engines */ }
+    return Number(x).toFixed(2).replace('.', dec);
+  }
   /* a link that opens in a new tab; the note for screen readers sits one level inside the visually hidden span, so it
      is clipped by its 1 px parent for every measuring tool too */
   function ext(href, text, sr) {
     return '<a href="' + esc(href) + '" target="_blank" rel="noopener">' + text + EXT + '<span class="sr-only"><span> (' +
-      esc(sr || 'opens in a new tab') + ')</span></span></a>';
+      esc(sr || VL.U('tr3d.newTab')) + ')</span></span></a>';
   }
   function hideVeil() { if (veil) veil.classList.add('hidden'); }
 
@@ -54,13 +67,12 @@
   AREAS.forEach(function (a, i) { BY[a.id] = a; AIX[a.id] = i; });
   T.tabs = AREAS.length;
 
-  (function revisions() {
+  function renderRevs() {
     var r = IDX.source_revisions || {};
-    var revs = Object.keys(r).map(function (k) { return esc(k.replace('tmquan/', '')) + ' @' + esc(String(r[k]).slice(0, 10)); }).join(', ');
-    VL.$('#tr-revs').innerHTML = 'Data: question traces of ' + esc(VL.releaseLabel()) + ', built ' + esc(IDX.generated || '') +
-      ' from the Hugging Face datasets ' + revs + '. <span class="vi" lang="vi">Dữ liệu: truy vết câu hỏi của ' + esc(VL.releaseLabel()) +
-      ', tạo ngày ' + esc(IDX.generated || '') + '.</span>';
-  })();
+    var revs = Object.keys(r).map(function (k) { return k.replace('tmquan/', '') + ' @' + String(r[k]).slice(0, 10); }).join(', ');
+    VL.$('#tr-revs').innerHTML = VL.UH('tr3d.revs', { release: VL.releaseLabel(), date: IDX.generated || '', revs: revs });
+  }
+  renderRevs();
 
   /* ------------------------------------------------------------------ theme */
   var P = {}, TH = {};
@@ -73,11 +85,17 @@
   readTheme();
 
   /* ------------------------------------------------------------------ tabs */
+  /* a tab: EN–VI the area's Vietnamese and English names (v1), EN or VI one name; the number of Q&As in the mode's format */
+  function areaPair(a) { return VL.pair(a.label_vi, a.label_en); }
+  function tabInner(a) {
+    var name = VL.lang() === 'envi' ? '<span lang="vi">' + esc(a.label_vi) + '</span><span class="sep" aria-hidden="true">·</span><span>' + esc(a.label_en) + '</span>'
+      : '<span>' + VL.UH(areaPair(a)) + '</span>';
+    return name + '<span class="n">' + fmt(a.n_qas) + '</span>';
+  }
+  function tabAria(a) { return VL.U('tr3d.tab.aria', { name: VL.T(areaPair(a)), n: fmt(a.n_qas) }); }
   tabsEl.innerHTML = AREAS.map(function (a) {
     return '<button type="button" role="tab" id="tr-tab-' + a.id + '" aria-controls="tr-panel" aria-selected="false" tabindex="-1" data-area="' + a.id + '"' +
-      ' aria-label="' + esc(a.label_vi + ' · ' + a.label_en + ', ' + fmt(a.n_qas) + ' Q&As') + '">' +
-      '<span lang="vi">' + esc(a.label_vi) + '</span><span class="sep" aria-hidden="true">·</span><span>' + esc(a.label_en) + '</span>' +
-      '<span class="n">' + fmt(a.n_qas) + '</span></button>';
+      ' aria-label="' + esc(tabAria(a)) + '">' + tabInner(a) + '</button>';
   }).join('');
   var TABS = VL.$$('[role="tab"]', tabsEl);
   tabsEl.addEventListener('click', function (e) {
@@ -120,16 +138,14 @@
   function cname(i) { return CNAME[CLS[i]]; }
   function ptOf(i) { return { x: POS[3 * i], y: POS[3 * i + 1], z: POS[3 * i + 2] }; }
   function num(i) { return String(G.i[i]).split(':').pop(); }
-  /* bilingual name of a node: questions, answers and other answers by id (their titles are not in the graph) */
+  /* [Vietnamese, English] name of a node: questions, answers and other answers by id (their titles are not in the graph) */
   function names(i) {
-    var c = cname(i);
-    if (c === 'question') return ['Câu hỏi #' + num(i), 'Question #' + num(i)];
-    if (c === 'answer') return ['Trả lời #' + num(i), 'Answer #' + num(i)];
-    if (c === 'other_question') return ['Câu hỏi khác #' + num(i), 'Other question #' + num(i)];
+    var c = cname(i), k = { question: 'tr3d.name.question', answer: 'tr3d.name.answer', other_question: 'tr3d.name.otherQuestion' }[c];
+    if (k) { var p = VL.kpair(k, { n: num(i) }); return [p.vi, p.en]; }
     return [G.vi[i] || G.i[i], G.en[i] || G.vi[i] || G.i[i]];
   }
   function classNames(c) {
-    if (c === 'other_question') return ['Câu hỏi khác', 'Other question'];
+    if (c === 'other_question') { var p = VL.kpair('tr3d.cls.otherQuestion'); return [p.vi, p.en]; }
     var k = VL.PAPER_CLASS[c];
     return k ? [k.vi, k.en] : [c, c];
   }
@@ -583,16 +599,19 @@
   function updateLabelSizes() { if (!camera) return; var w = worldPerPx(); labels.forEach(function (s) { s.fit(w); }); }
   /* call-out text: Vietnamese · English, long names shortened (the full name is in the panel and the tooltip) */
   var LBL = mobile ? { vi: 34, en: 38, one: 24, px: 18, pxSel: 19, qvi: 36, qen: 40 } : { vi: 48, en: 52, one: 30, px: 22, pxSel: 23, qvi: 46, qen: 50 };
+  /* call-out lines in the language mode (js/paper3d.js VL.paperLines): EN–VI "Tiếng Việt · English" (on one line when
+     short), EN or VI one line */
   function bi(i, prefix) {
     var n = names(i), vi = VL.short(prefix ? prefix[0] + n[0] : n[0], LBL.vi), en = n[1] ? VL.short(prefix ? prefix[1] + n[1] : n[1], LBL.en) : '';
     return VL.paperLines(vi, en, P, { oneLine: LBL.one });
   }
+  /* the question: EN–VI its Vietnamese title over the English gloss (as in v1), EN the gloss, VI the title */
   function questionLines(t) {
     var d = AD[AREAS[t.a].id], tr = d && d[t.r];
     if (!tr) return bi(t.co[0]);
-    return [[{ text: VL.short(tr.qa.vi, LBL.qvi), color: P.ink }], [{ text: VL.short(tr.qa.en, LBL.qen), color: P.ink2 }]];
+    return VL.paperLines(VL.short(tr.qa.vi, LBL.qvi), VL.short(tr.qa.en || '', LBL.qen), P, { twoLines: true });
   }
-  function areaLines(i) { return bi(i, ['Lĩnh vực: ', 'Area: ']); }
+  function areaLines(i) { var p = VL.kpair('tr3d.area'); return bi(i, [p.vi, p.en]); }
   /* the call-outs of the current view: the selected trace's question, provision, law, term and area (all must); with
      an area open, its area and its most-cited laws; else the areas */
   function buildLabels() {
@@ -623,6 +642,7 @@
       for (var j = 0; j < N; j++) if (cname(j) === 'area') makeLabel(areaLines(j), { id: G.i[j], node: j, pri: 300, px: LBL.px - 1 });
     }
     T.labels = labels.length;
+    M.labelsLang = VL.lang();
     scheduleCallouts();
   }
   function calloutItems() {
@@ -669,25 +689,33 @@
   }
 
   /* ------------------------------------------------------------------ the area list */
+  /* the law of a list entry in one language (EN and EN–VI English, as in v1; VI Vietnamese), with its number */
   function lawShort(law) {
-    var en = law.en || law.vi || '';
-    return en.indexOf(law.number) >= 0 || !law.number ? en : en + ' · ' + law.number;
+    var name = VL.U(VL.pair(law.vi || '', law.en || ''));
+    return name.indexOf(law.number) >= 0 || !law.number ? name : name + ' · ' + law.number;
   }
   function verdictBadge(tr) {
-    return tr.verified ? '<span class="tr-badge ok">✓ <span lang="vi">kiểm chứng</span> · verified ' + f2(tr.match) + '</span>'
-      : '<span class="tr-badge st"><span lang="vi">cấu trúc</span> · structural ' + f2(tr.match) + '</span>';
+    return tr.verified ? '<span class="tr-badge ok">✓ ' + VL.TH('tr3d.badge.verified') + ' ' + f2(tr.match) + '</span>'
+      : '<span class="tr-badge st">' + VL.TH('tr3d.badge.structural') + ' ' + f2(tr.match) + '</span>';
+  }
+  /* a question: EN–VI the Vietnamese title (q class) over its English gloss (g class), EN the gloss alone, VI the title
+     alone; tag = span or p */
+  function qHtml(qa, tag, cq, cg) {
+    var mode = VL.lang(), o = '<' + tag + ' class="', c = '</' + tag + '>';
+    if (mode === 'en') return o + cq + '"' + (qa.en ? '' : ' lang="vi"') + '>' + esc(qa.en || qa.vi) + c;
+    if (mode === 'vi') return o + cq + '" lang="vi">' + esc(qa.vi) + c;
+    return o + cq + '" lang="vi">' + esc(qa.vi) + c + (qa.en ? o + cg + '">' + esc(qa.en) + c : '');
   }
   function renderList(a, data) {
     var t0 = performance.now();
-    VL.$('#tr-area-title').innerHTML = '<span lang="vi">' + esc(a.label_vi) + '</span> · <span class="en">' + esc(a.label_en) + '</span>';
+    VL.$('#tr-area-title').innerHTML = VL.TH(areaPair(a));
     var ver = data.traces.filter(function (t) { return t.verified; }).length;
-    VL.$('#tr-area-note').textContent = fmt(a.n_qas) + ' Q&As in the area · the ' + data.traces.length + ' most-asked articles · ' + ver + ' of ' +
-      data.traces.length + ' traces text-verified';
-    VL.$('#tr-area-m').textContent = a.label_en;
+    VL.$('#tr-area-note').textContent = VL.U('tr3d.areaNote', { n: fmt(a.n_qas), k: fmt(data.traces.length), v: fmt(ver) });
+    VL.$('#tr-area-m').innerHTML = VL.UH(areaPair(a));
     listEl.innerHTML = data.traces.map(function (tr) {
       return '<li><button type="button" class="tr-item" data-rank="' + tr.rank + '" id="tr-item-' + tr.rank + '">' +
         '<span class="tr-rank">' + tr.rank + '</span><span class="tr-item-body"><span class="tr-law">' + esc(lawShort(tr.law)) + '</span>' +
-        '<span class="tr-q" lang="vi">' + esc(tr.qa.vi) + '</span><span class="tr-g">' + esc(tr.qa.en) + '</span>' + verdictBadge(tr) +
+        qHtml(tr.qa, 'span', 'tr-q', 'tr-g') + verdictBadge(tr) +
         '</span></button></li>';
     }).join('');
     T.listItems = data.traces.length;
@@ -715,88 +743,106 @@
   });
 
   /* ------------------------------------------------------------------ the Fig. 5 hop panel */
-  var REASON = { law_not_resolved: 'law not resolved', number_not_in_scope: 'number not in this release', article_not_parsed: 'article not parsed' };
+  var REASON = { law_not_resolved: 'tr3d.reason.law', number_not_in_scope: 'tr3d.reason.number', article_not_parsed: 'tr3d.reason.article' };
   function primary(tr) { for (var i = 0; i < tr.paths.length; i++) if (tr.paths[i].pr) return tr.paths[i]; return tr.paths[0]; }
   function lawTitle(law) {
     var num = law.number || '', named = (law.vi || '').indexOf(num) >= 0 || (law.en || '').indexOf(num) >= 0;
-    return '<span lang="vi" class="vi">' + esc(law.vi) + '</span> · ' + esc(law.en) + (num && !named ? ' · <span class="num">' + esc(num) + '</span>' : '');
+    return VL.TH(VL.pair(law.vi || '', law.en || '')) + (num && !named ? ' · <span class="num">' + esc(num) + '</span>' : '');
   }
   function pathLabel(tr, p) {
     var N_ = tr.nodes, prov = N_[p.n.length > 3 ? p.n[2] : p.n[p.n.length - 1]], work = N_[p.n[p.n.length - 1]];
-    if (p.u === 'work') return '<span lang="vi">' + esc(work.vi) + '</span> · ' + esc(work.en) + ' cited as a whole';
-    return '<span lang="vi">' + esc(prov.vi) + '</span> · ' + esc(prov.en) + ' of ' + esc(work.en);
+    if (p.u === 'work') return VL.TH(VL.pair(work.vi, work.en)) + ' ' + VL.UH('tr3d.citedWhole');
+    return VL.TH(VL.pair(prov.vi, prov.en)) + ' ' + VL.UH('tr3d.of') + ' ' + VL.UH(VL.pair(work.vi, work.en));
   }
-  function hop(cls, n, en, vi, body) {
-    return '<section class="hop hop-' + cls + '"><h3><b>' + n + ' ' + en + '</b> <span lang="vi">' + vi + '</span></h3>' + body + '</section>';
+  /* a hop of the Fig. 5 panel: EN–VI \"1 Question Câu hỏi · extra\" as in v1, EN or VI \"1 Question  extra\" in one language */
+  function hop(cls, n, key, extra, body) {
+    var e = VL.kpair(key), head;
+    if (VL.lang() === 'envi') head = '<b>' + n + ' ' + esc(e.en) + '</b> <span lang="vi">' + esc(e.vi) + '</span>' + (extra ? ' · ' + extra : '');
+    else head = '<b>' + n + ' ' + VL.UH(key) + '</b>' + (extra ? ' <span>' + extra + '</span>' : '');
+    return '<section class="hop hop-' + cls + '"><h3>' + head + '</h3>' + body + '</section>';
   }
+  /* a sentence pair (notes, the hop arrows) in EN–VI as v1 wrote it: the English, then the Vietnamese (lang="vi");
+     EN or VI: one language */
+  function enFirst(key, vars, sep) {
+    var t = VL.TL(key, vars);
+    if (VL.lang() !== 'envi' || !t.secondary) return VL.UH(key, vars);
+    return esc(t.secondary) + (sep == null ? ' ' : sep) + '<span lang="vi">' + esc(t.primary) + '</span>';
+  }
+  /* where the law's English name comes from (build-time phrases): the phrase in English as in v1, translated in VI */
+  var EN_SRC = { 'vbpl English record title (normalised)': 'tr3d.enSrc.vbpl', 'document type + number': 'tr3d.enSrc.typeNumber',
+    'machine-assisted translation of the Vietnamese title': 'tr3d.enSrc.machine' };
+  function enSource(s) { return !s ? VL.U('tr3d.machineAssisted') : (EN_SRC[s] ? VL.U(EN_SRC[s]) : s); }
   function hopsHtml(tr) {
-    var p = primary(tr), N_ = tr.nodes, k3 = p.n.length > 3 ? p.n[2] : null, work = N_[p.n[p.n.length - 1]];
+    var p = primary(tr), N_ = tr.nodes, k3 = p.n.length > 3 ? p.n[2] : null, work = N_[p.n[p.n.length - 1]], mode = VL.lang();
     var rec = null, provs = [], whole = [], struct = [];
     N_.forEach(function (n) { if (TD && TD.CLASSES[n.c] === 'record') rec = n; });
     tr.paths.forEach(function (q) { if (q.u === 'work') whole.push(q); else if (q.v) provs.push(q); else struct.push(q); });
     var ans = N_[p.n[1]];
-    var b1 = hop('q', '1', 'Question', 'Câu hỏi · hdpl #' + esc(tr.qa.id),
-      '<p class="strong" lang="vi">' + esc(tr.qa.vi) + '</p><p class="en">' + esc(tr.qa.en) + '</p>' +
+    var b1 = hop('q', '1', 'tr3d.hop.question', 'hdpl #' + esc(tr.qa.id),
+      qHtml(tr.qa, 'p', 'strong', 'en') +
       '<p class="pv">q:' + esc(tr.qa.id) + ' · src hdpl · ' + esc(tr.qa.date) + (tr.qa.url ? ' · ' + ext(tr.qa.url, 'thuvienphapluat.vn') : '') + '</p>');
-    var items = provs.map(function (q) { return '<li>✓ ' + pathLabel(tr, q) + ' — text match ' + f2(q.m) + '</li>'; })
-      .concat(struct.map(function (q) { return '<li>○ ' + pathLabel(tr, q) + ' — match ' + f2(q.m) + ' (kept, not verified)</li>'; }))
+    var items = provs.map(function (q) { return '<li>✓ ' + pathLabel(tr, q) + ' ' + VL.UH('tr3d.textMatch', { m: f2(q.m) }) + '</li>'; })
+      .concat(struct.map(function (q) { return '<li>○ ' + pathLabel(tr, q) + ' ' + VL.UH('tr3d.matchKept', { m: f2(q.m) }) + '</li>'; }))
       .concat(whole.map(function (q) { return '<li>○ ' + pathLabel(tr, q) + '</li>'; }))
       .concat(tr.unresolved.map(function (u) {
         var what = u.num ? esc(u.num) : ((u.art ? 'Điều ' + esc(u.art) + ' ' : '') + esc(u.t || ''));
-        return '<li>○ <span lang="vi">' + what + '</span> — ' + esc(REASON[u.r] || u.r) + ' (listed, not drawn)</li>';
+        return '<li>○ <span lang="vi">' + what + '</span> — ' + (REASON[u.r] ? VL.UH(REASON[u.r]) : esc(u.r)) + ' ' + VL.UH('tr3d.listed') + '</li>';
       }));
     var methods = [];
     tr.paths.forEach(function (q) { if (q.me && methods.indexOf(q.me) < 0) methods.push(q.me); });
-    var b2 = hop('a', '2', 'Answer', 'Trả lời · ' + tr.paths.length + ' sources',
-      '<p>checked · <span lang="vi">đã kiểm tra</span>:</p><ul>' + items.join('') + '</ul>' +
-      '<p class="pv">a:' + esc(tr.qa.id) + ' −cites→ ' + tr.paths.length + ' targets · method ' + esc(methods.join(' / ')) + ' · ' + esc((ans.p || [])[2] || '') + '</p>');
+    var b2 = hop('a', '2', 'tr3d.hop.answer', VL.UH('tr3d.hop.sources', { n: nv(tr.paths.length) }),
+      '<p>' + VL.TH('tr3d.checked') + ':</p><ul>' + items.join('') + '</ul>' +
+      '<p class="pv">a:' + esc(tr.qa.id) + ' −cites→ ' + VL.UH('tr3d.targets', { n: fmt(tr.paths.length), m: methods.join(' / ') }) + ' · ' + esc((ans.p || [])[2] || '') + '</p>');
     var b3 = '';
     if (k3 != null) {
       var prov = N_[k3], chain = p.n.slice(2, -1).reverse().map(function (k) { return N_[k]; });
-      var pathVi = chain.map(function (n) { return n.vi; }).join(' › '), pv = prov.p || [];
-      b3 = hop('p', '3', 'Provision', 'Điều khoản · ' + esc(pathVi),
-        '<p>reached from 2 by <i>cites</i></p><p class="strong"><span lang="vi">' + esc(prov.vi) + '</span> · ' + esc(prov.en) + '</p>' +
-        (p.v ? '<p>✓ found word for word in the answer — text match ' + f2(p.m) + '</p>'
-          : '<p>○ the answer does not contain its words — text match ' + f2(p.m) + ' (&lt; 0.5): a structural link, kept and not verified</p>') +
-        '<p>Text of the provision: ' + (tr.law.url ? ext(tr.law.url, 'read it at the source', 'thuvienphapluat.vn, opens in a new tab') : 'at the source') + '</p>' +
-        '<p class="pv">vbpl:' + esc(pv[1] || tr.law.doc_id) + ' › ' + esc(pathVi) + ' · ' + esc(pv[2] || '') + (pv[3] ? ' · ' + esc(pv[3]) : '') + '</p>');
+      var pathVi = chain.map(function (n) { return n.vi; }).join(' › '), pathEn = chain.map(function (n) { return n.en || n.vi; }).join(' › '), pv = prov.p || [];
+      b3 = hop('p', '3', 'tr3d.hop.provision', mode === 'en' ? esc(pathEn) : '<span lang="vi">' + esc(pathVi) + '</span>',
+        '<p>' + VL.UH('tr3d.reachedFrom2', null, { html: { rel: '<i>' + VL.UH('tr3d.rel.cites') + '</i>' } }) + '</p><p class="strong">' + VL.TH(VL.pair(prov.vi, prov.en)) + '</p>' +
+        '<p>' + VL.UH(p.v ? 'tr3d.wordForWord' : 'tr3d.notWords', { m: f2(p.m) }) + '</p>' +
+        '<p>' + VL.UH('tr3d.provText', null, { html: { link: tr.law.url ? ext(tr.law.url, VL.UH('tr3d.readAtSource'), VL.U('tr3d.srTvpl')) : VL.UH('tr3d.atSource') } }) + '</p>' +
+        '<p class="pv">vbpl:' + esc(pv[1] || tr.law.doc_id) + ' › <span lang="vi">' + esc(pathVi) + '</span> · ' + esc(pv[2] || '') + (pv[3] ? ' · ' + esc(pv[3]) : '') + '</p>');
     } else {
-      b3 = hop('p', '3', 'Provision', 'Điều khoản', '<p>The answer cites the law as a whole. <span lang="vi">Câu trả lời trích dẫn cả văn bản.</span></p>');
+      b3 = hop('p', '3', 'tr3d.hop.provision', '', '<p>' + enFirst('tr3d.wholeAnswer') + '</p>');
     }
     var wp = work.p || [];
-    var b4 = hop('l', '4', 'Law', 'Văn bản · ' + esc(tr.law.number),
-      '<p>reached from 3 by <i>contains</i> and <i>realizes</i></p><p class="strong"><span lang="vi">' + esc(tr.law.vi) + '</span> · ' + esc(tr.law.en) + '</p>' +
-      '<p>source status (vbpl): <span lang="vi">' + esc(tr.law.status_vi) + '</span> · ' + esc(tr.law.status_en) + '</p>' +
-      '<p>English name: ' + esc(tr.law.en_src || 'machine-assisted') + '</p>' +
-      (rec ? '<p>VN record: ' + (rec.u ? ext(rec.u, 'vbpl:' + esc(tr.law.doc_id)) : 'vbpl:' + esc(tr.law.doc_id)) + '</p>' : '') +
+    var b4 = hop('l', '4', 'tr3d.hop.law', esc(tr.law.number),
+      '<p>' + VL.UH('tr3d.reachedFrom3', null, { html: { a: '<i>' + VL.UH('tr3d.rel.contains') + '</i>', b: '<i>' + VL.UH('tr3d.rel.realizes') + '</i>' } }) + '</p>' +
+      '<p class="strong">' + VL.TH(VL.pair(tr.law.vi, tr.law.en)) + '</p>' +
+      '<p>' + VL.UH('tr3d.sourceStatus') + ' ' + VL.TH(VL.pair(tr.law.status_vi, tr.law.status_en)) + '</p>' +
+      '<p>' + VL.UH('tr3d.englishName', { v: enSource(tr.law.en_src) }) + '</p>' +
+      (rec ? '<p>' + VL.UH('tr3d.vnRecord', null, { html: { link: rec.u ? ext(rec.u, 'vbpl:' + esc(tr.law.doc_id)) : 'vbpl:' + esc(tr.law.doc_id) } }) + '</p>' : '') +
       '<p class="pv">' + esc(work.i) + ' · ' + esc(wp[2] || '') + '</p>');
     var terms = tr.terms.map(function (t) {
       var n = N_[t.n], d = t.d != null ? N_[t.d] : null;
-      return '<li><b><span lang="vi">' + esc(n.vi) + '</span> · ' + esc(n.en) + '</b> — ' +
-        (d ? 'defined in ' + esc(d.en) + ' (match ' + f2(t.m) + ')' : 'no defining clause in the laws of this trace') +
+      return '<li><b>' + VL.TH(VL.pair(n.vi, n.en)) + '</b> — ' +
+        (d ? VL.UH('tr3d.definedIn', { clause: VL.U(VL.pair(d.vi || '', d.en || '')), m: f2(t.m) }) : VL.UH('tr3d.noDefinition')) +
         (n.u ? ' · ' + ext(n.u, 'tnpl #' + esc((n.p || [])[1] || '')) : '') +
         '<div class="pv">' + esc(n.i) + (d ? ' ←defines− ' + esc(d.i) : '') + ' · ' + esc((n.p || [])[2] || '') + '</div></li>';
     });
-    var b5 = hop('t', '5', 'Terms', 'Thuật ngữ · tnpl', terms.length ?
-      '<ul>' + terms.join('') + '</ul><p class="en">question → mentions → term → defined by → clause</p>' :
-      '<p>No tnpl term is named in the question. <span lang="vi">Câu hỏi không nhắc đến thuật ngữ nào của tnpl.</span></p>');
-    return '<div class="tr-hops" aria-label="The trace hop by hop · Truy vết từng bước">' + b1 +
-      '<div class="hop-arrow">↓ answered by · <span lang="vi">được trả lời bởi</span></div>' + b2 + b3 + b4 +
-      '<div class="hop-arrow">↓ defines terms the question mentions · <span lang="vi">định nghĩa thuật ngữ câu hỏi nhắc đến</span></div>' + b5 + '</div>';
+    var b5 = hop('t', '5', 'tr3d.hop.terms', 'tnpl', terms.length ?
+      '<ul>' + terms.join('') + '</ul><p class="en">' + VL.UH('tr3d.termPath') + '</p>' :
+      '<p>' + enFirst('tr3d.noTerm') + '</p>');
+    return '<div class="tr-hops" aria-label="' + esc(VL.U('tr3d.hops.aria')) + '">' + b1 +
+      '<div class="hop-arrow">↓ ' + enFirst('tr3d.answeredBy', null, ' · ') + '</div>' + b2 + b3 + b4 +
+      '<div class="hop-arrow">↓ ' + enFirst('tr3d.definesTerms', null, ' · ') + '</div>' + b5 + '</div>';
   }
+  function closeHtml() { return '<button type="button" class="btn panel-close" data-close aria-label="' + esc(VL.U('tr3d.close')) + '"' + tipAttr('tr3d.close') + '>×</button>'; }
   function tracePanelHtml(a, tr) {
-    return '<button type="button" class="btn panel-close" data-close aria-label="Close · Đóng (Esc)">×</button>' +
-      '<p class="tf-area">#' + tr.rank + ' · <span lang="vi">' + esc(a.label_vi) + '</span> · ' + esc(a.label_en) + '</p>' +
+    return closeHtml() +
+      '<p class="tf-area">#' + tr.rank + ' · ' + VL.TH(areaPair(a)) + '</p>' +
       '<h2 id="tp-title">' + lawTitle(tr.law) + '</h2>' +
-      '<p class="tf-q" lang="vi">' + esc(tr.qa.vi) + '</p><p class="tf-g">' + esc(tr.qa.en) + '</p>' +
-      '<p class="tf-links">' + verdictBadge(tr) + ' · ' + fmt(tr.article.n) + ' answers in ' + esc(a.label_en) + ' cite ' + esc(tr.article.en) +
-      ' (' + fmt(tr.article.na) + ' in all areas) · <a href="#area=' + a.id + '&amp;q=' + tr.rank + '">link to this trace</a></p>' + hopsHtml(tr);
+      qHtml(tr.qa, 'p', 'tf-q', 'tf-g') +
+      '<p class="tf-links">' + verdictBadge(tr) + ' · ' + VL.UH('tr3d.answersIn', { n: fmt(tr.article.n), area: VL.U(areaPair(a)), article: VL.U(VL.pair(tr.article.vi || '', tr.article.en || '')),
+        na: fmt(tr.article.na) }) + ' · <a href="#area=' + a.id + '&amp;q=' + tr.rank + '">' + VL.UH('tr3d.linkTrace') + '</a></p>' + hopsHtml(tr);
   }
-  function openPanel(html) {
+  var panelNode = -1;   // the node whose details the panel shows (-1: the selected trace or nothing)
+  function openPanel(html, keepScroll) {
+    var st = panel.scrollTop;
     panel.innerHTML = html;
     panel.classList.remove('hidden');
     stage.classList.add('panel-open');
-    panel.scrollTop = 0;
+    panel.scrollTop = keepScroll ? st : 0;
     T.hops = VL.$$('.hop', panel).length;
     requestAnimationFrame(function () { onResize(); });
   }
@@ -805,6 +851,7 @@
     panel.classList.add('hidden');
     stage.classList.remove('panel-open');
     T.hops = 0;
+    panelNode = -1;
     requestAnimationFrame(function () { onResize(); });
   }
   panel.addEventListener('click', function (e) {
@@ -814,20 +861,25 @@
   });
 
   /* ------------------------------------------------------------------ node details (hover, click) */
+  /* the node's name: EN–VI the Vietnamese name over the English one (v1), EN or VI one language */
+  function nameHtml(n) {
+    if (VL.lang() === 'envi') return '<h2 lang="vi">' + esc(n[0]) + '</h2><p class="vi">' + esc(n[1]) + '</p>';
+    return '<h2>' + VL.UH(VL.pair(n[0], n[1])) + '</h2>';
+  }
   function nodeHtml(i) {
     var n = names(i), c = cname(i), cn = classNames(c), ts = tracesOf(i), a = AREAS[HOME[i]];
     var url = G.u[String(i)];
-    var rows = '<dt>Id</dt><dd class="iri">' + esc(G.i[i]) + '</dd><dt>Region</dt><dd><span lang="vi">' + esc(a.label_vi) + '</span> · ' + esc(a.label_en) + '</dd>' +
-      (url ? '<dt>Source</dt><dd>' + ext(url, 'open the source', 'opens in a new tab') + '</dd>' : '');
+    var rows = '<dt>' + VL.UH('tr3d.k.id') + '</dt><dd class="iri">' + esc(G.i[i]) + '</dd><dt>' + VL.UH('tr3d.k.region') + '</dt><dd>' + VL.TH(areaPair(a)) + '</dd>' +
+      (url ? '<dt>' + VL.UH('tr3d.k.source') + '</dt><dd>' + ext(url, VL.UH('tr3d.openSource'), VL.U('tr3d.newTab')) + '</dd>' : '');
     var list = ts.slice(0, 14).map(function (k) {
       var t = G.t[k], ar = AREAS[t.a];
-      return '<li><button type="button" class="linkish" data-trace="' + ar.id + ':' + t.r + '">' + esc(ar.label_en) + ' #' + t.r + '</button></li>';
+      return '<li><button type="button" class="linkish" data-trace="' + ar.id + ':' + t.r + '">' + VL.UH(areaPair(ar)) + ' #' + t.r + '</button></li>';
     }).join('');
-    return '<button type="button" class="btn panel-close" data-close aria-label="Close · Đóng (Esc)">×</button>' +
-      '<p class="panel-kind"><span class="badge"><span lang="vi">' + esc(cn[0]) + '</span> · ' + esc(cn[1]) + '</span></p>' +
-      '<h2 lang="vi">' + esc(n[0]) + '</h2><p class="vi">' + esc(n[1]) + '</p><dl class="kv">' + rows + '</dl>' +
-      '<h3>In ' + ts.length + ' trace' + (ts.length === 1 ? '' : 's') + ' · <span lang="vi">Trong ' + ts.length + ' đường truy vết</span></h3>' +
-      (ts.length ? '<ul class="plist">' + list + '</ul>' + (ts.length > 14 ? '<p class="side-note">and ' + (ts.length - 14) + ' more</p>' : '') : '');
+    return closeHtml() +
+      '<p class="panel-kind"><span class="badge">' + VL.TH(VL.pair(cn[0], cn[1])) + '</span></p>' +
+      nameHtml(n) + '<dl class="kv">' + rows + '</dl>' +
+      '<h3>' + VL.TH('tr3d.inTraces', { n: nv(ts.length) }) + '</h3>' +
+      (ts.length ? '<ul class="plist">' + list + '</ul>' + (ts.length > 14 ? '<p class="side-note">' + VL.UH('tr3d.andMore', { n: fmt(ts.length - 14) }) + '</p>' : '') : '');
   }
   var raycaster = null, ndc = null;
   function pick(cx, cy) {
@@ -856,6 +908,7 @@
     }
     T.clicked = G.i[i];
     openPanel(nodeHtml(i));
+    panelNode = i;
   }
   var down = null, hoverRaf = 0;
   function bindPointer() {
@@ -880,8 +933,8 @@
         T.hover = i >= 0 ? G.i[i] : null;
         if (i < 0) { tip.classList.add('hidden'); return; }
         var n = names(i), cn = classNames(cname(i)), k = tracesOf(i).length;
-        tip.innerHTML = '<b lang="vi">' + esc(VL.short(n[0], 60)) + '</b>' + (n[1] !== n[0] ? ' · ' + esc(VL.short(n[1], 60)) : '') +
-          '<div class="t-sub"><span lang="vi">' + esc(cn[0]) + '</span> · ' + esc(cn[1]) + ' · in ' + k + ' trace' + (k === 1 ? '' : 's') + '</div>';
+        tip.innerHTML = '<b>' + VL.TH(VL.pair(VL.short(n[0], 60), VL.short(n[1], 60))) + '</b>' +
+          '<div class="t-sub">' + VL.TH(VL.pair(cn[0], cn[1])) + ' · ' + VL.UH('tr3d.tipTraces', { n: nv(k) }) + '</div>';
         tip.classList.remove('hidden');
         var hr = stage.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
         var lx = Math.min(hr.width - tw - 8, x - hr.left + 14), ly = y - hr.top + 14;
@@ -923,8 +976,8 @@
     }
     var my = ++seq;
     if (AD[a.id] && listEl.getAttribute('data-area') === a.id) return Promise.resolve(a);
-    VL.$('#tr-area-title').innerHTML = esc(a.label_en) + ' · <span lang="vi">' + esc(a.label_vi) + '</span>';
-    listEl.innerHTML = '<li class="tr-status">Loading · <span lang="vi">Đang tải</span></li>';
+    VL.$('#tr-area-title').innerHTML = VL.TH(areaPair(a));
+    listEl.innerHTML = '<li class="tr-status">' + VL.TH('tr3d.loading') + '</li>';
     return loadArea(a).then(function (data) {
       if (my !== seq) return a;
       renderList(a, data);
@@ -934,7 +987,7 @@
       return a;
     }, function (err) {
       T.errors.push(String(err && err.message || err));
-      listEl.innerHTML = '<li class="tr-status">Could not load the traces of this area (' + esc(a.file) + ') · <span lang="vi">Không tải được dữ liệu.</span></li>';
+      listEl.innerHTML = '<li class="tr-status">' + VL.UH('tr3d.areaError', { file: a.file }) + '</li>';
       return a;
     });
   }
@@ -954,6 +1007,7 @@
       if (opts.user) setHash('#area=' + a.id + '&q=' + rank);
       markList();
       openPanel(tracePanelHtml(a, tr));
+      panelNode = -1;
       var co = t.co;
       T.selected = { area: a.id, rank: rank, q: G.i[co[0]], answer: G.i[co[1]], provision: G.i[co[2]], law: G.i[co[3]],
         term: co[4] >= 0 ? G.i[co[4]] : null, areaNode: G.i[co[5]], fg: t.f.length, nodes: t.n.length, segments: t.e.length / 3 };
@@ -1026,9 +1080,11 @@
   /* ------------------------------------------------------------------ no WebGL: the selected trace in 2D */
   function drawFallback(a, tr) {
     var view = window.matchMedia('(min-width: 760px)').matches ? 'wide' : 'tall';
-    fbEl.innerHTML = '<p class="tr-fb-note">This browser cannot draw the 3D graph (no WebGL 2); the selected trace is drawn in 2D. ' +
-      '<span lang="vi">Trình duyệt không vẽ được đồ thị 3D; đường truy vết được vẽ 2D.</span></p>' +
-      '<div class="tr-fb-fig" data-view="' + view + '">' + TD.svg(tr, view, { id: 'tf-' + a.id + '-' + tr.rank, title: tr.qa.vi, desc: tr.qa.en, nodeTitles: true }) + '</div>';
+    var mode = VL.lang();
+    fbEl.innerHTML = '<p class="tr-fb-note">' + enFirst('tr3d.noWebgl') + '</p>' +
+      '<div class="tr-fb-fig" data-view="' + view + '">' + TD.svg(tr, view, { id: 'tf-' + a.id + '-' + tr.rank, title: mode === 'en' ? (tr.qa.en || tr.qa.vi) : tr.qa.vi,
+        desc: mode === 'envi' ? tr.qa.en : '', nodeTitles: true, lang: mode }) + '</div>';
+    M.labelsLang = mode;
     fbEl.classList.remove('hidden');
     T.fallbackView = view;
   }
@@ -1040,17 +1096,18 @@
     var d = 'M2 10 C2 6.4 20 5.6 20 2';
     return '<svg class="tr-sw' + mod + '" viewBox="0 0 22 12" aria-hidden="true"><path class="halo" d="' + d + '"/><path class="core" d="' + d + '"/></svg>';
   }
+  /* the flat legend: "Tiếng Việt · English" entries in EN–VI, one language in EN or VI */
   function renderLegend() {
-    function li(color, vi, en, small) {
-      return '<li><span class="swatch' + (small ? ' small' : '') + '" style="background:' + color + '"></span><span lang="vi">' + esc(vi) + '</span>&nbsp;· ' + esc(en) + '</li>';
+    var SEP = { sep: '\u00a0· ' };
+    function li(color, pair, small) {
+      return '<li><span class="swatch' + (small ? ' small' : '') + '" style="background:' + color + '"></span>' + VL.TH(pair, null, SEP) + '</li>';
     }
-    var items = VL.PAPER_CLASSES.filter(function (c) { return c.key !== 'intent'; }).map(function (c) { return li(c.v, c.vi, c.en); });
-    items.push(li('var(--cls-question)', 'Câu hỏi khác', 'Other answers citing the provisions', true));
-    legendEl.innerHTML = '<h3><span lang="vi">Chú giải</span> · Legend</h3><ul>' + items.join('') +
-      '<li>' + curveSwatch('') + '<span lang="vi">Đường truy vết</span>&nbsp;· Traced answer</li>' +
-      '<li>' + curveSwatch(' s') + '<span lang="vi">Chỉ khớp cấu trúc</span>&nbsp;· Structure only (match &lt; 0.5)</li></ul>' +
-      '<p class="lg-note">Dark strokes lead to the sources whose words the answer contains (word 5-gram match ≥ 0.5) and to the clause that defines the question\'s term. ' +
-      '<span lang="vi">Nét đậm dẫn tới nguồn có lời văn nằm trong câu trả lời và tới khoản định nghĩa thuật ngữ của câu hỏi.</span></p>';
+    var items = VL.PAPER_CLASSES.filter(function (c) { return c.key !== 'intent'; }).map(function (c) { return li(c.v, VL.pair(c.vi, c.en)); });
+    items.push(li('var(--cls-question)', VL.kpair('tr3d.lg.other'), true));
+    legendEl.innerHTML = '<h3>' + VL.TH('tr3d.lg.title') + '</h3><ul>' + items.join('') +
+      '<li>' + curveSwatch('') + VL.TH('tr3d.lg.traced', null, SEP) + '</li>' +
+      '<li>' + curveSwatch(' s') + VL.TH('tr3d.lg.structural', null, SEP) + '</li></ul>' +
+      '<p class="lg-note">' + enFirst('tr3d.lg.note') + '</p>';
     legendEl.classList.toggle('hidden', !state.legendOpen);
     VL.$('#btn-legend').setAttribute('aria-expanded', state.legendOpen ? 'true' : 'false');
     T.legendEntries = VL.$$('li', legendEl).length;
@@ -1096,7 +1153,7 @@
   VL.$('#hint-close').addEventListener('click', function () { hideHint(); VL.store.set('hint-traces3d', 'off'); });
   function status() {
     if (!G) return;
-    statusEl.textContent = fmt(N) + ' nodes · ' + fmt(T.graph.links) + ' links · ' + G.t.length + ' traces' + (T.fps ? ' · ' + T.fps + ' fps' : '');
+    statusEl.textContent = VL.U('tr3d.status', { nodes: fmt(N), links: fmt(T.graph.links), traces: fmt(G.t.length) }) + (T.fps ? ' · ' + fmt(T.fps) + ' fps' : '');
   }
   function applyTheme() {
     readTheme();
@@ -1122,6 +1179,37 @@
       }, ms);
     });
   }
+
+  /* ------------------------------------------------------------------ language switch (js/i18n.js 'vl:lang'): the data
+     line, tabs, area list (scroll and focus kept), open panel (scroll kept), legend, status, the 2D fallback and the
+     call-outs are rendered again in the new mode, then placed again; the area, the selected trace and the camera stay */
+  function applyLang() {
+    T.langRenders = (T.langRenders || 0) + 1;
+    M.langRenders = (M.langRenders || 0) + 1;
+    renderRevs();
+    TABS.forEach(function (b) { var a = BY[b.getAttribute('data-area')]; if (!a) return; b.innerHTML = tabInner(a); b.setAttribute('aria-label', tabAria(a)); });
+    var a = BY[state.area];
+    if (a) {
+      var data = window.VLONTO['traces_' + a.id];
+      if (data && listEl.getAttribute('data-area') === a.id) {
+        var st = listEl.scrollTop, act = document.activeElement && listEl.contains(document.activeElement) ? document.activeElement.id : null;
+        renderList(a, data);
+        listEl.scrollTop = st;
+        if (act && document.getElementById(act)) document.getElementById(act).focus();
+      } else VL.$('#tr-area-title').innerHTML = VL.TH(areaPair(a));
+    }
+    if (!panel.classList.contains('hidden')) {
+      if (state.sel && panelNode < 0) openPanel(tracePanelHtml(BY[AREAS[state.sel.t.a].id], state.sel.tr), true);
+      else if (panelNode >= 0) { var pn = panelNode; openPanel(nodeHtml(pn), true); panelNode = pn; }
+    }
+    renderLegend();
+    status();
+    tip.classList.add('hidden');
+    if (T.fallback) { if (state.sel) drawFallback(BY[AREAS[state.sel.t.a].id], state.sel.tr); else M.labelsLang = VL.lang(); }
+    else if (labelGroup) buildLabels();
+    else M.labelsLang = VL.lang();
+  }
+  document.addEventListener('vl:lang', applyLang);
 
   /* ------------------------------------------------------------------ routing: #area=<id>&q=<rank> */
   function initialArea() { var s = VL.store.get('traces.area'); return BY[s] ? s : AREAS[0].id; }
@@ -1224,7 +1312,7 @@
     console.error(e);
     T.errors.push(String(e && e.message || e));
     var v = VL.$('#veil-text');
-    if (v) v.textContent = 'Could not load the traces: ' + (e && e.message);
+    if (v) v.textContent = VL.U('tr3d.loadError', { msg: e && e.message });
     VL.setReady({ tracesError: String(e && e.message || e) });
   });
 })();

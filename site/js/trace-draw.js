@@ -11,7 +11,10 @@
    so a theme switch needs no redraw.
 
    VL.TraceDraw.svg(trace, view, opts) -> SVG string; opts: id (unique prefix), title, desc, nodeTitles (one <title>
-   per node, focus view). VL.TraceDraw.defs() -> the shared gradients (once per page). */
+   per node, focus view), lang ('en' | 'vi' | 'envi'; default: the page's language mode, js/i18n.js, else 'envi').
+   The build-time call-outs hold Vietnamese and English lines; in EN or VI only that language's lines are drawn, centred
+   in the same box (a call-out with lines in one language only keeps them). VL.TraceDraw.defs() -> the shared gradients
+   (once per page). The file needs no DOM and no js/i18n.js (scripts/site/trace_preview.py runs it in V8). */
 (function (root) {
   'use strict';
   var VL = root.VL = root.VL || {};
@@ -48,8 +51,20 @@
   };
 
   /* trace = one entry of window.VLONTO["traces_<area>"].traces (geometry in trace.g); view = 'card' | 'wide' | 'tall' */
+  function mode(opts) { return (opts && opts.lang) || (VL.lang ? VL.lang() : 'envi'); }
+  /* the lines of a call-out [text, isEnglish, x, y] in a mode: EN or VI keeps that language's lines (or all of them
+     when the call-out has no line in it) and moves them so their middle sits where the middle of all lines was */
+  TD.lines = function (lines, m) {
+    if (m !== 'en' && m !== 'vi') return lines;
+    var want = m === 'en' ? 1 : 0, keep = lines.filter(function (ln) { return (ln[1] ? 1 : 0) === want; });
+    if (!keep.length || keep.length === lines.length) return lines;
+    function mid(ls) { return ls.reduce(function (s, ln) { return s + ln[3]; }, 0) / ls.length; }
+    var dy = mid(lines) - mid(keep);
+    return keep.map(function (ln) { return [ln[0], 0, ln[2], Math.round((ln[3] + dy) * 10) / 10, ln[1] ? 'en' : 'vi']; });
+  };
   TD.svg = function (tr, view, opts) {
     opts = opts || {};
+    var M0 = mode(opts);
     var G = tr.g, V = G.views[view], A = V.t[0], TX = V.t[1], TY = V.t[2], id = opts.id || 'tr';
     var NN = V.n || G.nodes, SH = V.s || G.shadows, ORD = V.o || G.order, LO = V.lo;
     var X = [], Y = [], R = [], BG = [];
@@ -89,8 +104,10 @@
       for (var i = 0; i + 1 < k.length; i += 2) pts.push(k[i] + ',' + k[i + 1]);
       o.push('<g class="tr-co" data-k="' + c.n + '"><polyline class="tr-lead" points="' + pts.join(' ') + '"/>' +
         '<rect class="tr-box" x="' + b[0] + '" y="' + b[1] + '" width="' + b[2] + '" height="' + b[3] + '"/>');
-      c.l.forEach(function (ln) {
-        o.push('<text class="' + (ln[1] ? 'tr-en' : 'tr-vi') + '" x="' + ln[2] + '" y="' + ln[3] + '"' + (ln[1] ? '' : ' lang="vi"') + '>' + esc(ln[0]) + '</text>');
+      TD.lines(c.l, M0).forEach(function (ln) {
+        /* ln[4]: the language of a line kept in EN or VI (drawn in the first grey); else Vietnamese / English by ln[1] */
+        var lg = ln[4] || (ln[1] ? 'en' : 'vi');
+        o.push('<text class="' + (ln[1] ? 'tr-en' : 'tr-vi') + '" x="' + ln[2] + '" y="' + ln[3] + '"' + (lg === 'vi' ? ' lang="vi"' : (ln[4] ? ' lang="en"' : '')) + '>' + esc(ln[0]) + '</text>');
       });
       o.push('</g>');
     });
@@ -98,16 +115,21 @@
     return o.join('');
   };
 
-  /* tooltip of a node: class (VI · EN), label (VI · EN), provenance */
+  /* tooltip of a node: class, label, provenance. The class names come from the dictionary (js/i18n-3d.js tdraw.cls.*)
+     when the language layer is loaded; this table is the same pairs for runs without it (V8 previews) */
   TD.CLASS_LABEL = {
     work: ['Văn bản', 'Work'], record: ['Bản ghi', 'Record'], chapter: ['Chương', 'Chapter'], section: ['Mục', 'Section'],
     article: ['Điều', 'Article'], clause: ['Khoản', 'Clause'], point: ['Điểm', 'Point'], term: ['Thuật ngữ', 'Term'],
     question: ['Câu hỏi', 'Question'], answer: ['Trả lời', 'Answer'], area: ['Lĩnh vực', 'Area'],
     other_question: ['Câu hỏi khác', 'Other question']
   };
+  /* class and label in the language mode (VL.T: "vi · en" in EN–VI, one language in EN or VI); without js/i18n.js the
+     pairs of v1 */
   TD.nodeTitle = function (n) {
     var c = TD.CLASSES[n.c], cl = TD.CLASS_LABEL[c], p = n.p || [];
-    var lab = n.vi === n.en ? n.vi : n.vi + ' · ' + n.en;
-    return cl[0] + ' · ' + cl[1] + ': ' + lab + (p.length ? ' (' + p.filter(Boolean).join(' · ') + ')' : '');
+    var both = function (vi, en) { return vi === en || !en ? vi : (!vi ? en : vi + ' · ' + en); };
+    var T = VL.T && VL.pair ? function (vi, en) { return VL.T(VL.pair(vi, en)); } : both;
+    var k = 'tdraw.cls.' + c, cls = VL.T && VL.i18n && VL.i18n.has(k) ? VL.T(k) : T(cl[0], cl[1]);
+    return cls + ': ' + T(n.vi, n.en) + (p.length ? ' (' + p.filter(Boolean).join(' · ') + ')' : '');
   };
 })(typeof window !== 'undefined' ? window : this);
