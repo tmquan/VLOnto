@@ -65,7 +65,9 @@
       if (DICT[k] && OWNER[k] !== owner) dups.push(k);
       DICT[k] = x;
       OWNER[k] = owner;
+      delete missing[k];   /* asked for before its dictionary loaded (i18n-3d.js applies before i18n-pages.js): not missing */
     });
+    M.i18nMissing = Object.keys(missing);
     M.i18nKeys = Object.keys(DICT).length;
     M.i18nOwners = M.i18nOwners || {};
     M.i18nOwners[owner] = Object.keys(entries || {}).length;
