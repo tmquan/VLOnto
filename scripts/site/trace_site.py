@@ -6,11 +6,18 @@
 
 Input: index.json and one <area id>.json per legal area, as written by scripts/traces/ (schema in its README). Output:
 site/data/traces/index.js and one <area id>.js per area, made with tools/json2js.py (window.VLONTO["traces_index"] and
-window.VLONTO["traces_<area id>"]; the page loads an area's file when its tab is first opened). Each area file holds,
-per trace, what the page shows plus the build-time 2D drawing (scripts/site/trace_layout.py; the page's fallback without
-WebGL). site/data/traces/graph.js (window.VLONTO["traces_graph"], loaded first) is the global 3D embedding of all traces
-(scripts/site/trace_global.py): every node once with id, class, position and, for the law side, terms and areas, its
-labels and source link; the edges by kind; per trace its node, foreground and edge lists and its call-out nodes.
+window.VLONTO["traces_<area id>"]; the page loads an area's file when one of its questions is first chosen). Each area
+file holds, per trace, what the page shows plus the build-time 2D drawing (scripts/site/trace_layout.py; the page's
+fallback without WebGL). site/data/traces/graph.js (window.VLONTO["traces_graph"], loaded first) is the global 3D
+embedding of all traces (scripts/site/trace_global.py): every node once with id, class, position and, for the law side,
+terms and areas, its labels and source link; the edges by kind; per trace its node, foreground and edge lists and its
+call-out nodes.
+site/data/traces/questions.js (window.VLONTO["traces_questions"], loaded with the graph) is the page's one list of all
+traced questions, area by area: per question its rank, title, English gloss, the law's names and number, verified and
+match - fields the area files already hold, so the list and its search need no area file.
+    python scripts/site/trace_site.py --questions-from-site --site site
+rebuilds questions.js (and its entry in index.js) from the area files in site/data/traces, for a build without
+build/traces.
 
 Published (licence policy, docs/licence_policy.md): question titles as published on thuvienphapluat.vn and their
 machine-assisted English glosses for the traced questions, law and provision labels, term names, dates, record ids,
@@ -193,6 +200,23 @@ def arms_stats(acc: dict, arms: list, tr: dict):
     acc["strokes"][str(len(arms))] = acc["strokes"].get(str(len(arms)), 0) + 1
 
 
+QUESTION_FIELDS = ["rank", "vi", "en", "law_vi", "law_en", "law_number", "verified", "match"]
+
+
+def questions_payload(area_ids: list, traces_by_area: dict) -> dict:
+    """the side list of traces.html (data/traces/questions.js): every traced question, area by area in the index's order,
+    as [rank, title, English gloss, law name vi, law name en, law number, verified 0/1, match] (QUESTION_FIELDS)"""
+    out = []
+    for aid in area_ids:
+        rows = []
+        for t in sorted(traces_by_area[aid], key=lambda t: t["rank"]):
+            qa, law = t.get("qa") or {}, t.get("law") or {}
+            rows.append([t["rank"], qa.get("vi") or "", qa.get("en") or "", law.get("vi") or "", law.get("en") or "",
+                         law.get("number") or "", 1 if t.get("verified") else 0, t.get("match")])
+        out.append({"id": aid, "q": rows})
+    return nfc({"v": 1, "fields": QUESTION_FIELDS, "areas": out})
+
+
 def write_js(j2j, value, name: str, out: Path, tmp: Path, src_name: str) -> int:
     src = tmp / src_name
     src.write_text(json.dumps(value, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
@@ -226,7 +250,7 @@ def build(traces: Path | None, site: Path) -> dict:
         layout = {"traces": 0, "callouts_dropped": 0, "ink_hits": 0, "crossings": 0, "leaders_over_trace": 0,
                   "card_callouts": 0, "card_callouts_at_edge": 0, "variants": {},
                   "arms": {"single": 0, "v_w": 0, "dark_single": 0, "dark_v_w": 0, "with_term_arm": 0, "strokes": {}}}
-        srcs = {}
+        srcs, compact = {}, {}
         for a in src_index["areas"]:
             raw = (traces / a["file"]).read_bytes()
             src = json.loads(raw.decode("utf-8"))
@@ -249,6 +273,7 @@ def build(traces: Path | None, site: Path) -> dict:
                 layout["ink_hits"] += meta["ink"] + sum(1 for v in ("wide", "tall") for co in c["g"]["views"][v]["c"]
                                                         if co.pop("ink", False))
                 arms_stats(layout["arms"], meta["arms"], tr)
+            compact[a["id"]] = traces_out
             payload = {"v": 1, "area": nfc(src["area"]), "traces": traces_out}
             bad = licence_scan(payload)
             if bad:
@@ -269,11 +294,18 @@ def build(traces: Path | None, site: Path) -> dict:
         gsize = write_js(j2j, graph, "traces_graph", out / "graph.js", tmp, "graph.json")
         rep["files"].append({"file": "data/traces/graph.js", "bytes": gsize})
         rep["graph"] = gstats | {"bytes": gsize}
+        questions = questions_payload([a["id"] for a in src_index["areas"]], compact)
+        bad = licence_scan(questions)
+        if bad:
+            raise SystemExit(f"questions: keys that may carry source text: {bad[:5]}")
+        qsize = write_js(j2j, questions, "traces_questions", out / "questions.js", tmp, "questions.json")
+        rep["files"].append({"file": "data/traces/questions.js", "bytes": qsize})
         index = {"v": 1, "available": True, "version": src_index.get("version"), "generated": src_index.get("generated"),
                  "source_revisions": src_index.get("source_revisions"), "method": src_index.get("method"),
                  "classes": src_index.get("classes"), "totals": src_index.get("totals"), "areas": areas,
                  "index_sha256": hashlib.sha256((traces / "index.json").read_bytes()).hexdigest(),
-                 "graph": {"file": "graph.js", "bytes": gsize, "nodes": gstats["nodes"], "links": gstats["links"]}}
+                 "graph": {"file": "graph.js", "bytes": gsize, "nodes": gstats["nodes"], "links": gstats["links"]},
+                 "questions": {"file": "questions.js", "bytes": qsize, "count": sum(len(a["q"]) for a in questions["areas"])}}
         size = write_js(j2j, nfc(index), "traces_index", out / "index.js", tmp, "index.json")
         rep["files"].insert(0, {"file": "data/traces/index.js", "bytes": size})
         rep.update({"available": True, "areas": len(areas), "traces": layout["traces"], "layout": layout,
@@ -281,13 +313,43 @@ def build(traces: Path | None, site: Path) -> dict:
     return rep
 
 
+def read_js(path: Path):
+    """the value of a json2js file (window.VLONTO[name] = JSON.parse("..."))"""
+    m = re.search(r'= JSON\.parse\((".*")\);\n$', path.read_text(encoding="utf-8"), re.S)
+    if not m:
+        raise SystemExit(f"{path}: not a json2js file")
+    return json.loads(json.loads(m.group(1)))
+
+
+def questions_from_site(site: Path) -> dict:
+    """questions.js and its index entry from the area files already in site/data/traces (the same payload build() writes)"""
+    out = site / "data" / "traces"
+    index = read_js(out / "index.js")
+    if not index.get("available"):
+        raise SystemExit("site/data/traces/index.js has no trace data")
+    ids = [a["id"] for a in index["areas"]]
+    questions = questions_payload(ids, {aid: read_js(out / f"{aid}.js")["traces"] for aid in ids})
+    if licence_scan(questions):
+        raise SystemExit("questions: keys that may carry source text")
+    j2j = json2js_module()
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        qsize = write_js(j2j, questions, "traces_questions", out / "questions.js", tmp, "questions.json")
+        index["questions"] = {"file": "questions.js", "bytes": qsize, "count": sum(len(a["q"]) for a in questions["areas"])}
+        size = write_js(j2j, nfc(index), "traces_index", out / "index.js", tmp, "index.json")
+    return {"files": [{"file": "data/traces/questions.js", "bytes": qsize}, {"file": "data/traces/index.js", "bytes": size}],
+            "questions": index["questions"]["count"]}
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--traces", type=Path, default=None, help="folder with index.json and <area>.json (build/traces)")
     ap.add_argument("--site", type=Path, required=True)
     ap.add_argument("--report", type=Path, default=None)
+    ap.add_argument("--questions-from-site", action="store_true",
+                    help="only rebuild data/traces/questions.js (and its index entry) from the area files in the site")
     a = ap.parse_args(argv)
-    rep = build(a.traces, a.site)
+    rep = questions_from_site(a.site) if a.questions_from_site else build(a.traces, a.site)
     text = json.dumps(rep, ensure_ascii=False, indent=1)
     print(text[:3000])
     if a.report:
