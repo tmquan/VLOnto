@@ -40,7 +40,7 @@ embedded, so nothing is fetched from the internet.
 
 | Page | What it shows |
 |---|---|
-| `site/index.html` | 3D ontology playground (the landing page): classes, properties, concept schemes and external alignments; search, module filters, EN/VI labels, light/dark themes; SPARQL CONSTRUCT results drawn in 3D |
+| `site/index.html` | 3D ontology playground (the landing page): classes, properties, concept schemes and external alignments; search, module filters, light/dark themes; SPARQL CONSTRUCT results drawn in 3D |
 | `site/about.html` | overview of VLOnto, release numbers, paper and citation, licences |
 | `site/network-3d.html` | 3D legal network: every document layered by legal force, with change, legal-basis and citation links and validity colours |
 | `site/sparql.html` | SPARQL playground over the ontology and the browser subset of the graph, with bilingual example queries |
@@ -49,6 +49,12 @@ embedded, so nothing is fetched from the internet.
 | `site/ontology.html` | ontology modules and reference documentation |
 | `site/playbook.html` | the playbook; PDF in `site/downloads/VLOnto-playbook.pdf` |
 | `site/downloads.html` | ontology files, the RDF core subset, the site data (JSON), documentation and playbook files, with sizes and SHA-256 |
+
+Every page has a language switch in the header: English (EN), Vietnamese (VI) or both (EN–VI, the default). In EN–VI
+the navigation and buttons are in English with Vietnamese tooltips, and legends, call-outs and panel values show
+"Tiếng Việt · English" pairs. The choice is remembered across pages, also when the site is opened from disk, and
+`?lang=en`, `?lang=vi` or `?lang=envi` in the address forces a mode. The playbook and the ontology reference
+documentation stay in English. `docs/i18n.md` describes the language layer.
 
 ![3D legal network: documents layered by legal force, with change and legal-basis links](docs/img/network-3d.png)
 
