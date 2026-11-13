@@ -6,7 +6,9 @@
    frame loop that updates the controls and the depth fade on every frame, the metrics, the colour buttons). Its
    renderer rasterises the network's points and the beads as dots wherever they fall inside the camera's clip volume,
    so gl.readPixels sees what the camera would see: a camera pulled in by the controls, or wrong near/far planes, give
-   a blank capture here as in the browser. Checks that the harness reaches ready without errors, keeps the orthographic
+   a blank capture here as in the browser. It draws as three.js does - opaque objects first, then transparent ones, each
+   by renderOrder - with the beads in their colours and the traced path as a navy line, so a bead left under the trace
+   shows here too. Checks that the harness reaches ready without errors, keeps the orthographic
    camera at the configured pose and distance, fits near/far around the scene and the page's depth fade to the camera,
    widens the trace, fades the context, builds the subtree, answers every capture of the config at its pixel ratio with
    ink (no blank capture) and the diagnostics, and writes anchors that match teaser-core.js. It cannot check the
@@ -92,18 +94,48 @@ var renderer = { pr: 1, domElement: canvas, info: { render: { calls: 0, triangle
     c.updateMatrixWorld(true);
     fbW = canvas.width; fbH = canvas.height; fb = new Uint8Array(fbW * fbH * 4).fill(255);
     var m = new THREE.Matrix4().multiplyMatrices(c.projectionMatrix, c.matrixWorldInverse), v = new THREE.Vector3(), drawn = 0;
-    function dot(x, y, z) {
-      v.set(x, y, z).applyMatrix4(m);
-      if (!(v.x >= -1 && v.x <= 1 && v.y >= -1 && v.y <= 1 && v.z >= -1 && v.z <= 1)) return;
-      var px = Math.floor((v.x + 1) / 2 * fbW), py = Math.floor((v.y + 1) / 2 * fbH);
-      for (var yy = Math.max(0, py - 1); yy <= Math.min(fbH - 1, py + 1); yy++)
-        for (var xx = Math.max(0, px - 1); xx <= Math.min(fbW - 1, px + 1); xx++) { var i = 4 * (yy * fbW + xx); fb[i] = 60; fb[i + 1] = 80; fb[i + 2] = 90; }
-      drawn++;
+    var e = c.matrixWorldInverse.elements, ppt = fbW / cfg.figure.width_pt;
+    function plot(px, py, rgb, rad) {                        // a filled disc; py counts GL rows from the bottom
+      for (var yy = Math.max(0, Math.floor(py - rad)); yy <= Math.min(fbH - 1, Math.ceil(py + rad)); yy++)
+        for (var xx = Math.max(0, Math.floor(px - rad)); xx <= Math.min(fbW - 1, Math.ceil(px + rad)); xx++)
+          if ((xx - px) * (xx - px) + (yy - py) * (yy - py) <= rad * rad + 0.5) { var i = 4 * (yy * fbW + xx); fb[i] = rgb[0]; fb[i + 1] = rgb[1]; fb[i + 2] = rgb[2]; }
     }
-    for (var i = 0; i < N; i++) dot(D.pos[3 * i], D.pos[3 * i + 1], D.pos[3 * i + 2]);
-    s.children.forEach(function (o) { if (o.isPoints && o !== points) { var a = o.geometry.attributes.position; for (var k = 0; k < a.count; k++) dot(a.getX(k), a.getY(k), a.getZ(k)); } });
+    function proj(x, y, z) {
+      v.set(x, y, z).applyMatrix4(m);
+      return (v.x >= -1 && v.x <= 1 && v.y >= -1 && v.y <= 1 && v.z >= -1 && v.z <= 1) ? { x: (v.x + 1) / 2 * fbW, y: (v.y + 1) / 2 * fbH } : null;
+    }
+    /* three.js draws the opaque objects first, then the transparent ones, each list by renderOrder; the network's
+       points are opaque, the traces (TraceLines: halo2, halo, core meshes) transparent */
+    var items = [{ kind: 'network', tr: false, order: 0 }];
+    s.children.forEach(function (o) {
+      if (o === points) return;
+      if (o.isPoints) items.push({ o: o, kind: 'beads', tr: !!o.material.transparent, order: o.renderOrder || 0 });
+      else if (o.name === 'vlonto-trace') items.push({ o: o, kind: 'trace', tr: true,
+        order: Math.max.apply(null, o.children.map(function (ch) { return ch.renderOrder || 0; }).concat([o.renderOrder || 0])) });
+    });
+    items.sort(function (a, b) { return (a.tr - b.tr) || (a.order - b.order); });
+    items.forEach(function (it) {
+      if (it.kind === 'network') {
+        for (var i = 0; i < N; i++) { var p = proj(D.pos[3 * i], D.pos[3 * i + 1], D.pos[3 * i + 2]); if (p) { plot(p.x, p.y, [60, 80, 90], 1); drawn++; } }
+      } else if (it.kind === 'beads') {                     // each bead in its colour, faded like the page's points
+        var pa = it.o.geometry.attributes.position, ca = it.o.geometry.attributes.aColor, F = FOG.value;
+        for (var k = 0; k < pa.count; k++) {
+          var x = pa.getX(k), y = pa.getY(k), z = pa.getZ(k), q = proj(x, y, z);
+          if (!q) continue;
+          var d = -(e[2] * x + e[6] * y + e[10] * z + e[14]), f = Math.min(1, Math.max(0, (d - F.x) / Math.max(1, F.y - F.x))) * F.z;
+          plot(q.x, q.y, [ca.getX(k), ca.getY(k), ca.getZ(k)].map(function (u) { return Math.round(255 * (u * (1 - f) + f)); }), 2.3 * ppt);
+          drawn++;
+        }
+      } else {                                               // the traced path as the core sees it: a navy line
+        var tp = global.__TEASER.json && global.__TEASER.json.paths_pt && global.__TEASER.json.paths_pt.trace;
+        for (var j = 0; tp && j + 1 < tp.length; j++) {
+          var x0 = tp[j][0] * ppt, y0 = fbH - tp[j][1] * ppt, x1 = tp[j + 1][0] * ppt, y1 = fbH - tp[j + 1][1] * ppt, n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2));
+          for (var t = 0; t <= n; t++) plot(x0 + (x1 - x0) * t / n, y0 + (y1 - y0) * t / n, [44, 58, 71], 2.5 * ppt / 3.147);
+        }
+      }
+    });
     var ri = this.info.render;
-    this.info.render = { calls: drawn ? 2 : 0, triangles: 0, points: drawn, lines: 0, frame: ri.frame + 1 };
+    this.info.render = { calls: drawn ? items.length : 0, triangles: 0, points: drawn, lines: 0, frame: ri.frame + 1 };
     renders.push({ ortho: !!c.isOrthographicCamera, pr: this.pr, drawn: drawn });
   } };
 var camera = new THREE.PerspectiveCamera(45, 1, 5, 80000), chainIdx = [];
@@ -177,6 +209,13 @@ function check(ok, what) { if (!ok) fails.push(what); }
       check(renders.length && renders[renders.length - 1].ortho && renders[renders.length - 1].pr === c.pixelRatio, names[k] + ' rendered orthographic at its pixel ratio');
       check(labels.visible === (c.labels === 'site'), names[k] + ' labels ' + c.labels);
       check(!r.blank && r.ink >= cfg.checks.min_ink_fraction, names[k] + ' has ink: ' + r.ink);
+      var ppt = fbW / cfg.figure.width_pt, under = [];
+      Object.keys(T.json.anchors).forEach(function (id) {
+        var a = T.json.anchors[id].pt, x = Math.round(a[0] * ppt), y = fbH - 1 - Math.round(a[1] * ppt), i = 4 * (y * fbW + x);
+        if (Math.max(Math.abs(fb[i] - 44), Math.abs(fb[i + 1] - 58), Math.abs(fb[i + 2] - 71)) <= 40) under.push(id);
+      });
+      check(!under.length, names[k] + ' beads hidden under the trace: ' + under.join(', '));
+      check(!r.hidden_beads || !r.hidden_beads.length, names[k] + ' harness sees every bead: ' + (r.hidden_beads || []).join(', '));
       check(r.diag && r.diag.scene_depth.inside_clip && r.diag.render.calls > 0 && r.diag.pixels.size[0] === r.width &&
         r.diag.camera.distance === dist && r.diag.canvas.drawing_buffer[1] === r.height, names[k] + ' diagnostics');
       next(k + 1);

@@ -11,8 +11,9 @@ OUT/console.log (the page's console messages, page errors, crashes and failed re
 come). Every capture's entry carries the page's diagnostics (camera, clipping planes, depth fade, the scene's depth range,
 draw counts, canvas, WebGL limits and context events) and two ink counts: the page's gl.readPixels right after the
 render, and this script's count on the PNG. Exits non-zero when the harness reports an error, a PNG has the wrong size,
-a capture or page.png is blank (fewer than checks.min_ink_fraction of the pixels differ from the page background), the
-WebGL context was lost, or the page logs an error.
+a capture or page.png is blank (fewer than checks.min_ink_fraction of the pixels differ from the page background), a
+bead of the trace is hidden under other ink (its centre pixel is not its colour), the WebGL context was lost, or the
+page logs an error.
 Waits scale with VLONTO_TIMEOUT_SCALE (CI: 4). Python: playwright (tools/requirements-web.lock) and Pillow.
 """
 import argparse, base64, functools, hashlib, http.server, io, json, os, sys, threading, time
@@ -131,16 +132,20 @@ def main():
                 d = r.get("diag") or {}
                 entry = dict(name=name, file=path.name, size=list(im.size), bytes=len(png), sha256=hashlib.sha256(png).hexdigest(),
                              seconds=round(time.time() - t1, 1), ink_png=k["fraction"], ink_png_bbox_px=k["bbox_px"],
-                             ink_readpixels=r.get("ink"), blank=bool(r.get("blank")) or k["fraction"] < min_ink, diag=d)
+                             ink_readpixels=r.get("ink"), blank=bool(r.get("blank")) or k["fraction"] < min_ink,
+                             hidden_beads=r.get("hidden_beads") or [], diag=d)
                 result["captures"].append(entry)
                 cam, fog, rd = d.get("camera") or {}, (d.get("fog") or {}).get("depth_fade") or {}, d.get("render") or {}
                 sd = d.get("scene_depth") or {}
                 print("captured %s %dx%d in %.0f s: ink %.2f %% (readPixels %.2f %%), %s draw calls, scene depth %.0f..%.0f in clip %.0f..%.0f,"
-                      " fade %.0f..%.0f x%.2f" % (name, im.size[0], im.size[1], time.time() - t1, 100 * k["fraction"], 100 * (r.get("ink") or 0),
-                                                  rd.get("calls"), sd.get("min") or 0, sd.get("max") or 0, cam.get("near") or 0, cam.get("far") or 0,
-                                                  fog.get("near") or 0, fog.get("far") or 0, fog.get("amount") or 0), flush=True)
+                      " fade %.0f..%.0f x%.2f, beads hidden %d of %d" % (
+                          name, im.size[0], im.size[1], time.time() - t1, 100 * k["fraction"], 100 * (r.get("ink") or 0), rd.get("calls"),
+                          sd.get("min") or 0, sd.get("max") or 0, cam.get("near") or 0, cam.get("far") or 0, fog.get("near") or 0,
+                          fog.get("far") or 0, fog.get("amount") or 0, len(entry["hidden_beads"]), len(d.get("beads") or [])), flush=True)
                 if im.size != want:
                     problems.append("%s: %s px, expected %s" % (name, im.size, want))
+                if entry["hidden_beads"]:
+                    problems.append("%s: beads hidden under other ink (centre pixel is not the bead's colour): %s" % (name, ", ".join(entry["hidden_beads"])))
                 if entry["blank"]:
                     problems.append("%s is blank: %.4f %% of the pixels differ from the background (readPixels %.4f %%)"
                                     % (name, 100 * k["fraction"], 100 * (r.get("ink") or 0)))

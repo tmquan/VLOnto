@@ -58,7 +58,9 @@ The page's own frames run at pixel ratio 1; only the capture is rendered at its 
 A capture cannot pass blank. Right after the render, in the same task, the page reads the drawing buffer back
 (`gl.readPixels`) and counts the pixels that differ from the background; `capture.py` counts them again on the PNG and
 on `page.png`, and fails the run when any has fewer than `checks.min_ink_fraction` (1 %) or when the WebGL context was
-lost. The first capture, `teaser_debug_pr1`, is a cheap pixel-ratio-1 check. Each capture's entry in
+lost. It also reads every bead's centre pixel and fails the run when one is not the bead's colour (faded by the depth
+fade): three.js draws all opaque objects before all transparent ones whatever their `renderOrder`, so the beads are
+transparent and drawn after the trace's core (the second CI run had them opaque, hidden under the trace and the links). The first capture, `teaser_debug_pr1`, is a cheap pixel-ratio-1 check. Each capture's entry in
 `teaser_capture.json` records the camera (type, position, target, distance, near/far, zoom, frustum, controls' limits),
 the scene's depth range and whether it lies inside near..far, the scene fog (none) and the page's depth fade (near, far,
 amount, colour and the fade at the scene's front, target and back), `renderer.info.render` (calls, triangles, points,

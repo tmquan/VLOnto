@@ -128,8 +128,11 @@
     g.setAttribute('aSize', new THREE.BufferAttribute(S, 1));
     var pm = X.points.material;
     beads = new THREE.Points(g, new THREE.ShaderMaterial({ uniforms: pm.uniforms, vertexShader: pm.vertexShader,
-      fragmentShader: pm.fragmentShader, depthTest: false, depthWrite: false, transparent: false }));
-    beads.renderOrder = 14;
+      fragmentShader: pm.fragmentShader, depthTest: false, depthWrite: false, transparent: true }));
+    /* three.js draws every opaque object before every transparent one, whatever their renderOrder: the links and the
+       traces are transparent (the trace's halo2, halo and core meshes at renderOrder 12, 13, 14), so the beads must be
+       transparent too, and come after the core (the first CI capture had them opaque, under the trace and the links) */
+    beads.renderOrder = 20;
     beads.frustumCulled = false;
     X.scene.add(beads);
   }
@@ -235,11 +238,32 @@
     });
   }
 
+  /* every bead's centre in device px and the colour it should show there: its class colour (raw, as the point shader
+     writes it; the centre of the lit sphere has exactly that colour), faded toward the background by the page's depth
+     fade at its distance from the camera */
+  function beadProbes(pr, fit) {
+    var e = cam.matrixWorldInverse.elements, col = beads.geometry.attributes.aColor.array, bg = X.points.material.uniforms.uBg.value;
+    return beadIds.map(function (id, k) {
+      var p = SP[id], s = screen(p), d = -(e[2] * p.x + e[6] * p.y + e[10] * p.z + e[14]), f = TZ.fogFactor(fit.fog, d);
+      var exp = [col[3 * k], col[3 * k + 1], col[3 * k + 2]].map(function (c, j) { return Math.round(255 * (c * (1 - f) + [bg.r, bg.g, bg.b][j] * f)); });
+      return { id: id, css: [+s.x.toFixed(2), +s.y.toFixed(2)], x: s.x * pr, y: s.y * pr, expected: exp };
+    });
+  }
+  function beadVisible(p) {
+    return !!p.got && Math.max(Math.abs(p.got[0] - p.expected[0]), Math.abs(p.got[1] - p.expected[1]), Math.abs(p.got[2] - p.expected[2])) <= 48;
+  }
+
   /* pixels of the drawing buffer that differ from the background (any channel by more than 2 of 255), read with
      gl.readPixels right after the render in the same task, before the browser may clear the buffer */
-  function inkOf(gl) {
+  function inkOf(gl, probes) {
     var w = gl.drawingBufferWidth, h = gl.drawingBufferHeight, t = performance.now(), buf = new Uint8Array(w * h * 4);
     gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, buf);
+    (probes || []).forEach(function (p) {                        // device px, origin top left; GL rows run bottom up
+      var x = Math.round(p.x), y = Math.round(p.y);
+      if (x < 0 || y < 0 || x >= w || y >= h) { p.got = null; return; }
+      var i = 4 * ((h - 1 - y) * w + x);
+      p.got = [buf[i], buf[i + 1], buf[i + 2]];
+    });
     var bg = new THREE.Color();
     X.renderer.getClearColor(bg);
     var hex = bg.getHex(), br = hex >> 16 & 255, bgr = hex >> 8 & 255, bb = hex & 255, n = 0, x0 = w, y0 = h, x1 = -1, y1 = -1;
@@ -359,17 +383,21 @@
       r.render(X.scene, cam);
       var ri = r.info.render, rinfo = { calls: ri.calls, triangles: ri.triangles, points: ri.points, lines: ri.lines,
         frame: ri.frame, ms: Math.round(performance.now() - t1) };
-      var ink = inkOf(gl);                          // same task as the render: the drawing buffer is still there
+      var probes = beadProbes(cap.pixelRatio, fit);
+      var ink = inkOf(gl, probes);                  // same task as the render: the drawing buffer is still there
+      var hidden = probes.filter(function (p) { return !beadVisible(p); }).map(function (p) { return p.id; });
       var url = r.domElement.toDataURL('image/png');
       var info = { name: name, pixelRatio: cap.pixelRatio, width: r.domElement.width, height: r.domElement.height,
         colorBy: T.colorBy, labels: cap.labels, labelsShown: cap.labels === 'site' ? M.labelsShown : 0,
-        ink: +ink.fraction.toFixed(6), blank: ink.fraction < MIN_INK, diag: diagnostics(gl, fit, rinfo, ink) };
+        ink: +ink.fraction.toFixed(6), blank: ink.fraction < MIN_INK, hidden_beads: hidden, diag: diagnostics(gl, fit, rinfo, ink) };
+      info.diag.beads = probes.map(function (p) { return { id: p.id, css: p.css, expected: p.expected, got: p.got, visible: beadVisible(p) }; });
       T.json.captures.push(info);
       step('captured ' + name, { name: name, pixelRatio: info.pixelRatio, width: info.width, height: info.height,
         colorBy: info.colorBy, labels: info.labels, labelsShown: info.labelsShown, ink: info.ink, blank: info.blank,
-        calls: rinfo.calls, render_ms: rinfo.ms, near: cam.near, far: cam.far, depth: fit.depth });
+        calls: rinfo.calls, render_ms: rinfo.ms, near: cam.near, far: cam.far, depth: fit.depth, hidden_beads: hidden.length });
+      if (hidden.length) console.warn('teaser: ' + name + ': beads hidden (centre pixel not the bead colour): ' + hidden.join(', '));
       if (info.blank) console.warn('teaser: ' + name + ' is blank: ' + ink.nonbg + ' of ' + ink.total + ' pixels differ from ' + ink.background);
-      return { url: url, width: info.width, height: info.height, ink: info.ink, blank: info.blank, diag: info.diag };
+      return { url: url, width: info.width, height: info.height, ink: info.ink, blank: info.blank, hidden_beads: hidden, diag: info.diag };
     });
   };
 
