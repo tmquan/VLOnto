@@ -2002,7 +2002,8 @@ def t_traces(c: Ctx):
     area files), three areas opened and one question selected in each: the trace lit in the canvas (core and halo pixels),
     the question, provision, law, term and area call-outs placed with no overlap and no node centre covered, the Fig. 5
     hop panel with five boxes, the list entry marked; a click on a node opens its details; Escape clears the selection;
-    the deep link #area=lao-dong-tien-luong&q=3 per theme, and the theme switch keeps the trace; no page wider than the
+    the deep link #area=lao-dong-tien-luong&q=3 per theme, and the theme switch keeps the trace; one static map (tabs and
+    picks leave the camera where it is, Zoom to selection flies, Reset view shows the whole map); no page wider than the
     screen, no console errors; screenshots."""
     res = {"test": "traces", "checks": []}
     logs = {"console_errors": [], "page_errors": [], "failed_requests": [], "external_requests": []}
@@ -2188,6 +2189,39 @@ def t_traces(c: Ctx):
                 raise RuntimeError(f"list ArrowDown -> {down}; after Escape {s3['segments']} segments, hash {s3['hash']}, list {s3['current']}")
             return {"arrow_right": nxt, "loaded": len(s2["loaded"]), "list_arrow_down": down, "after_escape": s3["hash"]}
         check("keyboard: ArrowRight / End / Home on the tabs, ArrowDown + Enter in the list select, Escape clears", keyboard, pg)
+
+        def static_map():
+            """one static map: a tab click and a question pick change the drawing only (the camera stays, and the page
+            makes no camera move of its own); Zoom to selection flies to the trace; Reset view brings back the whole map
+            (the view js/traces3d.js frames clear of the hop panel, the legend and the hint) and lifts the dimming"""
+            cam = "() => { const c = window.VLApp.traces.camera(); return c ? [c.pos, c.target].map(v => v.map(x => Math.round(x * 100) / 100)) : null; }"
+            moves = "() => window.__VLONTO_METRICS.traces.cameraMoves || 0"
+            flights = "() => window.__VLONTO_METRICS.traces.flights || 0"
+            area, rank = TRACE_PICKS[1]
+            c0, m0 = pg.evaluate(cam), pg.evaluate(moves)
+            open_area(pg, area)
+            c1, m1 = pg.evaluate(cam), pg.evaluate(moves)
+            s, co = select(pg, area, rank)
+            c2, m2 = pg.evaluate(cam), pg.evaluate(moves)
+            if not (c0 == c1 == c2) or not (m0 == m1 == m2):
+                raise RuntimeError(f"the camera moved: tab {c0} -> {c1}, pick -> {c2}; camera moves by the page {m0}, {m1}, {m2}")
+            f0 = pg.evaluate(flights)
+            pg.locator("#btn-zoom").click()
+            pg.wait_for_function("(f) => (window.__VLONTO_METRICS.traces.flights || 0) > f && window.VLApp.traces.settle()", arg=f0, timeout=T_(30000))
+            c3 = pg.evaluate(cam)
+            if c3 == c2:
+                raise RuntimeError(f"Zoom to selection left the camera at {c2}")
+            f1 = pg.evaluate(flights)
+            pg.locator("#btn-reset-m" if c.mobile else "#btn-reset").click()
+            pg.wait_for_function("(f) => (window.__VLONTO_METRICS.traces.flights || 0) > f && window.VLApp.traces.settle()", arg=f1, timeout=T_(30000))
+            c4 = pg.evaluate(cam)
+            v = pg.evaluate("() => { const v = window.VLApp.traces.view(); return [v.home.pos, v.home.target].map(a => a.map(x => Math.round(x * 100) / 100)); }")
+            st = pg.evaluate("() => ({ sel: window.__VLONTO_METRICS.traces.selected, dim: window.__VLONTO_METRICS.traces.dim })")
+            if c4 != v or st["sel"] or st["dim"]:
+                raise RuntimeError(f"Reset view: camera {c4}, whole map {v}, selection {st['sel']}, dimmed {st['dim']}")
+            return {"camera": c0, "pick": [area, rank], "zoomed": c3, "home": c4, "moves": [m0, m2], "callouts": callout_summary(co)}
+        check("one static map: a tab click and a question pick leave the camera where it is; Zoom to selection flies to the "
+              "trace; Reset view shows the whole map", static_map, pg)
     finally:
         merge(log)
         ctx.close()
