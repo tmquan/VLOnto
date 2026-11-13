@@ -237,6 +237,7 @@
     'o3d.startError': { en: 'Could not start the 3D view: {msg}', vi: 'Không khởi động được khung nhìn 3D: {msg}', k: 'text' },
     /* ---- js/traces3d.js (traces.html) */
     'tr3d.newTab': { en: 'opens in a new tab', vi: 'mở trong thẻ mới', k: 'ui' },
+    'tr3d.zoom': { en: 'Zoom to the selection', vi: 'Phóng to phần đang chọn', k: 'ui' },
     'tr3d.revs': { en: 'Data: question traces of {release}, built {date} from the Hugging Face datasets {revs}.', vi: 'Dữ liệu: truy vết câu hỏi của {release}, tạo ngày {date} từ các bộ dữ liệu Hugging Face {revs}.', k: 'text' },
     'tr3d.name.question': { en: 'Question #{n}', vi: 'Câu hỏi #{n}', k: 'pair' },
     'tr3d.name.answer': { en: 'Answer #{n}', vi: 'Trả lời #{n}', k: 'pair' },

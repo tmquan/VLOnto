@@ -2,15 +2,17 @@
    areas (data/traces/graph.js, built by scripts/site/trace_global.py): laws, chapters, sections, articles, clauses and
    points, questions, answers, terms and areas, every node once, the areas as regions of the floor in the order of the
    tabs, each laid out like the paper's Fig. 1 (arXiv:2611.11426).
-   - an area tab flies the camera to its region and lists its 20 traced questions (titles and hop data from
+   - the map is static: every node and link keeps its place and the camera only moves when the reader moves it (or asks
+     for 'Zoom to selection'); tabs and questions change the drawing only;
+   - an area tab lists its 20 traced questions and dims the other areas (titles and hop data from
      data/traces/<area>.js, loaded when the area is first opened; no fetch, file:// works);
    - picking a question lights its trace inside the whole graph (navy core over the gold halo, js/paper3d.js
-     VL.TraceLines; the V/W arms with the term -> defining clause hop), fades the rest, fits the camera to the trace,
+     VL.TraceLines; the V/W arms with the term -> defining clause hop), drawn bold, and fades the rest of the map,
      places bilingual call-outs with VL.Callouts (question, provision, law, term, area; never over ink or each other)
      and shows the Fig. 5 hop panel;
    - rotate, zoom and pan (OrbitControls), hover and click any node for its details, deep links #area=<id>&q=<rank>,
-     keyboard (tabs, list, arrows and +/- on the canvas, Esc), reset view, flat legend;
-   - phones: the question list and the hop panel are bottom sheets and only the open area's region is drawn (lighter);
+     keyboard (tabs, list, arrows and +/- on the canvas, Esc), reset view (the whole map), zoom to selection, flat legend;
+   - phones: the question list and the hop panel are bottom sheets; the whole map is drawn as on wide screens;
    - without WebGL the page keeps the tabs, the list and the hop panel and draws the selected trace in 2D
      (js/trace-draw.js, the build-time drawing in the area file).
    Points and lines follow js/network3d.js (custom point shader with soft pastel spheres, LineSegments, depth fade,
@@ -100,7 +102,7 @@
   var TABS = VL.$$('[role="tab"]', tabsEl);
   tabsEl.addEventListener('click', function (e) {
     var b = e.target.closest('[role="tab"]');
-    if (b) openArea(b.getAttribute('data-area'), { user: true, fly: true });
+    if (b) openArea(b.getAttribute('data-area'), { user: true });
   });
   tabsEl.addEventListener('keydown', function (e) {
     var i = TABS.indexOf(document.activeElement);
@@ -109,7 +111,7 @@
     if (j == null) return;
     e.preventDefault();
     j = (j + TABS.length) % TABS.length;
-    openArea(TABS[j].getAttribute('data-area'), { focusTab: true, user: true, fly: true });
+    openArea(TABS[j].getAttribute('data-area'), { focusTab: true, user: true });
   });
 
   /* ------------------------------------------------------------------ data */
@@ -438,7 +440,6 @@
       var v = 1;
       if (sel) v = fg[i] ? 1 : (tn[i] ? FOCUS.traceOther : FOCUS.rest);
       else if (ai >= 0 && HOME[i] !== ai) v = FOCUS.areaRest;
-      if (mobile && ai >= 0 && HOME[i] !== ai && !(sel && tn[i])) v = 0;
       a[i] = v;
     }
     ALPHA = a;
@@ -520,6 +521,7 @@
   function fitAll(ms) {
     var e = G.ext, f = fitBox(new THREE.Vector3(e[0], 0, e[2]), new THREE.Vector3(e[1], e[4], e[3]), DIR_ALL, 0.03);
     moveCamera(f.pos, f.target, ms);
+    if (ms) T.flights++;
   }
   function areaBox(ai) {
     var a = G.areas[ai], r = a.r;
@@ -1021,7 +1023,7 @@
       applyAlpha();
       drawTrace();
       buildLabels();
-      fitTrace(t, opts.ms != null ? opts.ms : 900);
+      if (opts.fit) fitTrace(t, opts.ms != null ? opts.ms : 900);   // the map stays put; 'Zoom to selection' flies in
       return t;
     });
   }
@@ -1130,8 +1132,20 @@
   function resetView() {
     clearSelection(true);
     closePanel();
-    if (camera && state.area != null) flyToArea(AIX[state.area], 800);
-    else if (camera) fitAll(800);
+    if (camera) fitAll(800);
+  }
+  /* the map never moves by itself (tabs and questions only change the drawing); this flies to the picked trace, else to
+     the open area, else shows the whole map */
+  function zoomToSelection() {
+    if (!camera) return;
+    if (state.sel) fitTrace(state.sel.t, 800);
+    else if (state.area != null) flyToArea(AIX[state.area], 800);
+    else fitAll(800);
+  }
+  var zoomBtn = VL.$('#btn-zoom');
+  if (zoomBtn) {
+    zoomBtn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.3-4.3M11 8.5v5M8.5 11h5"/></svg>';
+    zoomBtn.addEventListener('click', zoomToSelection);
   }
   VL.$('#btn-reset').addEventListener('click', resetView);
   VL.$('#btn-reset-m').addEventListener('click', resetView);
@@ -1228,13 +1242,13 @@
   function route() {
     var h = VL.params(), a = BY[h.area];
     if (!a) {
-      if (state.area == null) return openArea(initialArea(), { fly: true, ms: 0 });
+      if (state.area == null) return openArea(initialArea(), {});
       if (state.sel) { clearSelection(false); closePanel(); }
       return Promise.resolve();
     }
     var rank = h.q ? parseInt(h.q, 10) : null;
     var fresh = state.area !== a.id, first = state.area == null, ms = first ? 0 : 900;
-    return openArea(a.id, { fly: fresh && !(rank && TRK[AIX[a.id] + ':' + rank]), ms: ms }).then(function () {
+    return openArea(a.id, {}).then(function () {
       if (rank && TRK[AIX[a.id] + ':' + rank]) {
         if (state.sel && state.sel.t.a === AIX[a.id] && state.sel.t.r === rank) return null;
         return selectTrace(a.id, rank, { ms: ms });
@@ -1247,7 +1261,7 @@
 
   window.VLApp = window.VLApp || {};
   window.VLApp.traces = {
-    area: function (id) { return openArea(id, { user: true, fly: true }); },
+    area: function (id) { return openArea(id, { user: true }); },
     select: function (id, rank, ms) { return selectTrace(id, rank, { user: true, ms: ms }); },
     clear: function () { clearSelection(true); closePanel(); },
     areas: function () { return AREAS.map(function (a) { return a.id; }); },
