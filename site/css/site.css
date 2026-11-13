@@ -1532,5 +1532,9 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
 .page-onto3d .legend .lg-shape svg circle, .page-onto3d .legend .lg-shape svg path { stroke: rgba(0, 0, 0, .28); stroke-width: .8; }
 :root[data-theme="dark"] .page-onto3d .legend .lg-shape svg circle, :root[data-theme="dark"] .page-onto3d .legend .lg-shape svg path { stroke: rgba(255, 255, 255, .3); }
 .page-onto3d #link-toggles .check .swatch-curve { margin-right: 2px; }
+/* traces.html is one static map (v1.1): the canvas keeps its size when the hop panel opens (on phones the bottom sheet),
+   so a pick never changes the projection. The panel lies over the canvas like the legend does; js/traces3d.js frames
+   the whole map clear of it (mapRect). */
+.page-traces .scene-stage.panel-open .scene-canvas { right: 0; bottom: 0; }
 
 /* ================================================================== end of 3D TRACK */

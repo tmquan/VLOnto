@@ -253,7 +253,9 @@
   var fgObj = null, fgMat = null;   // the selected trace's own nodes, drawn again over its strokes (as in the paper's figures)
   var EDGE = null;            // {s, t: Int32Array, k: Uint8Array (kind index), base: Float32Array, g, j: group and instance}
   var mobile = VL.isMobile();
-  var state = { area: null, sel: null, legendOpen: !mobile };
+  /* dim: the reader chose an area (a tab, the keyboard, a deep link): the other areas fade back; a plain load and Reset
+     view show the whole map undimmed */
+  var state = { area: null, sel: null, legendOpen: !mobile, dim: false };
 
   function webglOk() {
     try {
@@ -428,9 +430,10 @@
   /* node alpha: the selected trace (foreground 1, its other nodes 0.55), the rest faded; on phones only the open area's
      region is drawn (and the selected trace wherever it reaches) */
   var ALPHA = null;
-  /* focus (v1.1): a picked question's trace is drawn bold and everything else fades far back; an open area keeps its
-     region and dims the other areas. rest / traceOther / areaRest = node alphas, linkRest = factor on faded links */
-  var FOCUS = { rest: 0.04, traceOther: 0.5, areaRest: 0.3, linkRest: 0.5, bold: mobile ? 1.3 : 1.5, fgSize: 1.35 };
+  /* focus (v1.1, the static map): a picked question's trace is drawn bold and the rest of the map fades back but stays
+     visible as context (the whole map is in view); an area chosen by its tab keeps its region and dims the other areas.
+     rest / traceOther / areaRest = node alphas, linkRest = factor on faded links */
+  var FOCUS = { rest: 0.18, traceOther: 0.5, areaRest: 0.25, linkRest: 0.8, bold: mobile ? 1.3 : 1.5, fgSize: 1.35 };
   T.focus = FOCUS;
   function applyAlpha() {
     if (!pointsObj) return;
@@ -439,7 +442,7 @@
     for (var i = 0; i < N; i++) {
       var v = 1;
       if (sel) v = fg[i] ? 1 : (tn[i] ? FOCUS.traceOther : FOCUS.rest);
-      else if (ai >= 0 && HOME[i] !== ai) v = FOCUS.areaRest;
+      else if (ai >= 0 && state.dim && HOME[i] !== ai) v = FOCUS.areaRest;
       a[i] = v;
     }
     ALPHA = a;
@@ -475,6 +478,33 @@
       var lr = legendEl.getBoundingClientRect();
       if (lr.width > 0.45 * (r.x1 - r.x0) && lr.top - hr.top > sz.h * 0.4) r.y1 = Math.min(r.y1, Math.max(sz.h * 0.45, lr.top - hr.top - 6));
     }
+    return r;
+  }
+  /* the part of the canvas the whole map is framed in. It is the same before and after a pick, so a pick never needs the
+     camera to move: on wide screens left of the hop panel (its 380 px whether it is open or not), below the hint and the
+     stage tools, above the legend; on phones above the hop sheet at its tallest (46 % of the stage) and below the hint */
+  var PANEL_W = 380, SHEET = 0.46;
+  /* wide screens: a gutter left of the map for the call-outs of its leftmost areas (nothing can be placed left of them) */
+  var GUTTER = 80;
+  function boxIn(el) {
+    if (!el || el.classList.contains('hidden') || el.hidden) return null;
+    var b = el.getBoundingClientRect(), hr = host.getBoundingClientRect();
+    return b.width > 1 && b.height > 1 ? { x0: b.left - hr.left, y0: b.top - hr.top, x1: b.right - hr.left, y1: b.bottom - hr.top } : null;
+  }
+  function mapRect() {
+    var sz = stageSize(), r = { x0: 0, y0: 0, x1: sz.w, y1: sz.h }, h = boxIn(VL.$('#hint', stage)), lg = boxIn(legendEl);
+    if (mobile) {
+      r.y1 = sz.h * (1 - SHEET) - 6;
+    } else {
+      var tools = boxIn(VL.$('.stage-tools', stage)), st = boxIn(statusEl);
+      r.x0 = GUTTER;
+      r.x1 = Math.max(sz.w * 0.5, sz.w - PANEL_W - 8);
+      if (tools) r.y0 = Math.max(r.y0, tools.y1 + 6);
+      if (lg) r.y1 = Math.min(r.y1, lg.y0 - 6);
+      else if (st) r.y1 = Math.min(r.y1, st.y0 - 6);
+    }
+    if (h) r.y0 = Math.max(r.y0, h.y1 + 6);
+    if (r.y1 - r.y0 < sz.h * 0.3) r.y1 = Math.min(sz.h, r.y0 + sz.h * 0.3);
     return r;
   }
   /* camera for the box seen along dir: the closest distance at which the box fits the rectangle rect of the canvas
@@ -518,8 +548,13 @@
     });
     return { lo: lo, hi: hi };
   }
+  /* the whole map in mapRect(): on load and on Reset view only */
+  function homeView() {
+    var e = G.ext;
+    return fitBox(new THREE.Vector3(e[0], 0, e[2]), new THREE.Vector3(e[1], e[4], e[3]), DIR_ALL, 0.03, mapRect());
+  }
   function fitAll(ms) {
-    var e = G.ext, f = fitBox(new THREE.Vector3(e[0], 0, e[2]), new THREE.Vector3(e[1], e[4], e[3]), DIR_ALL, 0.03);
+    var f = homeView();
     moveCamera(f.pos, f.target, ms);
     if (ms) T.flights++;
   }
@@ -528,7 +563,7 @@
     return { lo: new THREE.Vector3(a.c[0] - r, 0, a.c[1] - r), hi: new THREE.Vector3(a.c[0] + r, G.H * 1.25, a.c[1] + r) };
   }
   function flyToArea(ai, ms) {
-    var b = areaBox(ai), f = fitBox(b.lo, b.hi, DIR_AREA, mobile ? 0.02 : 0.05);
+    var b = areaBox(ai), f = fitBox(b.lo, b.hi, DIR_AREA, mobile ? 0.02 : 0.05, freeRect());
     moveCamera(f.pos, f.target, ms);
     T.flights++;
   }
@@ -554,6 +589,7 @@
     T.flights++;
   }
   function moveCamera(pos, target, ms) {
+    T.cameraMoves = (T.cameraMoves || 0) + 1;
     if (!ms) {
       tween = null;
       camera.position.copy(pos); controls.target.copy(target); camera.lookAt(target); controls.update();
@@ -606,6 +642,9 @@
   function updateLabelSizes() { if (!camera) return; var w = worldPerPx(); labels.forEach(function (s) { s.fit(w); }); }
   /* call-out text: Vietnamese · English, long names shortened (the full name is in the panel and the tooltip) */
   var LBL = mobile ? { vi: 34, en: 38, one: 24, px: 18, pxSel: 19, qvi: 36, qen: 40 } : { vi: 48, en: 52, one: 30, px: 22, pxSel: 23, qvi: 46, qen: 50 };
+  /* which call-outs of a picked trace must be shown (the question always); on phones the law when it fits (the hop
+     sheet's title names it), on wide screens the law too */
+  var MUST = mobile ? { provision: true, law: false } : { provision: true, law: true };
   /* call-out lines in the language mode (js/paper3d.js VL.paperLines): EN–VI "Tiếng Việt · English" (on one line when
      short), EN or VI one line */
   function bi(i, prefix) {
@@ -627,13 +666,14 @@
     var sel = state.sel;
     if (sel) {
       var t = sel.t, co = t.co;
+      // the static map: the question, its provision and its law must be named next to the trace; the term and the area
+      // when there is room (the hop panel names them, the open tab names the area)
       makeLabel(questionLines(t), { id: G.i[co[0]], node: co[0], sel: true, must: true, pri: 1000, px: LBL.pxSel });
-      makeLabel(bi(co[2]), { id: G.i[co[2]], node: co[2], must: true, pri: 900 });
-      if (co[3] !== co[2]) makeLabel(bi(co[3]), { id: G.i[co[3]], node: co[3], must: true, pri: 880 });
-      if (co[4] >= 0) makeLabel(bi(co[4]), { id: G.i[co[4]], node: co[4], must: localTerm(t), pri: 860 });   // a far term: when there is room
-      // phones, a law in another region (the frame spans two regions): the area call-out yields first (the toolbar names the area)
-      makeLabel(areaLines(co[5]), { id: G.i[co[5]], node: co[5], must: !(mobile && HOME[co[3]] !== HOME[co[0]]), pri: 840 });
-    } else if (state.area != null) {
+      makeLabel(bi(co[2]), { id: G.i[co[2]], node: co[2], must: MUST.provision, pri: 900 });
+      if (co[3] !== co[2]) makeLabel(bi(co[3]), { id: G.i[co[3]], node: co[3], must: MUST.law, pri: 880 });
+      if (co[4] >= 0) makeLabel(bi(co[4]), { id: G.i[co[4]], node: co[4], must: false, pri: localTerm(t) ? 860 : 820 });
+      makeLabel(areaLines(co[5]), { id: G.i[co[5]], node: co[5], must: false, pri: 840 });
+    } else if (state.area != null && state.dim) {
       var ai = AIX[state.area], an = -1, laws = [];
       for (var i = 0; i < N; i++) {
         if (HOME[i] !== ai) continue;
@@ -646,7 +686,9 @@
       laws.sort(function (x, y) { return cnt(y) - cnt(x) || x - y; });
       laws.slice(0, mobile ? 4 : 8).forEach(function (w, r) { makeLabel(bi(w), { id: G.i[w], node: w, pri: 500 - r, px: LBL.px - 1 }); });
     } else {
-      for (var j = 0; j < N; j++) if (cname(j) === 'area') makeLabel(areaLines(j), { id: G.i[j], node: j, pri: 300, px: LBL.px - 1 });
+      // the whole map: the areas' names where they fit (the listed area's first)
+      var cur = state.area != null ? AIX[state.area] : -1;
+      for (var j = 0; j < N; j++) if (cname(j) === 'area') makeLabel(areaLines(j), { id: G.i[j], node: j, pri: HOME[j] === cur ? 400 : 300, px: LBL.px - 1 });
     }
     T.labels = labels.length;
     M.labelsLang = VL.lang();
@@ -973,9 +1015,12 @@
     VL.$('#tr-panel').setAttribute('aria-labelledby', 'tr-tab-' + a.id);
     VL.store.set('traces.area', a.id);
     if (opts.user) setHash('#area=' + a.id);
-    var changed = state.area !== a.id;
+    var changed = state.area !== a.id, dimNow = !!(opts.user || opts.dim);
+    if (dimNow && !state.dim) changed = true;
     state.area = a.id;
     T.area = a.id;
+    if (dimNow) state.dim = true;
+    T.dim = state.dim;
     if (changed || opts.user) {
       if (state.sel && AREAS[state.sel.t.a].id !== a.id) clearSelection(false);
       if (state.sel && opts.user) clearSelection(false);
@@ -1132,6 +1177,7 @@
   function resetView() {
     clearSelection(true);
     closePanel();
+    if (state.dim) { state.dim = false; T.dim = false; if (pointsObj) { applyAlpha(); buildLabels(); } }
     if (camera) fitAll(800);
   }
   /* the map never moves by itself (tabs and questions only change the drawing); this flies to the picked trace, else to
@@ -1248,7 +1294,7 @@
     }
     var rank = h.q ? parseInt(h.q, 10) : null;
     var fresh = state.area !== a.id, first = state.area == null, ms = first ? 0 : 900;
-    return openArea(a.id, {}).then(function () {
+    return openArea(a.id, { dim: true }).then(function () {
       if (rank && TRK[AIX[a.id] + ':' + rank]) {
         if (state.sel && state.sel.t.a === AIX[a.id] && state.sel.t.r === rank) return null;
         return selectTrace(a.id, rank, { ms: ms });
@@ -1273,6 +1319,11 @@
       return { x: (v.x + 1) / 2 * host.clientWidth, y: (1 - v.y) / 2 * host.clientHeight, inside: Math.abs(v.x) <= 1 && Math.abs(v.y) <= 1 && v.z < 1 };
     },
     settle: function () { return !tween && !(callouts && callouts.last === null); },
+    /* the camera (position, target) and the rectangles the views are framed in; Zoom to selection and Reset view */
+    camera: function () { return camera ? { pos: camera.position.toArray(), target: controls.target.toArray() } : null; },
+    view: function () { return camera ? { map: mapRect(), free: freeRect(), home: (function (f) { return { pos: f.pos.toArray(), target: f.target.toArray() }; })(homeView()) } : null; },
+    zoom: function () { zoomToSelection(); },
+    reset: function () { resetView(); },
     /* the current view as data (camera, the colours / alphas / sizes the shaders get, the call-outs placed), for tests and
        offline previews of the page without a GPU; read-only */
     snapshot: function () {
@@ -1319,6 +1370,7 @@
     } else {
       buildScene();
       bindPointer();
+      showHint();          // first visit: the hint is part of the frame the whole map is placed in
       fitAll(0);
     }
     T.buildMs = Math.round(performance.now() - t0);
@@ -1326,7 +1378,6 @@
     return route();
   }).then(function () {
     hideVeil();
-    if (!T.fallback) showHint();
     return new Promise(function (res) { requestAnimationFrame(function () { requestAnimationFrame(res); }); });
   }).then(function () {
     return T.fallback ? null : measureFps(700);
