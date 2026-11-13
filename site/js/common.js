@@ -511,7 +511,7 @@
     var paper = nav.querySelector('a.ext');
     if (paper) {
       paper.querySelector('.vl-paper-label').textContent = VL.U('chrome.nav.paper');
-      paper.querySelector('.sr-only').textContent = VL.U('chrome.nav.paperNewTab');
+      paper.querySelector('.sr-only > span').textContent = VL.U('chrome.nav.paperNewTab');
     }
     var brand = top.querySelector('.vl-brand');
     brand.setAttribute('aria-label', VL.U('chrome.brand.home'));
@@ -560,7 +560,7 @@
     }).join('') +
       '<a class="ext" href="' + VL.PAPER.url + '" target="_blank" rel="noopener" data-paper-link="nav" title="' +
       VL.esc(VL.PAPER.title) + ' (arXiv:' + VL.PAPER.arxiv + ')"><span class="vl-paper-label">Paper</span>' + VL.ICON.external +
-      '<span class="sr-only"> (arXiv, opens in a new tab)</span></a>';
+      '<span class="sr-only"><span> (arXiv, opens in a new tab)</span></span></a>';   /* nested: clipped by its 1 px parent for measuring tools too */
     var hdr = document.getElementById('vl-header');
     if (hdr) {
       hdr.outerHTML = '<header class="vl-header" id="vl-top">' +
@@ -706,7 +706,7 @@
   VL.paperHtml = function (variant) {
     var P = VL.PAPER, id = 'bib-' + (++paperSeq), panel = variant === 'panel';
     var link = '<a class="paper-link" href="' + P.url + '" target="_blank" rel="noopener" data-paper-link="' + (panel ? 'panel' : 'card') + '">' +
-      'arXiv:' + P.arxiv + VL.ICON.external + '<span class="sr-only">' + VL.esc(VL.U('common.newTab')) + '</span></a>';
+      'arXiv:' + P.arxiv + VL.ICON.external + '<span class="sr-only"><span>' + VL.esc(VL.U('common.newTab')) + '</span></span></a>';
     /* the paper's title stays English (lang="en") in every mode */
     var head = panel ?
       '<p class="paper-title" lang="en">' + VL.esc(P.title) + '</p>' :

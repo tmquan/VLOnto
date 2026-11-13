@@ -523,6 +523,8 @@ def t_network(c: Ctx):
         # the camera; the per-view label toggle is gone; EN–VI comes back with the v1 headings
         pg.evaluate("() => window.VLApp.selectById('333670')")
         pg.wait_for_function("window.__VLONTO_METRICS.panelLoaded === '333670' && window.__VLONTO_METRICS.chainTraceDocs >= 2", timeout=T_(120000))
+        # the selection flies the camera; at ~1 fps (SwiftShader) two reads 400 ms apart can match mid-flight, so wait for its end
+        pg.wait_for_function("!window.__VLONTO_METRICS.flying", timeout=T_(120000))
         cam = stable_value(pg, "() => window.VLApp.camera()")
         r0 = (pg.evaluate(JS_CALLOUTS) or {}).get("runs", 0)
         set_lang(c, pg, "vi")

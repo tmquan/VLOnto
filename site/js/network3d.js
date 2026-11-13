@@ -754,13 +754,14 @@
       camera.position.copy(pos); controls.target.copy(target); camera.lookAt(target); controls.update(); needsRender = true; scheduleCull(); return;
     }
     tween = { t0: null, ms: ms, p0: camera.position.clone(), p1: pos, q0: controls.target.clone(), q1: target };
+    M.flying = true;      /* a camera flight is running (tests wait for its end before reading the camera) */
   }
   function stepTween(t) {
     if (tween.t0 == null) tween.t0 = t;
     var u = Math.min(1, (t - tween.t0) / tween.ms), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
     camera.position.lerpVectors(tween.p0, tween.p1, e);
     controls.target.lerpVectors(tween.q0, tween.q1, e);
-    if (u >= 1) { tween = null; scheduleCull(); }
+    if (u >= 1) { tween = null; M.flying = false; scheduleCull(); }
   }
   function orbit(dAz, dPol, zoom) {
     var off = camera.position.clone().sub(controls.target), sph = new THREE.Spherical().setFromVector3(off);
