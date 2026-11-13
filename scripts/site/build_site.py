@@ -245,73 +245,98 @@ def hash_cell(h: str) -> str:
     return f'<code class="hash" title="{h}">{groups}</code>'
 
 
+# The page follows the site's language mode (docs/i18n.md): headings, table headers and fixed texts carry data-i18n keys
+# of js/i18n-pages.js (dl.*); js/downloads.js writes the sentences with links and numbers, the descriptions (dl.desc.*,
+# dl.kg.*: used while the dictionary's English is the text below, so a changed description stays correct in English) and
+# every number and size in the mode's format (data-n, data-bytes; sizes as human() below). The English text stays in the
+# markup: it is what shows without scripts; the parts js/downloads.js writes carry data-vl-text, hidden while the page
+# loads (css/site.css) so no wrong language flashes.
+GROUPED = re.compile(r"\b\d{1,3}(?:,\d{3})+\b")   # a number written with thousands separators (40,816) -> data-n
+
+
+def desc_cell(text: str, attr: str) -> str:
+    """the description cell of a file or table row; attr = ' data-desc="..."' or ' data-kg="..."' (or '' for none)"""
+    m = GROUPED.search(text) if attr else None
+    n = f' data-n="{m.group(0).replace(",", "")}"' if m else ""
+    return f'<td class="col-desc"{attr}{n}{" data-vl-text" if attr else ""}>{esc(text)}</td>'
+
+
+def size_cell(n: int) -> str:
+    return f'<td class="num" data-bytes="{n}">{esc(human(n))}</td>'
+
+
+def files_head(desc: bool) -> str:
+    return ('<div class="table-wrap"><table class="data files"><thead><tr><th data-i18n="dl.th.file">File</th>' +
+            ('<th class="col-desc" data-i18n="dl.th.description">Description</th>' if desc else '') +
+            '<th class="num" data-i18n="dl.th.size">Size</th><th class="col-hash" data-i18n="dl.th.sha256">SHA-256</th></tr></thead><tbody>')
+
+
 def downloads_html(files, kg_tables, rdf_dump, stats, n_total=None) -> str:
     dl = [f for f in files if f["path"].startswith("downloads/")]
     body = []
     for key, title, text in DOWNLOAD_GROUPS:
         rows = [f for f in dl if group_of(f["path"]) == key]
-        body.append(f'<section class="block" id="dl-{key}">\n<h2>{esc(title)}</h2>\n<p class="lead-sm">{esc(text)}</p>')
+        body.append(f'<section class="block" id="dl-{key}">\n<h2 data-i18n="dl.group.{key}.h">{esc(title)}</h2>\n'
+                    f'<p class="lead-sm" data-i18n="dl.group.{key}.text">{esc(text)}</p>')
         if not rows:
-            body.append('<p class="note">Not built yet. The Playbook track writes downloads/playbook.md and '
+            body.append('<p class="note" data-i18n="dl.notBuilt">Not built yet. The Playbook track writes downloads/playbook.md and '
                         'downloads/VLOnto-playbook.pdf; re-run scripts/site/build_site.py afterwards to list them here.</p></section>')
             continue
-        body.append('<div class="table-wrap"><table class="data files"><thead><tr><th>File</th><th class="col-desc">Description</th>'
-                    '<th class="num">Size</th><th class="col-hash">SHA-256</th></tr></thead><tbody>')
+        body.append(files_head(True))
         for f in rows:
             name = f["path"].split("/")[-1]
+            d = describe(f["path"])
+            key_suffix = "figure" if f["path"].startswith("downloads/figures/") else f["path"][len("downloads/"):]
             body.append(f'<tr><td><a class="file-link" href="{esc(f["path"])}" download>{esc(name)}</a>'
                         f'<div class="sub mono">{esc(f["path"])}</div></td>'
-                        f'<td class="col-desc">{esc(describe(f["path"]))}</td>'
-                        f'<td class="num">{esc(human(f["bytes"]))}</td>'
+                        + desc_cell(d, f' data-desc="{esc(key_suffix)}"' if d else '') + size_cell(f["bytes"]) +
                         f'<td class="col-hash">{hash_cell(f["sha256"])}'
-                        f'<button class="btn btn-xs copy-hash" type="button" data-hash="{f["sha256"]}">Copy</button></td></tr>')
+                        f'<button class="btn btn-xs copy-hash" type="button" data-hash="{f["sha256"]}" data-i18n="dl.copy">Copy</button></td></tr>')
         body.append('</tbody></table></div></section>')
     # site data scripts + vendor
     data_js = [f for f in files if f["path"].startswith("data/")]
-    body.append('<section class="block" id="dl-site-data">\n<h2>Data scripts used by the pages</h2>\n'
-                '<p class="lead-sm">The pages read their data from these JavaScript files (each sets one entry of '
-                '<code>window.VLONTO</code>), so the site works offline from <code>file://</code> without a server.</p>'
-                '<div class="table-wrap"><table class="data files"><thead><tr><th>File</th><th class="num">Size</th>'
-                '<th class="col-hash">SHA-256</th></tr></thead><tbody>')
+    body.append('<section class="block" id="dl-site-data">\n<h2 data-i18n="dl.data.h">Data scripts used by the pages</h2>\n'
+                '<p class="lead-sm" id="dl-data-text" data-vl-text>The pages read their data from these JavaScript files (each sets one entry of '
+                '<code>window.VLONTO</code>), so the site works offline from <code>file://</code> without a server.</p>' + files_head(False))
     for f in data_js:
-        body.append(f'<tr><td class="mono nowrap">{esc(f["path"])}</td><td class="num">{esc(human(f["bytes"]))}</td>'
+        body.append(f'<tr><td class="mono nowrap">{esc(f["path"])}</td>' + size_cell(f["bytes"]) +
                     f'<td class="col-hash">{hash_cell(f["sha256"])}</td></tr>')
     body.append('</tbody></table></div></section>')
     vend = [f for f in files if f["path"].startswith("vendor/") and f["path"].endswith(".js")]
-    body.append('<section class="block" id="dl-vendor">\n<h2>Third-party libraries and fonts</h2>\n'
-                '<p class="lead-sm">Vendored classic-script builds pinned and checksummed by the toolchain '
+    body.append('<section class="block" id="dl-vendor">\n<h2 data-i18n="dl.vendor.h">Third-party libraries and fonts</h2>\n'
+                '<p class="lead-sm" id="dl-vendor-text" data-vl-text>Vendored classic-script builds pinned and checksummed by the toolchain '
                 '(<a href="vendor/THIRD_PARTY_LICENSES.md">third-party licences</a>). Fonts: Be Vietnam Pro, JetBrains Mono NL, '
                 'Noto Sans Symbols 2, Noto Sans Math and Libertinus Sans (the paper\u2019s figure font, used by the 3D views; '
                 '<a href="fonts/OFL-Libertinus.txt">OFL</a>) under the SIL Open Font License 1.1 '
-                '(<a href="fonts/OFL-BeVietnamPro.txt">OFL</a>), embedded as data URIs in <code>fonts/embedded/</code>.</p>'
-                '<div class="table-wrap"><table class="data files"><thead><tr><th>File</th><th class="num">Size</th>'
-                '<th class="col-hash">SHA-256</th></tr></thead><tbody>')
+                '(<a href="fonts/OFL-BeVietnamPro.txt">OFL</a>), embedded as data URIs in <code>fonts/embedded/</code>.</p>' + files_head(False))
     for f in vend:
-        body.append(f'<tr><td class="mono nowrap">{esc(f["path"])}</td><td class="num">{esc(human(f["bytes"]))}</td>'
+        body.append(f'<tr><td class="mono nowrap">{esc(f["path"])}</td>' + size_cell(f["bytes"]) +
                     f'<td class="col-hash">{hash_cell(f["sha256"])}</td></tr>')
     body.append('</tbody></table></div></section>')
     # the full graph is not part of the site and not published as a dataset: it is rebuilt from the sources of this release
     srcs = "".join(f'<li><a class="mono nowrap" href="{HF_SOURCE}{s}" target="_blank" rel="noopener">tmquan/{esc(s)}</a></li>'
                    for s in SOURCE_DATASETS)
-    body.append('<section class="block" id="dl-full">\n<h2>Rebuild the full graph</h2>\n'
-                '<p class="lead-sm">The complete knowledge graph is too large for this website and is not published as a separate '
+    body.append('<section class="block" id="dl-full">\n<h2 data-i18n="dl.full.h">Rebuild the full graph</h2>\n'
+                f'<p class="lead-sm" id="dl-full-text" data-n="{len(SOURCE_DATASETS)}" data-vl-text>The complete knowledge graph is too large for this website and is not published as a separate '
                 f'dataset. Rebuild it from the {NUMBER_WORDS.get(len(SOURCE_DATASETS), len(SOURCE_DATASETS))} public source datasets of this release with the code in the <a href="{REPO_URL}" target="_blank" '
                 f'rel="noopener">GitHub repository</a> (see its README for the requirements); this site keeps its own downloads above.</p>'
                 f'<pre class="code">git clone {REPO_URL}\ncd VLOnto\npython -m vlonto.cli all</pre>'
-                f'<p class="lead-sm" style="margin-top:12px">Source datasets on Hugging Face, by TMQuan:</p><ul class="source-list">{srcs}</ul>'
-                f'<p class="lead-sm">A rebuild writes {len(kg_tables)} parquet tables with a data dictionary and the full RDF dump; '
+                f'<p class="lead-sm" style="margin-top:12px" data-i18n="dl.full.sources">Source datasets on Hugging Face, by TMQuan:</p><ul class="source-list">{srcs}</ul>'
+                f'<p class="lead-sm" id="dl-full-tables" data-n="{len(kg_tables)}" data-vl-text>A rebuild writes {len(kg_tables)} parquet tables with a data dictionary and the full RDF dump; '
                 f'rows and sizes below are those of this release (<span data-vl-release>{esc(release_label())}</span>); '
                 'court decisions join in v2.</p>'
-                '<div class="table-wrap"><table class="data files"><thead><tr><th>Table</th><th class="num">Rows</th>'
-                '<th class="num">Size</th><th class="col-desc">Description</th></tr></thead><tbody>')
+                '<div class="table-wrap"><table class="data files"><thead><tr><th data-i18n="dl.th.table">Table</th><th class="num" data-i18n="dl.th.rows">Rows</th>'
+                '<th class="num" data-i18n="dl.th.size">Size</th><th class="col-desc" data-i18n="dl.th.description">Description</th></tr></thead><tbody>')
     for t in kg_tables:
-        body.append(f'<tr><td class="mono nowrap">{esc(t["file"])}</td><td class="num">{t["rows"]:,}</td>'
-                    f'<td class="num">{esc(human(t["bytes"]))}</td><td class="col-desc">{esc(t["description"])}</td></tr>')
+        stem = t["file"].rsplit(".", 1)[0]
+        body.append(f'<tr><td class="mono nowrap">{esc(t["file"])}</td><td class="num" data-n="{t["rows"]}">{t["rows"]:,}</td>'
+                    + size_cell(t["bytes"]) + desc_cell(t["description"], f' data-kg="{esc(stem)}"' if t["description"] else '') + '</tr>')
     if rdf_dump:
-        body.append(f'<tr><td class="mono nowrap">{esc(rdf_dump["file"])}</td><td class="num">{rdf_dump["triples"]:,} triples</td>'
-                    f'<td class="num">{esc(human(rdf_dump["bytes"]))}</td><td class="col-desc">Full knowledge graph as gzipped N-Triples</td></tr>')
+        body.append(f'<tr><td class="mono nowrap">{esc(rdf_dump["file"])}</td><td class="num" data-triples="{rdf_dump["triples"]}">{rdf_dump["triples"]:,} triples</td>'
+                    + size_cell(rdf_dump["bytes"]) + '<td class="col-desc" data-i18n="dl.full.rdf">Full knowledge graph as gzipped N-Triples</td></tr>')
     body.append('</tbody></table></div></section>')
     total = sum(f["bytes"] for f in files)
+    n_files = n_total or len(files)
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -319,8 +344,8 @@ def downloads_html(files, kg_tables, rdf_dump, stats, n_total=None) -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1">
 {THEME_HEAD}
 {I18N_HEAD}
-<title>Downloads · VLOnto</title>
-<meta name="description" content="Downloads of the VLOnto ontology, RDF core subset, site data and documentation with sizes and sha256.">
+<title data-i18n="dl.page.title">Downloads · VLOnto</title>
+<meta name="description" data-i18n-content="dl.page.description" content="Downloads of the VLOnto ontology, RDF core subset, site data and documentation with sizes and sha256.">
 <link rel="stylesheet" href="css/fonts-web.css">
 <link rel="stylesheet" href="css/site.css">
 </head>
@@ -329,16 +354,17 @@ def downloads_html(files, kg_tables, rdf_dump, stats, n_total=None) -> str:
 <div id="vl-header"></div>
 <main id="main" class="page">
 <header class="page-head">
-<p class="eyebrow">Downloads · Tải xuống</p>
-<h1>Downloads</h1>
-<p class="lead">Every file below is part of this site and opens offline. Sizes and SHA-256 checksums were computed when the
-site was built ({(n_total or len(files)):,} files, {esc(human(total))} in total). Use <a href="downloads/SHA256SUMS.txt">SHA256SUMS.txt</a>
+<p class="eyebrow" data-i18n="dl.eyebrow">Downloads</p>
+<h1 data-i18n="dl.h1">Downloads</h1>
+<p class="lead" id="dl-lead" data-n="{n_files}" data-bytes="{total}" data-vl-text>Every file below is part of this site and opens offline. Sizes and SHA-256 checksums were computed when the
+site was built ({n_files:,} files, {esc(human(total))} in total). Use <a href="downloads/SHA256SUMS.txt">SHA256SUMS.txt</a>
 with <code>sha256sum -c</code> to verify a download.</p>
 </header>
 {chr(10).join(body)}
 </main>
 <div id="vl-footer"></div>
 {I18N_BODY}
+<script src="data/site_meta.js"></script>
 <script src="js/common.js"></script>
 <script src="js/downloads.js"></script>
 </body>

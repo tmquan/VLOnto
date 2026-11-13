@@ -568,6 +568,9 @@ def t_sparql(c: Ctx, examples):
 def t_dashboard(c: Ctx, stats):
     res = {"test": "dashboard", "checks": []}
     ctx, pg, log = c.open("dashboard.html")
+    # texts follow the language mode (html[data-lang]: en, vi, envi = the default, which shows pairs as "vi · en")
+    V2_NOTE = ("Court decisions join in v2.", "Bản án và quyết định của tòa án sẽ có trong v2.")
+    page_lang = lambda p: p.evaluate("document.documentElement.getAttribute('data-lang') || 'en'")  # noqa: E731
 
     def check(name, fn):
         t0 = time.time()
@@ -607,7 +610,8 @@ def t_dashboard(c: Ctx, stats):
             text: document.querySelector('main').textContent.toLowerCase() })""")
         bad = [x for x in d["charts"] if x.startswith("c-dec")] + [x for x in d["tabs"] if "court" in x] + [k for k in d["kpis"] if "court" in k.lower()]
         words = [w for w in ("anle", "cbba", "toaan", "precedent", "court level", "applied provision") if w in d["text"]]
-        if bad or words or not d["note"].startswith("Court decisions join in v2.") or len(d["charts"]) != 10 or set(d["release"]) != {"VLOnto v1"}:
+        # the v2 note follows the language mode: English, Vietnamese, or the pair "Vietnamese · English" (EN–VI, the default)
+        if bad or words or not any(s in d["note"] for s in V2_NOTE) or len(d["charts"]) != 10 or set(d["release"]) != {"VLOnto v1"}:
             raise RuntimeError(f"court content or release label: bad {bad}, words {words}, note {d['note']!r}, charts {len(d['charts'])}, "
                                f"release {d['release']}")
         return {"charts": len(d["charts"]), "tabs": d["tabs"], "kpis": d["kpis"], "note": d["note"], "release": d["release"]}
@@ -630,11 +634,14 @@ def t_dashboard(c: Ctx, stats):
         problems = []
         if not (lo["docs"] > 0 and lo["changes"] > 0):
             problems.append(f"undated counts {lo}")
+        # captions are sentences in the page's language (English in EN and EN–VI); numbers in its format (VI: 1.234)
+        vi = page_lang(pg) == "vi"
         for key, words, sub in (("docs", "without an issue year", 0), ("changes", "without an effective date", 1)):
             n = lo[key]
-            if n and (f"{n:,}" not in cap or words not in cap):
+            num = f"{n:,}".replace(",", ".") if vi else f"{n:,}"
+            if n and (num not in cap or (not vi and words not in cap)):
                 problems.append(f"filter caption lacks the {key}: {cap!r}")
-            if n and (f"{n:,}" not in subs[sub] or "leaves out" not in subs[sub]):
+            if n and (num not in subs[sub] or (not vi and "leaves out" not in subs[sub])):
                 problems.append(f"chart caption lacks the {key}: {subs[sub]!r}")
         if any(v[-1] in ("no year", "no date") for v in cats.values()):
             problems.append(f"undated bucket still drawn with a year range: {cats}")
@@ -650,8 +657,9 @@ def t_dashboard(c: Ctx, stats):
 
     def filters():
         s0 = pg.evaluate("window.VLApp.dashState()")
-        law_idx = pg.evaluate("Array.from(document.querySelectorAll('#f-type option')).findIndex(o => o.textContent.startsWith('Law ·')) - 1")
-        pg.select_option("#f-type", str(law_idx))
+        # the option for laws by its type code (its text follows the language mode: Law, Luật, Luật · Law)
+        law_val = pg.evaluate("document.querySelector('#f-type option[data-code=\"L\"]').value")
+        pg.select_option("#f-type", law_val)
         pg.wait_for_timeout(500)
         s1 = pg.evaluate("window.VLApp.dashState()")
         want = stats["documents_by_type"].get("Luật")
@@ -718,6 +726,8 @@ def t_simple(c: Ctx, root: Path):
         sources: Array.from(document.querySelectorAll('#sources tr td:first-child a')).map(a => a.textContent),
         v2: (document.querySelector('.v2-note') || {}).textContent || '', bib: (document.getElementById('bibtex') || {}).textContent || '' })""")
     four = ["thuvienphapluat-vn-vbpl", "thuvienphapluat-vn-hdpl", "thuvienphapluat-vn-tnpl", "thuvienphapluat-vn-htpl"]
+    # the v2 note follows the language mode: English, Vietnamese, or "Vietnamese · English" (EN–VI, the default)
+    V2_NOTE = ("Court decisions join in v2.", "Bản án và quyết định của tòa án sẽ có trong v2.")
     out.append({"test": "about", "checks": [
         {"name": "navigation (3D Ontology = index.html first, 9 pages incl. traces.html + Paper) and tool cards link to existing pages",
          "pass": len(internal) == 9 and internal[0] == "index.html" and internal[-1] == "about.html" and "traces.html" in internal
@@ -727,9 +737,10 @@ def t_simple(c: Ctx, root: Path):
          "pass": card["title"].startswith("Vietnamese Legal Ontology") and card["copy"] and card["bib"].startswith("@misc{bui2026vietnamese") and card["brand"] == "index.html",
          "details": card},
         {"name": "release v1: named VLOnto v1 (version 1.0.0), four source datasets, no court KPI, the v2 note",
-         "pass": set(rel["release"]) == {"VLOnto v1"} and set(rel["version"]) == {"1.0.0"} and rel["note"].startswith("VLOnto v1 (this release)")
+         "pass": set(rel["release"]) == {"VLOnto v1"} and set(rel["version"]) == {"1.0.0"}
+                 and rel["note"].startswith(("VLOnto v1 (this release)", "VLOnto v1 (bản phát hành này)"))
                  and "VLOnto v1" in rel["footer"] and rel["sources"] == four and not [k for k in rel["kpis"] if "court" in k.lower()]
-                 and rel["v2"].startswith("Court decisions join in v2.") and "version = {1.0.0}" in rel["bib"],
+                 and any(s in rel["v2"] for s in V2_NOTE) and "version = {1.0.0}" in rel["bib"],
          "details": rel}], "log": log})
     ctx.close()
     # the old playground address forwards to index.html, keeping the #hash (deep link to a class). Opened from about.html

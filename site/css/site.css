@@ -1193,6 +1193,34 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
    dashboard.html/js, about.html, downloads.html, playbook.html/js, ontology.html, ontology-page.js, home.js and the
    other page scripts. That track adds its rules only between this line and the end marker below; nobody else edits
    here. */
+/* text a page script writes (sentences with links or numbers, descriptions; marked data-vl-text): hidden while the page
+   loads, like data-i18n, until the script has put in the mode's text (data-vl-text="ok"); shown at DOMContentLoaded
+   whatever happens. Chart captions (data-vl-text="wait") wait for their first text: they mean nothing without the chart. */
+:root.vl-i18n-boot [data-vl-text]:not([data-vl-text="ok"]), [data-vl-text="wait"] { visibility: hidden; }
+/* the playbook and the pyLODE reference stay English: a one-line note says so in VI (pb.englishOnly, ontp.englishOnly) */
+.lang-note { display: none; margin: 10px 0 0; font-size: 14px; line-height: 1.5; color: var(--fg-2); }
+:root[data-lang="vi"] .lang-note { display: block; }
+.page-ontology .lang-note { margin: 0 0 10px; }
+/* EN–VI glosses under a Vietnamese label: key figures and module cards (the English, muted, like the v1 Vietnamese line) */
+.kpi .k-gloss { font-size: 12px; line-height: 1.4; color: var(--muted); font-style: italic; }
+.module-card .gloss { color: var(--muted); font-style: italic; font-size: 13.5px; margin: 0 0 6px; }
+/* about.html: the hero's eyebrow pair keeps the eyebrow colour (the hero is dark in both themes) and wraps between its
+   two halves; the attribution in the mode's language (both in EN–VI); the Vietnamese disclaimer line only in EN–VI */
+.hero { --pair-en: currentColor; }
+.hero-eyebrow > span { display: inline-block; }
+:root[data-lang="en"] #attr-vi, :root[data-lang="vi"] #attr-en { display: none; }
+:root:not([data-lang="envi"]) .disc-vi { display: none; }
+/* traces.html notes in EN–VI: the Vietnamese, then the English below it (muted) */
+.tr-notes li > span.en[lang="en"] { display: block; margin-top: 2px; }
+/* fit on phones (Vietnamese runs longer): an about.html module card is 135 px wide inside at 390 px (two columns), less
+   than most Vietnamese class names (up to 216 px): a term chip that does not fit wraps inside its pill (one-line chips keep
+   the pill shape). The ontology download buttons wrap their text on phones (the JSON-LD one is wider than a 390 px page,
+   in v1 too), and the Size header of the download tables may take two lines there ("Kích thước"). */
+.module-card .term-chip { max-width: 100%; white-space: normal; border-radius: 12px; }
+@media (max-width: 600px) {
+  #dl-buttons .btn { white-space: normal; max-width: 100%; text-align: left; justify-content: flex-start; }
+  table.files th.num { white-space: normal; }
+}
 
 /* ================================================================== end of CONTENT-PAGES TRACK */
 
