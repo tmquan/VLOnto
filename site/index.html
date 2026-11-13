@@ -46,7 +46,7 @@
   </div>
   <aside class="scene-side" id="side" aria-label="Playground controls" data-i18n-aria="play.controls.aria">
     <div class="side-section search-in-side">
-      <label class="side-title" for="onto-search" data-i18n="play.search">Search</label>
+      <label class="side-title" for="onto-search" data-i18n="o3d.find">Find a class or property</label>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" class="icon"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
         <input id="onto-search" class="input" type="search" placeholder="Class, property or IRI" aria-label="Search classes and properties (English, Vietnamese or IRI)" data-i18n-placeholder="play.search.placeholder" data-i18n-aria="play.search.aria">
@@ -54,22 +54,30 @@
       </div>
     </div>
     <div class="side-section">
+      <div class="side-title" data-i18n="o3d.colorBy">Colour by</div>
+      <div class="seg" role="group" aria-label="Colour terms by" data-i18n-aria="o3d.colorBy.aria">
+        <button type="button" data-color="module" aria-pressed="true" data-i18n="o3d.color.module">Module</button>
+        <button type="button" data-color="kind" aria-pressed="false" data-i18n="o3d.color.kind">Kind</button>
+      </div>
+    </div>
+    <div class="side-section">
+      <div class="side-title" data-i18n="o3d.links">Links</div>
+      <div id="link-toggles"></div>
+      <label class="check"><input type="checkbox" id="show-particles" checked> <span class="lbl" data-i18n="play.show.particles">Direction particles</span></label>
+    </div>
+    <div class="side-section">
       <div class="side-title"><span data-i18n="play.modules">Modules</span><span class="links"><button type="button" class="btn-link" id="mod-all" data-i18n="play.all">All</button><button type="button" class="btn-link" id="mod-none" data-i18n="play.none">None</button></span></div>
       <div class="chips" id="module-chips"></div>
     </div>
     <div class="side-section">
       <div class="side-title" data-i18n="play.show">Show</div>
-      <label class="check"><input type="checkbox" id="show-external" checked> <span class="lbl" data-i18n="play.show.external">External terms</span><span class="count" id="cnt-external"></span></label>
       <label class="check"><input type="checkbox" id="show-schemes" checked> <span class="lbl" data-i18n="play.show.schemes">Concept schemes</span><span class="count" id="cnt-schemes"></span></label>
-      <label class="check"><input type="checkbox" data-link="subClassOf" checked> <span class="lbl" data-i18n="play.show.subclass">Subclass links</span><span class="count" id="cnt-subClassOf"></span></label>
-      <label class="check"><input type="checkbox" data-link="property" checked> <span class="lbl" data-i18n="play.show.properties">Object properties</span><span class="count" id="cnt-property"></span></label>
-      <label class="check"><input type="checkbox" data-link="alignment" checked> <span class="lbl" data-i18n="play.show.alignments">Alignments</span><span class="count" id="cnt-alignment"></span></label>
-      <label class="check"><input type="checkbox" data-link="inScheme" checked> <span class="lbl" data-i18n="play.show.membership">Scheme membership</span><span class="count" id="cnt-inScheme"></span></label>
-      <label class="check"><input type="checkbox" id="show-particles" checked> <span class="lbl" data-i18n="play.show.particles">Direction particles</span></label>
+      <label class="check"><input type="checkbox" id="show-external" checked> <span class="lbl" data-i18n="play.show.external">External terms</span><span class="count" id="cnt-external"></span></label>
     </div>
     <div class="side-section">
       <div class="side-title" data-i18n="play.view">View</div>
-      <div class="row tight">
+      <label class="check"><input type="checkbox" id="show-planes" checked> <span class="lbl" data-i18n="o3d.planes">Hierarchy planes</span></label>
+      <div class="row tight" style="margin-top:10px">
         <button class="btn" type="button" id="btn-reset" data-i18n="play.reset">Reset view</button>
         <button class="btn" type="button" id="btn-png" data-i18n="play.export">Export PNG</button>
       </div>
@@ -83,18 +91,18 @@
     </div>
     <div class="side-section">
       <div class="side-title" data-i18n="play.about">About</div>
-      <p class="side-about" id="play-about" data-vl-text>Node size grows with the number of knowledge-graph instances (log scale). Drawn like the
-        figures of the paper: a class the paper names (Văn bản · Work, Điều · Article, Thuật ngữ · Term, …) takes the
-        paper's class colour, other classes the colour of their module; the selection's chain and neighbourhood, or a
-        CONSTRUCT result, is the traced path. External terms show how VLOnto aligns with ELI, SKOS, PROV-O, schema.org, ORG
-        and DCTERMS. Documentation: <a href="ontology.html">ontology page</a>.</p>
+      <p class="side-about" id="play-about" data-vl-text>Each plane is a level of the class hierarchy, computed from the ontology: root classes on top,
+        their subclasses below, then the concept schemes and the external vocabularies VLOnto is aligned with (ELI, SKOS,
+        PROV-O, ORG, schema.org). On a plane the terms are grouped by module; node size grows with the number of
+        knowledge-graph instances (log scale). Links are coloured by kind; the selection's chain and neighbourhood, or a
+        CONSTRUCT result, is the traced path. Documentation: <a href="ontology.html">ontology page</a>.</p>
     </div>
   </aside>
   <section class="scene-stage" id="stage" aria-label="3D ontology scene" data-i18n-aria="play.scene.aria">
     <div class="scene-canvas" id="canvas-host" tabindex="0" role="application" aria-roledescription="3D graph" aria-label="3D view of the VLOnto ontology. Drag or use the arrow keys to rotate, scroll or press plus and minus to zoom, click a class or link for details." data-i18n-aria="play.canvas.aria"></div>
     <div class="legend" id="legend"></div>
     <div class="hint hidden" id="hint" role="note">
-      <p><strong data-i18n="play.hint.title">Explore the ontology.</strong> <span class="desk-only" id="play-hint-desk" data-vl-text>Drag to rotate, scroll to zoom, right-drag to pan. Click a class or a link for details; press <kbd>/</kbd> to search.</span><span class="touch-only" data-i18n="play.hint.touch">Drag to rotate, pinch to zoom, drag with two fingers to pan. Tap a class or a link for details.</span></p>
+      <p><strong data-i18n="o3d.hint.title">The ontology, level by level.</strong> <span class="desk-only" id="play-hint-desk" data-vl-text>Root classes on top, subclasses on the planes below, then concept schemes and external vocabularies. Drag to rotate, scroll to zoom; click a term or a link for details, press <kbd>/</kbd> to search.</span><span class="touch-only" data-i18n="o3d.hint.touch">Root classes on top, subclasses on the planes below, then concept schemes and external vocabularies. Drag to rotate, pinch to zoom; tap a term or a link for details.</span></p>
       <button class="btn btn-xs" type="button" id="hint-close" data-i18n="play.hint.ok">Got it</button>
     </div>
     <div class="stage-tools">
@@ -102,6 +110,7 @@
       <button class="btn" type="button" id="btn-legend" title="Show or hide the legend" aria-label="Show or hide the legend" aria-expanded="true" aria-controls="legend" data-i18n-title="play.legend.toggle" data-i18n-aria="play.legend.toggle"></button>
     </div>
     <div class="stage-status" id="status" aria-live="polite"></div>
+    <div class="tooltip3d hidden" id="tip" role="tooltip"></div>
     <div class="loading-veil" id="veil"><div><div class="spin"></div><span data-i18n="play.building">Building the 3D ontology…</span></div></div>
     <aside class="scene-panel hidden" id="panel" aria-label="Details" data-i18n-aria="play.details.aria" tabindex="-1"></aside>
     <section class="query-drawer hidden" id="drawer" aria-label="SPARQL query mode" data-i18n-aria="play.queryMode">
@@ -135,7 +144,6 @@
 <script src="vendor/three/three.iife.min.js"></script>
 <script src="js/labels3d.js"></script>
 <script src="js/paper3d.js"></script>
-<script src="vendor/3d-force-graph/3d-force-graph.iife.min.js"></script>
 <script src="data/ontology_graph.js"></script>
 <script src="data/sparql_examples.js"></script>
 <script src="js/sparql-core.js"></script>

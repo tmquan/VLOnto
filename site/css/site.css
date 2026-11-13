@@ -1515,5 +1515,22 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
    paper3d.js, used by network3d.js and ontology3d.js): 14 px edge + the status line (about 23 px) + 9 px gap. The status
    line is hidden on phones, so the class is never set there. */
 .scene-stage.legend-lift .legend { bottom: 46px; }
+/* 3D ontology playground (index.html, js/ontology3d.js, v1.1): hierarchy planes like the legal network's layers (the
+   --net-plane* tokens), links coloured by kind (curves, link toggles and legend swatches; at least 3:1 against the scene
+   ground in both themes) and terms coloured by kind when "Colour by: Kind" is chosen (pastel fills like the paper's
+   nodes; the shapes in the legend take the colour). */
+:root[data-style="paper"], [data-style="paper"] {
+  --o3d-lt-subclass: #5f82c0; --o3d-lt-property: #c9773f; --o3d-lt-alignment: #858a92; --o3d-lt-inscheme: #9a72c4;
+  --o3d-kind-class: #8db8e8; --o3d-kind-scheme: #b9a3e3; --o3d-kind-external: #a7abb1; --o3d-kind-instance: #f2c48d;
+}
+:root[data-style="paper"][data-theme="dark"], :root[data-theme="dark"] [data-style="paper"] {
+  --o3d-lt-subclass: #86a8e0; --o3d-lt-property: #e39a63; --o3d-lt-alignment: #868c96; --o3d-lt-inscheme: #ae8fd4;
+  --o3d-kind-class: #8db8e8; --o3d-kind-scheme: #b9a3e3; --o3d-kind-external: #a7abb1; --o3d-kind-instance: #f2c48d;
+}
+.page-onto3d .legend .lg-shape { display: inline-flex; flex: 0 0 auto; }
+[data-style="paper"] .page-onto3d .legend li .lg-shape svg, [data-style="paper"].page-onto3d .legend li .lg-shape svg { color: inherit; }
+.page-onto3d .legend .lg-shape svg circle, .page-onto3d .legend .lg-shape svg path { stroke: rgba(0, 0, 0, .28); stroke-width: .8; }
+:root[data-theme="dark"] .page-onto3d .legend .lg-shape svg circle, :root[data-theme="dark"] .page-onto3d .legend .lg-shape svg path { stroke: rgba(255, 255, 255, .3); }
+.page-onto3d #link-toggles .check .swatch-curve { margin-right: 2px; }
 
 /* ================================================================== end of 3D TRACK */

@@ -225,6 +225,7 @@ def t_ontology(c: Ctx):
         pg.evaluate("() => { document.activeElement && document.activeElement.blur && document.activeElement.blur(); const x = document.querySelector('[data-act=close]'); if (x) x.click(); }")
         pg.click("#btn-reset2")
         pg.wait_for_timeout(1600)
+        pg.wait_for_function("!window.__VLONTO_METRICS.flying", timeout=T_(20000))    # the camera's flight back has ended
         tried = []
         cands = ["vlo:Law", "vlo:Decree", "vlo:Circular", "vlo:Article", "vlo:LegalDocument", "vlo:LegalArea", "vlo:Provision", "vlo:LegalChange", "vlo:Code"]
         for cid in cands:
@@ -237,7 +238,7 @@ def t_ontology(c: Ctx):
                 tried.append([cid, f"covered by {hit}"])
                 continue
             if c.mobile:
-                # a real tap lasts ~100-200 ms; 3d-force-graph picks the object under the finger in its render loop
+                # a real tap lasts ~100-200 ms; the playground picks in screen space when the finger lifts (pointerup)
                 cdp = pg.context.new_cdp_session(pg)
                 cdp.send("Input.dispatchTouchEvent", {"type": "touchStart", "touchPoints": [{"x": p["x"], "y": p["y"]}]})
                 pg.wait_for_timeout(180)
@@ -262,6 +263,62 @@ def t_ontology(c: Ctx):
             return {"clicked": cid, "x": round(p["x"]), "y": round(p["y"]), "panel_starts": label, "tried": tried, "shot": c.shot(pg, "ontology3d_click_class")}
         raise RuntimeError(f"no class node could be clicked: {tried}")
     check("click a class on the canvas -> panel", click_class)
+
+    # v1.1 redesign: the ontology on hierarchy planes (one per depth of the subClassOf hierarchy, then the concept schemes,
+    # then the external vocabularies), links as curves coloured by kind, "Colour by: Module / Kind", the LINKS toggles
+    def planes_and_controls():
+        pg.keyboard.press("Escape")
+        pg.evaluate("() => { const x = document.querySelector('[data-act=close]'); if (x) x.click(); }")
+        pg.click("#btn-reset2")
+        pg.wait_for_function("!window.__VLONTO_METRICS.flying", timeout=T_(20000))
+        r0 = (pg.evaluate(JS_CALLOUTS) or {}).get("runs", 0)
+        wait_callouts(pg, r0)
+        r = pg.evaluate("""() => {
+          const M = window.__VLONTO_METRICS, L = window.VLApp.layout(), OG = window.VLONTO.ontology_graph, hid = new Set(M.releaseScope.hidden || []);
+          const kind = {}, par = {}, memo = {};
+          OG.nodes.forEach((n) => { if (!hid.has(n.id)) kind[n.id] = n.kind; });
+          OG.links.forEach((l) => { if (l.type === 'subClassOf' && kind[l.source] && kind[l.target] && l.source !== l.target) (par[l.source] = par[l.source] || []).push(l.target); });
+          const dep = (id) => memo[id] != null ? memo[id] : (memo[id] = Math.max(0, ...(par[id] || []).filter((p) => kind[p] === 'class').map((p) => dep(p) + 1)));
+          const ids = Object.keys(kind), maxD = Math.max(...ids.filter((i) => kind[i] === 'class').map(dep));
+          const wrong = ids.filter((i) => { const want = kind[i] === 'class' ? dep(i) : kind[i] === 'scheme' ? maxD + 1 : maxD + 2; return !L.nodes[i] || L.nodes[i].plane !== want; });
+          const co = M.callouts || {};
+          return { planes: (M.planes || []).map((p) => [p.key, p.count, p.shown]), maxD, terms: ids.length, wrong, curves: M.curves, detail: M.curveDetail,
+            links: M.ontologyLinks, status: document.getElementById('status').textContent,
+            toggles: Array.from(document.querySelectorAll('#link-toggles input[data-link]')).map((i) => i.getAttribute('data-link')),
+            planeNames: (co.placed || []).map((p) => p.id).filter((x) => /^plane-/.test(x)) }; }""")
+        bad = []
+        if r["wrong"] or len(r["planes"]) != r["maxD"] + 3 or not all(p[2] for p in r["planes"]):
+            bad.append(f"planes {r['planes']}, terms off their plane {r['wrong'][:6]}")
+        cv = r["curves"] or {}
+        segs = {"full": 16, "reduced": 8}.get(r["detail"])
+        if cv.get("links") != r["links"] or not segs or (cv.get("segs") or {}).get("link") != segs:
+            bad.append(f"curves {cv} ({r['detail']}) for {r['links']} links")
+        if r["toggles"] != ["subClassOf", "property", "alignment", "inScheme"]:
+            bad.append(f"link toggles {r['toggles']}")
+        if not re.match(r"^\d+ terms · \d+ links shown", r["status"]):
+            bad.append(f"status {r['status']!r}")
+        if len(r["planeNames"]) < (1 if c.mobile else 4):
+            bad.append(f"plane names placed: {r['planeNames']}")
+        # colour switch (the buttons sit in the side panel, closed on a phone: clicked from script)
+        k = pg.evaluate("""async () => { const M = window.__VLONTO_METRICS, css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim().toLowerCase();
+          document.querySelector('[data-color=kind]').click(); await new Promise((f) => setTimeout(f, 200));
+          const kind = { by: M.colorBy, article: window.VLApp.nodeColor('vlo:Article'), want: css('--o3d-kind-class'), legend: document.getElementById('legend').textContent };
+          document.querySelector('[data-color=module]').click(); await new Promise((f) => setTimeout(f, 200));
+          return { kind, module: { by: M.colorBy, article: window.VLApp.nodeColor('vlo:Article'), want: window.VL.moduleColor('provisions').toLowerCase() } }; }""")
+        if k["kind"]["by"] != "kind" or k["kind"]["article"] != k["kind"]["want"] or k["module"]["by"] != "module" or k["module"]["article"] != k["module"]["want"]:
+            bad.append(f"colour switch {k}")
+        # LINKS: property links off and on again
+        t = pg.evaluate("""async () => { const M = window.__VLONTO_METRICS, i = document.querySelector('#link-toggles input[data-link=property]'), n0 = M.statusCounts.links;
+          const cnt = +(i.closest('label').querySelector('.count').textContent.replace(/[^0-9]/g, ''));
+          i.click(); await new Promise((f) => setTimeout(f, 200)); const off = M.statusCounts.links;
+          i.click(); await new Promise((f) => setTimeout(f, 200)); return { n0, cnt, off, on: M.statusCounts.links }; }""")
+        if t["off"] != t["n0"] - t["cnt"] or t["on"] != t["n0"] or not t["cnt"]:
+            bad.append(f"property toggle {t}")
+        if bad:
+            raise RuntimeError("; ".join(bad))
+        return {"planes": r["planes"], "curves": {"links": cv.get("links"), "detail": r["detail"], "segs": cv.get("segs")}, "status": r["status"][:60],
+                "plane_names": r["planeNames"], "colour": k, "toggle": t, "shot": c.shot(pg, "ontology3d_planes")}
+    check("hierarchy planes (every term on the plane of its depth), curved links by kind, plane names, colour by module / kind, LINKS toggles", planes_and_controls)
 
     # release v1 (js/common.js VL.releaseScope): the terms whose scope note says they are populated from VLOnto 2.0 are
     # left out of the playground (the ontology page and its pyLODE reference keep them)
@@ -355,6 +412,7 @@ def t_ontology(c: Ctx):
             raise RuntimeError("the per-view label toggle (button[data-lang]) is still on the page")
         pg.click("#btn-reset2")
         pg.wait_for_timeout(1500)
+        pg.wait_for_function("!window.__VLONTO_METRICS.flying", timeout=T_(20000))    # M.flying: the reset flight has ended
         cam = stable_value(pg, "() => window.VLApp.camera()")
         r0 = (pg.evaluate(JS_CALLOUTS) or {}).get("runs", 0)
         set_lang(c, pg, "vi")
@@ -1626,7 +1684,7 @@ def t_paper_style(c: Ctx):
                 got = pg.evaluate(JS_PAPER, None)
                 tokens_ok(got, theme, "index.html")
                 legend = pg.evaluate("document.getElementById('legend').textContent") if not c.mobile else ""
-                if not c.mobile and not all(x in legend for x in ("Văn bản · Work", "Điều · Article", "Đường truy vết")):
+                if not c.mobile and not all(x in legend for x in ("Văn bản · Documents", "Điều khoản · Provisions", "Đường truy vết")):
                     raise RuntimeError(f"legend row: {legend[:200]}")
                 cap = pg.evaluate("() => window.VL.TRACE_W")
                 if cap != TRACE_CAP:
