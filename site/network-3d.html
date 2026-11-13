@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script>/* theme before first paint: ?theme=, else stored choice, else system (css/site.css, js/common.js) */(function(d,w){var t=null,m=/[?&]theme=(light|dark)(?:&|$)/.exec(w.location.search);if(m)t=m[1];else{try{t=w.localStorage.getItem('vlonto.theme')}catch(e){}if(t!=='light'&&t!=='dark'){try{t=w.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}catch(e){t='light'}}}d.setAttribute('data-theme',t);d.style.colorScheme=t})(document.documentElement,window);</script>
+<script src="js/i18n.js"></script>
 <title>3D Legal Network · VLOnto</title>
 <meta name="description" content="40,816 Vietnamese legal documents in 3D, layered by legal force, with change, legal-basis and citation links.">
 <link rel="stylesheet" href="css/fonts-web.css">
@@ -11,7 +12,7 @@
 <link rel="stylesheet" href="css/site.css">
 </head>
 <body class="page-scene page-net3d">
-<a class="skip-link" href="#net-search">Skip to search</a>
+<a class="skip-link" href="#net-search" data-i18n="chrome.skip.search">Skip to search</a>
 <div id="vl-header"></div>
 <main class="scene-app" id="app">
   <div class="scene-toolbar">
@@ -105,6 +106,8 @@
   </section>
 </main>
 <div id="vl-footer"></div>
+<script src="js/i18n-3d.js"></script>
+<script src="js/i18n-pages.js"></script>
 <script src="data/site_meta.js"></script>
 <script src="js/common.js"></script>
 <script src="vendor/three/three.iife.min.js"></script>
