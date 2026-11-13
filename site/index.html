@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script>/* theme before first paint: ?theme=, else stored choice, else system (css/site.css, js/common.js) */(function(d,w){var t=null,m=/[?&]theme=(light|dark)(?:&|$)/.exec(w.location.search);if(m)t=m[1];else{try{t=w.localStorage.getItem('vlonto.theme')}catch(e){}if(t!=='light'&&t!=='dark'){try{t=w.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}catch(e){t='light'}}}d.setAttribute('data-theme',t);d.style.colorScheme=t})(document.documentElement,window);</script>
 <script src="js/i18n.js"></script>
-<title>VLOnto · 3D Ontology Playground of Vietnamese Law</title>
-<meta name="description" content="Explore the VLOnto ontology of Vietnamese law in 3D: classes, properties, concept schemes and alignments, with SPARQL CONSTRUCT results drawn in the same scene.">
+<title data-i18n="play.page.title">VLOnto · 3D Ontology Playground of Vietnamese Law</title>
+<meta name="description" data-i18n-content="play.page.description" content="Explore the VLOnto ontology of Vietnamese law in 3D: classes, properties, concept schemes and alignments, with SPARQL CONSTRUCT results drawn in the same scene.">
 <link rel="stylesheet" href="css/fonts-web.css">
 <link rel="stylesheet" href="css/fonts-paper.css">
 <link rel="stylesheet" href="css/site.css">
@@ -18,98 +18,98 @@
   <div class="scene-toolbar">
     <div class="search">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" class="icon"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
-      <input id="onto-search-m" class="input" type="search" placeholder="Search classes" aria-label="Search classes and properties (English, Vietnamese or IRI)">
+      <input id="onto-search-m" class="input" type="search" placeholder="Search classes" aria-label="Search classes and properties (English, Vietnamese or IRI)" data-i18n-placeholder="play.search.placeholderMobile" data-i18n-aria="play.search.aria">
       <ul class="suggest hidden" id="onto-suggest-m"></ul>
     </div>
-    <button class="btn" type="button" id="btn-side-m" aria-expanded="false" aria-controls="side">Filters</button>
-    <button class="btn" type="button" id="btn-query-m">SPARQL</button>
+    <button class="btn" type="button" id="btn-side-m" aria-expanded="false" aria-controls="side" data-i18n="play.filters">Filters</button>
+    <button class="btn" type="button" id="btn-query-m" data-i18n="play.sparql">SPARQL</button>
   </div>
-  <aside class="scene-side" id="side" aria-label="Playground controls">
+  <aside class="scene-side" id="side" aria-label="Playground controls" data-i18n-aria="play.controls.aria">
     <div class="side-section search-in-side">
-      <label class="side-title" for="onto-search">Search</label>
+      <label class="side-title" for="onto-search" data-i18n="play.search">Search</label>
       <div class="search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" class="icon"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
-        <input id="onto-search" class="input" type="search" placeholder="Class, property or IRI" aria-label="Search classes and properties (English, Vietnamese or IRI)">
+        <input id="onto-search" class="input" type="search" placeholder="Class, property or IRI" aria-label="Search classes and properties (English, Vietnamese or IRI)" data-i18n-placeholder="play.search.placeholder" data-i18n-aria="play.search.aria">
         <ul class="suggest hidden" id="onto-suggest"></ul>
       </div>
     </div>
     <div class="side-section">
-      <div class="side-title">Labels</div>
-      <div class="seg" role="group" aria-label="Label language">
-        <button type="button" data-lang="both" aria-pressed="true" title="Vietnamese and English, as in the paper's figures">VI · EN</button>
-        <button type="button" data-lang="en" aria-pressed="false">English</button>
-        <button type="button" data-lang="vi" aria-pressed="false">Tiếng Việt</button>
+      <div class="side-title" data-i18n="play.labels">Labels</div>
+      <div class="seg" role="group" aria-label="Label language" data-i18n-aria="play.labels.aria">
+        <button type="button" data-lang="both" aria-pressed="true" title="Vietnamese and English, as in the paper's figures" data-i18n="play.labels.both" data-i18n-title="play.labels.both.title">VI · EN</button>
+        <button type="button" data-lang="en" aria-pressed="false" data-i18n="play.labels.en">English</button>
+        <button type="button" data-lang="vi" aria-pressed="false" lang="vi">Tiếng Việt</button>
       </div>
     </div>
     <div class="side-section">
-      <div class="side-title"><span>Modules</span><span class="links"><button type="button" class="btn-link" id="mod-all">All</button><button type="button" class="btn-link" id="mod-none">None</button></span></div>
+      <div class="side-title"><span data-i18n="play.modules">Modules</span><span class="links"><button type="button" class="btn-link" id="mod-all" data-i18n="play.all">All</button><button type="button" class="btn-link" id="mod-none" data-i18n="play.none">None</button></span></div>
       <div class="chips" id="module-chips"></div>
     </div>
     <div class="side-section">
-      <div class="side-title">Show</div>
-      <label class="check"><input type="checkbox" id="show-external" checked> External terms<span class="count" id="cnt-external"></span></label>
-      <label class="check"><input type="checkbox" id="show-schemes" checked> Concept schemes<span class="count" id="cnt-schemes"></span></label>
-      <label class="check"><input type="checkbox" data-link="subClassOf" checked> Subclass links<span class="count" id="cnt-subClassOf"></span></label>
-      <label class="check"><input type="checkbox" data-link="property" checked> Object properties<span class="count" id="cnt-property"></span></label>
-      <label class="check"><input type="checkbox" data-link="alignment" checked> Alignments<span class="count" id="cnt-alignment"></span></label>
-      <label class="check"><input type="checkbox" data-link="inScheme" checked> Scheme membership<span class="count" id="cnt-inScheme"></span></label>
-      <label class="check"><input type="checkbox" id="show-particles" checked> Direction particles</label>
+      <div class="side-title" data-i18n="play.show">Show</div>
+      <label class="check"><input type="checkbox" id="show-external" checked> <span class="lbl" data-i18n="play.show.external">External terms</span><span class="count" id="cnt-external"></span></label>
+      <label class="check"><input type="checkbox" id="show-schemes" checked> <span class="lbl" data-i18n="play.show.schemes">Concept schemes</span><span class="count" id="cnt-schemes"></span></label>
+      <label class="check"><input type="checkbox" data-link="subClassOf" checked> <span class="lbl" data-i18n="play.show.subclass">Subclass links</span><span class="count" id="cnt-subClassOf"></span></label>
+      <label class="check"><input type="checkbox" data-link="property" checked> <span class="lbl" data-i18n="play.show.properties">Object properties</span><span class="count" id="cnt-property"></span></label>
+      <label class="check"><input type="checkbox" data-link="alignment" checked> <span class="lbl" data-i18n="play.show.alignments">Alignments</span><span class="count" id="cnt-alignment"></span></label>
+      <label class="check"><input type="checkbox" data-link="inScheme" checked> <span class="lbl" data-i18n="play.show.membership">Scheme membership</span><span class="count" id="cnt-inScheme"></span></label>
+      <label class="check"><input type="checkbox" id="show-particles" checked> <span class="lbl" data-i18n="play.show.particles">Direction particles</span></label>
     </div>
     <div class="side-section">
-      <div class="side-title">View</div>
+      <div class="side-title" data-i18n="play.view">View</div>
       <div class="row tight">
-        <button class="btn" type="button" id="btn-reset">Reset view</button>
-        <button class="btn" type="button" id="btn-png">Export PNG</button>
+        <button class="btn" type="button" id="btn-reset" data-i18n="play.reset">Reset view</button>
+        <button class="btn" type="button" id="btn-png" data-i18n="play.export">Export PNG</button>
       </div>
       <div class="row tight" style="margin-top:8px">
-        <button class="btn btn-primary" type="button" id="btn-query">SPARQL query mode</button>
+        <button class="btn btn-primary" type="button" id="btn-query" data-i18n="play.queryMode">SPARQL query mode</button>
       </div>
     </div>
     <div class="side-section" id="paper-section">
-      <div class="side-title">Paper</div>
+      <div class="side-title" data-i18n="play.paper">Paper</div>
       <div data-vl-paper="panel"></div>
     </div>
     <div class="side-section">
-      <div class="side-title">About</div>
-      <p class="side-about">Node size grows with the number of knowledge-graph instances (log scale). Drawn like the
+      <div class="side-title" data-i18n="play.about">About</div>
+      <p class="side-about" id="play-about" data-vl-text>Node size grows with the number of knowledge-graph instances (log scale). Drawn like the
         figures of the paper: a class the paper names (Văn bản · Work, Điều · Article, Thuật ngữ · Term, …) takes the
         paper's class colour, other classes the colour of their module; the selection's chain and neighbourhood, or a
         CONSTRUCT result, is the traced path. External terms show how VLOnto aligns with ELI, SKOS, PROV-O, schema.org, ORG
         and DCTERMS. Documentation: <a href="ontology.html">ontology page</a>.</p>
     </div>
   </aside>
-  <section class="scene-stage" id="stage" aria-label="3D ontology scene">
-    <div class="scene-canvas" id="canvas-host" tabindex="0" role="application" aria-roledescription="3D graph" aria-label="3D view of the VLOnto ontology. Drag or use the arrow keys to rotate, scroll or press plus and minus to zoom, click a class or link for details."></div>
+  <section class="scene-stage" id="stage" aria-label="3D ontology scene" data-i18n-aria="play.scene.aria">
+    <div class="scene-canvas" id="canvas-host" tabindex="0" role="application" aria-roledescription="3D graph" aria-label="3D view of the VLOnto ontology. Drag or use the arrow keys to rotate, scroll or press plus and minus to zoom, click a class or link for details." data-i18n-aria="play.canvas.aria"></div>
     <div class="legend" id="legend"></div>
     <div class="hint hidden" id="hint" role="note">
-      <p><strong>Explore the ontology.</strong> <span class="desk-only">Drag to rotate, scroll to zoom, right-drag to pan. Click a class or a link for details; press <kbd>/</kbd> to search.</span><span class="touch-only">Drag to rotate, pinch to zoom, drag with two fingers to pan. Tap a class or a link for details.</span></p>
-      <button class="btn btn-xs" type="button" id="hint-close">Got it</button>
+      <p><strong data-i18n="play.hint.title">Explore the ontology.</strong> <span class="desk-only" id="play-hint-desk" data-vl-text>Drag to rotate, scroll to zoom, right-drag to pan. Click a class or a link for details; press <kbd>/</kbd> to search.</span><span class="touch-only" data-i18n="play.hint.touch">Drag to rotate, pinch to zoom, drag with two fingers to pan. Tap a class or a link for details.</span></p>
+      <button class="btn btn-xs" type="button" id="hint-close" data-i18n="play.hint.ok">Got it</button>
     </div>
     <div class="stage-tools">
-      <button class="btn" type="button" id="btn-reset2" title="Reset view" aria-label="Reset view"></button>
-      <button class="btn" type="button" id="btn-legend" title="Show or hide the legend" aria-label="Show or hide the legend" aria-expanded="true" aria-controls="legend"></button>
+      <button class="btn" type="button" id="btn-reset2" title="Reset view" aria-label="Reset view" data-i18n-title="play.reset" data-i18n-aria="play.reset"></button>
+      <button class="btn" type="button" id="btn-legend" title="Show or hide the legend" aria-label="Show or hide the legend" aria-expanded="true" aria-controls="legend" data-i18n-title="play.legend.toggle" data-i18n-aria="play.legend.toggle"></button>
     </div>
     <div class="stage-status" id="status" aria-live="polite"></div>
-    <div class="loading-veil" id="veil"><div><div class="spin"></div>Building the 3D ontology…</div></div>
-    <aside class="scene-panel hidden" id="panel" aria-label="Details" tabindex="-1"></aside>
-    <section class="query-drawer hidden" id="drawer" aria-label="SPARQL query mode">
+    <div class="loading-veil" id="veil"><div><div class="spin"></div><span data-i18n="play.building">Building the 3D ontology…</span></div></div>
+    <aside class="scene-panel hidden" id="panel" aria-label="Details" data-i18n-aria="play.details.aria" tabindex="-1"></aside>
+    <section class="query-drawer hidden" id="drawer" aria-label="SPARQL query mode" data-i18n-aria="play.queryMode">
       <div class="qd-head">
         <h2>SPARQL</h2>
-        <label class="sr-only" for="qd-example">Example query</label>
+        <label class="sr-only" for="qd-example" data-i18n="play.drawer.example">Example query</label>
         <select class="select" id="qd-example"></select>
-        <div class="seg" role="group" aria-label="How CONSTRUCT results are drawn">
-          <button type="button" data-cm="overlay" aria-pressed="true">Overlay</button>
-          <button type="button" data-cm="replace" aria-pressed="false">Replace</button>
+        <div class="seg" role="group" aria-label="How CONSTRUCT results are drawn" data-i18n-aria="play.drawer.mode.aria">
+          <button type="button" data-cm="overlay" aria-pressed="true" data-i18n="play.drawer.overlay">Overlay</button>
+          <button type="button" data-cm="replace" aria-pressed="false" data-i18n="play.drawer.replace">Replace</button>
         </div>
-        <button class="btn btn-primary" type="button" id="qd-run">Run</button>
-        <button class="btn hidden" type="button" id="qd-back">Back to ontology</button>
-        <button class="btn" type="button" id="qd-min" aria-expanded="true">Hide editor</button>
-        <button class="btn" type="button" id="qd-close" aria-label="Close query mode"></button>
+        <button class="btn btn-primary" type="button" id="qd-run" data-i18n="play.drawer.run">Run</button>
+        <button class="btn hidden" type="button" id="qd-back" data-i18n="play.drawer.back">Back to ontology</button>
+        <button class="btn" type="button" id="qd-min" aria-expanded="true"><span data-i18n="play.drawer.hide">Hide editor</span></button>
+        <button class="btn" type="button" id="qd-close" aria-label="Close query mode" data-i18n-aria="play.drawer.close"></button>
       </div>
       <div class="qd-editor">
-        <label class="sr-only" for="qd-text">SPARQL query</label>
+        <label class="sr-only" for="qd-text" data-i18n="play.drawer.query">SPARQL query</label>
         <textarea id="qd-text" spellcheck="false"></textarea>
-        <div class="qd-status" id="qd-status" role="status">Choose an example or write a query, then press Run (Ctrl+Enter). CONSTRUCT results are drawn in 3D; SELECT results appear as a table.</div>
+        <div class="qd-status" id="qd-status" role="status"><span data-i18n="play.drawer.help">Choose an example or write a query, then press Run (Ctrl+Enter). CONSTRUCT results are drawn in 3D; SELECT results appear as a table.</span></div>
       </div>
       <div class="qd-result" id="qd-result"></div>
     </section>
@@ -128,5 +128,6 @@
 <script src="data/sparql_examples.js"></script>
 <script src="js/sparql-core.js"></script>
 <script src="js/ontology3d.js"></script>
+<script src="js/scene-text.js"></script>
 </body>
 </html>

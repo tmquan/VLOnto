@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script>/* theme before first paint: ?theme=, else stored choice, else system (css/site.css, js/common.js) */(function(d,w){var t=null,m=/[?&]theme=(light|dark)(?:&|$)/.exec(w.location.search);if(m)t=m[1];else{try{t=w.localStorage.getItem('vlonto.theme')}catch(e){}if(t!=='light'&&t!=='dark'){try{t=w.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}catch(e){t='light'}}}d.setAttribute('data-theme',t);d.style.colorScheme=t})(document.documentElement,window);</script>
 <script src="js/i18n.js"></script>
-<title>Truy vết câu hỏi · Question traces · VLOnto</title>
-<meta name="description" content="All 540 traced answers of 27 legal areas in one 3D graph: pick a question to light its trace from the answer through the cited provision up to the law, drawn like the figures of the VLOnto paper.">
+<title data-i18n="traces.page.title">Question traces · VLOnto</title>
+<meta name="description" data-i18n-content="traces.page.description" content="All 540 traced answers of 27 legal areas in one 3D graph: pick a question to light its trace from the answer through the cited provision up to the law, drawn like the figures of the VLOnto paper.">
 <link rel="stylesheet" href="css/fonts-web.css">
 <link rel="stylesheet" href="css/fonts-paper.css">
 <link rel="stylesheet" href="css/site.css">
@@ -16,79 +16,59 @@
 <div id="vl-header"></div>
 <main class="scene-app tr-app" id="app">
   <div class="tr-bar">
-    <h1 class="tr-title"><span lang="vi">Truy vết câu hỏi</span> · Question traces</h1>
-    <div class="tr-tabs" id="tr-tabs" role="tablist" aria-label="Lĩnh vực pháp luật · Legal areas"></div>
+    <h1 class="tr-title" data-i18n="traces.title">Question traces</h1>
+    <div class="tr-tabs" id="tr-tabs" role="tablist" aria-label="Legal areas" data-i18n-aria="traces.tabs.aria"></div>
   </div>
   <div class="scene-toolbar tr-toolbar">
-    <button class="btn" type="button" id="btn-list-m" aria-expanded="false" aria-controls="side">Questions · <span lang="vi">Câu hỏi</span></button>
+    <button class="btn" type="button" id="btn-list-m" aria-expanded="false" aria-controls="side" data-i18n="traces.questions">Questions</button>
     <span class="tr-toolbar-area" id="tr-area-m"></span>
-    <button class="btn" type="button" id="btn-reset-m" aria-label="Reset view">Reset</button>
+    <button class="btn" type="button" id="btn-reset-m" aria-label="Reset view" data-i18n="traces.reset" data-i18n-aria="traces.reset.aria">Reset</button>
   </div>
   <div class="tr-body">
-    <aside class="scene-side tr-side" id="side" aria-label="Questions of the area · Câu hỏi của lĩnh vực">
+    <aside class="scene-side tr-side" id="side" aria-label="Questions of the area" data-i18n-aria="traces.side.aria">
       <div class="tr-side-head">
-        <h2 class="tr-area-title" id="tr-area-title">Loading · <span lang="vi">Đang tải</span></h2>
+        <h2 class="tr-area-title" id="tr-area-title"><span data-i18n="traces.loading">Loading</span></h2>
         <p class="tr-area-note" id="tr-area-note"></p>
       </div>
       <div role="tabpanel" id="tr-panel" aria-labelledby="tr-area-title" tabindex="-1">
-        <ol class="tr-list" id="tr-list" aria-label="The 20 traced questions of the area · 20 câu hỏi được truy vết"></ol>
+        <ol class="tr-list" id="tr-list" aria-label="The 20 traced questions of the area" data-i18n-aria="traces.list.aria"></ol>
       </div>
       <div class="side-section tr-about">
         <details class="tr-notes" id="tr-notes">
-          <summary>How to read · <span lang="vi">Cách đọc</span></summary>
+          <summary data-i18n="traces.howToRead">How to read</summary>
           <ul>
-            <li>One graph holds all 540 traced answers of the 27 areas; every law, provision, term and answer appears once, and
-              shared ones link the areas that use them. Each area is a region of the floor, in the order of the tabs.
-              <span class="vi" lang="vi">Một đồ thị chứa cả 540 câu trả lời được truy vết của 27 lĩnh vực; mỗi văn bản, điều khoản,
-              thuật ngữ và câu trả lời xuất hiện một lần, và các nút dùng chung nối các lĩnh vực dùng chúng. Mỗi lĩnh vực là một vùng
-              trên mặt sàn, theo thứ tự các thẻ.</span></li>
-            <li>Within a region the laws hang from the top with their chapters, articles and clauses below them; questions and
-              answers stand on the floor under the provisions they cite, the terms they name float between them, and the other
-              answers that cite the same provisions hang faded beneath. <span class="vi" lang="vi">Trong mỗi vùng, các văn bản treo từ
-              trên xuống cùng chương, điều, khoản; câu hỏi và câu trả lời đứng trên sàn dưới điều khoản được trích dẫn, các thuật ngữ
-              nằm giữa chúng, và các câu trả lời khác trích dẫn cùng điều khoản treo mờ bên dưới.</span></li>
-            <li>Pick a question: its trace lights up inside the whole graph. Dark strokes are text-verified (at least half of the
-              cited provision's word 5-grams appear in the answer, as in the paper) and include the hop from the question's term to
-              the clause that defines it; a thinner stroke is structural, kept and not verified.
-              <span class="vi" lang="vi">Chọn một câu hỏi: đường truy vết sáng lên trong toàn đồ thị. Nét đậm là đường đã kiểm chứng
-              theo văn bản (ít nhất một nửa số cụm 5 từ của điều khoản có trong câu trả lời, như trong bài báo) và gồm bước từ thuật ngữ
-              của câu hỏi tới khoản định nghĩa nó; nét mảnh hơn là đường cấu trúc, giữ lại nhưng chưa kiểm chứng.</span></li>
-            <li>Question titles are as published on thuvienphapluat.vn; English glosses and the normalised English law names are
-              machine-assisted. Per area: the 20 articles its answers cite most, one representative answer each. No answer text,
-              provision text, definitions or person names are shown; each node links to its source.
-              <span class="vi" lang="vi">Tiêu đề câu hỏi giữ nguyên như đăng trên thuvienphapluat.vn; bản dịch tiếng Anh có sự hỗ trợ
-              của máy. Mỗi lĩnh vực: 20 điều được trích dẫn nhiều nhất, mỗi điều một câu trả lời đại diện. Không hiển thị nội dung câu
-              trả lời, điều khoản, định nghĩa hay tên người; mỗi nút dẫn tới nguồn.</span></li>
+            <li data-note="traces.note.graph">One graph holds all 540 traced answers of the 27 areas; every law, provision, term and answer appears once, and shared ones link the areas that use them. Each area is a region of the floor, in the order of the tabs.</li>
+            <li data-note="traces.note.layout">Within a region the laws hang from the top with their chapters, articles and clauses below them; questions and answers stand on the floor under the provisions they cite, the terms they name float between them, and the other answers that cite the same provisions hang faded beneath.</li>
+            <li data-note="traces.note.trace">Pick a question: its trace lights up inside the whole graph. Dark strokes are text-verified (at least half of the cited provision's word 5-grams appear in the answer, as in the paper) and include the hop from the question's term to the clause that defines it; a thinner stroke is structural, kept and not verified.</li>
+            <li data-note="traces.note.sources">Question titles are as published on thuvienphapluat.vn; English glosses and the normalised English law names are machine-assisted. Per area: the 20 articles its answers cite most, one representative answer each. No answer text, provision text, definitions or person names are shown; each node links to its source.</li>
             <li class="tr-revs" id="tr-revs"></li>
           </ul>
         </details>
-        <p class="side-about">Paper: <a href="https://arxiv.org/abs/2611.11426" target="_blank" rel="noopener" data-paper-link="side">Vietnamese
+        <p class="side-about" id="tr-paper" data-vl-text>Paper: <a href="https://arxiv.org/abs/2611.11426" target="_blank" rel="noopener" data-paper-link="side">Vietnamese
           Legal Ontology: Every legal answer, traced to the article that grounds it</a> (Bui &amp; Tran Minh, 2026,
           arXiv:2611.11426). Numbers here are computed from the <span data-vl-release>VLOnto v1</span> release.</p>
       </div>
     </aside>
-    <section class="scene-stage" id="stage" aria-label="3D graph of the question traces">
-      <div class="scene-canvas" id="canvas-host" tabindex="0" role="application" aria-roledescription="3D graph" aria-label="3D graph of all traced questions and the laws they cite. Drag or use the arrow keys to rotate, scroll or press plus and minus to zoom, click a node for details; pick a question in the list to light its trace."></div>
+    <section class="scene-stage" id="stage" aria-label="3D graph of the question traces" data-i18n-aria="traces.stage.aria">
+      <div class="scene-canvas" id="canvas-host" tabindex="0" role="application" aria-roledescription="3D graph" aria-label="3D graph of all traced questions and the laws they cite. Drag or use the arrow keys to rotate, scroll or press plus and minus to zoom, click a node for details; pick a question in the list to light its trace." data-i18n-aria="traces.canvas.aria"></div>
       <div class="legend" id="legend" data-legend></div>
       <div class="hint hidden" id="hint" role="note">
-        <p><strong>All traced answers in one graph.</strong> Pick an area tab, then a question: its trace lights up from the answer
-          through the cited provision to the law. <span class="desk-only">Drag to rotate, scroll to zoom.</span><span class="touch-only">Drag to rotate, pinch to zoom.</span>
-          <span class="vi" lang="vi">Chọn lĩnh vực rồi một câu hỏi để xem đường truy vết.</span></p>
-        <button class="btn btn-xs" type="button" id="hint-close">Got it</button>
+        <p><strong data-i18n="traces.hint.title">All traced answers in one graph.</strong> <span data-i18n="traces.hint.body">Pick an area tab, then a question: its trace lights up from the answer
+          through the cited provision to the law.</span> <span class="desk-only" data-i18n="traces.hint.desk">Drag to rotate, scroll to zoom.</span><span class="touch-only" data-i18n="traces.hint.touch">Drag to rotate, pinch to zoom.</span></p>
+        <button class="btn btn-xs" type="button" id="hint-close" data-i18n="traces.hint.ok">Got it</button>
       </div>
       <div class="stage-tools">
-        <button class="btn" type="button" id="btn-reset" title="Reset view" aria-label="Reset view"></button>
-        <button class="btn" type="button" id="btn-legend" title="Show or hide the legend" aria-label="Show or hide the legend" aria-expanded="true" aria-controls="legend"></button>
+        <button class="btn" type="button" id="btn-reset" title="Reset view" aria-label="Reset view" data-i18n-title="traces.reset.aria" data-i18n-aria="traces.reset.aria"></button>
+        <button class="btn" type="button" id="btn-legend" title="Show or hide the legend" aria-label="Show or hide the legend" aria-expanded="true" aria-controls="legend" data-i18n-title="traces.legend.toggle" data-i18n-aria="traces.legend.toggle"></button>
       </div>
       <div class="stage-status" id="status" aria-live="polite"></div>
       <div class="tooltip3d hidden" id="tip" role="tooltip"></div>
       <div class="tr-fallback hidden" id="tr-fallback"></div>
-      <div class="loading-veil" id="veil"><div><div class="spin"></div><span id="veil-text">Loading the traces · <span lang="vi">Đang tải</span></span></div></div>
-      <aside class="scene-panel hidden" id="panel" aria-label="The trace hop by hop · Truy vết từng bước" tabindex="-1"></aside>
+      <div class="loading-veil" id="veil"><div><div class="spin"></div><span id="veil-text"><span data-i18n="traces.loadingTraces">Loading the traces</span></span></div></div>
+      <aside class="scene-panel hidden" id="panel" aria-label="The trace hop by hop" data-i18n-aria="traces.panel.aria" tabindex="-1"></aside>
       <div class="note tr-nodata" id="tr-nodata" hidden>
-        <p><strong>No trace data in this build.</strong> <span lang="vi">Bản dựng này không có dữ liệu truy vết.</span></p>
-        <p>The traces come from build/traces (scripts/traces/README.md); scripts/site/build_site.py turns them into data/traces/*.js.
-          <span lang="vi">Dữ liệu truy vết lấy từ build/traces (scripts/traces/README.md); scripts/site/build_site.py chuyển chúng thành data/traces/*.js.</span></p>
+        <p><strong data-i18n="traces.nodata.title">No trace data in this build.</strong></p>
+        <p data-i18n="traces.nodata.text">The traces come from build/traces (scripts/traces/README.md); scripts/site/build_site.py turns them into data/traces/*.js.</p>
       </div>
     </section>
   </div>
@@ -105,5 +85,6 @@
 <script src="js/paper3d.js"></script>
 <script src="js/trace-draw.js"></script>
 <script src="js/traces3d.js"></script>
+<script src="js/scene-text.js"></script>
 </body>
 </html>

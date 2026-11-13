@@ -1,71 +1,107 @@
-/* VLOnto - home page: headline numbers (data/stats.js), tool cards, sources, modules, citation and attribution. */
+/* VLOnto - about page (about.html): headline numbers (data/stats.js), tool cards, sources, modules, citation and
+   attribution. Texts come from js/i18n-pages.js (about.*) in the language mode (docs/i18n.md): one language in EN and VI,
+   pairs "Tiếng Việt · English" for content in EN–VI. Everything built here is rebuilt in place on 'vl:lang'. */
 (function () {
   'use strict';
   var VL = window.VL, M = window.__VLONTO_METRICS;
   VL.chrome();
   M.page = 'index';
   var S = window.VLONTO.stats || {}, OG = window.VLONTO.ontology_graph || { nodes: [], links: [] };
+  var esc = VL.esc;
+  function $(sel) { return VL.$(sel); }
+  /* lang="…" where a text is not in the page language (html[lang]: 'vi' in VI, 'en' in EN and EN–VI) */
+  function langAttr(l) { return l && l !== VL.i18n.htmlLang() ? ' lang="' + l + '"' : ''; }
+  /* a key-figure card: the label in the mode's language; in EN–VI the Vietnamese label with the English gloss below */
+  function kpi(v, key) {
+    var l = VL.TL(key);
+    return '<div class="kpi"><div class="v">' + v + '</div><div class="k"' + langAttr(l.primaryLang) + '>' + esc(l.primary) + '</div>' +
+      (l.secondary ? '<div class="k-gloss"' + langAttr(l.secondaryLang) + '>' + esc(l.secondary) + '</div>' : '') + '</div>';
+  }
+  /* a pair of data labels as one string (VL.T) or, for a class name, the mode's label with the other as tooltip */
+  function chip(n) {
+    var vi = VL.lang() === 'vi', text = vi ? (n.label_vi || n.label_en) : n.label_en;
+    var l = vi && n.label_vi ? 'vi' : 'en', tip = VL.lang() === 'envi' && n.label_vi ? ' title="' + esc(n.label_vi) + '"' : '';
+    return '<a class="term-chip" href="index.html#class=' + encodeURIComponent(n.id) + '"' + langAttr(l) + tip + '>' + esc(text) + '</a>';
+  }
+  /* the definition of a module: the dictionary's (ontp.modDef.<id>, Vietnamese in VI) while its English is the data's */
+  function moduleDef(id, en) {
+    var e = VL.i18n.get('ontp.modDef.' + id);
+    if (e && en && e.en === VL.nfc(en)) return { t: VL.U('ontp.modDef.' + id), l: VL.lang() === 'vi' ? 'vi' : 'en' };
+    return { t: en || '', l: 'en' };
+  }
 
-  function kpi(v, k, vi) { return '<div class="kpi"><div class="v">' + v + '</div><div class="k">' + VL.esc(k) + '</div><div class="vi" lang="vi">' + VL.esc(vi) + '</div></div>'; }
-  VL.$('#kpis').innerHTML = [
-    kpi(VL.fmt(S.documents), 'legal documents', 'văn bản quy phạm pháp luật'),
-    kpi(VL.fmt(S.articles), 'articles', 'điều'),
-    kpi(VL.fmt(S.change_events), 'change events', 'thay thế, sửa đổi, bãi bỏ'),
-    kpi(VL.fmt(S.legal_basis_links), 'legal-basis links', 'căn cứ pháp lý'),
-    kpi(VL.fmt(S.citation_links), 'citation links', 'trích dẫn'),
-    kpi(VL.fmt(S.legal_questions), 'legal Q&As', 'hỏi đáp pháp luật'),
-    kpi(VL.fmt(S.legal_terms), 'legal terms', 'thuật ngữ pháp lý'),
-    kpi(VL.fmt(S.rdf_triples), 'RDF triples', 'bộ ba RDF')
-  ].join('');
-  VL.$('#numbers-note').textContent = VL.releaseLabel() + ' (this release), built ' + (S.build_date || '') + '. Validity of documents derived as of ' +
-    (S.validity_as_of || '') + '. ' + VL.fmt(S.issuing_bodies) + ' issuing bodies and ' + VL.fmt(S.legal_areas) + ' legal areas.';
-  VL.$('#asof').textContent = S.validity_as_of || '2026-11-08';
-  if (S.validity && S.validity.unknown != null) VL.$('#unknown-n').textContent = VL.fmt(S.validity.unknown);
-
-  var tools = [
-    ['index.html', 'cube', '3D ontology playground', 'Classes, properties, concept schemes and external alignments in an interactive 3D scene, with search, module filters and SPARQL CONSTRUCT results drawn in 3D.', true],
-    ['network-3d.html', 'network', '3D legal network', 'All ' + VL.fmt(S.documents) + ' documents layered by legal force, with replacement, amendment, legal-basis and citation links and a validity panel.'],
-    ['sparql.html', 'code', 'SPARQL playground', 'Ten bilingual example queries and a free editor over the core subset (' + VL.fmt(S.core_ttl_triples) + ' triples), running offline in WebAssembly.'],
-    ['traces.html', 'trace', 'Question traces', 'For each of 27 legal areas, the 20 articles its answers cite most, each with one published question traced from the answer up to the law, all in one 3D graph drawn like the figures of the paper.'],
-    ['dashboard.html', 'chart', 'Dashboard', 'Documents by type, year, issuer and area, validity, change relations, most-cited documents and articles, Q&As, terms and news.'],
-    ['ontology.html', 'docs', 'Ontology documentation', 'Modules, alignments and the full pyLODE reference of every class and property, with Turtle, SHACL and JSON-LD downloads.'],
-    ['playbook.html', 'book', 'Playbook', 'How VLOnto is built and how to use it: sources and licences, the ontology design, the pipeline, validation and the website.'],
-    ['downloads.html', 'download', 'Downloads', 'Ontology, RDF core subset, site data, documentation and checksums, and how to rebuild the full graph from the four source datasets.']
+  var TOOLS = [
+    ['index.html', 'cube', 'index', true], ['network-3d.html', 'network', 'network'], ['sparql.html', 'code', 'sparql'],
+    ['traces.html', 'trace', 'traces'], ['dashboard.html', 'chart', 'dashboard'], ['ontology.html', 'docs', 'ontology'],
+    ['playbook.html', 'book', 'playbook'], ['downloads.html', 'download', 'downloads']
   ];
-  VL.$('#tools').innerHTML = tools.map(function (t) {
-    return '<a class="card tool-card' + (t[4] ? ' featured' : '') + '" href="' + t[0] + '"><span class="icon">' + VL.ICON[t[1]] + '</span>' +
-      '<h3>' + VL.esc(t[2]) + '</h3><p>' + VL.esc(t[3]) + '</p><span class="go">Open →</span></a>';
-  }).join('');
-
-  var SRC = [
-    ['thuvienphapluat-vn-vbpl', 'Legal documents: identity, type, number, dates, issuer, area, status, structure, change, legal-basis and citation links (thuvienphapluat.vn).'],
-    ['thuvienphapluat-vn-hdpl', 'Legal Q&As: identifiers, URLs, dates, areas and the documents and articles they cite (no question or answer text; the Traces page shows the titles of the questions it traces).'],
-    ['thuvienphapluat-vn-tnpl', 'Legal terminology: term names in Vietnamese and English (machine-translated), areas, status and related terms (no definitions).'],
-    ['thuvienphapluat-vn-htpl', 'Legal news: identifiers, URLs, categories, dates and the documents they mention (no titles or text).']
-  ];
-  var lic = S.sources || {};
-  VL.$('#sources').innerHTML = SRC.map(function (s) {
-    var l = (lic[s[0]] || {}).licence || '';
-    return '<tr><td><a class="nowrap" href="https://huggingface.co/datasets/tmquan/' + s[0] + '" target="_blank" rel="noopener">' + VL.esc(s[0]) + '</a>' +
-      '<div class="sub mono">rev ' + VL.esc(((lic[s[0]] || {}).revision || '').slice(0, 10)) + '</div></td><td>' + VL.esc(s[1]) + '</td>' +
-      '<td class="col-opt nowrap">' + VL.esc(l === 'other' ? 'source terms' : l.toUpperCase()) + '</td></tr>';
-  }).join('');
-
-  var classes = {};
+  var SRC = [['thuvienphapluat-vn-vbpl', 'vbpl'], ['thuvienphapluat-vn-hdpl', 'hdpl'], ['thuvienphapluat-vn-tnpl', 'tnpl'], ['thuvienphapluat-vn-htpl', 'htpl']];
+  var classes = {}, defs = {};
   OG.nodes.forEach(function (n) { if (n.kind === 'class') (classes[n.module] = classes[n.module] || []).push(n); });
-  var defs = {};
   (OG.modules || []).forEach(function (m) { defs[m.id] = m.definition_en; });
-  VL.$('#modules').innerHTML = VL.MODULES.filter(function (m) { return m.id !== 'external'; }).map(function (m) {
-    var cs = (classes[m.id] || []).slice(0, 6).map(function (n) {
-      return '<a class="term-chip" href="index.html#class=' + encodeURIComponent(n.id) + '">' + VL.esc(n.label_en) + '</a>';
-    }).join('');
-    return '<div class="card module-card"><div class="mod-head"><span class="swatch" style="background:' + m.v + '"></span><h3>' + VL.esc(m.en) + '</h3></div>' +
-      '<p class="vi" lang="vi">' + VL.esc(m.vi) + '</p><p>' + VL.esc(defs[m.id] || '') + '</p>' + (cs ? '<div class="terms">' + cs + '</div>' : '') + '</div>';
-  }).join('');
 
-  VL.$('#attr-en').textContent = VL.attribution('en');
-  VL.$('#attr-vi').textContent = VL.attribution('vi');
-  VL.$('#copy-bib').addEventListener('click', function () { VL.copy(VL.$('#bibtex').textContent, VL.$('#bibtex')); });
+  function render() {
+    $('#kpis').innerHTML = [
+      kpi(VL.fmt(S.documents), 'about.kpi.documents'), kpi(VL.fmt(S.articles), 'about.kpi.articles'),
+      kpi(VL.fmt(S.change_events), 'about.kpi.changes'), kpi(VL.fmt(S.legal_basis_links), 'about.kpi.basis'),
+      kpi(VL.fmt(S.citation_links), 'about.kpi.citations'), kpi(VL.fmt(S.legal_questions), 'about.kpi.qa'),
+      kpi(VL.fmt(S.legal_terms), 'about.kpi.terms'), kpi(VL.fmt(S.rdf_triples), 'about.kpi.triples')
+    ].join('');
+    $('#numbers-note').textContent = VL.U('about.numbersNote', { release: VL.releaseLabel(), date: S.build_date || '', asof: S.validity_as_of || '',
+      n: VL.fmt(S.issuing_bodies), m: VL.fmt(S.legal_areas) });
+
+    var vars = { network: { n: VL.fmt(S.documents) }, sparql: { n: VL.fmt(S.core_ttl_triples) } };
+    $('#tools').innerHTML = TOOLS.map(function (t) {
+      return '<a class="card tool-card' + (t[3] ? ' featured' : '') + '" href="' + t[0] + '"><span class="icon">' + VL.ICON[t[1]] + '</span>' +
+        '<h3>' + VL.UH('about.tool.' + t[2]) + '</h3><p>' + VL.UH('about.tool.' + t[2] + '.text', vars[t[2]] || null) + '</p>' +
+        '<span class="go">' + VL.UH('about.open') + '</span></a>';
+    }).join('');
+
+    $('#sources-text').innerHTML = VL.UH('about.sources.text', null, { html: { link: '<a href="traces.html">' + esc(VL.U('chrome.nav.traces')) + '</a>' } });
+    var lic = S.sources || {};
+    $('#sources').innerHTML = SRC.map(function (s) {
+      var info = lic[s[0]] || {}, l = info.licence || '';
+      return '<tr><td><a class="nowrap" href="https://huggingface.co/datasets/tmquan/' + s[0] + '" target="_blank" rel="noopener">' + esc(s[0]) + '</a>' +
+        '<div class="sub mono">' + VL.UH('about.rev', { rev: (info.revision || '').slice(0, 10) }) + '</div></td><td>' + VL.UH('about.src.' + s[1]) + '</td>' +
+        '<td class="col-opt nowrap">' + (l === 'other' ? VL.UH('about.sourceTerms') : esc(l.toUpperCase())) + '</td></tr>';
+    }).join('');
+
+    /* module cards: the module's name in the mode's language (EN–VI: Vietnamese with the English gloss below) */
+    var envi = VL.lang() === 'envi';
+    $('#modules').innerHTML = VL.MODULES.filter(function (m) { return m.id !== 'external'; }).map(function (m) {
+      var cs = (classes[m.id] || []).slice(0, 6).map(chip).join(''), d = moduleDef(m.id, defs[m.id]);
+      var hl = VL.lang() === 'en' ? 'en' : 'vi';
+      return '<div class="card module-card"><div class="mod-head"><span class="swatch" style="background:' + m.v + '"></span>' +
+        '<h3' + langAttr(hl) + '>' + esc(hl === 'en' ? m.en : m.vi) + '</h3></div>' +
+        (envi ? '<p class="gloss"' + langAttr('en') + '>' + esc(m.en) + '</p>' : '') + '<p' + langAttr(d.l) + '>' + esc(d.t) + '</p>' +
+        (cs ? '<div class="terms">' + cs + '</div>' : '') + '</div>';
+    }).join('');
+
+    $('#cite-lead').innerHTML = VL.UH('about.cite.lead', null, { html: {
+      bib: '<a href="#paper">' + esc(VL.U('about.cite.bibAbove')) + '</a>', release: '<span data-vl-release>' + esc(VL.releaseLabel()) + '</span>' } });
+    $('#cite-text').innerHTML = VL.UH('about.cite.textLine', null, { html: {
+      title: '<em lang="en">VLOnto: Vietnamese Legal Ontology and Knowledge Graph</em>',
+      version: '<span id="cite-version" data-vl-version>' + esc(VL.VERSION) + '</span>',
+      code: '<a href="https://github.com/tmquan/VLOnto" target="_blank" rel="noopener">github.com/tmquan/VLOnto</a>',
+      site: '<a href="https://tmquan.github.io/VLOnto/" target="_blank" rel="noopener">tmquan.github.io/VLOnto</a>' } });
+
+    $('#lic-onto').innerHTML = VL.UH('about.lic.onto', null, { html: { ttl: '<code>vlonto.ttl</code>',
+      cc: '<a href="https://creativecommons.org/licenses/by/4.0/" rel="license noopener" target="_blank">CC BY 4.0</a>' } });
+    $('#lic-kg').innerHTML = VL.UH('about.lic.kg', null, { html: { a: '<code>hdpl</code>', b: '<code>tnpl</code>', c: '<code>htpl</code>' } });
+    $('#lic-sw').innerHTML = VL.UH('about.lic.sw', null, { html: { link: '<a href="downloads.html#dl-vendor">' + esc(VL.U('about.downloadsPage')) + '</a>' } });
+
+    var asof = S.validity_as_of || '2026-11-08', unk = S.validity && S.validity.unknown != null ? VL.fmt(S.validity.unknown) : '–';
+    $('#disc-text').innerHTML = '<strong>' + VL.UH('about.disc.strong') + '</strong> ' +
+      VL.UH('about.disc.text', null, { html: { date: '<span id="asof">' + esc(asof) + '</span>', n: '<span id="unknown-n">' + unk + '</span>' } });
+    ['sources-text', 'cite-lead', 'cite-text', 'lic-onto', 'lic-kg', 'lic-sw', 'disc-text'].forEach(function (id) { $('#' + id).setAttribute('data-vl-text', 'ok'); });
+    M.aboutLang = VL.lang();
+  }
+  render();
+  $('#attr-en').textContent = VL.attribution('en');
+  $('#attr-vi').textContent = VL.attribution('vi');
+  $('#copy-bib').addEventListener('click', function () { VL.copy(VL.$('#bibtex').textContent, VL.$('#bibtex')); });
+  /* the language switch: rebuild the texts in place (scroll position and focus stay where they are) */
+  document.addEventListener('vl:lang', function () { render(); M.aboutLangRenders = (M.aboutLangRenders || 0) + 1; });
 
   VL.fontsReady().then(function () { VL.setReady(); });
 })();

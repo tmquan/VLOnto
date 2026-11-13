@@ -1,6 +1,8 @@
 /* VLOnto - playbook page. Renders window.VLONTO.playbook_html (data/playbook_html.js, written by the Playbook track)
    with the site styles and a generated table of contents. The data script is loaded only when data/site_files.js
-   lists it, so the page never requests a missing file; otherwise a "not built yet" placeholder is shown. */
+   lists it, so the page never requests a missing file; otherwise a "not built yet" placeholder is shown. The playbook text
+   stays English in every mode (lang="en"); the page's own texts follow the language mode (js/i18n-pages.js, pb.*) and are
+   rebuilt in place on 'vl:lang' (the contents keep their open state and the reading position). */
 (function () {
   'use strict';
   var VL = window.VL, M = window.__VLONTO_METRICS;
@@ -8,13 +10,20 @@
   M.page = 'playbook';
   var body = VL.$('#pb-body'), actions = VL.$('#pb-actions');
 
-  function sizeOf(f) { return f.bytes > 1048576 ? (Math.round(f.bytes / 104857.6) / 10) + ' MB' : Math.max(1, Math.round(f.bytes / 1024)) + ' KB'; }
+  /* sizes in the mode's number format (VL.fmt: 1.4 MB in EN, 1,4 MB in VI) */
+  function sizeOf(f) { return f.bytes > 1048576 ? VL.fmt(Math.round(f.bytes / 104857.6) / 10) + ' MB' : VL.fmt(Math.max(1, Math.round(f.bytes / 1024))) + ' KB'; }
   function renderActions() {
     var pdf = VL.fileListed('downloads/VLOnto-playbook.pdf'), md = VL.fileListed('downloads/playbook.md'), h = '';
-    if (pdf) h += '<a class="btn btn-primary" href="downloads/VLOnto-playbook.pdf" download>' + VL.ICON.download + '<span>PDF · ' + sizeOf(pdf) + '</span></a>';
-    if (md) h += '<a class="btn" href="downloads/playbook.md" download>' + VL.ICON.download + '<span>Markdown · ' + sizeOf(md) + '</span></a>';
+    if (pdf) h += '<a class="btn btn-primary" href="downloads/VLOnto-playbook.pdf" download>' + VL.ICON.download + '<span>' + VL.UH('pb.pdf', { size: sizeOf(pdf) }) + '</span></a>';
+    if (md) h += '<a class="btn" href="downloads/playbook.md" download>' + VL.ICON.download + '<span>' + VL.UH('pb.markdown', { size: sizeOf(md) }) + '</span></a>';
     actions.innerHTML = h;
     M.playbookPdf = !!pdf;
+  }
+  var tocItems = 0, shown = null;
+  function tocText(toc) {
+    toc.setAttribute('aria-label', VL.U('pb.contents.aria'));
+    var sum = toc.querySelector('summary');
+    if (sum) sum.innerHTML = VL.UH('pb.contents', { n: VL.fmt(tocItems) });
   }
   function slug(s, used) {
     var b = VL.fold(s).replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'section';
@@ -49,7 +58,7 @@
   function render(pb) {
     var html = typeof pb === 'string' ? pb : (pb && (pb.html || pb.body)) || '';
     var wrap = VL.el('div', { 'class': 'playbook-layout' });
-    var toc = VL.el('nav', { 'class': 'toc', 'aria-label': 'Contents' });
+    var toc = VL.el('nav', { 'class': 'toc', 'aria-label': VL.U('pb.contents.aria') });
     var art = VL.el('article', { 'class': 'prose', lang: 'en' });
     art.innerHTML = VL.nfc(html);
     VL.$$('script, style', art).forEach(function (e) { e.remove(); });
@@ -75,24 +84,37 @@
     });
     /* collapsed on phones (98 entries would push the text far down), open on wide screens */
     var narrow = window.matchMedia('(max-width: 900px)').matches;
-    toc.innerHTML = '<details' + (narrow ? '' : ' open') + '><summary>Contents · ' + items.length + ' sections</summary><ol>' + items.join('') + '</ol></details>';
+    /* the entries are the playbook's English headings: lang="en" on the list, the summary follows the mode */
+    toc.innerHTML = '<details' + (narrow ? '' : ' open') + '><summary></summary><ol lang="en">' + items.join('') + '</ol></details>';
+    tocItems = items.length;
+    tocText(toc);
     var softened = softBreaks(art) + softBreaks(toc);
     wrap.appendChild(toc);
     wrap.appendChild(art);
     body.innerHTML = '';
     body.appendChild(wrap);
     M.playbook = { present: true, headings: items.length, chars: art.textContent.length, softBreakNodes: softened };
+    shown = 'playbook';
     if (location.hash.length > 1) { var t = document.getElementById(decodeURIComponent(location.hash.slice(1))); if (t) t.scrollIntoView(); }
   }
   function placeholder() {
-    body.innerHTML = '<div class="card placeholder"><h2>The playbook has not been built yet</h2>' +
-      '<p>This page shows the playbook once <span class="mono">data/playbook_html.js</span> exists in the site. It is written by the playbook build ' +
-      '(Markdown → HTML for this page, Markdown → Typst → PDF for <span class="mono">downloads/VLOnto-playbook.pdf</span>); re-run ' +
-      '<span class="mono">scripts/site/build_site.py</span> afterwards so the site lists the new files.</p>' +
-      '<p style="margin-bottom:0">Meanwhile, the <a href="ontology.html">ontology documentation</a>, the <a href="dashboard.html">dashboard</a> and the ' +
-      '<a href="downloads.html">downloads</a> describe what VLOnto contains.</p></div>';
+    function a(href, key) { return '<a href="' + href + '">' + VL.esc(VL.U(key)) + '</a>'; }
+    body.innerHTML = '<div class="card placeholder"><h2>' + VL.UH('pb.notBuilt.h') + '</h2>' +
+      '<p>' + VL.UH('pb.notBuilt.text', null, { html: { js: '<span class="mono">data/playbook_html.js</span>',
+        pdf: '<span class="mono">downloads/VLOnto-playbook.pdf</span>', script: '<span class="mono">scripts/site/build_site.py</span>' } }) + '</p>' +
+      '<p style="margin-bottom:0">' + VL.UH('pb.notBuilt.meanwhile', null, { html: { onto: a('ontology.html', 'pb.link.ontology'),
+        dash: a('dashboard.html', 'pb.link.dashboard'), dl: a('downloads.html', 'pb.link.downloads') } }) + '</p></div>';
     M.playbook = { present: false };
+    shown = 'placeholder';
   }
+  /* the language switch: the buttons, the contents' label and the placeholder; the playbook text is English */
+  document.addEventListener('vl:lang', function () {
+    renderActions();
+    var toc = VL.$('nav.toc', body);
+    if (toc) tocText(toc);
+    if (shown === 'placeholder') placeholder();
+    M.playbookLangRenders = (M.playbookLangRenders || 0) + 1;
+  });
   renderActions();
   var listed = VL.fileListed('data/playbook_html.js');
   var p = listed ? VL.loadScript('data/playbook_html.js').then(function () {

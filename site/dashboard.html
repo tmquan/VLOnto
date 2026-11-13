@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script>/* theme before first paint: ?theme=, else stored choice, else system (css/site.css, js/common.js) */(function(d,w){var t=null,m=/[?&]theme=(light|dark)(?:&|$)/.exec(w.location.search);if(m)t=m[1];else{try{t=w.localStorage.getItem('vlonto.theme')}catch(e){}if(t!=='light'&&t!=='dark'){try{t=w.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}catch(e){t='light'}}}d.setAttribute('data-theme',t);d.style.colorScheme=t})(document.documentElement,window);</script>
 <script src="js/i18n.js"></script>
-<title>Dashboard · VLOnto</title>
-<meta name="description" content="Interactive dashboard of the VLOnto knowledge graph of Vietnamese law: documents, validity, change relations, citations, Q&As, terms and news.">
+<title data-i18n="dash.page.title">Dashboard · VLOnto</title>
+<meta name="description" data-i18n-content="dash.page.description" content="Interactive dashboard of the VLOnto knowledge graph of Vietnamese law: documents, validity, change relations, citations, Q&As, terms and news.">
 <link rel="stylesheet" href="css/fonts-web.css">
 <link rel="stylesheet" href="css/site.css">
 </head>
@@ -15,90 +15,90 @@
 <div id="vl-header"></div>
 <main id="main" class="page">
   <header class="page-head">
-    <p class="eyebrow">Dashboard · Bảng điều khiển</p>
-    <h1>The knowledge graph in numbers</h1>
-    <p class="lead">Documents, validity and change relations, citations, legal Q&amp;As, terminology and news in
+    <p class="eyebrow" data-i18n="dash.eyebrow">Dashboard</p>
+    <h1 data-i18n="dash.h1">The knowledge graph in numbers</h1>
+    <p class="lead" id="dash-lead" data-vl-text>Documents, validity and change relations, citations, legal Q&amp;As, terminology and news in
       <span data-vl-release>VLOnto v1</span>. Filters apply to every chart that has the dimension; the year range uses each record's own date (issue year
       of a document, effective year of a change, year of a Q&amp;A). Click a bar to filter by its type or area.</p>
-    <p class="v2-note">Court decisions join in v2. <span lang="vi">Bản án và quyết định của tòa án sẽ có trong v2.</span></p>
+    <p class="v2-note" data-i18n="dash.v2">Court decisions join in v2.</p>
   </header>
   <section aria-labelledby="kpi-sel">
-    <h2 class="sr-only" id="kpi-sel">Key figures</h2>
+    <h2 class="sr-only" id="kpi-sel" data-i18n="dash.kpis.h">Key figures</h2>
     <div class="kpis" id="kpis-sel"></div>
   </section>
-  <div class="filters" role="group" aria-label="Filters">
-    <label class="field">Document type<select class="select" id="f-type"></select></label>
-    <label class="field">Year from<select class="select" id="f-y0"></select></label>
-    <label class="field">to<select class="select" id="f-y1"></select></label>
-    <label class="field">Legal area<select class="select" id="f-area"></select></label>
-    <button class="btn" type="button" id="f-reset">Reset filters</button>
+  <div class="filters" role="group" aria-label="Filters" data-i18n-aria="dash.filters.aria">
+    <label class="field"><span data-i18n="dash.f.type">Document type</span><select class="select" id="f-type"></select></label>
+    <label class="field"><span data-i18n="dash.f.yearFrom">Year from</span><select class="select" id="f-y0"></select></label>
+    <label class="field"><span data-i18n="dash.f.to">to</span><select class="select" id="f-y1"></select></label>
+    <label class="field"><span data-i18n="dash.f.area">Legal area</span><select class="select" id="f-area"></select></label>
+    <button class="btn" type="button" id="f-reset" data-i18n="dash.f.reset">Reset filters</button>
     <p class="active" id="f-active" aria-live="polite"></p>
   </div>
   <div class="charts">
     <section class="chart-card wide">
-      <h3>Documents by type and issue year</h3>
-      <p class="sub" id="sub-type-year">Stacked by document type. Click a segment to filter by its type.</p>
-      <div class="chart" id="c-type-year" role="img" aria-label="Stacked bar chart of documents by type and issue year"></div>
+      <h3 data-i18n="dash.typeYear.h">Documents by type and issue year</h3>
+      <p class="sub" id="sub-type-year" data-vl-text="wait">Stacked by document type. Click a segment to filter by its type.</p>
+      <div class="chart" id="c-type-year" role="img" aria-label="Stacked bar chart of documents by type and issue year" data-i18n-aria="dash.typeYear.aria"></div>
     </section>
     <section class="chart-card">
-      <h3>Validity by document type</h3>
-      <p class="sub">Share of each validity status (derived as of <span id="asof"></span>); unknown means no status and no change relation.</p>
-      <div class="chart" id="c-validity" role="img" aria-label="Validity status by document type"></div>
+      <h3 data-i18n="dash.validity.h">Validity by document type</h3>
+      <p class="sub" id="sub-validity" data-vl-text>Share of each validity status (derived as of <span id="asof"></span>); unknown means no status and no change relation.</p>
+      <div class="chart" id="c-validity" role="img" aria-label="Validity status by document type" data-i18n-aria="dash.validity.aria"></div>
     </section>
     <section class="chart-card">
-      <h3>Legal-force ranks</h3>
-      <p class="sub">Rank 0 is the Constitution; rank 5 circulars and ministerial decisions.</p>
-      <div class="chart" id="c-ranks" role="img" aria-label="Documents by legal-force rank"></div>
+      <h3 data-i18n="dash.ranks.h">Legal-force ranks</h3>
+      <p class="sub" data-i18n="dash.ranks.sub">Rank 0 is the Constitution; rank 5 circulars and ministerial decisions.</p>
+      <div class="chart" id="c-ranks" role="img" aria-label="Documents by legal-force rank" data-i18n-aria="dash.ranks.aria"></div>
     </section>
     <section class="chart-card">
-      <h3>Legal areas</h3>
-      <p class="sub">Click a bar to filter by area.</p>
-      <div class="chart" id="c-areas" role="img" aria-label="Documents by legal area"></div>
+      <h3 data-i18n="dash.areas.h">Legal areas</h3>
+      <p class="sub" data-i18n="dash.areas.sub">Click a bar to filter by area.</p>
+      <div class="chart" id="c-areas" role="img" aria-label="Documents by legal area" data-i18n-aria="dash.areas.aria"></div>
     </section>
     <section class="chart-card">
-      <h3>Issuing bodies (top 15)</h3>
-      <p class="sub" id="sub-issuers">Joint documents count for every issuer.</p>
-      <div class="chart" id="c-issuers" role="img" aria-label="Documents by issuing body"></div>
+      <h3 data-i18n="dash.issuers.h">Issuing bodies (top 15)</h3>
+      <p class="sub" id="sub-issuers" data-vl-text="wait">Joint documents count for every issuer.</p>
+      <div class="chart" id="c-issuers" role="img" aria-label="Documents by issuing body" data-i18n-aria="dash.issuers.aria"></div>
     </section>
     <section class="chart-card wide">
-      <h3>Change relations by kind and year</h3>
-      <p class="sub" id="sub-changes">Year the change takes effect; type and area filters apply to the affected document.</p>
-      <div class="chart" id="c-changes" role="img" aria-label="Change relations by kind and year"></div>
+      <h3 data-i18n="dash.changes.h">Change relations by kind and year</h3>
+      <p class="sub" id="sub-changes" data-vl-text="wait">Year the change takes effect; type and area filters apply to the affected document.</p>
+      <div class="chart" id="c-changes" role="img" aria-label="Change relations by kind and year" data-i18n-aria="dash.changes.aria"></div>
     </section>
     <section class="chart-card wide">
-      <h3>Most-cited documents</h3>
-      <div class="tabs" role="tablist" aria-label="Citing source" id="tabs-docs"></div>
+      <h3 data-i18n="dash.mostDocs.h">Most-cited documents</h3>
+      <div class="tabs" role="tablist" aria-label="Citing source" data-i18n-aria="dash.citingSource.aria" id="tabs-docs"></div>
       <div class="table-wrap" id="t-docs" role="tabpanel"></div>
-      <p class="filter-note">Citing = distinct citing documents or Q&amp;As. Filters apply to the cited document.</p>
+      <p class="filter-note" data-i18n="dash.citingNote">Citing = distinct citing documents or Q&amp;As. Filters apply to the cited document.</p>
     </section>
     <section class="chart-card wide">
-      <h3>Most-cited articles</h3>
-      <div class="tabs" role="tablist" aria-label="Citing source" id="tabs-arts"></div>
+      <h3 data-i18n="dash.mostArts.h">Most-cited articles</h3>
+      <div class="tabs" role="tablist" aria-label="Citing source" data-i18n-aria="dash.citingSource.aria" id="tabs-arts"></div>
       <div class="table-wrap" id="t-arts" role="tabpanel"></div>
     </section>
     <section class="chart-card wide">
-      <h3>Legal Q&amp;As by area and publication year</h3>
-      <p class="sub" id="sub-qa">Year and area filters apply.</p>
-      <div class="chart" id="c-qa" role="img" aria-label="Legal questions and answers by area and year"></div>
+      <h3 data-i18n="dash.qa.h">Legal Q&amp;As by area and publication year</h3>
+      <p class="sub" id="sub-qa" data-vl-text="wait">Year and area filters apply.</p>
+      <div class="chart" id="c-qa" role="img" aria-label="Legal questions and answers by area and year" data-i18n-aria="dash.qa.aria"></div>
     </section>
     <section class="chart-card">
-      <h3>Legal terms by area</h3>
-      <p class="sub" id="sub-terms">Areas of the terminology dataset; English labels partly machine-translated.</p>
-      <div class="chart" id="c-terms" role="img" aria-label="Legal terms by area"></div>
+      <h3 data-i18n="dash.terms.h">Legal terms by area</h3>
+      <p class="sub" id="sub-terms" data-vl-text="wait">Areas of the terminology dataset; English labels partly machine-translated.</p>
+      <div class="chart" id="c-terms" role="img" aria-label="Legal terms by area" data-i18n-aria="dash.terms.aria"></div>
     </section>
     <section class="chart-card">
-      <h3>Links in the knowledge graph</h3>
-      <p class="sub">Edges by extraction method or kind (log scale).</p>
-      <div class="chart" id="c-links" role="img" aria-label="Edges by method"></div>
+      <h3 data-i18n="dash.links.h">Links in the knowledge graph</h3>
+      <p class="sub" data-i18n="dash.links.sub">Edges by extraction method or kind (log scale).</p>
+      <div class="chart" id="c-links" role="img" aria-label="Edges by method" data-i18n-aria="dash.links.aria"></div>
     </section>
     <section class="chart-card wide">
-      <h3>Legal news by category</h3>
-      <p class="sub">681 news articles; publication month is known for 87 of them.</p>
-      <div class="chart short" id="c-news" role="img" aria-label="Legal news by category"></div>
+      <h3 data-i18n="dash.news.h">Legal news by category</h3>
+      <p class="sub" id="sub-news" data-vl-text>681 news articles; publication month is known for 87 of them.</p>
+      <div class="chart short" id="c-news" role="img" aria-label="Legal news by category" data-i18n-aria="dash.news.aria"></div>
     </section>
   </div>
   <section class="block" aria-labelledby="kpi-all">
-    <h2 id="kpi-all">The whole graph</h2>
+    <h2 id="kpi-all" data-i18n="dash.whole.h">The whole graph</h2>
     <div class="kpis" id="kpis-all"></div>
   </section>
 </main>
