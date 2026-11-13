@@ -4,7 +4,7 @@
 #   light, dark  tools/site_check.py through site_check_theme.py (colour scheme emulated): every page of
 #                scripts/site/site_check_pages.json x http/file x 1440x900/390x844
 #   core         interaction_tests.py --tests ontology,network,sparql,dashboard,simple,traces (http/file x both viewports)
-#   theme        interaction_tests.py --tests theme,paper,paper_style
+#   theme        interaction_tests.py --tests theme,paper,paper_style,lang
 #   gallery      interaction_tests.py --tests gallery --modes http (review screenshots of every page, both themes)
 #   contrast     contrast_check.py (WCAG AA; both themes x both viewports, http)
 #   report       make_report.py -> OUT/site_tests/site_test_report.md|json
@@ -52,7 +52,7 @@ argv_of() {                                            # sets A = the command li
     core) A=("$PY" scripts/site/ci_pages.py --config "$CFG" -- scripts/site/interaction_tests.py --root site
              --out "$OUT/site_tests/core" --tests "${TESTS_CORE:-ontology,network,sparql,dashboard,simple,traces}") ;;
     theme) A=("$PY" scripts/site/ci_pages.py --config "$CFG" -- scripts/site/interaction_tests.py --root site
-              --out "$OUT/site_tests/theme" --tests "${TESTS_THEME:-theme,paper,paper_style}") ;;
+              --out "$OUT/site_tests/theme" --tests "${TESTS_THEME:-theme,paper,paper_style,lang}") ;;
     gallery) A=("$PY" scripts/site/ci_pages.py --config "$CFG" -- scripts/site/interaction_tests.py --root site
                 --out "$OUT/site_tests/gallery" --tests gallery --modes http) ;;
     contrast) A=("$PY" scripts/site/ci_pages.py --config "$CFG" -- scripts/site/contrast_check.py --root site

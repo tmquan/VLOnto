@@ -1975,13 +1975,194 @@ def t_gallery(c: Ctx):
     return [{"test": "gallery", "checks": [{"name": "review screenshots of every page", "pass": not bad, "details": shots}], "log": {}}]
 
 
+LANG_NAV = {"en": "Traces", "vi": "Truy v\u1ebft", "envi": "Traces"}      # the traces link in each mode
+LANG_HTML = {"en": "en", "vi": "vi", "envi": "en"}                          # html[lang]: English carries the envi page
+JS_LANG = r"""() => {
+  const M = window.__VLONTO_METRICS || {}, de = document.documentElement, se = document.scrollingElement || de;
+  const links = Array.from(document.querySelectorAll('#vl-nav a[href^="traces.html"]'));
+  const attrs = Array.from(document.querySelectorAll('[title],[aria-label]'))
+      .map(e => (e.getAttribute('title') || '') + ' ' + (e.getAttribute('aria-label') || '')).join(' | ');
+  const w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, { acceptNode: n =>
+      /^(SCRIPT|STYLE|NOSCRIPT|TEMPLATE)$/.test(n.parentNode.nodeName) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+  let body = ''; while (w.nextNode()) body += w.currentNode.nodeValue + ' ';
+  const txt = (body + ' | ' + attrs + ' | ' + document.title).normalize('NFC');
+  const mixed = /Truy v\u1EBFt\s*[\u00B7\u2022\u2013\u2014-]\s*Traces|Traces\s*[\u00B7\u2022\u2013\u2014-]\s*Truy v\u1EBFt/i.test(txt);
+  const clipped = Array.from(document.querySelectorAll('.vl-header a, .vl-header button, .vl-header [role=radio]'))
+      .filter(e => e.offsetParent !== null && e.clientWidth > 0 && e.scrollWidth > e.clientWidth + 1)
+      .map(e => e.textContent.replace(/\s+/g, ' ').trim().slice(0, 40) + ' ' + e.scrollWidth + '>' + e.clientWidth);
+  const hdr = document.querySelector('.vl-header');
+  let stored = null; try { stored = window.localStorage.getItem('vlonto.lang'); } catch (e) { stored = 'blocked'; }
+  return { lang: M.lang || null, data: de.getAttribute('data-lang'), html: de.getAttribute('lang'), changes: M.langChanges || 0,
+           labels: M.labelsLang === undefined ? null : M.labelsLang,
+           nav: links.map(a => a.textContent.replace(/\s+/g, ' ').trim()), tip: links.map(a => a.getAttribute('title') || ''),
+           mixed, clipped, scroll: se.scrollWidth, inner: window.innerWidth,
+           header: hdr ? Math.max(0, hdr.scrollWidth - hdr.clientWidth) : null, stored, url: location.href,
+           checked: Array.from(document.querySelectorAll('.vl-lang-bar [role=radio][aria-checked="true"]')).map(b => b.getAttribute('data-vl-lang')) };
+}"""
+
+
+def click_lang(c, pg, want):
+    """Pick a language mode with the visible switch, like a visitor: the header copy on wide screens,
+    the copy in the menu sheet on phones (the menu is closed again afterwards)."""
+    bar = pg.locator(f'.vl-lang-bar [role=radio][data-vl-lang="{want}"]')
+    if bar.count() and bar.first.is_visible():
+        bar.first.click()
+    else:
+        pg.locator(".vl-menu-btn").click()
+        pg.wait_for_timeout(250)
+        pg.locator(f'.vl-lang-sheet [role=radio][data-vl-lang="{want}"]').first.click()
+    pg.wait_for_function("(m) => document.documentElement.getAttribute('data-lang') === m", arg=want, timeout=T_(15000))
+    mb = pg.locator(".vl-menu-btn")
+    if mb.count() and mb.first.is_visible() and mb.first.get_attribute("aria-expanded") == "true":
+        mb.first.click()
+        pg.wait_for_timeout(250)
+
+
+def wait_labels(pg, want):
+    """3D views report the mode their canvas labels were last drawn in (M.labelsLang); other pages have none."""
+    pg.wait_for_function("(m) => { const L = (window.__VLONTO_METRICS || {}).labelsLang; return L === undefined || L === null || L === m; }",
+                         arg=want, timeout=T_(120000))
+
+
+def t_lang(c: Ctx):
+    """Language switch (EN, VI, EN-VI): the default is EN-VI; the header switch (menu sheet on phones) changes the
+    whole page without a reload, navigation and buttons stay single-language in every mode (the traces link reads
+    'Traces' in EN and EN-VI, with a 'Truy vet' tooltip in EN-VI, and 'Truy vet' in VI; the old mixed label is gone),
+    3D canvas labels are redrawn in the new mode, nothing overflows the viewport or clips in the header, the choice
+    persists across pages and reloads (localStorage, or ?lang= carried on internal links when storage is blocked),
+    and ?lang= forces a mode."""
+    res = {"test": "lang", "checks": []}
+    logs = {"console_errors": [], "page_errors": [], "failed_requests": [], "external_requests": []}
+
+    def merge(log):
+        for k in logs:
+            logs[k] += log.get(k, [])
+
+    def check(name, fn):
+        t0 = time.time()
+        try:
+            res["checks"].append({"name": name, "pass": True, "details": fn(), "s": round(time.time() - t0, 2)})
+        except Exception as e:  # noqa
+            res["checks"].append({"name": name, "pass": False, "details": {"error": str(e)[:1200]}, "s": round(time.time() - t0, 2)})
+
+    def verify(page, s, want, when):
+        p = []
+        if s["lang"] != want or s["data"] != want:
+            p.append(f"{when}: mode {s['lang']}/{s['data']}, expected {want}")
+        if s["html"] != LANG_HTML[want]:
+            p.append(f"{when}: html lang {s['html']!r}, expected {LANG_HTML[want]!r}")
+        if not s["nav"] or any(t != LANG_NAV[want] for t in s["nav"]):
+            p.append(f"{when}: traces link reads {s['nav']}, expected {LANG_NAV[want]!r}")
+        if want == "envi" and not any("Truy v\u1ebft" in t for t in s["tip"]):
+            p.append(f"{when}: traces link has no Vietnamese tooltip ({s['tip']})")
+        if s["mixed"]:
+            p.append(f"{when}: the mixed label 'Truy vet - Traces' is still on the page")
+        if s["scroll"] > c.vp[0] + 1:      # measured against the device width: mobile Chrome zooms an over-wide page out
+            p.append(f"{when}: page is {s['scroll']} px wide at a {c.vp[0]} px viewport")
+        if s["header"]:
+            p.append(f"{when}: header content overflows by {s['header']} px")
+        if s["clipped"]:
+            p.append(f"{when}: clipped header controls {s['clipped'][:4]}")
+        if s["checked"] and s["checked"] != [want]:
+            p.append(f"{when}: the switch shows {s['checked']} as selected")
+        if page in SCENES and s["labels"] != want:
+            p.append(f"{when}: 3D labels drawn in {s['labels']}")
+        return p
+
+    def brief(s):
+        return {"lang": s["lang"], "nav": s["nav"], "tip": s["tip"], "labels": s["labels"], "width": s["scroll"]}
+
+    def page_modes(page):
+        def fn():
+            ctx, pg, log = c.open(page, ready_timeout=T_(240000))
+            try:
+                pg.wait_for_timeout(1500 if page in SCENES else 300)
+                wait_labels(pg, "envi")
+                s = pg.evaluate(JS_LANG)
+                seen, prob, shot = {"default": brief(s)}, verify(page, s, "envi", "default"), None
+                for want in ("vi", "en"):
+                    n0 = s["changes"]
+                    click_lang(c, pg, want)
+                    wait_labels(pg, want)
+                    pg.wait_for_timeout(600 if page in SCENES else 200)
+                    s = pg.evaluate(JS_LANG)
+                    seen[want] = brief(s)
+                    prob += verify(page, s, want, f"switch to {want}")
+                    if s["changes"] <= n0:
+                        prob.append(f"switch to {want}: langChanges stayed {s['changes']}")
+                    if s["stored"] != want:
+                        prob.append(f"switch to {want}: stored {s['stored']!r}")
+                    if want == "vi":
+                        shot = c.shot(pg, f"lang_vi_{page.rsplit('.', 1)[0]}")
+                pg.reload(wait_until="load")
+                pg.wait_for_function("window.__VLONTO_READY === true", timeout=T_(240000))
+                wait_labels(pg, "en")
+                s = pg.evaluate(JS_LANG)
+                seen["reload"] = brief(s)
+                prob += verify(page, s, "en", "after reload")
+                if prob:
+                    raise RuntimeError("; ".join(prob))
+                return {"modes": seen, "shot": shot}
+            finally:
+                merge(log)
+                ctx.close()
+        check(f"switch EN-VI -> VI -> EN on {page}, then reload", fn)
+
+    for page in SITE_PAGES:
+        page_modes(page)
+
+    def carry(init, label):
+        def fn():
+            ctx, pg, log = c.open("about.html", init_script=init)
+            try:
+                click_lang(c, pg, "vi")
+                nav_to(c, pg, "dashboard.html")
+                a = pg.evaluate(JS_LANG)
+                pg.reload(wait_until="load")
+                pg.wait_for_function("window.__VLONTO_READY === true", timeout=T_(120000))
+                b = pg.evaluate(JS_LANG)
+                click_lang(c, pg, "en")
+                nav_to(c, pg, "playbook.html")
+                d = pg.evaluate(JS_LANG)
+                got = (a["lang"], b["lang"], d["lang"])
+                prob = [] if got == ("vi", "vi", "en") else [f"modes after navigate/reload/switch+navigate: {got} ({a['url'][-40:]}, {d['url'][-40:]})"]
+                prob += verify("dashboard.html", a, "vi", "after navigate") + verify("playbook.html", d, "en", "after switch+navigate")
+                if prob:
+                    raise RuntimeError("; ".join(prob))
+                return {"after_nav": [a["lang"], a["stored"], a["url"][-40:]], "after_reload": b["lang"],
+                        "after_switch_nav": [d["lang"], d["stored"], d["url"][-40:]]}
+            finally:
+                merge(log)
+                ctx.close()
+        check(f"choice persists across pages and reload ({label})", fn)
+
+    carry(None, "localStorage")
+    carry(NO_STORAGE, "storage blocked: ?lang= carried on links")
+
+    def forced():
+        ctx, pg, log = c.open("about.html", query="?lang=vi")
+        try:
+            s = pg.evaluate(JS_LANG)
+            prob = verify("about.html", s, "vi", "?lang=vi")
+            if prob:
+                raise RuntimeError("; ".join(prob))
+            return brief(s)
+        finally:
+            merge(log)
+            ctx.close()
+    check("?lang=vi forces Vietnamese", forced)
+
+    res["log"] = logs
+    return res
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--root", type=Path, required=True)
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument("--modes", default="http,file")
     ap.add_argument("--viewports", default="1440x900,390x844")
-    ap.add_argument("--tests", default="ontology,network,sparql,dashboard,simple,traces,theme,paper,paper_style,gallery")
+    ap.add_argument("--tests", default="ontology,network,sparql,dashboard,simple,traces,theme,paper,paper_style,lang,gallery")
     ap.add_argument("--themes", default="light,dark", help="themes of the gallery and paper screenshots (emulated system setting)")
     ap.add_argument("--chrome", type=Path, default=HERE.parent.parent / "tools" / "chrome.sh")
     a = ap.parse_args(argv)
@@ -2008,6 +2189,8 @@ def main(argv=None):
                     runs.append(lambda: [t_paper(c)])
                 if "paper_style" in tests:
                     runs.append(lambda: [t_paper_style(c)])
+                if "lang" in tests:
+                    runs.append(lambda: [t_lang(c)])
                 if "ontology" in tests:
                     runs.append(lambda: [t_ontology(c)])
                 if "network" in tests:
