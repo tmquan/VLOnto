@@ -1390,35 +1390,30 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
 .tr-vi { fill: var(--paper-ink); } .tr-en { fill: var(--paper-ink-2); }
 .tr-fig text { font-family: var(--vlo-font-paper); font-weight: 400; font-style: normal; }
 .trv-card text { font-size: 13.5px; } .trv-wide text { font-size: 15px; } .trv-tall text { font-size: 12.5px; }
-/* --- the page: one 3D scene like network-3d.html (js/traces3d.js). The area tabs run in one row over the scene and scroll
-   inside their own box (min-width: 0 all the way up, so the page never grows wider than the screen); the open area's
-   questions at the left; the scene with legend and tools; the selected trace hop by hop (Fig. 5) in the panel at the
-   right. Phones: the question list and the panel are bottom sheets over the scene. */
+/* --- the page: one 3D scene like network-3d.html (js/traces3d.js). A title bar over the scene (min-width: 0 all the
+   way up, so the page never grows wider than the screen); at the left one list of all the questions under their area
+   headings, with its search; the scene with legend and tools; the chosen trace hop by hop (Fig. 5) in the panel at the
+   right. Phones: the question list (with its search) and the panel are bottom sheets over the scene. */
 .tr-app { flex-direction: column; }
 .tr-bar { flex: 0 0 auto; display: flex; align-items: center; gap: 12px; min-width: 0; max-width: 100%;
   padding: 5px 12px; background: var(--scene-side); border-bottom: 1px solid var(--scene-line); }
 .tr-title { flex: 0 0 auto; margin: 0; font: 400 17px/1.2 var(--vlo-font-paper); color: var(--scene-strong); white-space: nowrap; }
-.tr-tabs { flex: 1 1 auto; min-width: 0; display: flex; flex-wrap: nowrap; gap: 5px; overflow-x: auto;
-  padding: 7px; scroll-padding-inline: 7px;   /* room for the focus ring and its 6 px halo, which the scroller would clip */
-  scrollbar-width: thin; scrollbar-color: var(--scene-scroll) transparent; -webkit-overflow-scrolling: touch; }
-.tr-tabs [role="tab"] { flex: 0 0 auto; display: inline-flex; align-items: baseline; gap: 5px; white-space: nowrap; cursor: pointer;
-  font: 500 12.5px/1.25 var(--vlo-font-sans); color: var(--scene-fg-2); background: var(--scene-surface-2);
-  border: 1px solid var(--scene-ctl-line); border-radius: 7px; padding: 5px 9px; }
-.tr-tabs [role="tab"] .sep, .tr-tabs [role="tab"] .n { color: var(--scene-muted); }
-.tr-tabs [role="tab"] .n { font: 400 11px/1 var(--vlo-font-mono); }
-.tr-tabs [role="tab"]:hover { background: var(--scene-hover); color: var(--scene-strong); }
-.tr-tabs [role="tab"][aria-selected="true"] { background: var(--scene-primary); border-color: var(--scene-primary); color: #ffffff; }
-.tr-tabs [role="tab"][aria-selected="true"] .sep, .tr-tabs [role="tab"][aria-selected="true"] .n { color: #ffffff; }
-.tr-tabs [role="tab"]:focus-visible { position: relative; z-index: 1; }
 .tr-body { flex: 1 1 auto; display: flex; min-height: 0; min-width: 0; position: relative; }
 .tr-side { flex: 0 0 340px; width: 340px; padding: 0 0 12px; }
-.tr-side-head { padding: 12px 14px 8px; border-bottom: 1px solid var(--scene-line-2); }
-.tr-area-title { font: 400 19px/1.25 var(--vlo-font-paper); margin: 0; color: var(--scene-strong); }
-.tr-area-title .en { color: var(--scene-fg-2); }
-.tr-area-note { margin: 4px 0 0; font-size: 12.5px; color: var(--scene-muted); }
-#tr-panel:focus-visible { outline-offset: -3px; }
-.tr-list { list-style: none; margin: 0; padding: 6px 8px; }
-.tr-list li { margin: 0; }
+/* the one list (v1.1): all 540 questions under their 27 area headings; the head (title, search, live count) stays at the
+   top of the scrolling side */
+.tr-side-head { position: sticky; top: 0; z-index: 2; background: var(--scene-side); padding: 12px 14px 8px; border-bottom: 1px solid var(--scene-line-2); }
+.tr-side-title { font: 400 19px/1.25 var(--vlo-font-paper); margin: 0 0 8px; color: var(--scene-strong); }
+.tr-count { margin: 6px 0 0; font-size: 12.5px; color: var(--scene-muted); }
+.tr-list { margin: 0; padding: 2px 8px 6px; }
+.tr-group { margin: 0 0 4px; scroll-margin-top: 118px; }
+.tr-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin: 10px 6px 2px; padding: 0 0 3px;
+  border-bottom: 1px solid var(--scene-line-2); font: 600 13px/1.3 var(--vlo-font-sans); color: var(--scene-strong); }
+.tr-head .sep { color: var(--scene-muted); }
+.tr-head .n { flex: 0 0 auto; font: 400 11px/1.3 var(--vlo-font-mono); color: var(--scene-muted); }
+.tr-head:focus { outline: none; }
+.tr-sub { list-style: none; margin: 0; padding: 0; }
+.tr-sub li { margin: 0; }
 .tr-item { display: flex; gap: 9px; width: 100%; text-align: left; background: none; border: 1px solid transparent; border-radius: 8px;
   padding: 7px 8px; cursor: pointer; color: var(--scene-fg); font: inherit; }
 .tr-item:hover { background: var(--scene-hover); }
@@ -1431,7 +1426,7 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
 .tr-badge { align-self: flex-start; margin-top: 3px; font: 500 11px/1.2 var(--vlo-font-sans); border-radius: 999px; padding: 2px 7px;
   border: 1px solid var(--scene-badge-line); background: var(--scene-badge-bg); color: var(--scene-fg-2); white-space: nowrap; }
 .tr-badge.ok { border-color: var(--scene-ok-line); background: var(--scene-ok-bg); color: var(--scene-ok-fg); }
-.tr-status { list-style: none; font-size: 13.5px; color: var(--scene-fg-2); padding: 12px 6px; }
+.tr-status { list-style: none; font-size: 13.5px; color: var(--scene-fg-2); padding: 12px 6px; margin: 0; }
 .tr-about { padding: 8px 14px 10px; }
 .tr-notes { font-size: 12.5px; line-height: 1.45; color: var(--scene-fg-2); }
 .tr-notes summary { cursor: pointer; font-weight: 600; color: var(--scene-strong); padding: 4px 0; }
@@ -1489,10 +1484,7 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
 .tr-nodata { position: absolute; left: 20px; right: 20px; top: 20px; z-index: 30; }
 .stage-tools .btn svg { display: block; }
 @media (max-width: 760px) {
-  .tr-bar { padding: 3px 6px; gap: 6px; }
-  .tr-title { display: none; }
-  .tr-tabs { padding: 7px; }
-  .tr-tabs [role="tab"] { padding: 7px 9px; font-size: 12px; }
+  .tr-bar { display: none; }        /* phones: the title is hidden and there are no tabs, so no empty bar */
   .tr-toolbar .tr-toolbar-area { flex: 1 1 auto; min-width: 0; font-size: 13px; line-height: 1.2; color: var(--scene-fg-2); overflow-wrap: anywhere; }
   .tr-side { top: auto; bottom: 0; height: 62%; border-top: 1px solid var(--scene-line); border-radius: 14px 14px 0 0; padding: 0 0 10px; }
   .tr-side .tr-about { display: none; }
@@ -1533,8 +1525,14 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
 :root[data-theme="dark"] .page-onto3d .legend .lg-shape svg circle, :root[data-theme="dark"] .page-onto3d .legend .lg-shape svg path { stroke: rgba(255, 255, 255, .3); }
 .page-onto3d #link-toggles .check .swatch-curve { margin-right: 2px; }
 /* traces.html is one static map (v1.1): the canvas keeps its size when the hop panel opens (on phones the bottom sheet),
-   so a pick never changes the projection. The panel lies over the canvas like the legend does; js/traces3d.js frames
-   the whole map clear of it (mapRect). */
+   so a pick never changes the projection. The panel lies over the canvas like the legend does: on wide screens the
+   whole map is framed on the full canvas and the open panel may cover its right part, on phones the map is framed
+   above the sheet (js/traces3d.js mapRect). */
 .page-traces .scene-stage.panel-open .scene-canvas { right: 0; bottom: 0; }
+/* phones: with the hop sheet open the stage tools sit in a row at the top right, above the map (the hint is hidden
+   then); the scenes' 58 % + 8 px would put the column over the map's right end, where the call-outs are placed */
+@media (max-width: 760px) {
+  .page-traces .scene-stage.panel-open .stage-tools { top: 8px; bottom: auto; flex-direction: row; }
+}
 
 /* ================================================================== end of 3D TRACK */

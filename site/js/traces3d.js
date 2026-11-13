@@ -1,27 +1,34 @@
 /* VLOnto - question traces in 3D (traces.html): ONE interactive WebGL scene with all traced answers of the 27 legal
    areas (data/traces/graph.js, built by scripts/site/trace_global.py): laws, chapters, sections, articles, clauses and
    points, questions, answers, terms and areas, every node once, the areas as regions of the floor in the order of the
-   tabs, each laid out like the paper's Fig. 1 (arXiv:2611.11426).
+   list, each laid out like the paper's Fig. 1 (arXiv:2611.11426). All questions and all areas are one place: no area
+   is ever 'opened' and nothing is dimmed by area.
    - the map is static: every node and link keeps its place and the camera only moves when the reader moves it (or asks
-     for 'Zoom to selection'); tabs and questions change the drawing only;
-   - an area tab lists its 20 traced questions and dims the other areas (titles and hop data from
-     data/traces/<area>.js, loaded when the area is first opened; no fetch, file:// works);
-   - picking a question lights its trace inside the whole graph (navy core over the gold halo, js/paper3d.js
-     VL.TraceLines; the V/W arms with the term -> defining clause hop), drawn bold, and fades the rest of the map,
-     places bilingual call-outs with VL.Callouts (question, provision, law, term, area; never over ink or each other)
-     and shows the Fig. 5 hop panel;
-   - rotate, zoom and pan (OrbitControls), hover and click any node for its details, deep links #area=<id>&q=<rank>,
-     keyboard (tabs, list, arrows and +/- on the canvas, Esc), reset view (the whole map), zoom to selection, flat legend;
-   - phones: the question list and the hop panel are bottom sheets; the whole map is drawn as on wide screens;
-   - without WebGL the page keeps the tabs, the list and the hop panel and draws the selected trace in 2D
+     for 'Zoom to selection' / 'Reset view'); choosing, searching and the list change the drawing only;
+   - one side list of all 540 traced questions under their 27 area headings (data/traces/questions.js) with a search
+     that filters on the question's words, its English gloss, the law's name and number and the area's name
+     (diacritic-insensitive), an 'n of 540' live line and arrow keys; a click on a question node in the scene chooses it
+     too (hover: its question in a tooltip);
+   - choosing a question draws its trace solid and bold on top (navy core over the gold halo, js/paper3d.js
+     VL.TraceLines; the V/W arms with the term -> defining clause hop) and fades the rest of the map as a focus volume:
+     every other node and link takes an opacity from its 3D distance to the trace (a Gaussian transfer function in the
+     shaders, the distances computed once per choice), context nodes become soft splats and the far map a haze toward
+     the page ground; it places bilingual call-outs with VL.Callouts (question, provision, law, term, area; never over
+     ink or each other) and shows the Fig. 5 hop panel (titles and hop data from data/traces/<area>.js, loaded when a
+     question of the area is first chosen; no fetch, file:// works);
+   - rotate, zoom and pan (OrbitControls), hover and click any node for its details, deep links #q=<area>:<rank> (and
+     v1's #area=<id>&q=<rank>; #area=<id> alone scrolls the list to the area), keyboard (search, list, arrows and +/-
+     on the canvas, Esc), reset view (the whole map), zoom to selection, flat legend;
+   - phones: the question list (with its search) and the hop panel are bottom sheets; the whole map is drawn;
+   - without WebGL the page keeps the list, its search and the hop panel and draws the chosen trace in 2D
      (js/trace-draw.js, the build-time drawing in the area file).
    Points and lines follow js/network3d.js (custom point shader with soft pastel spheres, LineSegments, depth fade,
    render on demand); paper3d.js, labels3d.js and common.js are used as they are.
    window.__VLONTO_METRICS.traces and .callouts, and window.VLApp.traces, serve the interaction tests.
    Text follows the language mode of js/i18n.js (docs/i18n.md; dictionary js/i18n-3d.js, keys tr3d.*): EN shows the
-   questions' English glosses, VI the Vietnamese titles, EN–VI both (as in v1); tabs, list, hop panel, node panel,
+   questions' English glosses, VI the Vietnamese titles, EN–VI both (as in v1); headings, list, hop panel, node panel,
    legend, call-outs and status lines likewise. A mode change ('vl:lang') renders them again in place and keeps the
-   area, the selected trace, the camera, the open panel and the list's scroll and focus. */
+   chosen trace, the search, the camera, the open panel and the list's scroll and focus. */
 (function () {
   'use strict';
   var VL = window.VL, M = window.__VLONTO_METRICS, TD = VL.TraceDraw;
@@ -29,14 +36,14 @@
   M.page = 'traces';
   M.paperStyle = true;
   var IDX = window.VLONTO.traces_index;
-  var T = M.traces = { available: false, tabs: 0, area: null, loaded: [], selected: null, traceSegments: 0, hops: 0, listItems: 0,
+  var T = M.traces = { available: false, areas: 0, groups: 0, shown: 0, query: '', loaded: [], selected: null, traceSegments: 0, hops: 0, listItems: 0,
     renders: 0, frames: 0, errors: [], webgl: null, fallback: false, flights: 0, themeRenders: 0 };
   var esc = VL.esc, fmt = VL.fmt;
   /* a count that picks the English singular (en_one) */
   function nv(c) { return c === 1 ? 1 : fmt(c); }
   function tipAttr(k, vars) { var t = VL.tip(k, vars); return t ? ' title="' + esc(t) + '"' : ''; }
   var app = VL.$('#app'), stage = VL.$('#stage'), host = VL.$('#canvas-host'), panel = VL.$('#panel'), tip = VL.$('#tip');
-  var legendEl = VL.$('#legend'), statusEl = VL.$('#status'), tabsEl = VL.$('#tr-tabs'), listEl = VL.$('#tr-list');
+  var legendEl = VL.$('#legend'), statusEl = VL.$('#status'), listEl = VL.$('#tr-list'), searchEl = VL.$('#tr-search'), countEl = VL.$('#tr-count');
   var fbEl = VL.$('#tr-fallback'), veil = VL.$('#veil');
   var EXT = VL.ICON.external;
   /* a match score with two decimals, in the mode's number format (0.92; 0,92 in VI) */
@@ -56,7 +63,6 @@
 
   if (!IDX || !IDX.available || !IDX.areas || !IDX.areas.length) {
     VL.$('#tr-nodata').hidden = false;
-    tabsEl.hidden = true;
     VL.$('#side').hidden = true;
     legendEl.hidden = true;
     hideVeil();
@@ -67,7 +73,7 @@
   T.available = true;
   var AREAS = IDX.areas, BY = {}, AIX = {};
   AREAS.forEach(function (a, i) { BY[a.id] = a; AIX[a.id] = i; });
-  T.tabs = AREAS.length;
+  T.areas = AREAS.length;
 
   function renderRevs() {
     var r = IDX.source_revisions || {};
@@ -86,33 +92,50 @@
   }
   readTheme();
 
-  /* ------------------------------------------------------------------ tabs */
-  /* a tab: EN–VI the area's Vietnamese and English names (v1), EN or VI one name; the number of Q&As in the mode's format */
+  /* ------------------------------------------------------------------ the questions (one list, area by area) */
+  /* an area's name: EN–VI its Vietnamese and English names (v1), EN or VI one name */
   function areaPair(a) { return VL.pair(a.label_vi, a.label_en); }
-  function tabInner(a) {
-    var name = VL.lang() === 'envi' ? '<span lang="vi">' + esc(a.label_vi) + '</span><span class="sep" aria-hidden="true">·</span><span>' + esc(a.label_en) + '</span>'
-      : '<span>' + VL.UH(areaPair(a)) + '</span>';
-    return name + '<span class="n">' + fmt(a.n_qas) + '</span>';
+  /* every traced question (data/traces/questions.js, scripts/site/trace_site.py): {a: area index, id: area id, rank,
+     vi: title, en: English gloss, law: {vi, en, number}, verified, match, hay: its folded search text}; GROUPS[a] = the
+     area's questions by rank; QNODE[node] = the question of a question node */
+  var QS = [], QBY = {}, GROUPS = AREAS.map(function () { return []; }), QNODE = {};
+  function loadQuestions() {
+    if (window.VLONTO.traces_questions) return Promise.resolve(window.VLONTO.traces_questions);
+    return VL.loadScript('data/traces/' + ((IDX.questions && IDX.questions.file) || 'questions.js')).then(function () {
+      if (!window.VLONTO.traces_questions) throw new Error('data/traces/questions.js did not register traces_questions');
+      return window.VLONTO.traces_questions;
+    });
   }
-  function tabAria(a) { return VL.U('tr3d.tab.aria', { name: VL.T(areaPair(a)), n: fmt(a.n_qas) }); }
-  tabsEl.innerHTML = AREAS.map(function (a) {
-    return '<button type="button" role="tab" id="tr-tab-' + a.id + '" aria-controls="tr-panel" aria-selected="false" tabindex="-1" data-area="' + a.id + '"' +
-      ' aria-label="' + esc(tabAria(a)) + '">' + tabInner(a) + '</button>';
-  }).join('');
-  var TABS = VL.$$('[role="tab"]', tabsEl);
-  tabsEl.addEventListener('click', function (e) {
-    var b = e.target.closest('[role="tab"]');
-    if (b) openArea(b.getAttribute('data-area'), { user: true });
-  });
-  tabsEl.addEventListener('keydown', function (e) {
-    var i = TABS.indexOf(document.activeElement);
-    if (i < 0) return;
-    var j = { ArrowRight: i + 1, ArrowDown: i + 1, ArrowLeft: i - 1, ArrowUp: i - 1, Home: 0, End: TABS.length - 1 }[e.key];
-    if (j == null) return;
-    e.preventDefault();
-    j = (j + TABS.length) % TABS.length;
-    openArea(TABS[j].getAttribute('data-area'), { focusTab: true, user: true });
-  });
+  /* search text: lower case without diacritics (đ -> d), so "lao dong" finds "lao động" */
+  function fold(s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[đĐ]/g, 'd').toLowerCase(); }
+  /* the search: every word typed (folded, its edge punctuation dropped) starts a word of the entry - letters and digits
+     make a word, so 'qh14' and '2019' find 45/2019/QH14 and a word being typed matches as a prefix */
+  function words(raw) { return fold(raw).split(/\s+/).map(function (w) { return w.replace(/^[^a-z0-9]+|[^a-z0-9]+$/g, ''); }).filter(Boolean); }
+  function hasWord(hay, w) {
+    for (var i = hay.indexOf(w); i >= 0; i = hay.indexOf(w, i + 1)) if (i === 0 || !/[a-z0-9]/.test(hay.charAt(i - 1))) return true;
+    return false;
+  }
+  function prepareQuestions(d) {
+    var fi = {};
+    d.fields.forEach(function (f, k) { fi[f] = k; });
+    d.areas.forEach(function (ar) {
+      var a = BY[ar.id];
+      if (!a) return;
+      ar.q.forEach(function (r) {
+        var q = { a: AIX[a.id], id: a.id, rank: r[fi.rank], vi: r[fi.vi], en: r[fi.en], verified: !!r[fi.verified], match: r[fi.match],
+          law: { vi: r[fi.law_vi], en: r[fi.law_en], number: r[fi.law_number] } };
+        q.hay = fold([q.vi, q.en, q.law.vi, q.law.en, q.law.number, a.label_vi, a.label_en].join('\n'));
+        QS.push(q);
+        QBY[a.id + ':' + q.rank] = q;
+        GROUPS[q.a].push(q);
+      });
+    });
+    GROUPS.forEach(function (gq) { gq.sort(function (x, y) { return x.rank - y.rank; }); });
+    T.listItems = QS.length;
+  }
+  function linkQuestionNodes() {
+    G.t.forEach(function (t) { var q = QBY[AREAS[t.a].id + ':' + t.r]; if (q) { QNODE[t.co[0]] = q; q.t = t; } });
+  }
 
   /* ------------------------------------------------------------------ data */
   var G = null, N = 0, POS = null, CLS = null, HOME = null, CNAME = [], TRK = {}, BYNODE = null, AD = {};
@@ -142,7 +165,9 @@
   function num(i) { return String(G.i[i]).split(':').pop(); }
   /* [Vietnamese, English] name of a node: questions, answers and other answers by id (their titles are not in the graph) */
   function names(i) {
-    var c = cname(i), k = { question: 'tr3d.name.question', answer: 'tr3d.name.answer', other_question: 'tr3d.name.otherQuestion' }[c];
+    var c = cname(i), q = c === 'question' ? QNODE[i] : null;
+    if (q) return [q.vi, q.en || q.vi];      // a traced question: its title and English gloss (data/traces/questions.js)
+    var k = { question: 'tr3d.name.question', answer: 'tr3d.name.answer', other_question: 'tr3d.name.otherQuestion' }[c];
     if (k) { var p = VL.kpair(k, { n: num(i) }); return [p.vi, p.en]; }
     return [G.vi[i] || G.i[i], G.en[i] || G.vi[i] || G.i[i]];
   }
@@ -175,26 +200,42 @@
   /* ------------------------------------------------------------------ three setup (as js/network3d.js) */
   function rgb(hex) { return VL.rawColor(hex, new THREE.Color()).toArray(); }
   var FOG = { value: new THREE.Vector3(1, 1e6, 0) };
+  /* the focus volume's transfer function (see applyFocus): alpha = rest + (1 - rest) * exp(-(d / sigma)^2) of the 3D
+     distance d (aDist) to the chosen trace, faded in by uFocus (0: nothing chosen, every node solid) */
+  var FOCUS_GLSL = 'float focusAlpha(float d) { float x = d / uSigma; return mix(1.0, uRest + (1.0 - uRest) * exp(-x * x), uFocus); }';
+  /* two passes draw the same nodes: the solid one (uHaze 0: shaded spheres with depth writes) takes the nodes of the
+     chosen trace (d = 0), or all of them when nothing is chosen; the haze one (uHaze 1) the others as soft splats */
   var PT_VS = [
-    'attribute vec3 aColor; attribute float aAlpha; attribute float aSize;',
-    'uniform float uScale; varying vec3 vColor; varying float vAlpha; varying float vDepth;',
+    'attribute vec3 aColor; attribute float aAlpha; attribute float aSize; attribute float aDist;',
+    'uniform float uScale; uniform float uFocus; uniform float uSigma; uniform float uRest; uniform float uHaze; uniform float uSplat;',
+    'varying vec3 vColor; varying float vAlpha; varying float vDepth;',
+    FOCUS_GLSL,
     'void main() {',
-    '  vColor = aColor; vAlpha = aAlpha;',
+    '  vColor = aColor;',
+    '  bool solid = uFocus < 0.5 || aDist <= 0.0;',
+    '  vAlpha = (uHaze > 0.5) == solid ? 0.0 : aAlpha * focusAlpha(aDist);',
     '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
     '  vDepth = -mv.z;',
-    '  float s = aSize * uScale / max(1.0, -mv.z);',
-    '  gl_PointSize = aAlpha < 0.01 ? 0.0 : clamp(s, 1.5, 64.0);',
+    '  float s = aSize * uScale / max(1.0, -mv.z) * (uHaze > 0.5 ? uSplat : 1.0);',
+    '  gl_PointSize = vAlpha < 0.01 ? 0.0 : clamp(s, 1.5, 64.0);',
     '  gl_Position = projectionMatrix * mv;',
     '}'].join('\n');
   var PT_FS = [
-    'uniform vec3 uBg; uniform vec3 uFog; uniform float uRim; varying vec3 vColor; varying float vAlpha; varying float vDepth;',
+    'uniform vec3 uBg; uniform vec3 uFog; uniform float uRim; uniform float uHaze; uniform float uTint;',
+    'varying vec3 vColor; varying float vAlpha; varying float vDepth;',
     'void main() {',
     '  vec2 c = gl_PointCoord - vec2(0.5); float r = length(c) * 2.0;',
     '  if (r > 1.0 || vAlpha < 0.01) discard;',
+    '  float f = clamp((vDepth - uFog.x) / max(1.0, uFog.y - uFog.x), 0.0, 1.0) * uFog.z;',
+    '  if (uHaze > 0.5) {',
+    // a soft round splat: Gaussian alpha falloff; the fainter it is, the nearer its colour to the page ground (haze, not glow)
+    '    vec3 hc = mix(vColor, uBg, uTint * (1.0 - vAlpha));',
+    '    gl_FragColor = vec4(hc, vAlpha * exp(-3.2 * r * r) * (1.0 - f));',
+    '    return;',
+    '  }',
     '  vec3 n = vec3(c.x * 2.0, -c.y * 2.0, sqrt(max(0.0, 1.0 - r * r)));',
     '  vec3 col = vColor * (0.86 + 0.2 * dot(n, vec3(-0.45, 0.55, 0.70)));',
     '  col = mix(col, vColor * uRim, smoothstep(0.76, 0.96, r));',
-    '  float f = clamp((vDepth - uFog.x) / max(1.0, uFog.y - uFog.x), 0.0, 1.0) * uFog.z;',
     '  gl_FragColor = vec4(mix(uBg, mix(col, uBg, f), vAlpha), 1.0);',
     '}'].join('\n');
   /* links as smooth curves, as the traces and the 3D legal network draw theirs (js/trace-draw.js TD.curve): a cubic Bezier
@@ -205,12 +246,16 @@
      the call-out ink). #curves=0 draws straight links (one segment) to compare frame rates. */
   var CURVES = VL.params().curves !== '0', CV = { bend: 0.18, gap: 16, liftMax: 6.4 };
   var LN_VS = [
-    'attribute float aT; attribute vec3 aA; attribute vec3 aB; attribute vec3 aColor; attribute float aAlpha;',
-    'uniform float uBend; uniform float uLiftMax; uniform float uLayer;',
+    'attribute float aT; attribute vec3 aA; attribute vec3 aB; attribute vec3 aColor; attribute float aAlpha; attribute float aDA; attribute float aDB;',
+    'uniform float uBend; uniform float uLiftMax; uniform float uLayer; uniform float uFocus; uniform float uSigma; uniform float uRest;',
+    'uniform vec3 uBg; uniform float uTint;',
     'varying vec3 vColor; varying float vAlpha; varying float vDepth;',
+    FOCUS_GLSL,
     'void main() {',
-    '  vColor = aColor; vAlpha = aAlpha;',
-    '  if (aAlpha < 0.01) { vDepth = 0.0; gl_Position = vec4(0.0, 0.0, 2.0, 1.0); return; }',
+    // the link's distance to the trace along its length; as it fades its colour tends to the page ground, as the splats'
+    '  float fa = focusAlpha(mix(aDA, aDB, aT));',
+    '  vColor = mix(aColor, uBg, uTint * (1.0 - fa)); vAlpha = aAlpha * fa;',
+    '  if (vAlpha < 0.01) { vDepth = 0.0; gl_Position = vec4(0.0, 0.0, 2.0, 1.0); return; }',
     '  vec3 d = aB - aA;',
     '  float k = 0.45 * d.y, lift = min(uBend * length(d.xz), uLiftMax) * clamp(1.0 - abs(d.y) / uLayer, 0.0, 1.0);',
     '  float t = aT, u = 1.0 - t, w0 = u * u * u, w1 = 3.0 * u * u * t, w2 = 3.0 * u * t * t, w3 = t * t * t;',
@@ -248,14 +293,14 @@
     '  gl_FragColor = vec4(vColor, vAlpha * uOpacity * (1.0 - f));',
     '}'].join('\n');
 
-  var renderer = null, scene, camera, controls, pointsObj = null, pointsMat = null, linesMat = null, lineGroups = [];
+  var renderer = null, scene, camera, controls, pointsObj = null, pointsMat = null, hazeObj = null, hazeMat = null, linesMat = null, lineGroups = [];
   var traceV = null, traceS = null, labelGroup = null, labels = [], callouts = null, needsRender = true, tween = null;
   var fgObj = null, fgMat = null;   // the selected trace's own nodes, drawn again over its strokes (as in the paper's figures)
   var EDGE = null;            // {s, t: Int32Array, k: Uint8Array (kind index), base: Float32Array, g, j: group and instance}
   var mobile = VL.isMobile();
-  /* dim: the reader chose an area (a tab, the keyboard, a deep link): the other areas fade back; a plain load and Reset
-     view show the whole map undimmed */
-  var state = { area: null, sel: null, legendOpen: !mobile, dim: false };
+  /* the reader's state: the chosen question (sel), the legend, the search text. No area is ever 'open': the 27 areas are
+     one map and one list */
+  var state = { sel: null, legendOpen: !mobile, query: '' };
 
   function webglOk() {
     try {
@@ -315,15 +360,17 @@
   }
   function updateFog() {
     if (!camera) return;
-    var d = camera.position.distanceTo(controls.target), R = Math.max(300, viewRadius);
-    FOG.value.set(Math.max(1, d - 0.4 * R), d + 2.2 * R, TH.dark ? 0.5 : 0.55);
+    var d = camera.position.distanceTo(controls.target), R = Math.max(300, viewRadius), k = FOCUS_U.uFocus.value;
+    var base = TH.dark ? FOCUS.fog.dark : FOCUS.fog.light, deep = TH.dark ? FOCUS.fogFocus.dark : FOCUS.fogFocus.light;
+    FOG.value.set(Math.max(1, d - 0.4 * R), d + 2.2 * R, base + (deep - base) * k);   // a deeper fog while a question is chosen
   }
   var viewRadius = 1000;
   function loop(t) {
     requestAnimationFrame(loop);
     if (tween) stepTween(t);
+    if (fade) stepFade();
     var moved = controls.update();
-    if (needsRender || moved || tween) {
+    if (needsRender || moved || tween || fade) {
       updateFog();
       renderer.render(scene, camera);
       T.frames++;
@@ -345,18 +392,31 @@
     var g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(POS, 3));
     g.setAttribute('aColor', new THREE.BufferAttribute(new Float32Array(N * 3), 3));
-    g.setAttribute('aAlpha', new THREE.BufferAttribute(new Float32Array(N), 1));
+    g.setAttribute('aAlpha', new THREE.BufferAttribute(new Float32Array(N).fill(1), 1));
+    g.setAttribute('aDist', new THREE.BufferAttribute(new Float32Array(N), 1));   // distance to the chosen trace (applyFocus)
     var size = new Float32Array(N);
     for (var i = 0; i < N; i++) size[i] = SIZE[cname(i)] || 6;
     g.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
     g.computeBoundingSphere();
-    pointsMat = new THREE.ShaderMaterial({
-      uniforms: { uScale: { value: 1 }, uBg: { value: VL.rawColor(TH.bg, new THREE.Color()) }, uFog: FOG, uRim: { value: TH.dark ? 0.7 : 0.84 } },
-      vertexShader: PT_VS, fragmentShader: PT_FS, transparent: false, depthWrite: true
-    });
+    CELL = (G.ext[1] - G.ext[0]) / (G.cols || 7);          // one area cell of the floor's grid, in world units
+    SIGMA = FOCUS.sigmaCells * CELL;
+    FOCUS_U.uSigma.value = SIGMA;
+    FOCUS_U.uRest.value = FOCUS.rest;
+    var U = { uScale: { value: 1 }, uBg: { value: VL.rawColor(TH.bg, new THREE.Color()) }, uFog: FOG, uRim: { value: TH.dark ? 0.7 : 0.84 },
+      uFocus: FOCUS_U.uFocus, uSigma: FOCUS_U.uSigma, uRest: FOCUS_U.uRest, uHaze: { value: 0 }, uSplat: { value: FOCUS.splat }, uTint: { value: TH.dark ? FOCUS.tint.dark : FOCUS.tint.light } };
+    pointsMat = new THREE.ShaderMaterial({ uniforms: U, vertexShader: PT_VS, fragmentShader: PT_FS, transparent: false, depthWrite: true });
     pointsObj = new THREE.Points(g, pointsMat);
     pointsObj.renderOrder = 2;
     scene.add(pointsObj);
+    /* the haze: the same nodes, soft splats blended over the solid map and the links, no depth writes */
+    var UH = {};
+    Object.keys(U).forEach(function (k) { UH[k] = U[k]; });
+    UH.uHaze = { value: 1 };
+    hazeMat = new THREE.ShaderMaterial({ uniforms: UH, vertexShader: PT_VS, fragmentShader: PT_FS, transparent: true, depthWrite: false,
+      depthTest: true, blending: THREE.NormalBlending });
+    hazeObj = new THREE.Points(g, hazeMat);
+    hazeObj.renderOrder = 3;
+    scene.add(hazeObj);
     updatePointScale();
     /* all links as curves (see LN_VS): two instanced draws, links that visibly bend with SEG segments, near-straight ones
        (vertical chains, long runs between regions) with 2 */
@@ -377,7 +437,8 @@
     });
     EDGE.kinds = kinds;
     linesMat = new THREE.ShaderMaterial({
-      uniforms: { uOpacity: { value: 0.5 }, uFog: FOG, uBend: { value: CV.bend }, uLiftMax: { value: CV.liftMax }, uLayer: { value: CV.gap } },
+      uniforms: { uOpacity: { value: 0.5 }, uFog: FOG, uBend: { value: CV.bend }, uLiftMax: { value: CV.liftMax }, uLayer: { value: CV.gap },
+        uFocus: FOCUS_U.uFocus, uSigma: FOCUS_U.uSigma, uRest: FOCUS_U.uRest, uBg: U.uBg, uTint: U.uTint },
       vertexShader: LN_VS, fragmentShader: LN_FS, transparent: true, depthWrite: false, blending: THREE.NormalBlending
     });
     lineGroups = [SEG, CURVES ? 2 : 1].map(function (S, g) {
@@ -397,17 +458,23 @@
       geo.setAttribute('aB', new THREE.InstancedBufferAttribute(B, 3));
       geo.setAttribute('aColor', new THREE.InstancedBufferAttribute(new Float32Array(3 * n), 3));
       geo.setAttribute('aAlpha', new THREE.InstancedBufferAttribute(new Float32Array(n), 1));
+      geo.setAttribute('aDA', new THREE.InstancedBufferAttribute(new Float32Array(n), 1));
+      geo.setAttribute('aDB', new THREE.InstancedBufferAttribute(new Float32Array(n), 1));
       geo.instanceCount = n;
       var obj = new THREE.LineSegments(geo, linesMat);
       obj.frustumCulled = false;
       obj.renderOrder = 1;
       scene.add(obj);
-      return { obj: obj, seg: S, n: n, color: geo.attributes.aColor, alpha: geo.attributes.aAlpha };
+      return { obj: obj, seg: S, n: n, color: geo.attributes.aColor, alpha: geo.attributes.aAlpha, da: geo.attributes.aDA, db: geo.attributes.aDB };
     });
+    for (var e2 = 0; e2 < m; e2++) lineGroups[EDGE.g[e2]].alpha.array[EDGE.j[e2]] = EDGE.base[e2];   // fixed; the focus is in the shader
+    lineGroups.forEach(function (L) { L.alpha.needsUpdate = true; });
+    T.linksShown = m;
+    ALPHA = new Float32Array(N).fill(1);
     T.edgeCost = { curves: CURVES, links: m, vertices: lineGroups.reduce(function (s2, L) { return s2 + L.n * (L.seg + 1); }, 0),
       segments: lineGroups.reduce(function (s2, L) { return s2 + L.n * L.seg; }, 0), groups: lineGroups.map(function (L) { return [L.n, L.seg]; }) };
     applyColors();
-    applyAlpha();
+    applyFocus(0);
   }
   function applyColors() {
     var col = pointsObj.geometry.attributes.aColor.array, cache = {};
@@ -425,42 +492,83 @@
     linesMat.uniforms.uOpacity.value = TH.dark ? 0.42 : 0.55;
     VL.rawColor(TH.bg, pointsMat.uniforms.uBg.value);
     pointsMat.uniforms.uRim.value = TH.dark ? 0.7 : 0.84;
+    pointsMat.uniforms.uTint.value = TH.dark ? FOCUS.tint.dark : FOCUS.tint.light;   // the haze tends to this theme's ground
     needsRender = true;
   }
-  /* node alpha: the selected trace (foreground 1, its other nodes 0.55), the rest faded; on phones only the open area's
-     region is drawn (and the selected trace wherever it reaches) */
-  var ALPHA = null;
-  /* focus (v1.1, the static map): a picked question's trace is drawn bold and the rest of the map fades back but stays
-     visible as context (the whole map is in view); an area chosen by its tab keeps its region and dims the other areas.
-     rest / traceOther / areaRest = node alphas, linkRest = factor on faded links */
-  var FOCUS = { rest: 0.18, traceOther: 0.5, areaRest: 0.25, linkRest: 0.8, bold: mobile ? 1.3 : 1.5, fgSize: 1.35 };
+  /* the focus volume (v1.1): a chosen question's trace is drawn solid and bold on top; every other node and link takes an
+     opacity from its 3D distance d to the trace (the nearest trace node or link chord):
+       alpha = rest + (1 - rest) * exp(-(d / sigma)^2),   sigma = sigmaCells x one area cell of the floor
+     The distances are computed here once per choice (per node, and per link end - the line shader interpolates along
+     the link); the shaders apply the transfer function and uFocus fades it in and out (uniforms only, no per-frame
+     loop over the nodes). Context nodes are soft splats without depth writes, so the far map becomes a haze that fades
+     toward the page ground, and the depth fog deepens while a question is chosen. Nothing chosen: the whole map, solid. */
+  /* tuned on model renders of Labour and wages #3 (light and dark): sigma 0.7 of an area cell keeps the chosen area
+     legible, the next areas at about 0.2 and the far map at the 0.07 floor; the haze (splats and links) tends to the
+     page ground by tint x (1 - alpha), more in dark, where pale pastels would otherwise add up to a light mist */
+  var FOCUS = { sigmaCells: 0.7, rest: 0.07, tint: { light: 0.5, dark: 0.8 }, splat: 1.3, fog: { light: 0.55, dark: 0.5 }, fogFocus: { light: 0.7, dark: 0.66 },
+    fadeMs: 320, bold: mobile ? 1.3 : 1.5, fgSize: 1.35 };
   T.focus = FOCUS;
-  function applyAlpha() {
+  var FOCUS_U = { uFocus: { value: 0 }, uSigma: { value: 1 }, uRest: { value: FOCUS.rest } };
+  var CELL = 1, SIGMA = 1, ALPHA = null, DIST = null, fade = null;
+  function transfer(d) { var x = d / SIGMA; return FOCUS.rest + (1 - FOCUS.rest) * Math.exp(-x * x); }
+  /* d of every node to the trace t: the nearest of its link chords (t.e) - its own nodes (t.f) 0, every other node more */
+  function traceDistances(t, out) {
+    var e = t.e, ns = e.length / 3, Sg = new Float64Array(6 * ns), fg = new Uint8Array(N), k, i;
+    for (k = 0; k < ns; k++) {
+      var a = e[3 * k], b = e[3 * k + 1];
+      for (var c = 0; c < 3; c++) { Sg[6 * k + c] = POS[3 * a + c]; Sg[6 * k + 3 + c] = POS[3 * b + c] - POS[3 * a + c]; }
+    }
+    t.f.forEach(function (j) { fg[j] = 1; });
+    for (i = 0; i < N; i++) {
+      if (fg[i]) { out[i] = 0; continue; }
+      var px = POS[3 * i], py = POS[3 * i + 1], pz = POS[3 * i + 2], best = Infinity;
+      for (k = 0; k < ns; k++) {
+        var o = 6 * k, wx = px - Sg[o], wy = py - Sg[o + 1], wz = pz - Sg[o + 2], dx = Sg[o + 3], dy = Sg[o + 4], dz = Sg[o + 5];
+        var L = dx * dx + dy * dy + dz * dz, u = L > 0 ? (wx * dx + wy * dy + wz * dz) / L : 0;
+        u = u < 0 ? 0 : (u > 1 ? 1 : u);
+        var qx = wx - u * dx, qy = wy - u * dy, qz = wz - u * dz, d2 = qx * qx + qy * qy + qz * qz;
+        if (d2 < best) best = d2;
+      }
+      out[i] = Math.max(1e-3, Math.sqrt(best));
+    }
+    return out;
+  }
+  function applyFocus(ms) {
     if (!pointsObj) return;
-    var a = pointsObj.geometry.attributes.aAlpha.array, sel = state.sel, ai = state.area != null ? AIX[state.area] : -1;
-    var fg = sel ? sel.fgSet : null, tn = sel ? sel.nSet : null;
-    for (var i = 0; i < N; i++) {
-      var v = 1;
-      if (sel) v = fg[i] ? 1 : (tn[i] ? FOCUS.traceOther : FOCUS.rest);
-      else if (ai >= 0 && state.dim && HOME[i] !== ai) v = FOCUS.areaRest;
-      a[i] = v;
-    }
-    ALPHA = a;
-    pointsObj.geometry.attributes.aAlpha.needsUpdate = true;
-    var shown = 0;
-    for (var e = 0; e < EDGE.s.length; e++) {
-      var s = EDGE.s[e], t = EDGE.t[e], v2 = Math.min(a[s], a[t]) * EDGE.base[e];
-      if (sel) v2 *= (fg[s] && fg[t]) ? 1 : FOCUS.linkRest;
-      lineGroups[EDGE.g[e]].alpha.array[EDGE.j[e]] = v2;
-      if (v2 > 0.01) shown++;
-    }
-    lineGroups.forEach(function (L) { L.alpha.needsUpdate = true; });
-    T.linksShown = shown;
+    var sel = state.sel, pa = pointsObj.geometry.attributes, dist = pa.aDist.array;
+    if (sel) {
+      var t0 = performance.now();
+      traceDistances(sel.t, dist);
+      pa.aDist.needsUpdate = true;
+      for (var e = 0; e < EDGE.s.length; e++) {
+        var L = lineGroups[EDGE.g[e]], j = EDGE.j[e];
+        L.da.array[j] = dist[EDGE.s[e]];
+        L.db.array[j] = dist[EDGE.t[e]];
+      }
+      lineGroups.forEach(function (L2) { L2.da.needsUpdate = true; L2.db.needsUpdate = true; });
+      for (var i = 0; i < N; i++) ALPHA[i] = transfer(dist[i]);
+      T.focusMs = Math.round(performance.now() - t0);
+    } else ALPHA.fill(1);      // the distances stay for the fade out
+    DIST = dist;
+    fadeTo(sel ? 1 : 0, ms);
+  }
+  /* uFocus towards v over ms (FOCUS.fadeMs), stepped by the render loop */
+  function fadeTo(v, ms) {
+    var u = FOCUS_U.uFocus;
+    ms = ms != null ? ms : FOCUS.fadeMs;
+    if (!ms || Math.abs(u.value - v) < 1e-3) { u.value = v; fade = null; T.focusValue = v; needsRender = true; return; }
+    fade = { from: u.value, to: v, t0: performance.now(), ms: ms };
     needsRender = true;
+  }
+  function stepFade() {
+    var k = Math.min(1, (performance.now() - fade.t0) / fade.ms), s = k * k * (3 - 2 * k);
+    FOCUS_U.uFocus.value = fade.from + (fade.to - fade.from) * s;
+    T.focusValue = Math.round(FOCUS_U.uFocus.value * 1000) / 1000;
+    if (k >= 1) fade = null;
   }
 
   /* ------------------------------------------------------------------ camera */
-  var DIR_AREA = new THREE.Vector3(0.25, 0.62, 1).normalize(), DIR_ALL = new THREE.Vector3(0, 0.78, 1).normalize();
+  var DIR_ALL = new THREE.Vector3(0, 0.78, 1).normalize();
   var DIR_TRACE = new THREE.Vector3(0.28, 0.42, 1).normalize();
   /* camera position and target that show a box (lo, hi) from direction dir with a margin (share of the frame) */
   /* the part of the canvas the overlays leave free (CSS px): left of the side panel (on phones above the bottom sheet),
@@ -481,11 +589,14 @@
     return r;
   }
   /* the part of the canvas the whole map is framed in. It is the same before and after a pick, so a pick never needs the
-     camera to move: on wide screens left of the hop panel (its 380 px whether it is open or not), below the hint and the
-     stage tools, above the legend; on phones above the hop sheet at its tallest (46 % of the stage) and below the hint */
-  var PANEL_W = 380, SHEET = 0.46;
-  /* wide screens: a gutter left of the map for the call-outs of its leftmost areas (nothing can be placed left of them) */
-  var GUTTER = 80;
+     camera to move: on wide screens the whole canvas below the hint and the stage tools and above the legend - the open
+     hop panel lies over the map's right part, and a call-out whose node is under it is occluded, not misplaced; on
+     phones above the hop sheet at its tallest (46 % of the stage) and below the hint (the map is as wide as the screen
+     there, so a taller rectangle would not make it bigger) */
+  var SHEET = 0.46;
+  /* wide screens: gutters left and right of the map for the call-outs of its outermost areas (nothing can be placed
+     beyond them) */
+  var GUTTER = { left: 80, right: 24 };
   function boxIn(el) {
     if (!el || el.classList.contains('hidden') || el.hidden) return null;
     var b = el.getBoundingClientRect(), hr = host.getBoundingClientRect();
@@ -497,8 +608,8 @@
       r.y1 = sz.h * (1 - SHEET) - 6;
     } else {
       var tools = boxIn(VL.$('.stage-tools', stage)), st = boxIn(statusEl);
-      r.x0 = GUTTER;
-      r.x1 = Math.max(sz.w * 0.5, sz.w - PANEL_W - 8);
+      r.x0 = GUTTER.left;
+      r.x1 = sz.w - GUTTER.right;
       if (tools) r.y0 = Math.max(r.y0, tools.y1 + 6);
       if (lg) r.y1 = Math.min(r.y1, lg.y0 - 6);
       else if (st) r.y1 = Math.min(r.y1, st.y0 - 6);
@@ -548,24 +659,48 @@
     });
     return { lo: lo, hi: hi };
   }
+  /* the box fit framed by the nodes themselves: the box's near corners project wider than any node, so the box alone
+     leaves the map smaller than the rectangle allows. Project every node with the camera, move it along its axis until
+     the nodes' extent fills the rectangle (less the margin) and sideways until their middle is the rectangle's middle;
+     a few rounds, as moving changes the perspective a little. The view keeps its direction */
+  function fitNodes(f, margin, rect) {
+    var sz = stageSize(), cam = new THREE.PerspectiveCamera(camera.fov, sz.w / sz.h, 1, 1e6), v = new THREE.Vector3();
+    var k = sz.h / (2 * Math.tan(camera.fov * Math.PI / 360));
+    var rw = (rect.x1 - rect.x0) * (1 - 2 * margin), rh = (rect.y1 - rect.y0) * (1 - 2 * margin);
+    var pos = f.pos.clone(), target = f.target.clone(), back = new THREE.Vector3(), right = new THREE.Vector3(), up = new THREE.Vector3();
+    for (var it = 0; it < 4; it++) {
+      cam.position.copy(pos); cam.up.copy(camera.up); cam.lookAt(target); cam.updateMatrixWorld();
+      var x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+      for (var i = 0; i < N; i++) {
+        v.set(POS[3 * i], POS[3 * i + 1], POS[3 * i + 2]).project(cam);
+        var sx = (v.x + 1) / 2 * sz.w, sy = (1 - v.y) / 2 * sz.h;
+        if (sx < x0) x0 = sx;
+        if (sx > x1) x1 = sx;
+        if (sy < y0) y0 = sy;
+        if (sy > y1) y1 = sy;
+      }
+      if (!(x1 > x0 && y1 > y0)) break;
+      var s = Math.min(rw / (x1 - x0), rh / (y1 - y0)), d = pos.distanceTo(target) / s;
+      back.subVectors(pos, target).normalize();
+      right.setFromMatrixColumn(cam.matrixWorld, 0);
+      up.setFromMatrixColumn(cam.matrixWorld, 1);
+      /* s times closer, the nodes' middle sits s times further from the canvas centre: shift it onto the rectangle's */
+      var dx = ((x0 + x1) / 2 - sz.w / 2) * s - ((rect.x0 + rect.x1) / 2 - sz.w / 2);
+      var dy = ((y0 + y1) / 2 - sz.h / 2) * s - ((rect.y0 + rect.y1) / 2 - sz.h / 2);
+      target.addScaledVector(right, dx * d / k).addScaledVector(up, -dy * d / k);
+      pos.copy(target).addScaledVector(back, d);
+    }
+    return { pos: pos, target: target };
+  }
   /* the whole map in mapRect(): on load and on Reset view only */
   function homeView() {
-    var e = G.ext;
-    return fitBox(new THREE.Vector3(e[0], 0, e[2]), new THREE.Vector3(e[1], e[4], e[3]), DIR_ALL, 0.03, mapRect());
+    var e = G.ext, rect = mapRect();
+    return fitNodes(fitBox(new THREE.Vector3(e[0], 0, e[2]), new THREE.Vector3(e[1], e[4], e[3]), DIR_ALL, 0.03, rect), 0.03, rect);
   }
   function fitAll(ms) {
     var f = homeView();
     moveCamera(f.pos, f.target, ms);
     if (ms) T.flights++;
-  }
-  function areaBox(ai) {
-    var a = G.areas[ai], r = a.r;
-    return { lo: new THREE.Vector3(a.c[0] - r, 0, a.c[1] - r), hi: new THREE.Vector3(a.c[0] + r, G.H * 1.25, a.c[1] + r) };
-  }
-  function flyToArea(ai, ms) {
-    var b = areaBox(ai), f = fitBox(b.lo, b.hi, DIR_AREA, mobile ? 0.02 : 0.05, freeRect());
-    moveCamera(f.pos, f.target, ms);
-    T.flights++;
   }
   /* the camera frames what the call-outs name: the call-out nodes and the trace's nodes in their regions; a traced
      stroke into another region (a shared law or a term defined elsewhere) leaves the frame towards it */
@@ -653,13 +788,13 @@
   }
   /* the question: EN–VI its Vietnamese title over the English gloss (as in v1), EN the gloss, VI the title */
   function questionLines(t) {
-    var d = AD[AREAS[t.a].id], tr = d && d[t.r];
-    if (!tr) return bi(t.co[0]);
-    return VL.paperLines(VL.short(tr.qa.vi, LBL.qvi), VL.short(tr.qa.en || '', LBL.qen), P, { twoLines: true });
+    var q = QBY[AREAS[t.a].id + ':' + t.r];
+    if (!q) return bi(t.co[0]);
+    return VL.paperLines(VL.short(q.vi, LBL.qvi), VL.short(q.en || '', LBL.qen), P, { twoLines: true });
   }
   function areaLines(i) { var p = VL.kpair('tr3d.area'); return bi(i, [p.vi, p.en]); }
-  /* the call-outs of the current view: the selected trace's question, provision, law, term and area (all must); with
-     an area open, its area and its most-cited laws; else the areas */
+  /* the call-outs of the current view: the chosen trace's question, provision, law (must; on phones the law when it
+     fits), term and area; with nothing chosen the 27 areas' names */
   function buildLabels() {
     if (!labelGroup) return;
     clearLabels();
@@ -667,28 +802,15 @@
     if (sel) {
       var t = sel.t, co = t.co;
       // the static map: the question, its provision and its law must be named next to the trace; the term and the area
-      // when there is room (the hop panel names them, the open tab names the area)
+      // when there is room (the hop panel names them, and the list's heading the area)
       makeLabel(questionLines(t), { id: G.i[co[0]], node: co[0], sel: true, must: true, pri: 1000, px: LBL.pxSel });
       makeLabel(bi(co[2]), { id: G.i[co[2]], node: co[2], must: MUST.provision, pri: 900 });
       if (co[3] !== co[2]) makeLabel(bi(co[3]), { id: G.i[co[3]], node: co[3], must: MUST.law, pri: 880 });
       if (co[4] >= 0) makeLabel(bi(co[4]), { id: G.i[co[4]], node: co[4], must: false, pri: localTerm(t) ? 860 : 820 });
       makeLabel(areaLines(co[5]), { id: G.i[co[5]], node: co[5], must: false, pri: 840 });
-    } else if (state.area != null && state.dim) {
-      var ai = AIX[state.area], an = -1, laws = [];
-      for (var i = 0; i < N; i++) {
-        if (HOME[i] !== ai) continue;
-        var c = cname(i);
-        if (c === 'area') an = i;
-        else if (c === 'work') laws.push(i);
-      }
-      if (an >= 0) makeLabel(areaLines(an), { id: G.i[an], node: an, must: true, pri: 800 });
-      var cnt = function (i) { return tracesOf(i).filter(function (k) { return G.t[k].a === ai; }).length; };
-      laws.sort(function (x, y) { return cnt(y) - cnt(x) || x - y; });
-      laws.slice(0, mobile ? 4 : 8).forEach(function (w, r) { makeLabel(bi(w), { id: G.i[w], node: w, pri: 500 - r, px: LBL.px - 1 }); });
     } else {
-      // the whole map: the areas' names where they fit (the listed area's first)
-      var cur = state.area != null ? AIX[state.area] : -1;
-      for (var j = 0; j < N; j++) if (cname(j) === 'area') makeLabel(areaLines(j), { id: G.i[j], node: j, pri: HOME[j] === cur ? 400 : 300, px: LBL.px - 1 });
+      // the whole map: the 27 areas' names where they fit
+      for (var j = 0; j < N; j++) if (cname(j) === 'area') makeLabel(areaLines(j), { id: G.i[j], node: j, pri: 300, px: LBL.px - 1 });
     }
     T.labels = labels.length;
     M.labelsLang = VL.lang();
@@ -697,8 +819,8 @@
   function calloutItems() {
     return labels.map(function (s) { return { id: s.__id, sprite: s, pri: s.__pri, must: s.__must, sel: s.__sel, r: s.__r }; });
   }
-  /* ink the call-outs keep clear of: the selected trace (its foreground nodes and traced segments); with an area open,
-     its laws and area; the faded rest is background, as in the paper */
+  /* ink the call-outs keep clear of: the chosen trace (its foreground nodes and traced segments), else the labelled
+     area nodes; the faded rest is background, as in the paper */
   function calloutInk() {
     var discs = [], paths = [], sel = state.sel;
     function disc(i) { discs.push({ id: G.i[i], x: POS[3 * i], y: POS[3 * i + 1], z: POS[3 * i + 2], r: (SIZE[cname(i)] || 6) / 2 }); }
@@ -719,6 +841,10 @@
       if (r.width < 2 || r.height < 2) return;
       out.push({ x0: r.left - hr.left - 4, x1: r.right - hr.left + 4, y0: r.top - hr.top - 4, y1: r.bottom - hr.top + 4 });
     });
+    if (mobile && app.classList.contains('side-open')) {     // phones: the list sheet lies over the stage
+      var sd = document.getElementById('side'), sr = sd ? sd.getBoundingClientRect() : { width: 0, height: 0 };
+      if (sr.width > 1 && sr.height > 1) out.push({ x0: sr.left - hr.left - 4, x1: sr.right - hr.left + 4, y0: sr.top - hr.top - 4, y1: sr.bottom - hr.top + 4 });
+    }
     return out;
   }
   function scheduleCallouts() {
@@ -738,15 +864,15 @@
     callouts.schedule();
   }
 
-  /* ------------------------------------------------------------------ the area list */
+  /* ------------------------------------------------------------------ the one list: 540 questions under 27 area headings */
   /* the law of a list entry in one language (EN and EN–VI English, as in v1; VI Vietnamese), with its number */
   function lawShort(law) {
     var name = VL.U(VL.pair(law.vi || '', law.en || ''));
     return name.indexOf(law.number) >= 0 || !law.number ? name : name + ' · ' + law.number;
   }
-  function verdictBadge(tr) {
-    return tr.verified ? '<span class="tr-badge ok">✓ ' + VL.TH('tr3d.badge.verified') + ' ' + f2(tr.match) + '</span>'
-      : '<span class="tr-badge st">' + VL.TH('tr3d.badge.structural') + ' ' + f2(tr.match) + '</span>';
+  function verdictBadge(q) {
+    return q.verified ? '<span class="tr-badge ok">✓ ' + VL.TH('tr3d.badge.verified') + ' ' + f2(q.match) + '</span>'
+      : '<span class="tr-badge st">' + VL.TH('tr3d.badge.structural') + ' ' + f2(q.match) + '</span>';
   }
   /* a question: EN–VI the Vietnamese title (q class) over its English gloss (g class), EN the gloss alone, VI the title
      alone; tag = span or p */
@@ -756,41 +882,123 @@
     if (mode === 'vi') return o + cq + '" lang="vi">' + esc(qa.vi) + c;
     return o + cq + '" lang="vi">' + esc(qa.vi) + c + (qa.en ? o + cg + '">' + esc(qa.en) + c : '');
   }
-  function renderList(a, data) {
-    var t0 = performance.now();
-    VL.$('#tr-area-title').innerHTML = VL.TH(areaPair(a));
-    var ver = data.traces.filter(function (t) { return t.verified; }).length;
-    VL.$('#tr-area-note').textContent = VL.U('tr3d.areaNote', { n: fmt(a.n_qas), k: fmt(data.traces.length), v: fmt(ver) });
-    VL.$('#tr-area-m').innerHTML = VL.UH(areaPair(a));
-    listEl.innerHTML = data.traces.map(function (tr) {
-      return '<li><button type="button" class="tr-item" data-rank="' + tr.rank + '" id="tr-item-' + tr.rank + '">' +
-        '<span class="tr-rank">' + tr.rank + '</span><span class="tr-item-body"><span class="tr-law">' + esc(lawShort(tr.law)) + '</span>' +
-        qHtml(tr.qa, 'span', 'tr-q', 'tr-g') + verdictBadge(tr) +
-        '</span></button></li>';
-    }).join('');
-    T.listItems = data.traces.length;
-    T.listMs = Math.round(performance.now() - t0);
-    markList();
+  /* an area heading: EN–VI "Tiếng Việt · English" (v1's tab label), EN or VI one name; then the number of its
+     questions the search shows */
+  function headName(a) {
+    return VL.lang() === 'envi' ? '<span lang="vi">' + esc(a.label_vi) + '</span><span class="sep" aria-hidden="true"> · </span><span>' + esc(a.label_en) + '</span>'
+      : VL.UH(areaPair(a));
   }
-  function markList() {
-    VL.$$('.tr-item', listEl).forEach(function (b) {
-      var on = !!(state.sel && String(state.sel.t.r) === b.getAttribute('data-rank') && AREAS[state.sel.t.a].id === state.area);
-      if (on) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current');
+  function headCount(n) {
+    return '<span class="n" aria-hidden="true">' + fmt(n) + '</span><span class="sr-only">' + esc(VL.U('tr3d.groupCount', { n: nv(n) })) + '</span>';
+  }
+  function itemId(q) { return 'tr-item-' + q.id + '-' + q.rank; }
+  function itemHtml(q) {
+    return '<li><button type="button" class="tr-item" id="' + itemId(q) + '" data-area="' + q.id + '" data-rank="' + q.rank + '">' +
+      '<span class="tr-rank">' + q.rank + '</span><span class="tr-item-body"><span class="tr-law">' + esc(lawShort(q.law)) + '</span>' +
+      qHtml(q, 'span', 'tr-q', 'tr-g') + verdictBadge(q) + '</span></button></li>';
+  }
+  var SEC = [], HEADN = [], listReady = null;
+  function renderList() {
+    if (!QS.length) return;
+    var t0 = performance.now();
+    listEl.innerHTML = AREAS.map(function (a, ai) {
+      return '<section class="tr-group" id="tr-g-' + a.id + '" data-area="' + a.id + '" aria-labelledby="tr-h-' + a.id + '">' +
+        '<h3 class="tr-head" id="tr-h-' + a.id + '" tabindex="-1"><span class="tr-head-name">' + headName(a) + '</span><span class="tr-head-n"></span></h3>' +
+        '<ol class="tr-sub">' + GROUPS[ai].map(itemHtml).join('') + '</ol></section>';
+    }).join('') + '<p class="tr-status" id="tr-none" hidden></p>';
+    QS.forEach(function (q) { q.btn = document.getElementById(itemId(q)); q.li = q.btn ? q.btn.parentNode : null; });
+    AREAS.forEach(function (a, ai) { SEC[ai] = document.getElementById('tr-g-' + a.id); HEADN[ai] = SEC[ai].querySelector('.tr-head-n'); });
+    T.groups = AREAS.length;
+    applySearch();
+    markList(false);
+    T.listMs = Math.round(performance.now() - t0);
+    T.renders++;
+  }
+  /* the search: every word of the query (folded: no case, no diacritics) in the question's title or gloss, its law's
+     names or number, or its area's names; empty areas hide their heading; the live line says how many are shown */
+  function applySearch() {
+    if (!QS.length) return;
+    var raw = searchEl ? searchEl.value : '', toks = words(raw), shown = 0;
+    GROUPS.forEach(function (gq, ai) {
+      var k = 0;
+      gq.forEach(function (q) {
+        var ok = !toks.length || toks.every(function (w) { return hasWord(q.hay, w); });
+        if (q.li) q.li.hidden = !ok;
+        if (ok) k++;
+      });
+      if (SEC[ai]) { SEC[ai].hidden = k === 0; HEADN[ai].innerHTML = headCount(k); }
+      shown += k;
+    });
+    state.query = raw;
+    T.query = raw;
+    T.shown = shown;
+    countEl.textContent = VL.U('tr3d.count', { n: fmt(shown), total: fmt(QS.length) });
+    var none = document.getElementById('tr-none');
+    if (none) { none.hidden = shown > 0; none.textContent = shown ? '' : VL.U('tr3d.noMatch', { q: raw.trim() }); }
+  }
+  var curItem = null;
+  function markList(scroll) {
+    if (curItem) curItem.removeAttribute('aria-current');
+    curItem = null;
+    var q = state.sel && state.sel.q;
+    if (!q || !q.btn) return;
+    q.btn.setAttribute('aria-current', 'true');
+    curItem = q.btn;
+    if (scroll && !q.li.hidden) { try { q.btn.scrollIntoView({ block: 'nearest' }); } catch (e) { /* old engines */ } }
+  }
+  /* an area's heading at the top of the list (v1's area links #area=<id>; on phones the list sheet opens); a search that
+     hides the area is cleared first. Chooses nothing */
+  function scrollToArea(id, opts) {
+    var a = BY[id];
+    if (!a) return Promise.resolve(null);
+    opts = opts || {};
+    return (listReady || Promise.resolve()).then(function () {
+      var ai = AIX[a.id];
+      if (SEC[ai] && SEC[ai].hidden && searchEl && searchEl.value) { searchEl.value = ''; applySearch(); }
+      if (mobile && opts.open) setSide(true);
+      var head = document.getElementById('tr-h-' + a.id);
+      if (head) { try { head.scrollIntoView({ block: 'start' }); } catch (e) { /* old engines */ } }
+      T.scrolledTo = a.id;
+      return a;
     });
   }
+  function visibleItems() { var out = []; QS.forEach(function (q) { if (q.btn && !q.li.hidden) out.push(q.btn); }); return out; }
   listEl.addEventListener('click', function (e) {
     var b = e.target.closest('.tr-item');
     if (!b) return;
-    selectTrace(state.area, +b.getAttribute('data-rank'), { user: true });
+    selectTrace(b.getAttribute('data-area'), +b.getAttribute('data-rank'), { user: true, scroll: false });
     if (mobile) setSide(false);
   });
+  /* arrows move through the shown questions (across the headings), Home / End to the first / last, up from the first
+     back to the search; Enter (the buttons') chooses */
   listEl.addEventListener('keydown', function (e) {
-    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
-    var items = VL.$$('.tr-item', listEl), i = items.indexOf(document.activeElement);
+    var k = e.key;
+    if (k !== 'ArrowDown' && k !== 'ArrowUp' && k !== 'Home' && k !== 'End') return;
+    var items = visibleItems(), i = items.indexOf(document.activeElement);
     if (i < 0) return;
     e.preventDefault();
-    items[Math.max(0, Math.min(items.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1)))].focus();
+    if (k === 'ArrowUp' && i === 0 && searchEl) { searchEl.focus(); return; }
+    items[k === 'Home' ? 0 : k === 'End' ? items.length - 1 : Math.max(0, Math.min(items.length - 1, i + (k === 'ArrowDown' ? 1 : -1)))].focus();
   });
+  var searchRaf = 0;
+  if (searchEl) {
+    searchEl.addEventListener('input', function () {
+      if (searchRaf) return;
+      searchRaf = requestAnimationFrame(function () { searchRaf = 0; applySearch(); });
+    });
+    searchEl.addEventListener('keydown', function (e) {
+      if ((e.key === 'ArrowDown' || e.key === 'Enter') && !e.isComposing) {
+        if (searchRaf) { cancelAnimationFrame(searchRaf); searchRaf = 0; applySearch(); }
+        var first = visibleItems()[0];
+        if (first) { e.preventDefault(); first.focus(); }
+      } else if (e.key === 'Escape' && searchEl.value) {
+        e.preventDefault();
+        e.stopPropagation();
+        searchEl.value = '';
+        applySearch();
+      }
+    });
+  }
 
   /* ------------------------------------------------------------------ the Fig. 5 hop panel */
   var REASON = { law_not_resolved: 'tr3d.reason.law', number_not_in_scope: 'tr3d.reason.number', article_not_parsed: 'tr3d.reason.article' };
@@ -907,7 +1115,7 @@
   panel.addEventListener('click', function (e) {
     if (e.target.closest('[data-close]')) { clearSelection(true); closePanel(); return; }
     var b = e.target.closest('[data-trace]');
-    if (b) { var x = b.getAttribute('data-trace').split(':'); location.hash = 'area=' + x[0] + '&q=' + x[1]; }
+    if (b) { var x = b.getAttribute('data-trace').split(':'); selectTrace(x[0], +x[1], { user: true }); }
   });
 
   /* ------------------------------------------------------------------ node details (hover, click) */
@@ -953,8 +1161,8 @@
     var c = cname(i);
     if (c === 'question' || c === 'answer') {
       var ts = tracesOf(i).map(function (k) { return G.t[k]; }).filter(function (t) { return t.co[0] === i || t.co[1] === i; });
-      var t = ts.filter(function (x) { return AREAS[x.a].id === state.area; })[0] || ts[0];
-      if (t) { location.hash = 'area=' + AREAS[t.a].id + '&q=' + t.r; return; }
+      var t = ts.filter(function (x) { return x.co[0] === i; })[0] || ts[0];     // a question node chooses its question
+      if (t) { selectTrace(AREAS[t.a].id, t.r, { user: true }); return; }
     }
     T.clicked = G.i[i];
     openPanel(nodeHtml(i));
@@ -982,8 +1190,8 @@
         cv.style.cursor = i >= 0 ? 'pointer' : '';
         T.hover = i >= 0 ? G.i[i] : null;
         if (i < 0) { tip.classList.add('hidden'); return; }
-        var n = names(i), cn = classNames(cname(i)), k = tracesOf(i).length;
-        tip.innerHTML = '<b>' + VL.TH(VL.pair(VL.short(n[0], 60), VL.short(n[1], 60))) + '</b>' +
+        var n = names(i), cn = classNames(cname(i)), k = tracesOf(i).length, lim = QNODE[i] ? 140 : 60;
+        tip.innerHTML = '<b>' + VL.TH(VL.pair(VL.short(n[0], lim), VL.short(n[1], lim))) + '</b>' +
           '<div class="t-sub">' + VL.TH(VL.pair(cn[0], cn[1])) + ' · ' + VL.UH('tr3d.tipTraces', { n: nv(k) }) + '</div>';
         tip.classList.remove('hidden');
         var hr = stage.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
@@ -1002,74 +1210,44 @@
     if (location.hash === h) return;
     try { history.replaceState(history.state, '', h); } catch (e) { location.hash = h; }
   }
-  function openArea(id, opts) {
-    opts = opts || {};
-    var a = BY[id] || AREAS[0];
-    TABS.forEach(function (b) {
-      var on = b.getAttribute('data-area') === a.id;
-      b.setAttribute('aria-selected', on ? 'true' : 'false');
-      b.tabIndex = on ? 0 : -1;
-      if (on && opts.focusTab) b.focus();
-      if (on) { try { b.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) { /* old engines */ } }
-    });
-    VL.$('#tr-panel').setAttribute('aria-labelledby', 'tr-tab-' + a.id);
-    VL.store.set('traces.area', a.id);
-    if (opts.user) setHash('#area=' + a.id);
-    var changed = state.area !== a.id, dimNow = !!(opts.user || opts.dim);
-    if (dimNow && !state.dim) changed = true;
-    state.area = a.id;
-    T.area = a.id;
-    if (dimNow) state.dim = true;
-    T.dim = state.dim;
-    if (changed || opts.user) {
-      if (state.sel && AREAS[state.sel.t.a].id !== a.id) clearSelection(false);
-      if (state.sel && opts.user) clearSelection(false);
-      if (pointsObj) { applyAlpha(); buildLabels(); }
-      if (opts.fly && camera) { closePanel(); flyToArea(AIX[a.id], opts.ms != null ? opts.ms : 900); }
-    }
-    var my = ++seq;
-    if (AD[a.id] && listEl.getAttribute('data-area') === a.id) return Promise.resolve(a);
-    VL.$('#tr-area-title').innerHTML = VL.TH(areaPair(a));
-    listEl.innerHTML = '<li class="tr-status">' + VL.TH('tr3d.loading') + '</li>';
-    return loadArea(a).then(function (data) {
-      if (my !== seq) return a;
-      renderList(a, data);
-      listEl.setAttribute('data-area', a.id);
-      if (state.sel) buildLabels();
-      T.renders++;
-      return a;
-    }, function (err) {
-      T.errors.push(String(err && err.message || err));
-      listEl.innerHTML = '<li class="tr-status">' + VL.UH('tr3d.areaError', { file: a.file }) + '</li>';
-      return a;
-    });
+  function clearHash() {
+    if (!location.hash) return;
+    try { history.replaceState(history.state, '', location.pathname + location.search); } catch (e) { location.hash = ''; }
   }
+  /* the chosen question's area on the phones' toolbar */
+  function areaLabelM() {
+    var m = VL.$('#tr-area-m');
+    if (m) m.innerHTML = state.sel ? VL.UH(areaPair(AREAS[state.sel.t.a])) : '';
+  }
+  /* choose a question: its trace solid and bold, the focus volume, call-outs, the hop panel (the area file is loaded for
+     the panel); the camera stays where it is ('Zoom to selection' flies in) */
   function selectTrace(areaId, rank, opts) {
     opts = opts || {};
-    var a = BY[areaId];
-    if (!a) return Promise.resolve(null);
-    var t = TRK[AIX[a.id] + ':' + rank];
+    var a = BY[areaId], t = a ? TRK[AIX[a.id] + ':' + rank] : null;
     if (!t) return Promise.resolve(null);
-    var p = state.area === a.id ? Promise.resolve(a) : openArea(a.id, {});
-    return p.then(function () { return loadArea(a); }).then(function () {
+    var my = ++seq;
+    if (!AD[a.id]) openPanel(closeHtml() + '<p class="tr-status">' + VL.TH('tr3d.loading') + '</p>');   // the area's file first
+    return loadArea(a).then(function () {
+      if (my !== seq) return null;                 // a later choice won, or the panel was closed meanwhile
       var tr = AD[a.id][rank];
-      var fgSet = new Uint8Array(N), nSet = new Uint8Array(N);
-      t.f.forEach(function (i) { fgSet[i] = 1; });
-      t.n.forEach(function (i) { nSet[i] = 1; });
-      state.sel = { t: t, tr: tr, fgSet: fgSet, nSet: nSet };
-      if (opts.user) setHash('#area=' + a.id + '&q=' + rank);
-      markList();
+      state.sel = { t: t, tr: tr, q: QBY[a.id + ':' + rank] || null };
+      if (opts.user) setHash('#q=' + a.id + ':' + rank);
+      markList(opts.scroll !== false);
       openPanel(tracePanelHtml(a, tr));
       panelNode = -1;
       var co = t.co;
       T.selected = { area: a.id, rank: rank, q: G.i[co[0]], answer: G.i[co[1]], provision: G.i[co[2]], law: G.i[co[3]],
         term: co[4] >= 0 ? G.i[co[4]] : null, areaNode: G.i[co[5]], fg: t.f.length, nodes: t.n.length, segments: t.e.length / 3 };
+      areaLabelM();
       if (T.fallback) { drawFallback(a, tr); return t; }
-      applyAlpha();
+      applyFocus();
       drawTrace();
       buildLabels();
-      if (opts.fit) fitTrace(t, opts.ms != null ? opts.ms : 900);   // the map stays put; 'Zoom to selection' flies in
       return t;
+    }, function (err) {
+      T.errors.push(String(err && err.message || err));
+      if (my === seq) openPanel(closeHtml() + '<p class="tr-status">' + VL.UH('tr3d.areaError', { file: a.file }) + '</p>');
+      return null;
     });
   }
   var TRACE_SEG = 16;      // the traced ribbon: the links' curve, finely sampled
@@ -1117,7 +1295,11 @@
     g.setAttribute('aColor', new THREE.BufferAttribute(col, 3));
     g.setAttribute('aSize', new THREE.BufferAttribute(sz, 1));
     g.setAttribute('aAlpha', new THREE.BufferAttribute(al, 1));
-    if (!fgMat) fgMat = new THREE.ShaderMaterial({ uniforms: pointsMat.uniforms, vertexShader: PT_VS, fragmentShader: PT_FS, depthTest: false, depthWrite: false });
+    g.setAttribute('aDist', new THREE.BufferAttribute(new Float32Array(n), 1));     // on the trace: d = 0, solid
+    // transparent (alpha 1): drawn in three.js' transparent pass after the trace's strokes (renderOrder 7 / 10), so the
+    // nodes lie over the strokes as in the paper's figures (an opaque material would be drawn before every transparent one)
+    if (!fgMat) fgMat = new THREE.ShaderMaterial({ uniforms: pointsMat.uniforms, vertexShader: PT_VS, fragmentShader: PT_FS, depthTest: false, depthWrite: false,
+      transparent: true });
     fgObj = new THREE.Points(g, fgMat);
     fgObj.renderOrder = 20;
     fgObj.frustumCulled = false;
@@ -1125,13 +1307,15 @@
     T.fgDrawn = n;
   }
   function clearSelection(user) {
+    seq++;                                         // also drops a choice whose area file is still loading
     if (!state.sel) return;
     state.sel = null;
     T.selected = null;
-    markList();
-    if (user) setHash('#area=' + state.area);
+    markList(false);
+    if (user) clearHash();
+    areaLabelM();
     if (T.fallback) { fbEl.innerHTML = ''; fbEl.classList.add('hidden'); return; }
-    applyAlpha();
+    applyFocus();
     drawTrace();
     buildLabels();
   }
@@ -1177,15 +1361,13 @@
   function resetView() {
     clearSelection(true);
     closePanel();
-    if (state.dim) { state.dim = false; T.dim = false; if (pointsObj) { applyAlpha(); buildLabels(); } }
     if (camera) fitAll(800);
   }
-  /* the map never moves by itself (tabs and questions only change the drawing); this flies to the picked trace, else to
-     the open area, else shows the whole map */
+  /* the map never moves by itself (choosing, searching and the list only change the drawing); this flies to the chosen
+     trace, or shows the whole map when nothing is chosen */
   function zoomToSelection() {
     if (!camera) return;
     if (state.sel) fitTrace(state.sel.t, 800);
-    else if (state.area != null) flyToArea(AIX[state.area], 800);
     else fitAll(800);
   }
   var zoomBtn = VL.$('#btn-zoom');
@@ -1199,6 +1381,7 @@
     app.classList.toggle('side-open', open);
     VL.$('#btn-list-m').setAttribute('aria-expanded', open ? 'true' : 'false');
     if (open) closePanel();
+    scheduleCallouts();          // the sheet is an obstacle of the call-outs while it is open
   }
   VL.$('#btn-list-m').addEventListener('click', function () { setSide(!app.classList.contains('side-open')); });
   host.addEventListener('keydown', function (e) {
@@ -1214,11 +1397,12 @@
     e.preventDefault();
   });
   document.addEventListener('keydown', function (e) {
-    var typing = /INPUT|TEXTAREA|SELECT/.test((e.target && e.target.tagName) || '');
+    // typing fields keep their Escape, except the list's empty search box (Escape there closes / clears as anywhere)
+    var typing = /INPUT|TEXTAREA|SELECT/.test((e.target && e.target.tagName) || '') && !(e.target === searchEl && !searchEl.value);
     if (e.key !== 'Escape' || typing) return;
     if (app.classList.contains('side-open')) { setSide(false); return; }
     if (state.sel) { clearSelection(true); closePanel(); return; }
-    if (!panel.classList.contains('hidden')) closePanel();
+    if (!panel.classList.contains('hidden')) { seq++; closePanel(); }
   });
   function showHint() { if (VL.store.get('hint-traces3d') !== 'off') { VL.$('#hint').classList.remove('hidden'); scheduleCallouts(); } }
   function hideHint() { var h = VL.$('#hint'); if (h && !h.classList.contains('hidden')) { h.classList.add('hidden'); scheduleCallouts(); } }
@@ -1253,23 +1437,20 @@
   }
 
   /* ------------------------------------------------------------------ language switch (js/i18n.js 'vl:lang'): the data
-     line, tabs, area list (scroll and focus kept), open panel (scroll kept), legend, status, the 2D fallback and the
-     call-outs are rendered again in the new mode, then placed again; the area, the selected trace and the camera stay */
+     line, the list (headings, entries, count; its scroll, focus and search kept), the open panel (scroll kept), legend,
+     status, the 2D fallback and the call-outs are rendered again in the new mode, then placed again; the chosen trace
+     and the camera stay */
   function applyLang() {
     T.langRenders = (T.langRenders || 0) + 1;
     M.langRenders = (M.langRenders || 0) + 1;
     renderRevs();
-    TABS.forEach(function (b) { var a = BY[b.getAttribute('data-area')]; if (!a) return; b.innerHTML = tabInner(a); b.setAttribute('aria-label', tabAria(a)); });
-    var a = BY[state.area];
-    if (a) {
-      var data = window.VLONTO['traces_' + a.id];
-      if (data && listEl.getAttribute('data-area') === a.id) {
-        var st = listEl.scrollTop, act = document.activeElement && listEl.contains(document.activeElement) ? document.activeElement.id : null;
-        renderList(a, data);
-        listEl.scrollTop = st;
-        if (act && document.getElementById(act)) document.getElementById(act).focus();
-      } else VL.$('#tr-area-title').innerHTML = VL.TH(areaPair(a));
+    if (QS.length) {
+      var side = VL.$('#side'), st = side ? side.scrollTop : 0, act = document.activeElement && listEl.contains(document.activeElement) ? document.activeElement.id : null;
+      renderList();
+      if (side) side.scrollTop = st;
+      if (act && document.getElementById(act)) document.getElementById(act).focus();
     }
+    areaLabelM();
     if (!panel.classList.contains('hidden')) {
       if (state.sel && panelNode < 0) openPanel(tracePanelHtml(BY[AREAS[state.sel.t.a].id], state.sel.tr), true);
       else if (panelNode >= 0) { var pn = panelNode; openPanel(nodeHtml(pn), true); panelNode = pn; }
@@ -1283,32 +1464,29 @@
   }
   document.addEventListener('vl:lang', applyLang);
 
-  /* ------------------------------------------------------------------ routing: #area=<id>&q=<rank> */
-  function initialArea() { var s = VL.store.get('traces.area'); return BY[s] ? s : AREAS[0].id; }
+  /* ------------------------------------------------------------------ routing: #q=<area>:<rank> chooses a question (v1's
+     #area=<id>&q=<rank> too); #area=<id> alone scrolls the list to the area's heading and chooses nothing */
   function route() {
-    var h = VL.params(), a = BY[h.area];
-    if (!a) {
-      if (state.area == null) return openArea(initialArea(), {});
-      if (state.sel) { clearSelection(false); closePanel(); }
-      return Promise.resolve();
+    var h = VL.params(), area = null, rank = null;
+    if (h.q && String(h.q).indexOf(':') > 0) { var p = String(h.q).split(':'); area = p[0]; rank = parseInt(p[1], 10); }
+    else if (h.area) { area = h.area; rank = h.q ? parseInt(h.q, 10) : null; }
+    var a = BY[area];
+    if (a && rank && TRK[AIX[a.id] + ':' + rank]) {
+      if (state.sel && state.sel.t.a === AIX[a.id] && state.sel.t.r === rank) return Promise.resolve(null);
+      return selectTrace(a.id, rank, {});
     }
-    var rank = h.q ? parseInt(h.q, 10) : null;
-    var fresh = state.area !== a.id, first = state.area == null, ms = first ? 0 : 900;
-    return openArea(a.id, { dim: true }).then(function () {
-      if (rank && TRK[AIX[a.id] + ':' + rank]) {
-        if (state.sel && state.sel.t.a === AIX[a.id] && state.sel.t.r === rank) return null;
-        return selectTrace(a.id, rank, { ms: ms });
-      }
-      if (state.sel) { clearSelection(false); closePanel(); }
-      return null;
-    });
+    if (state.sel) { clearSelection(false); closePanel(); }
+    return a ? scrollToArea(a.id, { open: true }) : Promise.resolve(null);
   }
   window.addEventListener('hashchange', route);
-
   window.VLApp = window.VLApp || {};
   window.VLApp.traces = {
-    area: function (id) { return openArea(id, { user: true }); },
-    select: function (id, rank, ms) { return selectTrace(id, rank, { user: true, ms: ms }); },
+    area: function (id) { return scrollToArea(id, { open: true }); },     // the list at the area's heading (chooses nothing)
+    select: function (id, rank) { return selectTrace(id, rank, { user: true }); },
+    search: function (q) { if (searchEl) { searchEl.value = q; applySearch(); } return T.shown; },
+    question: function (id, rank) { var q = QBY[id + ':' + rank]; return q ? { vi: q.vi, en: q.en, law: q.law, node: q.t ? G.i[q.t.co[0]] : null } : null; },
+    /* the focus volume at a node: its distance to the chosen trace and the opacity the transfer function gives it */
+    focusAt: function (id) { var i = G ? G.i.indexOf(id) : -1; return i < 0 || !ALPHA ? null : { d: DIST ? DIST[i] : 0, alpha: ALPHA[i], focus: FOCUS_U.uFocus.value, sigma: SIGMA, rest: FOCUS.rest }; },
     clear: function () { clearSelection(true); closePanel(); },
     areas: function () { return AREAS.map(function (a) { return a.id; }); },
     pick: function (x, y) { var i = pick(x, y); return i >= 0 ? G.i[i] : null; },
@@ -1318,7 +1496,7 @@
       var v = new THREE.Vector3(POS[3 * i], POS[3 * i + 1], POS[3 * i + 2]).project(camera);
       return { x: (v.x + 1) / 2 * host.clientWidth, y: (1 - v.y) / 2 * host.clientHeight, inside: Math.abs(v.x) <= 1 && Math.abs(v.y) <= 1 && v.z < 1 };
     },
-    settle: function () { return !tween && !(callouts && callouts.last === null); },
+    settle: function () { return !tween && !fade && !(callouts && callouts.last === null); },
     /* the camera (position, target) and the rectangles the views are framed in; Zoom to selection and Reset view */
     camera: function () { return camera ? { pos: camera.position.toArray(), target: controls.target.toArray() } : null; },
     view: function () { return camera ? { map: mapRect(), free: freeRect(), home: (function (f) { return { pos: f.pos.toArray(), target: f.target.toArray() }; })(homeView()) } : null; },
@@ -1330,8 +1508,9 @@
       if (!camera) return null;
       var pa = pointsObj.geometry.attributes, lines = [];
       for (var e = 0; e < EDGE.s.length; e++) {
-        var L = lineGroups[EDGE.g[e]], j = EDGE.j[e], al = L.alpha.array[j];
-        if (al > 0.01) lines.push([EDGE.s[e], EDGE.t[e], Math.round(al * 1000) / 1000,
+        var L = lineGroups[EDGE.g[e]], j = EDGE.j[e], fv = FOCUS_U.uFocus.value;
+        var a0 = L.alpha.array[j] * (1 + (transfer(L.da.array[j]) - 1) * fv), a1 = L.alpha.array[j] * (1 + (transfer(L.db.array[j]) - 1) * fv), al = Math.max(a0, a1);
+        if (al > 0.01) lines.push([EDGE.s[e], EDGE.t[e], Math.round(a0 * 1000) / 1000, Math.round(a1 * 1000) / 1000,
           Math.round(L.color.array[3 * j] * 255), Math.round(L.color.array[3 * j + 1] * 255), Math.round(L.color.array[3 * j + 2] * 255), L.seg]);
       }
       var r3 = function (v) { return Math.round(v * 1000) / 1000; };
@@ -1339,14 +1518,16 @@
         w: host.clientWidth, h: host.clientHeight, fov: camera.fov, near: camera.near,
         pos: camera.position.toArray().map(r3), target: controls.target.toArray().map(r3), up: camera.up.toArray(),
         color: Array.prototype.map.call(pa.aColor.array, function (v) { return Math.round(v * 255); }),
-        alpha: Array.prototype.map.call(pa.aAlpha.array, r3), size: Array.prototype.slice.call(pa.aSize.array),
+        alpha: Array.prototype.map.call(ALPHA, r3), dist: Array.prototype.map.call(pa.aDist.array, function (v) { return Math.round(v * 10) / 10; }),
+        size: Array.prototype.slice.call(pa.aSize.array),
         lines: lines, lineOpacity: linesMat.uniforms.uOpacity.value, curve: { curves: CURVES, bend: CV.bend, gap: CV.gap, liftMax: CV.liftMax, traceSeg: TRACE_SEG },
         bg: TH.bg, rim: pointsMat.uniforms.uRim.value,
         fog: [FOG.value.x, FOG.value.y, FOG.value.z], dark: !!TH.dark,
         paper: { core: P.core, halo: P.halo, halo2: P.halo2, calloutBg: P.calloutBg, calloutLine: P.calloutLine, selBg: P.selBg,
           selLine: P.selLine, ink: P.ink, ink2: P.ink2, leader: P.leader },
         traceStyle: { v: boldStyle(1), s: boldStyle(0.55), sOpacity: P.dark ? 0.6 : 0.62 }, focus: FOCUS,
-        labels: labels.map(function (s) { return { id: s.__id, sel: !!s.__sel, px: s.__px, lines: s.__opts.lines }; }),
+        focusVolume: { value: FOCUS_U.uFocus.value, sigma: SIGMA, cell: CELL, rest: FOCUS.rest, tint: pointsMat.uniforms.uTint.value, splat: FOCUS.splat },
+        labels: labels.map(function (s) { return { id: s.__id, sel: !!s.__sel, must: !!s.__must, px: s.__px, lines: s.__opts.lines }; }),
         callouts: M.callouts || null, free: freeRect(), selected: T.selected
       };
     }
@@ -1355,10 +1536,12 @@
   /* ------------------------------------------------------------------ start */
   renderLegend();
   var t0 = performance.now();
+  listReady = loadQuestions().then(function (d) { prepareQuestions(d); renderList(); return d; });
   VL.fontsReady().then(function () {
-    return loadGraph();
-  }).then(function (g) {
-    prepare(g);
+    return Promise.all([loadGraph(), listReady]);
+  }).then(function (r) {
+    prepare(r[0]);
+    linkQuestionNodes();
     T.webgl = webglOk();
     if (T.webgl) {
       try { initThree(); } catch (e) { T.webgl = false; T.webglError = String(e && e.message || e); renderer = null; }
@@ -1372,6 +1555,7 @@
       bindPointer();
       showHint();          // first visit: the hint is part of the frame the whole map is placed in
       fitAll(0);
+      buildLabels();       // nothing chosen: the 27 areas' names
     }
     T.buildMs = Math.round(performance.now() - t0);
     status();
@@ -1384,7 +1568,7 @@
   }).then(function (fps) {
     if (fps != null) T.fps = fps;
     status();
-    VL.setReady({ tracesArea: state.area, webglRenderer: M.webglRenderer, fps: T.fps });
+    VL.setReady({ tracesQuestions: QS.length, webglRenderer: M.webglRenderer, fps: T.fps });
   }).catch(function (e) {
     console.error(e);
     T.errors.push(String(e && e.message || e));
