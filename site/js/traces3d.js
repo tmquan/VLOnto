@@ -426,13 +426,18 @@
   /* node alpha: the selected trace (foreground 1, its other nodes 0.55), the rest faded; on phones only the open area's
      region is drawn (and the selected trace wherever it reaches) */
   var ALPHA = null;
+  /* focus (v1.1): a picked question's trace is drawn bold and everything else fades far back; an open area keeps its
+     region and dims the other areas. rest / traceOther / areaRest = node alphas, linkRest = factor on faded links */
+  var FOCUS = { rest: 0.04, traceOther: 0.5, areaRest: 0.3, linkRest: 0.5, bold: mobile ? 1.3 : 1.5, fgSize: 1.35 };
+  T.focus = FOCUS;
   function applyAlpha() {
     if (!pointsObj) return;
     var a = pointsObj.geometry.attributes.aAlpha.array, sel = state.sel, ai = state.area != null ? AIX[state.area] : -1;
     var fg = sel ? sel.fgSet : null, tn = sel ? sel.nSet : null;
     for (var i = 0; i < N; i++) {
       var v = 1;
-      if (sel) v = fg[i] ? 1 : (tn[i] ? 0.55 : 0.12);
+      if (sel) v = fg[i] ? 1 : (tn[i] ? FOCUS.traceOther : FOCUS.rest);
+      else if (ai >= 0 && HOME[i] !== ai) v = FOCUS.areaRest;
       if (mobile && ai >= 0 && HOME[i] !== ai && !(sel && tn[i])) v = 0;
       a[i] = v;
     }
@@ -441,7 +446,7 @@
     var shown = 0;
     for (var e = 0; e < EDGE.s.length; e++) {
       var s = EDGE.s[e], t = EDGE.t[e], v2 = Math.min(a[s], a[t]) * EDGE.base[e];
-      if (sel) v2 *= (fg[s] && fg[t]) ? 1 : 0.6;
+      if (sel) v2 *= (fg[s] && fg[t]) ? 1 : FOCUS.linkRest;
       lineGroups[EDGE.g[e]].alpha.array[EDGE.j[e]] = v2;
       if (v2 > 0.01) shown++;
     }
@@ -681,6 +686,7 @@
         items: calloutItems, ink: calloutInk, ui: obstacles,
         leaderColor: function () { return P.leader; },
         discMaxPx: 30 / Math.min(window.devicePixelRatio || 1, 2),
+        segPad: Math.ceil(VL.TRACE_W.halo2 * FOCUS.bold / 2),   // half the bold outer halo
         metrics: M, key: 'callouts',
         onDone: function (st) { T.calloutsShown = st.shown; needsRender = true; }
       });
@@ -1020,6 +1026,12 @@
     });
   }
   var TRACE_SEG = 16;      // the traced ribbon: the links' curve, finely sampled
+  /* the paper's trace widths scaled by FOCUS.bold: the picked trace stands out from the faded graph */
+  function boldStyle(w) {
+    var st = VL.traceStyle(P, w);
+    Object.keys(st.widths).forEach(function (k) { st.widths[k] *= FOCUS.bold; });
+    return st;
+  }
   function drawTrace() {
     var sel = state.sel, v = [], s = [];
     if (sel) {
@@ -1027,8 +1039,8 @@
       for (var j = 0; j < e.length; j += 3) (e[j + 2] === 1 ? v : s).push(curvePts(ptOf(e[j]), ptOf(e[j + 1]), TRACE_SEG));
       sel.paths = v.concat(s);
     }
-    traceV.setStyle(VL.traceStyle(P, 1));
-    traceS.setStyle(VL.traceStyle(P, 0.55));
+    traceV.setStyle(boldStyle(1));
+    traceS.setStyle(boldStyle(0.55));
     traceS.setStyle({ opacity: P.dark ? 0.6 : 0.62 });
     traceV.setPaths(v);
     traceS.setPaths(s);
@@ -1050,7 +1062,7 @@
     var src = pointsObj.geometry.attributes, pos = new Float32Array(3 * n), col = new Float32Array(3 * n), sz = new Float32Array(n), al = new Float32Array(n);
     ids.forEach(function (i, j) {
       for (var c = 0; c < 3; c++) { pos[3 * j + c] = POS[3 * i + c]; col[3 * j + c] = src.aColor.array[3 * i + c]; }
-      sz[j] = src.aSize.array[i];
+      sz[j] = src.aSize.array[i] * FOCUS.fgSize;
       al[j] = 1;
     });
     var g = new THREE.BufferGeometry();
@@ -1268,7 +1280,7 @@
         fog: [FOG.value.x, FOG.value.y, FOG.value.z], dark: !!TH.dark,
         paper: { core: P.core, halo: P.halo, halo2: P.halo2, calloutBg: P.calloutBg, calloutLine: P.calloutLine, selBg: P.selBg,
           selLine: P.selLine, ink: P.ink, ink2: P.ink2, leader: P.leader },
-        traceStyle: { v: VL.traceStyle(P, 1), s: VL.traceStyle(P, 0.55), sOpacity: P.dark ? 0.6 : 0.62 },
+        traceStyle: { v: boldStyle(1), s: boldStyle(0.55), sOpacity: P.dark ? 0.6 : 0.62 }, focus: FOCUS,
         labels: labels.map(function (s) { return { id: s.__id, sel: !!s.__sel, px: s.__px, lines: s.__opts.lines }; }),
         callouts: M.callouts || null, free: freeRect(), selected: T.selected
       };

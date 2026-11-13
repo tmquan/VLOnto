@@ -2065,6 +2065,22 @@ def t_traces(c: Ctx):
             return {"traces": out, "page_width": no_hscroll(c, pg, "traces with a trace selected")}
         check("three areas: tab -> 20 questions -> a question lights its trace (core / halo pixels), call-outs clean, five hops", three, pg)
 
+        def focus():
+            f = pg.evaluate("""() => {
+              const T = (window.__VLONTO_METRICS || {}).traces || {}, A = window.VLApp && window.VLApp.traces;
+              const s = A && A.snapshot ? A.snapshot() : null;
+              if (!s || !T.focus || !T.selected) return null;
+              let one = 0, faint = 0;
+              for (const v of s.alpha) { if (v >= 0.999) one++; else if (v <= T.focus.rest + 1e-6) faint++; }
+              return { n: s.alpha.length, one, faint, fg: T.selected.fg, focus: T.focus,
+                       core: s.traceStyle.v.widths.core, paperCore: (window.VL.TRACE_W || {}).core };
+            }""")
+            # the picked trace at full strength and drawn bolder than the paper's widths; nearly all the rest faded back
+            if not f or f["one"] < f["fg"] or f["faint"] < 0.8 * f["n"] or f["core"] < 1.25 * f["paperCore"]:
+                raise RuntimeError(f"focus: {f}")
+            return {k: f[k] for k in ("n", "one", "faint", "fg", "core", "paperCore")}
+        check("a picked trace is bold and the rest of the graph fades back", focus, pg)
+
         def node_click():
             S = pg.evaluate("window.__VLONTO_METRICS.traces.selected")
             # the first of provision, law, term, area node whose projected centre is on the canvas itself (not under an overlay)

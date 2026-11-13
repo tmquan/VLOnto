@@ -208,6 +208,9 @@
      line of the figure on a phone and on a hub */
   var TRACE_W = { core: 2.8, halo: 6.4, halo2: 9.2 };
   VL.TRACE_W = TRACE_W;
+  /* a view may draw its selected trace bolder than the paper (the traces page: up to 1.5 x on desktop); setStyle caps there */
+  var TRACE_BOLD_MAX = 1.6;
+  VL.TRACE_BOLD_MAX = TRACE_BOLD_MAX;
   /* opts: depthTest (default true), renderOrder (halo2, halo, core get renderOrder, +1, +2), widths {core, halo, halo2} in
      CSS px, colors {core, halo, halo2} (hex). setPaths([[p0, p1, ...], ...]) takes points with x, y, z. */
   VL.TraceLines = function (opts) {
@@ -236,7 +239,7 @@
     });
     function setStyle(st) {
       st = st || {};
-      if (st.widths) Object.keys(st.widths).forEach(function (k) { widths[k] = Math.min(TRACE_W[k], st.widths[k]); });
+      if (st.widths) Object.keys(st.widths).forEach(function (k) { widths[k] = Math.min(TRACE_W[k] * TRACE_BOLD_MAX, st.widths[k]); });
       if (st.colors) Object.keys(st.colors).forEach(function (k) { colors[k] = st.colors[k]; });
       Object.keys(layers).forEach(function (k) {
         rawColor(colors[k], layers[k].mat.uniforms.uColor.value);
@@ -410,6 +413,7 @@
   VL.Callouts = function (cfg) {
     var self = { runs: 0, last: null }, timer = null, tail = null, lastRun = 0, prev = {};
     var THROTTLE = cfg.throttle || 140, TAIL = cfg.tail || 240, wp = null;
+    var SEG_PAD = cfg.segPad || 1;   /* px kept between a call-out box and a traced path (a bold trace's halo needs more) */
     function hideSprite(s) {
       s.layers.set(1);
       if (s.__leader) s.__leader.visible = false;
@@ -510,7 +514,7 @@
         if (lastCentres) return 2;
         if (grid.sum(box.x0 - 1, box.y0 - 1, box.x1 + 1, box.y1 + 1, function (o) {
           if (o.t === 'd') return rectDisc(box, o, 1) ? 1 : 0;
-          if (o.t === 's') return segRect(o, box, 1) ? 1 : 0;
+          if (o.t === 's') return segRect(o, box, SEG_PAD) ? 1 : 0;
           return 0;
         }, true)) return 1;
         return 0;
@@ -518,7 +522,7 @@
       function inkUnder(box) {
         return grid.sum(box.x0 - 1, box.y0 - 1, box.x1 + 1, box.y1 + 1, function (o) {
           if (o.t === 'd') return rectDisc(box, o, 1) ? 1 : 0;
-          if (o.t === 's') return segRect(o, box, 1) ? 1 : 0;
+          if (o.t === 's') return segRect(o, box, SEG_PAD) ? 1 : 0;
           return 0;
         });
       }
