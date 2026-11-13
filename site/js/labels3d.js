@@ -131,6 +131,17 @@
     s.setOffset = function (ox, oy) { s.__off = [ox, oy]; applyOffset(); };
     s.setText = function (t) { t = VL.nfc(t); if (t !== s.__text) { s.__text = t; redraw(); } };
     s.setLines = function (lines) { s.__opts.lines = lines; redraw(); };
+    /* the text of each line as drawn (tests read the language of the call-outs from VL.Callouts' metrics) */
+    s.textLines = function () {
+      return (s.__opts.lines || [[{ text: s.__text }]]).map(function (ln) { return (ln || []).map(function (p) { return p && p.text != null ? p.text : ''; }).join(''); });
+    };
+    /* how the box is drawn (draw() above), for offline model renders of the views: size, font, colours, the parts */
+    s.textStyle = function () {
+      var o = s.__opts;
+      return { px: s.__drawPx, font: o.font || FONT, weight: o.weight || '600', bg: o.bg || null, border: o.border || null, borderPx: o.borderPx || null,
+        radius: o.radius != null ? o.radius : null, padX: o.padX != null ? o.padX : 0.45,
+        lines: linesOf(s).map(function (ln) { return ln.map(function (p) { return [p.text, p.color, p.weight || null, !!p.italic]; }); }) };
+    };
     s.setPx = function (px) { s.__px = px; s.fit(s.__wpp); };
     /* box above or below the anchor, the leader joining it to the node (no redraw when that texture exists) */
     s.setSide = function (side) { if (side !== s.__side) { use(s, side); s.fit(s.__wpp); } };

@@ -1475,5 +1475,15 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
    Owned by the 3D track (docs/i18n.md): network3d.js, ontology3d.js, traces3d.js, paper3d.js, labels3d.js,
    trace-draw.js, sparql-page.js, sparql-core.js, network-3d.html, sparql.html. That track adds its rules only between
    this line and the end marker below; nobody else edits here. */
+/* Text the page scripts write in the mode (network3d.js and sparql-page.js renderStatic(): the paper line, the hint, the
+   run-all button, the self-test heading, the good-to-know notes) stays hidden while the page loads, like data-i18n
+   elements, so the markup's EN–VI text does not flash in EN or VI. The scripts fill it before DOMContentLoaded. */
+:root.vl-i18n-boot #net-paper, :root.vl-i18n-boot #hint-body, :root.vl-i18n-boot #sq-paper,
+:root.vl-i18n-boot #btn-all, :root.vl-i18n-boot #selftest-title, :root.vl-i18n-boot #sq-know-typed,
+:root.vl-i18n-boot #sq-know-shortcut, :root.vl-i18n-boot #sq-know-limit, :root.vl-i18n-boot #sq-know-full { visibility: hidden; }
+/* The legend moved up above the status line where the two would meet on the stage's bottom edge (VL.fitLegend in
+   paper3d.js, used by network3d.js and ontology3d.js): 14 px edge + the status line (about 23 px) + 9 px gap. The status
+   line is hidden on phones, so the class is never set there. */
+.scene-stage.legend-lift .legend { bottom: 46px; }
 
 /* ================================================================== end of 3D TRACK */
