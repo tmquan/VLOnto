@@ -8,10 +8,11 @@ Input: index.json and one <area id>.json per legal area, as written by scripts/t
 site/data/traces/index.js and one <area id>.js per area, made with tools/json2js.py (window.VLONTO["traces_index"] and
 window.VLONTO["traces_<area id>"]; the page loads an area's file when one of its questions is first chosen). Each area
 file holds, per trace, what the page shows plus the build-time 2D drawing (scripts/site/trace_layout.py; the page's
-fallback without WebGL). site/data/traces/graph.js (window.VLONTO["traces_graph"], loaded first) is the global 3D
-embedding of all traces (scripts/site/trace_global.py): every node once with id, class, position and, for the law side,
-terms and areas, its labels and source link; the edges by kind; per trace its node, foreground and edge lists and its
-call-out nodes.
+fallback without WebGL). site/data/traces/graph.js (window.VLONTO["traces_graph"], loaded first) places all traces in
+the 3D legal network (scripts/site/trace_global.py, which reads site/data/legal_network.js): every law is its network
+document; the provisions hang under their laws, the questions, answers, terms and other answers lie on planes under
+the lowest document layer; every node once with id, class, position and, for the law side, terms and areas, its labels
+and source link; the edges by kind; per trace its node, foreground and edge lists and its call-out nodes.
 site/data/traces/questions.js (window.VLONTO["traces_questions"], loaded with the graph) is the page's one list of all
 traced questions, area by area: per question its rank, title, English gloss, the law's names and number, verified and
 match - fields the area files already hold, so the list and its search need no area file.
@@ -285,8 +286,8 @@ def build(traces: Path | None, site: Path) -> dict:
             rep["files"].append({"file": f"data/traces/{a['id']}.js", "bytes": size})
         if problems:
             raise SystemExit("trace data problems: " + "; ".join(problems[:10]))
-        # the global 3D scene of all traces (scripts/site/trace_global.py): every node once, the areas as regions
-        graph, gstats = TGL.build_graph([a["id"] for a in src_index["areas"]], srcs)
+        # all traces inside the 3D legal network (scripts/site/trace_global.py): every node once, every law its document
+        graph, gstats = TGL.build_graph([a["id"] for a in src_index["areas"]], srcs, read_network(site))
         graph = nfc(graph)
         bad = licence_scan(graph)
         if bad:
@@ -311,6 +312,22 @@ def build(traces: Path | None, site: Path) -> dict:
         rep.update({"available": True, "areas": len(areas), "traces": layout["traces"], "layout": layout,
                     "largest_bytes": max(f["bytes"] for f in rep["files"]), "seconds": round(time.time() - t0, 1)})
     return rep
+
+
+def read_network(site: Path) -> dict:
+    """the legal network the traces live in: site/data/legal_network.js (the KG track's twin, which build_site.py copies
+    before it builds the traces), as a json2js file or as the twin's object literal"""
+    p = site / "data" / "legal_network.js"
+    if not p.exists():
+        raise SystemExit(f"{p} missing: the traces are placed in the legal network (build_site.py copies it first)")
+    t = p.read_text(encoding="utf-8")
+    m = re.search(r'= JSON\.parse\((".*")\);?\s*$', t, re.S)
+    if m:
+        return json.loads(json.loads(m.group(1)))
+    m = re.search(r'window\.VLONTO\["legal_network"\]\s*=\s*', t)
+    if not m:
+        raise SystemExit(f"{p}: no window.VLONTO[\"legal_network\"]")
+    return json.loads(t[m.end():].rstrip().rstrip(";"))
 
 
 def read_js(path: Path):
