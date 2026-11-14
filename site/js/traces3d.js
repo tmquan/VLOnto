@@ -9,11 +9,15 @@
      layer; the answers lie on a plane under the lowest layer, the questions on one further down, the terms they name
      in between, the other answers that cite the same provisions just under the answers, each area's name under its
      questions. On phones the traced laws the lite network lacks are added as documents of their own.
-   - Everything is drawn at once: all documents, their links, all areas, questions and traces. What is not chosen is
-     drawn at ONE constant light alpha (LIGHT): documents and trace nodes mixed toward the page ground, links and the
-     traces' thin strokes transparent. The chosen traces are solid: their nodes and links opaque, their traced paths
-     bold (navy core over the gold halo, js/paper3d.js VL.TraceLines; the V/W arms with the term -> defining clause
-     hop). No area is dimmed and nothing fades with distance; a choice writes the alpha attributes once.
+   - Everything is drawn at once: all documents, their links, all areas, questions and traces. Two constant levels:
+     with nothing chosen everything is drawn at the light alpha (LIGHT); while traces are chosen, they are solid (their
+     nodes and links opaque, their traced paths bold: navy core over the gold halo, js/paper3d.js VL.TraceLines; the V/W
+     arms with the term -> defining clause hop) and every other item of the traces (questions, answers, other answers,
+     terms, provisions, areas, the links among them, the thin strokes) drops to the faint alpha (FAINT), while the
+     network's documents and links stay at LIGHT. The documents are mixed toward the page ground (as network-3d.html
+     draws them); the trace nodes, the links and the strokes are transparent (no depth write), so a faint node never
+     covers what lies behind it. No area is dimmed and nothing fades with distance; a choice writes the alpha
+     attributes once.
    - Several traces at once: a click on a question (list or scene) chooses it alone; the round button of its row,
      Space on the row or Ctrl/Cmd-click add or remove it; an area heading's 'All 20' chooses the area's 20 questions;
      'Clear', the panel's x and Esc choose none. The Fig. 5 hop panel shows the last chosen trace, with a '3 of 20'
@@ -92,14 +96,24 @@
   var params = VL.params(), mobile = VL.isMobile();
   /* the network of network-3d.html: the full one on wide screens, the lite one on phones (#ds=full|lite) */
   var DS = params.ds === 'full' || params.ds === 'lite' ? params.ds : (mobile ? 'lite' : 'full');
-  /* the ONE light alpha of everything not chosen. Model renders of the load view, Labour and wages #3 and all 20 of
-     Labour at 0.18, 0.3 and 0.45 in both themes (docs in the v1.2 report): 0.18 loses the network's links and the
-     traces' strokes on the dark ground, 0.45 lets the 540 strokes and 40,816 documents compete with a chosen trace;
-     0.3 keeps the network's layers and every trace legible in both themes and the chosen trace the only solid ink.
+  /* the light alpha: everything with nothing chosen, the network's documents and links always. Model renders of the
+     load view, Labour and wages #3 and all 20 of Labour at 0.18, 0.3 and 0.45 in both themes (the v1.2 report): 0.18
+     loses the network's links and the traces' strokes on the dark ground, 0.45 lets the 540 strokes and 40,816
+     documents compete with a chosen trace; 0.3 keeps the network's layers and every trace legible in both themes.
      #light=<0..1> draws another level (model renders, tests) */
   var LIGHT = (function () { var v = parseFloat(params.light); return v > 0 && v <= 1 ? v : 0.3; })();
   var LIGHT32 = Math.fround(LIGHT);     // as the alpha buffers (Float32Array) hold it
   T.light = LIGHT;
+  /* the faint alpha: every item of the traces not chosen while some trace is chosen (the reader's request after v1.2:
+     the other questions and answers fade when one is chosen). The network's documents and links stay at LIGHT.
+     Model renders of Labour and wages #3 and all 20 of Labour at 0.08, 0.1 and 0.12 in both themes and the colour
+     difference of one item alone on the ground (the v1.3 report): the light theme decides; 0.08 is within 15 % of v1.1's
+     0.07, which readers found nearly invisible; 0.1 leaves the 2 px provision dots at the edge of visibility; 0.12 keeps
+     every item just visible on the white ground and, on the dark one, at well under half of its light-level contrast.
+     #faint=<0..1> draws another level (model renders, tests) */
+  var FAINT = (function () { var v = parseFloat(params.faint); return v >= 0 && v <= 1 ? v : 0.12; })();
+  var FAINT32 = Math.fround(FAINT);
+  T.faint = FAINT;
 
   /* ------------------------------------------------------------------ theme */
   var P = {}, TH = {};
@@ -293,7 +307,7 @@
   /* #curves=0 draws straight links (one segment each); a software renderer (SwiftShader, llvmpipe) draws coarser curves
      as network-3d.html does; #curves=full keeps the full detail there too */
   var CURVES = params.curves !== '0', SOFT_GL = false, CURVE_FULL = params.curves === 'full';
-  var renderer = null, scene, camera, controls, netObj = null, trObj = null, ptMat = null, netEdges = {}, trEdges = null, layerGroup = null;
+  var renderer = null, scene, camera, controls, netObj = null, trObj = null, ptMat = null, trMat = null, netEdges = {}, trEdges = null, layerGroup = null;
   var lightTr = null, boldV = null, boldS = null, fgObj = null, fgMat = null, labelGroup = null, labels = [], callouts = null;
   var needsRender = true, tween = null;
   /* the reader's state: the chosen traces (sel, in list order: area, then rank), the one the panel shows (cur, an index
@@ -405,13 +419,15 @@
       size[j] = NS.pointSize(rankOfY(GPOS[3 * gi + 1]), 0);
     });
     netObj = points(pos, size, NP, 2);
-    /* 2. the trace nodes other than the laws */
+    /* 2. the trace nodes other than the laws: see-through spheres at their alpha (js/netscene.js PT_FS_A), no depth
+       write, the shared uniforms of the documents' material */
     var NT = TNODE.length, tp = new Float32Array(NT * 3), ts = new Float32Array(NT);
     TNODE.forEach(function (gi, k) {
       for (var c = 0; c < 3; c++) tp[3 * k + c] = GPOS[3 * gi + c];
       ts[k] = SIZE[cname(gi)] || 9;
     });
-    trObj = points(tp, ts, NT, 3);
+    if (!trMat) trMat = new THREE.ShaderMaterial({ uniforms: ptMat.uniforms, vertexShader: NS.PT_VS, fragmentShader: NS.PT_FS_A, transparent: true, depthWrite: false });
+    trObj = points(tp, ts, NT, 3, trMat);
     updatePointScale();
     /* 3. the network's links (js/netscene.js: segments per kind and dataset, citation links on the lite network only) */
     netKeys().forEach(buildNetEdges);
@@ -425,7 +441,9 @@
     M.edges = Object.keys(netEdges).reduce(function (s, k) { return s + netEdges[k].m; }, 0);
     T.buildMs = Math.round(performance.now() - t0);
   }
-  function points(pos, size, n, order) {
+  /* a Points object of the scene: the documents' material (an opaque sphere mixed toward the ground by its alpha, as
+     on network-3d.html) unless another is given */
+  function points(pos, size, n, order, mat) {
     var g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     g.setAttribute('aColor', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
@@ -438,7 +456,7 @@
         vertexShader: NS.PT_VS, fragmentShader: NS.PT_FS, transparent: false, depthWrite: true
       });
     }
-    var o = new THREE.Points(g, ptMat);
+    var o = new THREE.Points(g, mat || ptMat);
     o.renderOrder = order;
     scene.add(o);
     return o;
@@ -542,16 +560,17 @@
       ec[3 * e] = c0[0] * f; ec[3 * e + 1] = c0[1] * f; ec[3 * e + 2] = c0[2] * f;
     }
     trEdges.obj.geometry.attributes.aColor.needsUpdate = true;
-    lightTr.setStyle({ colors: { core: P.core }, widths: { core: LIGHT_W, halo: 0, halo2: 0 }, opacity: LIGHT });
+    lightTr.setStyle({ colors: { core: P.core }, widths: { core: LIGHT_W, halo: 0, halo2: 0 }, opacity: strokeAlpha });
     VL.rawColor(TH.bg, ptMat.uniforms.uBg.value);
     ptMat.uniforms.uRim.value = TH.dark ? 0.7 : 0.84;
     needsRender = true;
   }
 
-  /* ------------------------------------------------------------------ the choice: solid traces, everything else light */
-  /* SELW: what the last choice set to alpha 1 (network points, trace points, trace links); a new choice puts those back
-     to LIGHT and sets its own: the attributes are written once per choice, never per frame */
-  var SELW = { net: [], tr: [], links: [] }, selPaths = [];
+  /* ------------------------------------------------------------------ the choice: solid traces, the other traces faint */
+  /* SELW: the network points the last choice set to 1 (put back to LIGHT by the next); the trace points and links are
+     all written by every choice (FAINT while something is chosen, LIGHT with nothing chosen, 1 for the chosen traces'
+     own). The attributes are written once per choice, never per frame; strokeAlpha is the thin strokes' opacity */
+  var SELW = { net: [], tr: [], links: [] }, selPaths = [], strokeAlpha = LIGHT;
   function chosenNodes() {
     var has = new Uint8Array(NG), list = [];
     state.sel.forEach(function (t) { t.n.forEach(function (i) { if (!has[i]) { has[i] = 1; list.push(i); } }); });
@@ -561,9 +580,12 @@
     if (!netObj) return;
     var t0 = performance.now();
     var na = netObj.geometry.attributes.aAlpha, ta = trObj.geometry.attributes.aAlpha, la = trEdges.obj.geometry.attributes.aAlpha;
+    var rest = state.sel.length ? FAINT : LIGHT;
     SELW.net.forEach(function (j) { na.array[j] = LIGHT; });
-    SELW.tr.forEach(function (j) { ta.array[j] = LIGHT; });
-    SELW.links.forEach(function (e) { la.array[e] = LIGHT; });
+    ta.array.fill(rest);
+    la.array.fill(rest);
+    strokeAlpha = rest;
+    lightTr.setStyle({ opacity: rest });
     var ch = chosenNodes(), net = [], tr = [], links = [];
     ch.list.forEach(function (i) {
       if (IS_WORK[i]) { na.array[WDOC[i]] = 1; net.push(WDOC[i]); } else { ta.array[TPT[i]] = 1; tr.push(TPT[i]); }
@@ -1769,17 +1791,32 @@
     search: function (q) { if (searchEl) { searchEl.value = q; applySearch(); } return T.shown; },
     question: function (id, rank) { var q = QBY[id + ':' + rank]; return q ? { vi: q.vi, en: q.en, law: q.law, node: q.t ? G.i[q.t.co[0]] : null } : null; },
     choice: function () { return { selected: T.selected.slice(), current: T.current ? T.current.key : null, index: state.cur, of: state.sel.length, hash: location.hash, step: T.step }; },
-    /* the alpha the shaders get for a node (a trace node id, or 'doc:<network id>'): 1 = chosen, LIGHT = the rest */
+    /* the alpha the shaders get for a node (a trace node id, or 'doc:<network id>'): 1 = chosen; LIGHT = a document,
+       or any node with nothing chosen; FAINT = a trace node not chosen while something is */
     alphaOf: function (id) {
       if (!netObj) return null;
       var n = nodeIndex(id);
       if (!n) return null;
       var a = n.doc >= 0 ? netObj.geometry.attributes.aAlpha.array[n.doc] : trObj.geometry.attributes.aAlpha.array[TPT[n.g]];
-      return { alpha: r3(a), light: LIGHT, doc: n.doc >= 0, traced: n.g >= 0 };
+      return { alpha: r3(a), light: LIGHT, faint: FAINT, doc: n.doc >= 0, traced: n.g >= 0 };
+    },
+    /* the materials of the scene's points and lines (the v1.3 report's shader audit): blending flags, the alpha the
+       fragment shader writes (its gl_FragColor's last component) and the point sizes (sums of the size attributes:
+       a choice never changes them; the chosen traces' foreground nodes are a separate object) */
+    materials: function () {
+      if (!netObj) return null;
+      function alphaOut(fs) { var m = /gl_FragColor = vec4\((.*)\);/.exec(fs || ''), s = m ? m[1] : '', d = 0; for (var i = s.length - 1; i >= 0; i--) { var ch = s[i]; if (ch === ')') d++; else if (ch === '(') d--; else if (ch === ',' && d === 0) return s.slice(i + 1).trim(); } return s; }
+      function one(name, mat) { return { name: name, transparent: !!mat.transparent, depthWrite: !!mat.depthWrite, depthTest: mat.depthTest !== false, alpha: alphaOut(mat.fragmentShader) }; }
+      var out = [one('documents', netObj.material), one('traceNodes', trObj.material), one('contextLinks', trEdges.obj.material)];
+      Object.keys(netEdges).forEach(function (k) { out.push(one('networkLinks.' + k, netEdges[k].obj.material)); });
+      lightTr.object.children.forEach(function (m, i) { out.push(one('strokes.' + ['halo2', 'halo', 'core'][i], m.material)); });
+      if (fgObj) out.push(one('foreground', fgObj.material));
+      function sum(a) { var s = 0; for (var i = 0; i < a.length; i++) s += a[i]; return Math.round(s * 10) / 10; }
+      return { list: out, sizes: { documents: sum(netObj.geometry.attributes.aSize.array), traceNodes: sum(trObj.geometry.attributes.aSize.array) } };
     },
     /* every alpha of the scene, as the shaders get them: per buffer the values and their counts, the link materials'
-       opacities (each kind's network-3d.html opacity times LIGHT), the strokes' opacity; mismatched = trace nodes whose
-       alpha is not 1 exactly when chosen */
+       opacities (each kind's network-3d.html opacity times LIGHT), the strokes' opacity (LIGHT, FAINT while something is
+       chosen); mismatched = trace nodes whose alpha is not 1 exactly when chosen */
     alphaState: function () {
       if (!netObj) return null;
       var ch = chosenNodes(), bad = 0, solid = 0, na = netObj.geometry.attributes.aAlpha.array, ta = trObj.geometry.attributes.aAlpha.array;
@@ -1795,8 +1832,9 @@
         nl[k] = { opacity: r3(netEdges[k].obj.material.uniforms.uOpacity.value), base: r3(NS.edgeOpacity(k, TH.dark, D.N)), links: netEdges[k].m,
           alphas: hist(netEdges[k].obj.geometry.attributes.aAlpha.array) };
       });
-      return { light: LIGHT, docs: hist(na), traceNodes: hist(ta), traceLinks: hist(trEdges.obj.geometry.attributes.aAlpha.array), chosenNodes: ch.list.length,
-        solidNodes: solid, mismatched: bad, untracedDocsNotLight: docsOff, netLinks: nl, strokes: { opacity: LIGHT, width: LIGHT_W, segments: lightTr.count(), traced: TRACED.length },
+      return { light: LIGHT, faint: FAINT, rest: r3(state.sel.length ? FAINT32 : LIGHT32), docs: hist(na), traceNodes: hist(ta), traceLinks: hist(trEdges.obj.geometry.attributes.aAlpha.array), chosenNodes: ch.list.length,
+        solidNodes: solid, mismatched: bad, untracedDocsNotLight: docsOff, netLinks: nl,
+        strokes: { opacity: r3(lightTr.object.children[2].material.uniforms.uOpacity.value), width: LIGHT_W, segments: lightTr.count(), traced: TRACED.length },
         bold: { verified: boldV.count(), structural: boldS.count() }, fg: T.fgDrawn, solid: T.solid, writes: T.selectionWrites };
     },
     /* the traced laws: each one's network point, its position and the document's (they must be the same) */
@@ -1858,8 +1896,8 @@
         docSize: Array.prototype.map.call(na.aSize.array, function (v) { return Math.round(v * 10) / 10; }), docSolid: solidDocs,
         gpos: Array.prototype.map.call(GPOS, function (v) { return Math.round(v * 10) / 10; }),
         traceNodes: { nodes: TNODE, alpha: Array.prototype.map.call(ta.aAlpha.array, r3), size: Array.prototype.slice.call(ta.aSize.array),
-          color: Array.prototype.map.call(ta.aColor.array, function (v) { return Math.round(v * 255); }) },
-        traceLinks: links, traceLinkSeg: trEdges.seg, traced: TRACED, strokes: { width: LIGHT_W, opacity: LIGHT, color: P.core, seg: LIGHT_SEG },
+          color: Array.prototype.map.call(ta.aColor.array, function (v) { return Math.round(v * 255); }), blend: trObj.material.transparent && !trObj.material.depthWrite ? 'alpha' : 'opaque' },
+        faint: FAINT, traceLinks: links, traceLinkSeg: trEdges.seg, traced: TRACED, strokes: { width: LIGHT_W, opacity: strokeAlpha, color: P.core, seg: LIGHT_SEG },
         bold: bold, boldStyle: { v: boldStyle(1), s: boldStyle(0.55), sOpacity: P.dark ? 0.6 : 0.62, seg: TRACE_SEG }, fg: fg,
         curve: { curves: CURVES, bend: NS.BEND, gap: NS.LAYER_GAP, liftMax: NS.LIFT_MAX },
         rim: ptMat.uniforms.uRim.value, fog: [FOG.value.x, FOG.value.y, FOG.value.z],

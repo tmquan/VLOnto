@@ -44,6 +44,19 @@
     '  col = mix(col, vColor * uRim, smoothstep(0.76, 0.96, r));',
     '  gl_FragColor = vec4(mix(uBg, mix(col, uBg, vFog), vAlpha), 1.0);',
     '}'].join('\n');
+  /* the same sphere see-through (traces.html's trace nodes): the depth fade as above, the whole sphere, rim included, at
+     the per-vertex alpha; for a material with transparent: true and depthWrite: false, so a faint node lets what lies
+     behind it show instead of covering it with a disc of the ground's colour */
+  var PT_FS_A = [
+    'uniform vec3 uBg; uniform float uRim; varying vec3 vColor; varying float vAlpha; varying float vFog;',
+    'void main() {',
+    '  vec2 c = gl_PointCoord - vec2(0.5); float r = length(c) * 2.0;',
+    '  if (r > 1.0 || vAlpha < 0.01) discard;',
+    '  vec3 n = vec3(c.x * 2.0, -c.y * 2.0, sqrt(max(0.0, 1.0 - r * r)));',
+    '  vec3 col = vColor * (0.86 + 0.2 * dot(n, vec3(-0.45, 0.55, 0.70)));',
+    '  col = mix(col, vColor * uRim, smoothstep(0.76, 0.96, r));',
+    '  gl_FragColor = vec4(mix(col, uBg, vFog), vAlpha);',
+    '}'].join('\n');
   /* links as smooth curves, drawn as the traces draw theirs (js/trace-draw.js TD.curve): a cubic Bezier with tangents
      along the legal-force axis at both ends, control points at 45 % of the height difference (Sankey-like S-curves
      between layers). A link within one layer would be straight that way, so it is lifted into a soft arch above its
@@ -228,7 +241,7 @@
 
   VL.NetScene = {
     ZS: ZS, KINDS: KINDS, EDGE_KEYS: EDGE_KEYS, LITE_N: LITE_N, BEND: BEND, LAYER_GAP: LAYER_GAP, LIFT_MAX: LIFT_MAX,
-    PT_VS: PT_VS, PT_FS: PT_FS, CV_VS: CV_VS, CV_FS: CV_FS,
+    PT_VS: PT_VS, PT_FS: PT_FS, PT_FS_A: PT_FS_A, CV_VS: CV_VS, CV_FS: CV_FS,
     edgeOpacity: edgeOpacity, edgeColor: edgeColor, curvePoint: curvePoint, curvePts: curvePts, segsFor: segsFor, softGL: softGL,
     curveGeometry: curveGeometry, curveMaterial: curveMaterial, updateFog: updateFog,
     datasetKey: datasetKey, load: load, dsCount: dsCount, prepare: prepare, pointSize: pointSize, pointSizes: pointSizes,

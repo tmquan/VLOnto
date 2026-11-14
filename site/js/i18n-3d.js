@@ -307,7 +307,7 @@
     'tr3d.lg.other': { en: 'Other answers', vi: 'Câu trả lời khác', k: 'pair' },
     'tr3d.lg.traced': { en: 'Traced answer', vi: 'Đường truy vết', k: 'pair' },
     'tr3d.lg.structural': { en: 'Structure only (match < 0.5)', vi: 'Chỉ khớp cấu trúc (độ khớp < 0.5)', k: 'pair' },
-    'tr3d.lg.note': { en: 'Chosen traces solid, the rest light. Dark strokes: the answer quotes the source (word 5-gram match ≥ 0.5) or reaches the clause that defines its term.', vi: 'Đường được chọn vẽ đậm, phần còn lại nhạt. Nét đậm: câu trả lời trích nguyên văn nguồn (độ khớp cụm 5 từ ≥ 0.5) hoặc dẫn tới khoản định nghĩa thuật ngữ.', k: 'pair' },
+    'tr3d.lg.note': { en: 'Chosen traces solid, other traces faint; with none chosen, all light. Dark strokes: the answer quotes the source (word 5-gram match ≥ 0.5) or reaches the clause that defines its term.', vi: 'Đường được chọn vẽ đậm, đường khác mờ; khi chưa chọn, tất cả đều nhạt. Nét đậm: câu trả lời trích nguyên văn nguồn (độ khớp cụm 5 từ ≥ 0.5) hoặc dẫn tới khoản định nghĩa thuật ngữ.', k: 'pair' },
     'tr3d.status': { en: '{docs} documents · {nodes} trace nodes · {traces} traces', vi: '{docs} văn bản · {nodes} nút truy vết · {traces} đường truy vết', k: 'text' },
     'tr3d.loadError': { en: 'Could not load the traces: {msg}', vi: 'Không tải được dữ liệu truy vết: {msg}', k: 'text' },
     'tr3d.k.areas': { en: 'Areas', vi: 'Lĩnh vực', k: 'text' },
