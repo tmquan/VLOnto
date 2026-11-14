@@ -1729,6 +1729,9 @@ def t_paper_style(c: Ctx):
                 faults = callout_faults(co2)
                 if faults:
                     raise RuntimeError("NormativeLegalDocument selected: " + "; ".join(faults))
+                clash = pg.evaluate(JS_HINT_CLASH)
+                if clash:
+                    raise RuntimeError(f"NormativeLegalDocument selected: the first-visit hint overlaps the stage tools: {clash}")
                 m2 = pg.evaluate("window.__VLONTO_METRICS")
                 if m2.get("emphLinks", 0) < 5 or not (1 <= m2.get("traceLinks", 0) <= 2):
                     raise RuntimeError(f"many links: expected the chain traced (1-2 links) and the rest thin, got traceLinks {m2.get('traceLinks')}, emphLinks {m2.get('emphLinks')}")
@@ -2073,6 +2076,16 @@ def traces_side_lang(s, mode):
     return bad
 
 
+# the first-visit hint and the stage tools (top right) never overlap: null = hint not shown (nothing to check)
+JS_HINT_CLASH = """() => {
+  const h = document.getElementById('hint'), t = document.querySelector('.stage-tools');
+  if (!h || !t || h.classList.contains('hidden') || getComputedStyle(h).display === 'none') return null;
+  const a = h.getBoundingClientRect(), b = t.getBoundingClientRect();
+  const w = Math.min(a.right, b.right) - Math.max(a.left, b.left), v = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+  return (w > 0 && v > 0) ? {hint: [a.left, a.top, a.right, a.bottom].map(Math.round), tools: [b.left, b.top, b.right, b.bottom].map(Math.round)} : false;
+}"""
+
+
 def t_traces(c: Ctx):
     """traces.html: all 540 traced answers and all 27 areas in one 3D place (js/traces3d.js, data/traces/graph.js; the
     list data/traces/questions.js). No area tabs and no dimming by area: one side list of the 540 questions under 27 area
@@ -2155,15 +2168,6 @@ def t_traces(c: Ctx):
         return {"selected": {k: S.get(k) for k in ("q", "provision", "law", "term", "areaNode", "fg", "segments")},
                 "verified_segments": s["verified"], "structural_segments": s["structural"], "callouts": callout_summary(co),
                 "placed": [p["id"] for p in co["placed"]], "occluded_by_panel": occluded, "panel": geo["panel"]}
-
-    # the first-visit hint and the stage tools (top right) never overlap: null = hint not shown (nothing to check)
-    JS_HINT_CLASH = """() => {
-      const h = document.getElementById('hint'), t = document.querySelector('.stage-tools');
-      if (!h || !t || h.classList.contains('hidden') || getComputedStyle(h).display === 'none') return null;
-      const a = h.getBoundingClientRect(), b = t.getBoundingClientRect();
-      const w = Math.min(a.right, b.right) - Math.max(a.left, b.left), v = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
-      return (w > 0 && v > 0) ? {hint: [a.left, a.top, a.right, a.bottom].map(Math.round), tools: [b.left, b.top, b.right, b.bottom].map(Math.round)} : false;
-    }"""
 
     ctx, pg, log = c.open("traces.html", ready_timeout=T_(240000))
     try:
