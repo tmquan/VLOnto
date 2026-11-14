@@ -35,12 +35,14 @@ concurrency:
 jobs:
   site-check:
     runs-on: ubuntu-24.04
-    timeout-minutes: 300
+    timeout-minutes: 360        # GitHub's limit for hosted runners
     env:
       # GitHub-hosted runners have 4 CPUs and draw WebGL with SwiftShader: with 3 checks at a time the 3D legal network
       # renders at 0-0.9 fps and screenshots time out (runs 43183759017, 43194801771), so push runs take one at a time.
       CI_PARALLEL: ${{ inputs.parallel || '1' }}
-      CI_CHECK_TIMEOUT: 120m
+      # the theme group took 100 min on an average runner and passed its former 120 min limit on a slow one (run
+      # 43609756273: every check 1.3x slower, 283 min in all), so one check may take 170 min and the job 360
+      CI_CHECK_TIMEOUT: 170m
       PYTHONUNBUFFERED: '1'
       TZ: UTC
     steps:
@@ -60,7 +62,7 @@ jobs:
       - name: Install Playwright (lock) and the pinned chrome-headless-shell
         run: bash scripts/site/ci_setup.sh "$RUNNER_TEMP/vlonto"
       - name: Run the site checks
-        timeout-minutes: 285
+        timeout-minutes: 345
         run: bash scripts/site/ci_check.sh "$SITE_CHECK_OUT"
       - name: Upload screenshots and reports
         id: upload

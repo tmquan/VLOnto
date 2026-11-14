@@ -37,7 +37,7 @@ Results: the run page shows the summary table; `gh run list --workflow preview.y
    - smoke test: `tools/chrome.sh --version` must print the pinned version, and Playwright must launch it with WebGL.
      Versions, CPUs and memory are written to `ci/toolchain.json`.
 3. `scripts/site/ci_check.sh "$RUNNER_TEMP/site-check"` runs the six checks with the arguments of `check.sh`, three at a
-   time by default (`parallel`), each limited to 120 minutes (`CI_CHECK_TIMEOUT`):
+   time by default (`parallel`), each limited to 170 minutes (`CI_CHECK_TIMEOUT`):
 
    | check | command | scope |
    |---|---|---|
@@ -87,7 +87,8 @@ Not measured yet: no browser can run where this workflow was written, so the fir
 table and `ci/results.json` give minutes per check). Estimate for a 4-vCPU runner: setup 1–3 minutes (about 80 MB of
 wheels, the Chrome zip, apt only if a library is missing); checks roughly 30–90 minutes with `parallel` 3, mostly in
 the WebGL pages (SwiftShader renders on the CPU) and the contrast check's per-viewport captures; upload 1–2 minutes.
-Limits: 120 minutes per check, 285 minutes for the check step, 300 minutes for the job.
+Limits: 170 minutes per check, 345 minutes for the check step, 360 minutes for the job (GitHub's limit for hosted
+runners). A run takes about 230 minutes on an average runner and about 300 on a slow one.
 The column checks of v1.4 add about a dozen renderer resizes on each of the three 3D pages (with SwiftShader the
 renderer follows a drag when the mouse is released, so each resize costs one frame of the open scene) and one reload of
 `index.html`; no full network is loaded again.
