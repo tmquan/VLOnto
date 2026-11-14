@@ -68,6 +68,19 @@ phones load) and the theme group's page loops (`theme`, `paper`, `lang`) with th
 (`#ds=lite&curves=0`); the traces test's main load, the gallery, site_check and the contrast check draw the full network
 on wide screens.
 
+v1.4 makes the side column and the details panel of the three 3D pages resizable (`VL.columns` in `js/common.js`).
+`columns_check` in `interaction_tests.py` runs at the end of the ontology, network and traces tests at 1440x900 on the
+page they already have open: the side column's handle (role `separator` with its `aria-*` values) dragged +80 px with the
+mouse (the canvas area 80 px narrower, the renderer's canvas following it, the camera unchanged, no text selected, the
+width stored), dragged past both limits (220 px; at most 560 px, the 3D view at least 360 px), ArrowRight (+16 px),
+Shift+ArrowRight (+64 px), End and Home, and a double-click back to the default; then the details panel's handle after a
+selection (300–720 px, ArrowLeft +16 px), with the stage overlays (legend, tools, status line, hint) checked against
+each other and the columns at the panel's minimum and maximum width; last, a stored width applied at load: after one
+reload of `index.html`, and through the same code path on a window resize on the network and traces pages (no page
+loaded again). At 390x844 `columns_absent` checks that no handle is shown and no width is set. The traces test's
+stored-colour load also stores the widths 400 px and 520 px (applied on desktop, ignored on phones). Nothing is added to
+the theme group. Each page's result records its `seconds`.
+
 ## Runtime
 
 Not measured yet: no browser can run where this workflow was written, so the first run sets the baseline (the summary
@@ -75,6 +88,9 @@ table and `ci/results.json` give minutes per check). Estimate for a 4-vCPU runne
 wheels, the Chrome zip, apt only if a library is missing); checks roughly 30–90 minutes with `parallel` 3, mostly in
 the WebGL pages (SwiftShader renders on the CPU) and the contrast check's per-viewport captures; upload 1–2 minutes.
 Limits: 120 minutes per check, 285 minutes for the check step, 300 minutes for the job.
+The column checks of v1.4 add about a dozen renderer resizes on each of the three 3D pages (with SwiftShader the
+renderer follows a drag when the mouse is released, so each resize costs one frame of the open scene) and one reload of
+`index.html`; no full network is loaded again.
 
 ## Artifact `site-check-<run id>` (kept 14 days)
 

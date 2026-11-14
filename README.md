@@ -56,6 +56,14 @@ the navigation and buttons are in English with Vietnamese tooltips, and legends,
 `?lang=en`, `?lang=vi` or `?lang=envi` in the address forces a mode. The playbook and the ontology reference
 documentation stay in English. `docs/i18n.md` describes the language layer.
 
+On screens wider than 760 px the three 3D pages (`index.html`, `network-3d.html`, `traces.html`) have a handle on the
+inner edge of the side column and, while it is open, of the details panel. Drag it with the mouse, or focus it and use
+the arrow keys (16 px a step, 64 px with Shift; Home and End for the limits), to change the column's width; a
+double-click or Enter restores the default (side column 300 px, 340 px on the Traces page; details panel 380 px). The
+side column takes 220–560 px and the details panel 300–720 px, and the 3D view keeps at least 360 px; the camera does not
+move. The widths are remembered in the browser like the language choice (one value per column, `vlonto.cols.side` and
+`vlonto.cols.panel`, shared by the three pages). On phones the columns are sheets and have no handle.
+
 ![3D legal network: documents layered by legal force, with change and legal-basis links](docs/img/network-3d.png)
 
 The site ships the ontology and a browser subset of the graph. The full knowledge graph (parquet tables and the

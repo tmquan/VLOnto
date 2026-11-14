@@ -192,6 +192,180 @@ def stable_value(pg, js: str, timeout=T_(20000)):
     return prev
 
 
+# ---------------------------------------------------------------------------------------------------------------------
+# (C) the 3D views' resizable columns (js/common.js VL.columns; css/site.css --side-w / --panel-w): the side column (left)
+# and the details panel (right) of index.html, network-3d.html and traces.html, on the page the test already has open
+JS_COLS = """() => { const q = s => document.querySelector(s), A = window.VLApp && window.VLApp.columns;
+  const box = e => { if (!e) return null; const b = e.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom].map(x => Math.round(x * 10) / 10); };
+  const shown = e => !!e && getComputedStyle(e).display !== 'none' && e.getBoundingClientRect().width > 0;
+  const host = q('#canvas-host'), cv = host && host.querySelector('canvas'), hs = q('.col-handle-side'), hp = q('.col-handle-panel'), p = q('#panel');
+  const attrs = h => h ? ['role', 'aria-orientation', 'aria-controls', 'aria-valuenow', 'aria-valuemin', 'aria-valuemax', 'tabindex', 'aria-label'].map(a => h.getAttribute(a)) : null;
+  let stored; try { stored = [localStorage.getItem('vlonto.cols.side'), localStorage.getItem('vlonto.cols.panel')]; } catch (e) { stored = ['blocked', 'blocked']; }
+  const sb = box(q('#side')), pb = p && !p.classList.contains('hidden') && shown(p) ? box(p) : null, st = box(q('#stage'));
+  const sel = window.getSelection ? String(window.getSelection()) : '';
+  return { side: sb, panel: pb, host: box(host), canvas: cv ? [cv.width, cv.height] : null, handles: { side: shown(hs) ? box(hs) : null, panel: shown(hp) ? box(hp) : null },
+    aria: { side: attrs(hs), panel: attrs(hp) }, widths: A ? A.widths() : null, limits: A ? { side: A.limits('side'), panel: A.limits('panel') } : null, stored,
+    free: Math.round(((pb ? pb[0] : st[2]) - sb[2]) * 10) / 10, scrollW: document.documentElement.scrollWidth, innerW: innerWidth, selection: sel,
+    vars: [q('#app').style.getPropertyValue('--side-w'), q('#app').style.getPropertyValue('--panel-w')], M: window.__VLONTO_METRICS.columns || null }; }"""
+# the stage's overlays (first-visit hint, stage tools, legend, status line) with a column resized: none meets another,
+# none lies under the side column or the open panel; the stage between the columns at least 360 px wide
+JS_COLS_OVERLAYS = """() => { const q = s => document.querySelector(s);
+  const vis = e => !!e && !e.hidden && !e.classList.contains('hidden') && getComputedStyle(e).display !== 'none' && getComputedStyle(e).visibility !== 'hidden' && e.getBoundingClientRect().width > 1;
+  const box = e => { const b = e.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom].map(x => Math.round(x * 10) / 10); };
+  const p = q('#panel'), pb = vis(p) ? box(p) : null, side = box(q('#side')), stage = box(q('#stage'));
+  const B = {}; [['hint', '#hint'], ['tools', '.stage-tools'], ['legend', '#legend'], ['status', '#status']].forEach(([k, s]) => { const e = q(s); if (vis(e)) B[k] = box(e); });
+  const meet = (a, b) => a[0] < b[2] - 0.5 && b[0] < a[2] - 0.5 && a[1] < b[3] - 0.5 && b[1] < a[3] - 0.5, ks = Object.keys(B), bad = [];
+  for (let i = 0; i < ks.length; i++) for (let j = i + 1; j < ks.length; j++) if (meet(B[ks[i]], B[ks[j]])) bad.push(ks[i] + '/' + ks[j]);
+  ks.forEach(k => { if (pb && B[k][2] > pb[0] + 0.5) bad.push(k + ' under the panel'); if (B[k][0] < side[2] - 0.5) bad.push(k + ' under the side'); });
+  const free = (pb ? pb[0] : stage[2]) - side[2];
+  if (free < 359.5) bad.push('stage ' + free + ' px');
+  return { bad, boxes: B, panel: pb, free: Math.round(free * 10) / 10 }; }"""
+JS_FRAMES = "(n) => new Promise(r => { let k = 0; const f = () => (++k >= n ? r(k) : requestAnimationFrame(f)); requestAnimationFrame(f); })"
+
+
+def columns_check(pg, cam, select=None, reload_ready=None):
+    """The side column and the details panel resized on a page already open at 1440 x 900 (no page load but, with
+    reload_ready, one reload of index.html): the left handle (role=separator, aria-*, tabindex 0) dragged +80 px with
+    the mouse -> the column 80 px wider (+-1), the canvas area 80 px narrower, the renderer's canvas following it, the
+    camera unchanged, no text selected, no horizontal page scroll, the width stored (VL.store 'cols.side'); dragged far
+    right / left -> clamped at the maximum (560 px, the stage at least 360 px) / 220 px; ArrowRight +16, Shift+ArrowRight
+    +64, End / Home the maximum / minimum; a double-click -> the default (the store emptied). The details panel (opened
+    by `select` when it is not open): the same with its handle, which widens it towards the left, and at its maximum and
+    minimum widths the stage overlays meet neither each other nor a column (JS_COLS_OVERLAYS). A stored width is applied
+    at load: after a reload (reload_ready: the page's ready condition) or, without one, through the same code path on a
+    window resize. Both columns end at their defaults with the store emptied."""
+    t0 = time.time()
+    faults, out = [], {}
+    frames = lambda n=2: pg.evaluate(JS_FRAMES, n)  # noqa: E731
+    W = lambda s, k: round(s[k][2] - s[k][0], 1)  # noqa: E731
+
+    def at(sel):
+        return pg.evaluate("(s) => { const b = document.querySelector(s).getBoundingClientRect(); return [b.left + b.width / 2, b.top + b.height / 2]; }", sel)
+
+    def drag(sel, dx, settle=False):
+        x, y = at(sel)
+        pg.mouse.move(x, y)
+        pg.mouse.down()
+        pg.mouse.move(x + dx / 2, y, steps=2)
+        pg.mouse.move(x + dx, y, steps=2)
+        pg.mouse.up()
+        if settle:
+            frames()
+        return pg.evaluate(JS_COLS)
+
+    def key(sel, k):
+        pg.focus(sel)
+        pg.keyboard.press(k)
+        return pg.evaluate(JS_COLS)
+
+    def near(a, b, tol=1.01):
+        return a is not None and b is not None and abs(a - b) <= tol
+
+    cam0 = pg.evaluate(cam)
+    s0 = pg.evaluate(JS_COLS)
+    a = s0["aria"]["side"]
+    if not s0["handles"]["side"] or not a or a[:3] != ["separator", "vertical", "side"] or a[6] != "0" or not a[7] or a[4] != "220":
+        faults.append(f"side handle {s0['handles']['side']} aria {a}")
+    dside, w0, h0 = s0["widths"]["defaults"]["side"], W(s0, "side"), W(s0, "host")
+    pr = (s0["canvas"][0] / h0) if s0["canvas"] and h0 else None
+    # the left column
+    s1 = drag(".col-handle-side", 80, settle=True)
+    cam1 = pg.evaluate(cam)
+    if not near(W(s1, "side"), w0 + 80) or not near(W(s1, "host"), h0 - 80) or (pr and s1["canvas"] and abs(s1["canvas"][0] - W(s1, "host") * pr) > 2) \
+            or cam1 != cam0 or s1["selection"] or s1["scrollW"] > s1["innerW"] or s1["stored"][0] not in (str(int(round(w0 + 80))), "blocked"):
+        faults.append(f"side +80: side {W(s1, 'side')} (from {w0}), canvas area {W(s1, 'host')} (from {h0}), renderer {s1['canvas']}, "
+                      f"camera kept {cam1 == cam0}, selection {s1['selection']!r}, page {s1['scrollW']} / {s1['innerW']}, stored {s1['stored']}")
+    s2 = drag(".col-handle-side", 600)
+    s3 = drag(".col-handle-side", -900)
+    if not near(W(s2, "side"), s2["limits"]["side"][1]) or s2["limits"]["side"][1] > 560 or s2["free"] < 359.5 or not near(W(s3, "side"), 220):
+        faults.append(f"side clamps: {W(s2, 'side')} (max {s2['limits']['side']}, stage {s2['free']}), {W(s3, 'side')} (min 220)")
+    k1 = key(".col-handle-side", "ArrowRight")
+    k2 = key(".col-handle-side", "Shift+ArrowRight")
+    k3 = key(".col-handle-side", "End")
+    k4 = key(".col-handle-side", "Home")
+    if not near(W(k1, "side"), 236) or not near(W(k2, "side"), 300) or not near(W(k3, "side"), k3["limits"]["side"][1]) or not near(W(k4, "side"), 220) \
+            or k1["aria"]["side"][3] != "236":
+        faults.append(f"side keys: {W(k1, 'side')} (aria {k1['aria']['side'][3]}), {W(k2, 'side')}, {W(k3, 'side')}, {W(k4, 'side')}")
+    pg.dblclick(".col-handle-side")
+    s4 = pg.evaluate(JS_COLS)
+    if not near(W(s4, "side"), dside) or s4["stored"][0] not in (None, "blocked") or s4["vars"][0]:
+        faults.append(f"side default: {W(s4, 'side')} (default {dside}), stored {s4['stored']}, var {s4['vars'][0]!r}")
+    out["side"] = {"default": dside, "drag80": W(s1, "side"), "max": W(s2, "side"), "min": W(s3, "side"), "keys": [W(k, "side") for k in (k1, k2, k3, k4)],
+                   "canvas": [s0["canvas"], s1["canvas"]], "stage_at_max": s2["free"]}
+    # the details panel
+    if select and not s4["panel"]:
+        select()
+        pg.wait_for_function("() => { const p = document.getElementById('panel'); return p && !p.classList.contains('hidden') && document.getElementById('stage').classList.contains('panel-open'); }",
+                             timeout=T_(30000))
+        frames()
+    p0 = pg.evaluate(JS_COLS)
+    if p0["panel"]:
+        a = p0["aria"]["panel"]
+        if not p0["handles"]["panel"] or not a or a[:3] != ["separator", "vertical", "panel"] or a[4] != "300" or not a[7]:
+            faults.append(f"panel handle {p0['handles']['panel']} aria {a}")
+        dpanel, q0, f0, cam2 = p0["widths"]["defaults"]["panel"], W(p0, "panel"), p0["free"], pg.evaluate(cam)
+        p1 = drag(".col-handle-panel", -80, settle=True)
+        if not near(W(p1, "panel"), q0 + 80) or not near(p1["free"], f0 - 80) or (pr and p1["canvas"] and abs(p1["canvas"][0] - W(p1, "host") * pr) > 2) \
+                or pg.evaluate(cam) != cam2 or p1["scrollW"] > p1["innerW"] or p1["stored"][1] not in (str(int(round(q0 + 80))), "blocked"):
+            faults.append(f"panel +80: panel {W(p1, 'panel')} (from {q0}), stage {p1['free']} (from {f0}), renderer {p1['canvas']}, stored {p1['stored']}")
+        p2 = drag(".col-handle-panel", -900, settle=True)
+        o2 = pg.evaluate(JS_COLS_OVERLAYS)
+        p3 = drag(".col-handle-panel", 900, settle=True)
+        o3 = pg.evaluate(JS_COLS_OVERLAYS)
+        if not near(W(p2, "panel"), p2["limits"]["panel"][1]) or p2["limits"]["panel"][1] > 720 or not near(W(p3, "panel"), 300) or o2["bad"] or o3["bad"]:
+            faults.append(f"panel clamps: {W(p2, 'panel')} (max {p2['limits']['panel']}), {W(p3, 'panel')} (min 300); overlays at max {o2}, at min {o3}")
+        k5 = key(".col-handle-panel", "ArrowLeft")
+        if not near(W(k5, "panel"), 316):
+            faults.append(f"panel ArrowLeft: {W(k5, 'panel')} (316 expected)")
+        pg.dblclick(".col-handle-panel")
+        p4 = pg.evaluate(JS_COLS)
+        if not near(W(p4, "panel"), dpanel) or p4["stored"][1] not in (None, "blocked") or p4["vars"][1]:
+            faults.append(f"panel default: {W(p4, 'panel')} (default {dpanel}), stored {p4['stored']}, var {p4['vars'][1]!r}")
+        out["panel"] = {"default": dpanel, "drag80": W(p1, "panel"), "max": W(p2, "panel"), "min": W(p3, "panel"), "arrowLeft": W(k5, "panel"),
+                        "stage_at_max": p2["free"], "overlays_at_max": o2["boxes"], "overlays_at_min": o3["boxes"]}
+    else:
+        faults.append("the details panel did not open")
+    # a stored width applied at load
+    if reload_ready:
+        pg.focus(".col-handle-side")
+        pg.keyboard.press("Shift+ArrowRight")                     # stored: the default + 64
+        want = pg.evaluate(JS_COLS)
+        pg.reload()
+        pg.wait_for_function(reload_ready, timeout=T_(120000))
+        got = pg.evaluate(JS_COLS)
+        how = "reload"
+    else:
+        want = pg.evaluate("() => { try { localStorage.setItem('vlonto.cols.side', '412'); } catch (e) { return null; } window.dispatchEvent(new Event('resize')); return true; }")
+        frames()
+        got = pg.evaluate(JS_COLS)
+        want = {"side": [0, 0, 412, 0]} if want else None
+        how = "window resize"
+    if want and not near(W(got, "side"), W(want, "side")):
+        faults.append(f"stored width at load ({how}): {W(got, 'side')}, stored {W(want, 'side')}")
+    out["stored"] = {"how": how, "side": W(got, "side") if want else None}
+    pg.evaluate("() => { const A = window.VLApp.columns; A.reset('side'); A.reset('panel'); }")
+    frames()
+    s5 = pg.evaluate(JS_COLS)
+    if s5["vars"] != ["", ""] or s5["stored"][0] not in (None, "blocked") or pg.evaluate(cam) is None:
+        faults.append(f"end state: vars {s5['vars']}, stored {s5['stored']}")
+    out["camera_kept"] = pg.evaluate(cam) == cam0 if not reload_ready else None
+    out["seconds"] = round(time.time() - t0, 1)
+    if faults:
+        raise RuntimeError("; ".join(faults))
+    return out
+
+
+def columns_absent(pg):
+    """Phones (390 x 844): the columns are sheets; no resize handle is rendered and no width is set on the scene app."""
+    r = pg.evaluate("""() => { const hs = Array.from(document.querySelectorAll('.col-handle'));
+        return { handles: hs.length, shown: hs.filter(h => getComputedStyle(h).display !== 'none' && h.getBoundingClientRect().width > 0).length,
+                 vars: [document.getElementById('app').style.getPropertyValue('--side-w'), document.getElementById('app').style.getPropertyValue('--panel-w')] }; }""")
+    if r["shown"] or r["vars"] != ["", ""]:
+        raise RuntimeError(f"phone columns {r}")
+    return r
+
+
+
 def t_ontology(c: Ctx):
     res = {"test": "playground (index.html)", "checks": []}
     ctx, pg, log = c.open("index.html")          # the 3D ontology playground is the landing page
@@ -462,6 +636,14 @@ def t_ontology(c: Ctx):
         f = pg.evaluate("ms => window.VLApp.measureFps(ms)", 3000)
         return {"fps": f, "renderer": M().get("webglRenderer")}
     check("frame rate (SwiftShader)", fps)
+
+    def columns():
+        if c.mobile:
+            return columns_absent(pg)
+        return columns_check(pg, "() => JSON.stringify(window.VLApp.camera())", select=lambda: pg.evaluate("() => window.VLApp.search('Article')"),
+                             reload_ready="window.__VLONTO_READY === true")
+    check("the side column and the details panel resized with the mouse and the keyboard (handles, limits, default width, "
+          "the stored width after a reload); phones: no handle", columns)
     res["log"] = log
     ctx.close()
     return res
@@ -637,6 +819,13 @@ def t_network(c: Ctx):
         return {"dataset": other, "fps": f, "nodes": m.get("nodes"), "edges": m.get("edges"), "load_ms": m.get("loadMs"), "build_ms": m.get("buildMs"),
                 "shot": c.shot(pg, "network3d_" + other)}
     check("frame rate, other dataset (SwiftShader)", fps_other)
+
+    def columns():
+        if c.mobile:
+            return columns_absent(pg)
+        return columns_check(pg, "() => JSON.stringify(window.VLApp.camera())", select=lambda: pg.evaluate("() => window.VLApp.search('45/2019/QH14')"))
+    check("the side column and the details panel resized with the mouse and the keyboard (handles, limits, default width, "
+          "a stored width read on a window resize); phones: no handle", columns)
     res["log"] = log
     ctx.close()
     return res
@@ -2665,6 +2854,14 @@ def t_traces(c: Ctx):
         check("a click on a node of the trace opens its details; a click on a document of the network opens its details with "
               "its link to the 3D legal network", node_click, pg)
 
+        def columns():
+            if c.mobile:
+                return columns_absent(pg)
+            return columns_check(pg, "() => JSON.stringify([window.VLApp.traces.camera(), window.__VLONTO_METRICS.traces.cameraMoves || 0])",
+                                 select=lambda: select(pg, *TRACE_PICKS[0]))
+        check("the side column and the details panel resized with the mouse and the keyboard (handles, limits, default width, a "
+              "stored width read on a window resize; the camera and its move count kept); phones: no handle", columns, pg)
+
         JS_Q_HIT = """(picks) => { const A = window.VLApp.traces, host = document.getElementById('canvas-host'), b = host.getBoundingClientRect();
             for (const [area, rank] of picks) { const q = A.question(area, rank), p = q && A.project(q.node);
               if (!p || !p.inside) continue;
@@ -2940,10 +3137,19 @@ def t_traces(c: Ctx):
         for name, page, seed, want in (("stored kind", f"traces.html#{LITE}", "kind", "kind"),
                                        ("#color=area over a stored kind", f"traces.html#color=area&{LITE}", "kind", "area"),
                                        ("#color=kind, nothing stored", f"traces.html#color=kind&{LITE}", None, "kind")):
-            init = ("try { window.localStorage.setItem('vlonto.traces3d-color', '" + seed + "'); } catch (e) {}") if seed else None
+            # the first load also stores the columns' widths: applied at load on wide screens, ignored on phones (v1.4)
+            cols = ("window.localStorage.setItem('vlonto.cols.side', '400'); window.localStorage.setItem('vlonto.cols.panel', '520'); "
+                    if name == "stored kind" else "")
+            init = ("try { window.localStorage.setItem('vlonto.traces3d-color', '" + seed + "'); " + cols + "} catch (e) {}") if seed else None
             ctx, pg, log = c.open(page, init_script=init, ready_timeout=T_(240000))
             try:
                 pg.wait_for_function("() => window.__VLONTO_METRICS.traces.sceneReady && window.VLApp.traces.settle()", timeout=T_(120000))
+                if cols:
+                    cw = pg.evaluate("""() => ({ widths: window.VLApp.columns.widths(), side: Math.round(document.getElementById('side').getBoundingClientRect().width),
+                        vars: [document.getElementById('app').style.getPropertyValue('--side-w'), document.getElementById('app').style.getPropertyValue('--panel-w')] })""")
+                    if (cw["vars"] != ["", ""]) if c.mobile else (cw["widths"]["side"] != 400 or cw["widths"]["panel"] != 520 or abs(cw["side"] - 400) > 1):
+                        raise RuntimeError(f"stored column widths at load ({'ignored on phones' if c.mobile else '400 / 520'}): {cw}")
+                    out["columns at load"] = cw
                 k = colours(pg, want, name)
                 stored = pg.evaluate("() => window.localStorage.getItem('vlonto.traces3d-color')")
                 if stored != seed:
