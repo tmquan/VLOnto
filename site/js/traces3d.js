@@ -1,50 +1,56 @@
-/* VLOnto - question traces in 3D (traces.html): ONE interactive WebGL scene with all traced answers of the 27 legal
-   areas (data/traces/graph.js, built by scripts/site/trace_global.py): laws, chapters, sections, articles, clauses and
-   points, questions, answers, terms and areas, every node once, the areas as regions of the floor in the order of the
-   list, each laid out like the paper's Fig. 1 (arXiv:2611.11426). All questions and all areas are one place: no area
-   is ever 'opened' and nothing is dimmed by area.
-   - the map is static: every node and link keeps its place and the camera only moves when the reader moves it (or asks
-     for 'Zoom to selection' / 'Reset view'); choosing, searching and the list change the drawing only;
-   - one side list of all 540 traced questions under their 27 area headings (data/traces/questions.js) with a search
-     that filters on the question's words, its English gloss, the law's name and number and the area's name
-     (diacritic-insensitive), an 'n of 540' live line and arrow keys; a click on a question node in the scene chooses it
-     too (hover: its question in a tooltip);
-   - choosing a question draws its trace solid and bold on top (navy core over the gold halo, js/paper3d.js
-     VL.TraceLines; the V/W arms with the term -> defining clause hop) and fades the rest of the map as a focus volume:
-     every other node and link takes an opacity from its 3D distance to the trace (a Gaussian transfer function in the
-     shaders, the distances computed once per choice), context nodes become soft splats and the far map a haze toward
-     the page ground; it places bilingual call-outs with VL.Callouts (question, provision, law, term, area; never over
-     ink or each other) and shows the Fig. 5 hop panel (titles and hop data from data/traces/<area>.js, loaded when a
-     question of the area is first chosen; no fetch, file:// works);
-   - rotate, zoom and pan (OrbitControls), hover and click any node for its details, deep links #q=<area>:<rank> (and
-     v1's #area=<id>&q=<rank>; #area=<id> alone scrolls the list to the area), keyboard (search, list, arrows and +/-
-     on the canvas, Esc), reset view (the whole map), zoom to selection, flat legend;
-   - phones: the question list (with its search) and the hop panel are bottom sheets; the whole map is drawn;
-   - without WebGL the page keeps the list, its search and the hop panel and draws the chosen trace in 2D
+/* VLOnto - question traces in the 3D legal network (traces.html): ONE WebGL scene with the whole 3D legal network of
+   network-3d.html and all 540 traced answers of the 27 legal areas inside it (arXiv:2611.11426).
+   - The network is drawn as network-3d.html draws it (js/netscene.js, shared by both pages): every document at its own
+     place, its height the legal-force layer (Constitution on top), the change and legal-basis links as curves with the
+     same detail policy; data/legal_network.js (40,816 documents) on wide screens, data/legal_network_lite.js (6,000)
+     on phones as there (#ds=full|lite picks one), the citation links on the lite network only.
+   - The traces live in it (data/traces/graph.js, scripts/site/trace_global.py): every traced law IS its network
+     document; its chapters, sections, articles, clauses and points hang just under it, inside the gap above the next
+     layer; the answers lie on a plane under the lowest layer, the questions on one further down, the terms they name
+     in between, the other answers that cite the same provisions just under the answers, each area's name under its
+     questions. On phones the traced laws the lite network lacks are added as documents of their own.
+   - Everything is drawn at once: all documents, their links, all areas, questions and traces. What is not chosen is
+     drawn at ONE constant light alpha (LIGHT): documents and trace nodes mixed toward the page ground, links and the
+     traces' thin strokes transparent. The chosen traces are solid: their nodes and links opaque, their traced paths
+     bold (navy core over the gold halo, js/paper3d.js VL.TraceLines; the V/W arms with the term -> defining clause
+     hop). No area is dimmed and nothing fades with distance; a choice writes the alpha attributes once.
+   - Several traces at once: a click on a question (list or scene) chooses it alone; the round button of its row,
+     Space on the row or Ctrl/Cmd-click add or remove it; an area heading's 'All 20' chooses the area's 20 questions;
+     'Clear', the panel's x and Esc choose none. The Fig. 5 hop panel shows the last chosen trace, with a '3 of 20'
+     stepper through the chosen ones (titles and hop data from data/traces/<area>.js, loaded when first needed).
+   - The camera is static: the whole scene is framed on load from the network page's direction and moves only when the
+     reader moves it or asks for 'Zoom to selection' (all chosen traces) or 'Reset view'.
+   - Call-outs (VL.Callouts): the layer names at their corners and, with nothing chosen, the 27 areas' names; the
+     shown trace's question, provision and law (phones: question and provision) must be named, its term and area and
+     the other chosen questions where they fit; never over ink, the panels or each other.
+   - One side list of the 540 questions under the 27 area headings (data/traces/questions.js) with a search (words,
+     English gloss, law name or number, area; diacritic-insensitive), arrow keys, Home / End.
+   - Deep links: #q=<area>:<rank>; #q=<area>:<r1>,<r2>; #q=<a1>:<r1>,<r2>;<a2>:<r3> (the first listed is shown in the
+     panel); #area=<area>&all=1 (the area's 20; &q=<rank> shows that one); v1's #area=<id>&q=<rank>; #area=<id> alone
+     scrolls the list to the area. The page writes the form that matches the choice.
+   - Without WebGL the page keeps the list, its search and the hop panel and draws the shown trace in 2D
      (js/trace-draw.js, the build-time drawing in the area file).
-   Points and lines follow js/network3d.js (custom point shader with soft pastel spheres, LineSegments, depth fade,
-   render on demand); paper3d.js, labels3d.js and common.js are used as they are.
    window.__VLONTO_METRICS.traces and .callouts, and window.VLApp.traces, serve the interaction tests.
    Text follows the language mode of js/i18n.js (docs/i18n.md; dictionary js/i18n-3d.js, keys tr3d.*): EN shows the
-   questions' English glosses, VI the Vietnamese titles, EN–VI both (as in v1); headings, list, hop panel, node panel,
-   legend, call-outs and status lines likewise. A mode change ('vl:lang') renders them again in place and keeps the
-   chosen trace, the search, the camera, the open panel and the list's scroll and focus. */
+   questions' English glosses, VI the Vietnamese titles, EN-VI both (as in v1). A mode change ('vl:lang') renders the
+   text again in place and keeps the choice, the search, the camera, the open panel and the list's scroll and focus. */
 (function () {
   'use strict';
-  var VL = window.VL, M = window.__VLONTO_METRICS, TD = VL.TraceDraw;
+  var VL = window.VL, M = window.__VLONTO_METRICS, TD = VL.TraceDraw, NS = VL.NetScene;
   VL.chrome({ scene: true });
   M.page = 'traces';
   M.paperStyle = true;
   var IDX = window.VLONTO.traces_index;
-  var T = M.traces = { available: false, areas: 0, groups: 0, shown: 0, query: '', loaded: [], selected: null, traceSegments: 0, hops: 0, listItems: 0,
-    renders: 0, frames: 0, errors: [], webgl: null, fallback: false, flights: 0, themeRenders: 0 };
+  var T = M.traces = { available: false, areas: 0, groups: 0, shown: 0, query: '', loaded: [], selected: [], current: null, panel: null,
+    traceSegments: 0, hops: 0, listItems: 0, renders: 0, frames: 0, errors: [], webgl: null, fallback: false, flights: 0, themeRenders: 0,
+    cameraMoves: 0, selectionWrites: 0, sceneReady: false };
   var esc = VL.esc, fmt = VL.fmt;
   /* a count that picks the English singular (en_one) */
   function nv(c) { return c === 1 ? 1 : fmt(c); }
   function tipAttr(k, vars) { var t = VL.tip(k, vars); return t ? ' title="' + esc(t) + '"' : ''; }
   var app = VL.$('#app'), stage = VL.$('#stage'), host = VL.$('#canvas-host'), panel = VL.$('#panel'), tip = VL.$('#tip');
   var legendEl = VL.$('#legend'), statusEl = VL.$('#status'), listEl = VL.$('#tr-list'), searchEl = VL.$('#tr-search'), countEl = VL.$('#tr-count');
-  var fbEl = VL.$('#tr-fallback'), veil = VL.$('#veil');
+  var fbEl = VL.$('#tr-fallback'), veil = VL.$('#veil'), clearEl = VL.$('#tr-clear');
   var EXT = VL.ICON.external;
   /* a match score with two decimals, in the mode's number format (0.92; 0,92 in VI) */
   function f2(x) {
@@ -60,6 +66,7 @@
       esc(sr || VL.U('tr3d.newTab')) + ')</span></span></a>';
   }
   function hideVeil() { if (veil) veil.classList.add('hidden'); }
+  function veilText(s) { var v = VL.$('#veil-text'); if (v) v.textContent = s; }
 
   if (!IDX || !IDX.available || !IDX.areas || !IDX.areas.length) {
     VL.$('#tr-nodata').hidden = false;
@@ -82,11 +89,28 @@
   }
   renderRevs();
 
+  var params = VL.params(), mobile = VL.isMobile();
+  /* the network of network-3d.html: the full one on wide screens, the lite one on phones (#ds=full|lite) */
+  var DS = params.ds === 'full' || params.ds === 'lite' ? params.ds : (mobile ? 'lite' : 'full');
+  /* the ONE light alpha of everything not chosen. Model renders of the load view, Labour and wages #3 and all 20 of
+     Labour at 0.18, 0.3 and 0.45 in both themes (docs in the v1.2 report): 0.18 loses the network's links and the
+     traces' strokes on the dark ground, 0.45 lets the 540 strokes and 40,816 documents compete with a chosen trace;
+     0.3 keeps the network's layers and every trace legible in both themes and the chosen trace the only solid ink.
+     #light=<0..1> draws another level (model renders, tests) */
+  var LIGHT = (function () { var v = parseFloat(params.light); return v > 0 && v <= 1 ? v : 0.3; })();
+  var LIGHT32 = Math.fround(LIGHT);     // as the alpha buffers (Float32Array) hold it
+  T.light = LIGHT;
+
   /* ------------------------------------------------------------------ theme */
   var P = {}, TH = {};
   function readTheme() {
     P = VL.paperTheme();
-    TH = { dark: P.dark, bg: P.bg };
+    var pl = NS.planeTheme();
+    /* documents in the paper's colour of a law ('work'); the network's links and the other answers' citations in one
+       neutral tone (css/site.css --tr-link, a light grey on either ground): the class colours of the trace nodes and the
+       traces' navy and gold stay the only colours that compete for attention */
+    TH = { dark: P.dark, bg: P.bg, plane: pl.plane, planeOpacity: pl.planeOpacity, planeLine: pl.planeLine, planeLineOpacity: pl.planeLineOpacity,
+      doc: P.cls.work, link: VL.tok('--tr-link') || P.leader };
     M.sceneBg = P.bg;
     M.traceCore = P.core;
   }
@@ -96,8 +120,8 @@
   /* an area's name: EN–VI its Vietnamese and English names (v1), EN or VI one name */
   function areaPair(a) { return VL.pair(a.label_vi, a.label_en); }
   /* every traced question (data/traces/questions.js, scripts/site/trace_site.py): {a: area index, id: area id, rank,
-     vi: title, en: English gloss, law: {vi, en, number}, verified, match, hay: its folded search text}; GROUPS[a] = the
-     area's questions by rank; QNODE[node] = the question of a question node */
+     vi: title, en: English gloss, law: {vi, en, number}, verified, match, hay: its folded search text, t: its trace};
+     GROUPS[a] = the area's questions by rank; QNODE[node] = the questions of a question node */
   var QS = [], QBY = {}, GROUPS = AREAS.map(function () { return []; }), QNODE = {};
   function loadQuestions() {
     if (window.VLONTO.traces_questions) return Promise.resolve(window.VLONTO.traces_questions);
@@ -134,14 +158,25 @@
     T.listItems = QS.length;
   }
   function linkQuestionNodes() {
-    G.t.forEach(function (t) { var q = QBY[AREAS[t.a].id + ':' + t.r]; if (q) { QNODE[t.co[0]] = q; q.t = t; } });
+    G.t.forEach(function (t) {
+      var q = QBY[AREAS[t.a].id + ':' + t.r];
+      if (!q) return;
+      q.t = t;
+      t.q = q;
+      (QNODE[t.co[0]] = QNODE[t.co[0]] || []).push(q);
+    });
   }
 
-  /* ------------------------------------------------------------------ data */
-  var G = null, N = 0, POS = null, CLS = null, HOME = null, CNAME = [], TRK = {}, BYNODE = null, AD = {};
-  var SIZE = { area: 13, work: 15, record: 9, chapter: 10, section: 9, article: 8.5, clause: 7.5, point: 6.5, term: 10, question: 12,
-    answer: 10, other_question: 5 };
-  var KIND_ALPHA = { contains: 1, cites: 0.8, mentions: 0.9, defines: 0.95, answers: 1, applies_to: 0.38, realizes: 0.85 };
+  /* ------------------------------------------------------------------ the traces (data/traces/graph.js, v2) */
+  /* G: i ids, c classes, p positions (the network's units x 10, z up), d {law node: network document id}, vi / en
+     labels, u source links, e links by kind, t traces {a, r, n nodes, f foreground, e traced segments [i, j, style],
+     co call-out nodes [question, answer, provision, law, term or -1, area]}, areas [{id, n: name node}].
+     GPOS: scene positions (x, height = z x ZS, depth = y, as js/netscene.js places the documents); a law takes its
+     document's exact position */
+  var G = null, NG = 0, GPOS = null, GCLS = null, CNAME = [], TRK = {}, AREA_T = [], BYNODE = null, AD = {}, IS_WORK = null;
+  /* point sizes of the trace nodes (world units, as the network's documents: js/netscene.js pointSize) */
+  var SIZE = { area: 26, work: 18, chapter: 12, section: 11.5, article: 11, clause: 10, point: 9, term: 15, question: 22, answer: 17,
+    other_question: 8 };
   function loadGraph() {
     if (window.VLONTO.traces_graph) return Promise.resolve(window.VLONTO.traces_graph);
     return VL.loadScript('data/traces/' + ((IDX.graph && IDX.graph.file) || 'graph.js')).then(function () {
@@ -149,23 +184,34 @@
       return window.VLONTO.traces_graph;
     });
   }
-  function prepare(g) {
+  function prepareGraph(g) {
+    if (g.v !== 2 || !g.d || !g.net) throw new Error('data/traces/graph.js is not a v2 graph (rebuild with scripts/site/trace_site.py)');
     G = g;
-    N = g.i.length;
+    NG = g.i.length;
     CNAME = g.classes;
-    POS = new Float32Array(N * 3);
-    for (var k = 0; k < N * 3; k++) POS[k] = g.p[k] / 10;
-    CLS = Uint8Array.from(g.c);
-    HOME = Int16Array.from(g.h);
-    g.t.forEach(function (t, k) { t.k = k; TRK[t.a + ':' + t.r] = t; });
-    T.graph = { nodes: N, links: Object.keys(g.e).reduce(function (s, k) { return s + g.e[k].length / 2; }, 0), traces: g.t.length };
+    GCLS = Uint8Array.from(g.c);
+    GPOS = new Float32Array(NG * 3);
+    for (var i = 0; i < NG; i++) {
+      GPOS[3 * i] = g.p[3 * i] / 10;
+      GPOS[3 * i + 1] = g.p[3 * i + 2] / 10 * NS.ZS;
+      GPOS[3 * i + 2] = g.p[3 * i + 1] / 10;
+    }
+    var wk = CNAME.indexOf('work');
+    IS_WORK = new Uint8Array(NG);
+    for (var j = 0; j < NG; j++) IS_WORK[j] = GCLS[j] === wk ? 1 : 0;
+    AREA_T = AREAS.map(function () { return []; });
+    g.t.forEach(function (t, k) { t.k = k; TRK[t.a + ':' + t.r] = t; if (AREA_T[t.a]) AREA_T[t.a].push(t); });
+    AREA_T.forEach(function (l) { l.sort(function (x, y) { return x.r - y.r; }); });
+    T.graph = { nodes: NG, links: Object.keys(g.e).reduce(function (s, k) { return s + g.e[k].length / 2; }, 0), traces: g.t.length,
+      laws: Object.keys(g.d).length, networkDocs: g.net.nodes };
   }
-  function cname(i) { return CNAME[CLS[i]]; }
-  function ptOf(i) { return { x: POS[3 * i], y: POS[3 * i + 1], z: POS[3 * i + 2] }; }
+  function cname(i) { return CNAME[GCLS[i]]; }
+  function ptOf(i) { return { x: GPOS[3 * i], y: GPOS[3 * i + 1], z: GPOS[3 * i + 2] }; }
   function num(i) { return String(G.i[i]).split(':').pop(); }
+  function key(t) { return AREAS[t.a].id + ':' + t.r; }
   /* [Vietnamese, English] name of a node: questions, answers and other answers by id (their titles are not in the graph) */
   function names(i) {
-    var c = cname(i), q = c === 'question' ? QNODE[i] : null;
+    var c = cname(i), q = c === 'question' && QNODE[i] ? QNODE[i][0] : null;
     if (q) return [q.vi, q.en || q.vi];      // a traced question: its title and English gloss (data/traces/questions.js)
     var k = { question: 'tr3d.name.question', answer: 'tr3d.name.answer', other_question: 'tr3d.name.otherQuestion' }[c];
     if (k) { var p = VL.kpair(k, { n: num(i) }); return [p.vi, p.en]; }
@@ -185,122 +231,75 @@
     return BYNODE[i] || [];
   }
   function loadArea(a) {
-    var key = 'traces_' + a.id;
-    if (window.VLONTO[key]) return Promise.resolve(window.VLONTO[key]);
+    var k = 'traces_' + a.id;
+    if (window.VLONTO[k]) { if (!AD[a.id]) indexArea(a, window.VLONTO[k]); return Promise.resolve(window.VLONTO[k]); }
     return VL.loadScript('data/traces/' + a.file).then(function () {
-      var d = window.VLONTO[key];
-      if (!d || !d.traces) throw new Error('data/traces/' + a.file + ' did not register ' + key);
-      if (T.loaded.indexOf(a.id) < 0) T.loaded.push(a.id);
-      AD[a.id] = {};
-      d.traces.forEach(function (tr) { AD[a.id][tr.rank] = tr; });
+      var d = window.VLONTO[k];
+      if (!d || !d.traces) throw new Error('data/traces/' + a.file + ' did not register ' + k);
+      indexArea(a, d);
       return d;
     });
+  }
+  function indexArea(a, d) {
+    if (T.loaded.indexOf(a.id) < 0) T.loaded.push(a.id);
+    AD[a.id] = {};
+    d.traces.forEach(function (tr) { AD[a.id][tr.rank] = tr; });
+  }
+
+  /* ------------------------------------------------------------------ the network (js/netscene.js) */
+  /* D: the dataset (NS.prepare); WDOC[node] = the network point of a law (its document; on phones a traced law the
+     lite network lacks is an extra point after the dataset's, EXTRA = those laws); TPT[node] = the trace point of every
+     other node (TNODE = the reverse); DOCG[point] = the law node of a network point (-1: not traced) */
+  var D = null, NP = 0, EXTRA = [], WDOC = null, TPT = null, TNODE = [], DOCG = null;
+  function rankOfY(y) {
+    var z = y / NS.ZS, best = 5, bd = Infinity;
+    for (var r = 0; r <= 5; r++) { var d = Math.abs((D.layerZ[r] != null ? D.layerZ[r] : (5 - r) * 150) - z); if (d < bd) { bd = d; best = r; } }
+    return best;
+  }
+  function linkNetwork(net) {
+    D = NS.prepare(net, DS);
+    WDOC = new Int32Array(NG).fill(-1);
+    EXTRA = [];
+    var inData = 0, dev = 0, laws = 0;
+    for (var i = 0; i < NG; i++) {
+      if (!IS_WORK[i]) continue;
+      laws++;
+      var id = G.d[String(i)], j = id != null ? D.idx[String(id)] : null;
+      if (j != null) {
+        inData++;
+        for (var c = 0; c < 3; c++) { dev = Math.max(dev, Math.abs(GPOS[3 * i + c] - D.pos[3 * j + c])); GPOS[3 * i + c] = D.pos[3 * j + c]; }
+        WDOC[i] = j;
+      } else {
+        WDOC[i] = D.N + EXTRA.length;
+        EXTRA.push(i);
+      }
+    }
+    NP = D.N + EXTRA.length;
+    DOCG = new Int32Array(NP).fill(-1);
+    for (var w = 0; w < NG; w++) if (WDOC[w] >= 0) DOCG[WDOC[w]] = w;
+    TPT = new Int32Array(NG).fill(-1);
+    TNODE = [];
+    for (var n = 0; n < NG; n++) if (!IS_WORK[n]) { TPT[n] = TNODE.length; TNODE.push(n); }
+    /* the laws' places agree with the network's (graph.js keeps tenths): the largest difference before snapping */
+    T.network = { dataset: DS, docs: D.N, extra: EXTRA.length, points: NP, laws: laws, lawsInDataset: inData, lawPosMaxDev: Math.round(dev * 1000) / 1000,
+      layers: D.layerZ, extent: D.extent, traceNodes: TNODE.length };
+    M.dataset = DS;
   }
 
   /* ------------------------------------------------------------------ three setup (as js/network3d.js) */
   function rgb(hex) { return VL.rawColor(hex, new THREE.Color()).toArray(); }
+  /* depth fade shared by points and lines (js/netscene.js updateFog) */
   var FOG = { value: new THREE.Vector3(1, 1e6, 0) };
-  /* the focus volume's transfer function (see applyFocus): alpha = rest + (1 - rest) * exp(-(d / sigma)^2) of the 3D
-     distance d (aDist) to the chosen trace, faded in by uFocus (0: nothing chosen, every node solid) */
-  var FOCUS_GLSL = 'float focusAlpha(float d) { float x = d / uSigma; return mix(1.0, uRest + (1.0 - uRest) * exp(-x * x), uFocus); }';
-  /* two passes draw the same nodes: the solid one (uHaze 0: shaded spheres with depth writes) takes the nodes of the
-     chosen trace (d = 0), or all of them when nothing is chosen; the haze one (uHaze 1) the others as soft splats */
-  var PT_VS = [
-    'attribute vec3 aColor; attribute float aAlpha; attribute float aSize; attribute float aDist;',
-    'uniform float uScale; uniform float uFocus; uniform float uSigma; uniform float uRest; uniform float uHaze; uniform float uSplat;',
-    'varying vec3 vColor; varying float vAlpha; varying float vDepth;',
-    FOCUS_GLSL,
-    'void main() {',
-    '  vColor = aColor;',
-    '  bool solid = uFocus < 0.5 || aDist <= 0.0;',
-    '  vAlpha = (uHaze > 0.5) == solid ? 0.0 : aAlpha * focusAlpha(aDist);',
-    '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
-    '  vDepth = -mv.z;',
-    '  float s = aSize * uScale / max(1.0, -mv.z) * (uHaze > 0.5 ? uSplat : 1.0);',
-    '  gl_PointSize = vAlpha < 0.01 ? 0.0 : clamp(s, 1.5, 64.0);',
-    '  gl_Position = projectionMatrix * mv;',
-    '}'].join('\n');
-  var PT_FS = [
-    'uniform vec3 uBg; uniform vec3 uFog; uniform float uRim; uniform float uHaze; uniform float uTint;',
-    'varying vec3 vColor; varying float vAlpha; varying float vDepth;',
-    'void main() {',
-    '  vec2 c = gl_PointCoord - vec2(0.5); float r = length(c) * 2.0;',
-    '  if (r > 1.0 || vAlpha < 0.01) discard;',
-    '  float f = clamp((vDepth - uFog.x) / max(1.0, uFog.y - uFog.x), 0.0, 1.0) * uFog.z;',
-    '  if (uHaze > 0.5) {',
-    // a soft round splat: Gaussian alpha falloff; the fainter it is, the nearer its colour to the page ground (haze, not glow)
-    '    vec3 hc = mix(vColor, uBg, uTint * (1.0 - vAlpha));',
-    '    gl_FragColor = vec4(hc, vAlpha * exp(-3.2 * r * r) * (1.0 - f));',
-    '    return;',
-    '  }',
-    '  vec3 n = vec3(c.x * 2.0, -c.y * 2.0, sqrt(max(0.0, 1.0 - r * r)));',
-    '  vec3 col = vColor * (0.86 + 0.2 * dot(n, vec3(-0.45, 0.55, 0.70)));',
-    '  col = mix(col, vColor * uRim, smoothstep(0.76, 0.96, r));',
-    '  gl_FragColor = vec4(mix(uBg, mix(col, uBg, f), vAlpha), 1.0);',
-    '}'].join('\n');
-  /* links as smooth curves, as the traces and the 3D legal network draw theirs (js/trace-draw.js TD.curve): a cubic Bezier
-     with vertical tangents at both ends and control points at 45 % of the height difference; a link within one level is
-     lifted into a soft arch (BEND x its horizontal length, at most LIFT_MAX, fading out over one level gap of height
-     difference). The vertex shader evaluates the curve: one instanced draw per segment budget, a shared strip of SEG + 1
-     points (t) and per-link endpoints, colour and alpha. curvePoint() is the same curve on the CPU (the traced ribbon and
-     the call-out ink). #curves=0 draws straight links (one segment) to compare frame rates. */
-  var CURVES = VL.params().curves !== '0', CV = { bend: 0.18, gap: 16, liftMax: 6.4 };
-  var LN_VS = [
-    'attribute float aT; attribute vec3 aA; attribute vec3 aB; attribute vec3 aColor; attribute float aAlpha; attribute float aDA; attribute float aDB;',
-    'uniform float uBend; uniform float uLiftMax; uniform float uLayer; uniform float uFocus; uniform float uSigma; uniform float uRest;',
-    'uniform vec3 uBg; uniform float uTint;',
-    'varying vec3 vColor; varying float vAlpha; varying float vDepth;',
-    FOCUS_GLSL,
-    'void main() {',
-    // the link's distance to the trace along its length; as it fades its colour tends to the page ground, as the splats'
-    '  float fa = focusAlpha(mix(aDA, aDB, aT));',
-    '  vColor = mix(aColor, uBg, uTint * (1.0 - fa)); vAlpha = aAlpha * fa;',
-    '  if (vAlpha < 0.01) { vDepth = 0.0; gl_Position = vec4(0.0, 0.0, 2.0, 1.0); return; }',
-    '  vec3 d = aB - aA;',
-    '  float k = 0.45 * d.y, lift = min(uBend * length(d.xz), uLiftMax) * clamp(1.0 - abs(d.y) / uLayer, 0.0, 1.0);',
-    '  float t = aT, u = 1.0 - t, w0 = u * u * u, w1 = 3.0 * u * u * t, w2 = 3.0 * u * t * t, w3 = t * t * t;',
-    '  vec3 p = vec3((w0 + w1) * aA.x + (w2 + w3) * aB.x,',
-    '    w0 * aA.y + w1 * (aA.y + k + lift) + w2 * (aB.y - k + lift) + w3 * aB.y,',
-    '    (w0 + w1) * aA.z + (w2 + w3) * aB.z);',
-    '  vec4 mv = modelViewMatrix * vec4(p, 1.0);',
-    '  vDepth = -mv.z;',
-    '  gl_Position = projectionMatrix * mv;',
-    '}'].join('\n');
-  function curvePoint(a, b, t) {
-    var dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z, k = 0.45 * dy;
-    var lift = Math.min(CV.bend * Math.sqrt(dx * dx + dz * dz), CV.liftMax) * Math.max(0, Math.min(1, 1 - Math.abs(dy) / CV.gap));
-    var u = 1 - t, w0 = u * u * u, w1 = 3 * u * u * t, w2 = 3 * u * t * t, w3 = t * t * t;
-    return { x: (w0 + w1) * a.x + (w2 + w3) * b.x, y: w0 * a.y + w1 * (a.y + k + lift) + w2 * (b.y - k + lift) + w3 * b.y,
-      z: (w0 + w1) * a.z + (w2 + w3) * b.z };
-  }
-  function curvePts(a, b, n) {
-    if (!CURVES) n = 1;
-    var out = [];
-    for (var i = 0; i <= n; i++) out.push(curvePoint(a, b, i / n));
-    return out;
-  }
-  /* how far a link's curve leaves its chord (world units): an S between levels bends most when its run equals its rise */
-  function curveDev(a, b) {
-    var dx = b.x - a.x, dy = b.y - a.y, dz = b.z - a.z, h = Math.sqrt(dx * dx + dz * dz);
-    var lift = Math.min(CV.bend * h, CV.liftMax) * Math.max(0, Math.min(1, 1 - Math.abs(dy) / CV.gap));
-    return Math.max(0.34 * Math.min(Math.abs(dy), h), 0.75 * lift);
-  }
-  var LN_FS = [
-    'uniform float uOpacity; uniform vec3 uFog; varying vec3 vColor; varying float vAlpha; varying float vDepth;',
-    'void main() {',
-    '  if (vAlpha < 0.01) discard;',
-    '  float f = clamp((vDepth - uFog.x) / max(1.0, uFog.y - uFog.x), 0.0, 1.0) * uFog.z;',
-    '  gl_FragColor = vec4(vColor, vAlpha * uOpacity * (1.0 - f));',
-    '}'].join('\n');
-
-  var renderer = null, scene, camera, controls, pointsObj = null, pointsMat = null, hazeObj = null, hazeMat = null, linesMat = null, lineGroups = [];
-  var traceV = null, traceS = null, labelGroup = null, labels = [], callouts = null, needsRender = true, tween = null;
-  var fgObj = null, fgMat = null;   // the selected trace's own nodes, drawn again over its strokes (as in the paper's figures)
-  var EDGE = null;            // {s, t: Int32Array, k: Uint8Array (kind index), base: Float32Array, g, j: group and instance}
-  var mobile = VL.isMobile();
-  /* the reader's state: the chosen question (sel), the legend, the search text. No area is ever 'open': the 27 areas are
-     one map and one list */
-  var state = { sel: null, legendOpen: !mobile, query: '' };
+  /* #curves=0 draws straight links (one segment each); a software renderer (SwiftShader, llvmpipe) draws coarser curves
+     as network-3d.html does; #curves=full keeps the full detail there too */
+  var CURVES = params.curves !== '0', SOFT_GL = false, CURVE_FULL = params.curves === 'full';
+  var renderer = null, scene, camera, controls, netObj = null, trObj = null, ptMat = null, netEdges = {}, trEdges = null, layerGroup = null;
+  var lightTr = null, boldV = null, boldS = null, fgObj = null, fgMat = null, labelGroup = null, labels = [], callouts = null;
+  var needsRender = true, tween = null;
+  /* the reader's state: the chosen traces (sel, in list order: area, then rank), the one the panel shows (cur, an index
+     of sel), the legend, the search text. No area is ever 'open': the 27 areas are one scene and one list */
+  var state = { sel: [], cur: -1, legendOpen: !mobile, query: '' };
+  function current() { return state.cur >= 0 ? state.sel[state.cur] || null : null; }
 
   function webglOk() {
     try {
@@ -314,33 +313,38 @@
   function stageSize() { return { w: Math.max(50, host.clientWidth), h: Math.max(50, host.clientHeight) }; }
   function initThree() {
     var sz = stageSize();
-    renderer = new THREE.WebGLRenderer({ antialias: !mobile, alpha: false });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, mobile ? 1.5 : 2));
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.setSize(sz.w, sz.h);
     renderer.setClearColor(TH.bg, 1);
     host.appendChild(renderer.domElement);
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(45, sz.w / sz.h, 2, 40000);
+    camera = new THREE.PerspectiveCamera(45, sz.w / sz.h, 5, 80000);
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.09;
     controls.screenSpacePanning = true;
     controls.rotateSpeed = 0.55;
     controls.zoomSpeed = 0.9;
-    controls.minDistance = 30;
-    controls.maxDistance = 12000;
+    controls.minDistance = 40;
+    controls.maxDistance = 30000;
     controls.addEventListener('change', function () { needsRender = true; scheduleCallouts(); });
     controls.addEventListener('start', hideHint);
     labelGroup = new THREE.Group();
     scene.add(labelGroup);
-    traceV = VL.TraceLines({ depthTest: false, renderOrder: 10 });
-    traceS = VL.TraceLines({ depthTest: false, renderOrder: 7 });
-    scene.add(traceS.object);
-    scene.add(traceV.object);
+    /* the traced paths: every trace thin and light (core colour only, depth-tested), the chosen ones bold on top */
+    lightTr = VL.TraceLines({ depthTest: true, renderOrder: 6 });
+    boldS = VL.TraceLines({ depthTest: false, renderOrder: 7 });
+    boldV = VL.TraceLines({ depthTest: false, renderOrder: 10 });
+    scene.add(lightTr.object);
+    scene.add(boldS.object);
+    scene.add(boldV.object);
     try {
       var gl = renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info');
       M.webglRenderer = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
     } catch (e) { M.webglRenderer = null; }
+    SOFT_GL = NS.softGL(M.webglRenderer);
+    M.curveDetail = !CURVES ? 'straight' : SOFT_GL && !CURVE_FULL ? 'reduced' : 'full';
     window.addEventListener('resize', onResize);
     requestAnimationFrame(loop);
   }
@@ -356,21 +360,14 @@
     scheduleCallouts();
   }
   function updatePointScale() {
-    if (pointsMat) pointsMat.uniforms.uScale.value = renderer.domElement.height / (2 * Math.tan(camera.fov * Math.PI / 360));
+    if (ptMat) ptMat.uniforms.uScale.value = renderer.domElement.height / (2 * Math.tan(camera.fov * Math.PI / 360));
   }
-  function updateFog() {
-    if (!camera) return;
-    var d = camera.position.distanceTo(controls.target), R = Math.max(300, viewRadius), k = FOCUS_U.uFocus.value;
-    var base = TH.dark ? FOCUS.fog.dark : FOCUS.fog.light, deep = TH.dark ? FOCUS.fogFocus.dark : FOCUS.fogFocus.light;
-    FOG.value.set(Math.max(1, d - 0.4 * R), d + 2.2 * R, base + (deep - base) * k);   // a deeper fog while a question is chosen
-  }
-  var viewRadius = 1000;
+  function updateFog() { if (camera && D) NS.updateFog(FOG, camera, controls.target, D.extent, TH.dark); }
   function loop(t) {
     requestAnimationFrame(loop);
     if (tween) stepTween(t);
-    if (fade) stepFade();
     var moved = controls.update();
-    if (needsRender || moved || tween || fade) {
+    if (needsRender || moved || tween) {
       updateFog();
       renderer.render(scene, camera);
       T.frames++;
@@ -381,196 +378,298 @@
   /* ------------------------------------------------------------------ scene objects */
   function nodeColor(i) {
     var c = cname(i);
-    return P.cls[c === 'other_question' ? 'question' : c] || '#9aa3ad';
+    return c === 'work' ? TH.doc : (P.cls[c === 'other_question' ? 'question' : c] || '#9aa3ad');
   }
-  function edgeColor(k, s, t) {
-    var c = k === 'contains' ? cname(t) : k === 'cites' ? (cname(s) === 'other_question' ? 'question' : 'answer') :
-      k === 'mentions' || k === 'defines' ? 'term' : k === 'realizes' ? 'record' : k === 'answers' ? 'answer' : 'area';
-    return P.cls[c] || '#9aa3ad';
+  function edgeColorOf(k, s, t) {
+    if (k === 'cites' && cname(s) === 'other_question') return TH.link;   // 4,000 long citations: background, as the network's
+    var c = k === 'contains' ? cname(t) : k === 'cites' ? 'answer' :
+      k === 'mentions' || k === 'defines' ? 'term' : k === 'answers' ? 'answer' : 'area';
+    return c === 'work' ? TH.doc : (P.cls[c] || '#9aa3ad');
   }
+  function pairKey(a, b) { return a < b ? a * NG + b : b * NG + a; }
+  /* TRACED: the traced segments of all 540 traces, once each ([i, j] graph nodes): thin light strokes. TL: every other
+     link of the traces (other answers' citations, the provision chains off the traced paths, applies_to, ...): curves in
+     their class colours, with the node -> links index (off, adj) a choice uses to make its own links opaque */
+  var TRACED = [], TL = null;
+  var LIGHT_W = mobile ? 1.1 : 1.3, LIGHT_SEG = 8, TRACE_SEG = 16;
+  var BOLD = mobile ? 1.3 : 1.5, FG_SIZE = 1.3;
   function buildScene() {
+    var t0 = performance.now();
+    /* 1. the network's documents, sized as on network-3d.html, and the traced laws the dataset lacks */
+    var size = new Float32Array(NP), pos = D.pos;
+    size.set(NS.pointSizes(D));
+    if (EXTRA.length) { pos = new Float32Array(NP * 3); pos.set(D.pos); }
+    EXTRA.forEach(function (gi, k) {
+      var j = D.N + k;
+      for (var c = 0; c < 3; c++) pos[3 * j + c] = GPOS[3 * gi + c];
+      size[j] = NS.pointSize(rankOfY(GPOS[3 * gi + 1]), 0);
+    });
+    netObj = points(pos, size, NP, 2);
+    /* 2. the trace nodes other than the laws */
+    var NT = TNODE.length, tp = new Float32Array(NT * 3), ts = new Float32Array(NT);
+    TNODE.forEach(function (gi, k) {
+      for (var c = 0; c < 3; c++) tp[3 * k + c] = GPOS[3 * gi + c];
+      ts[k] = SIZE[cname(gi)] || 9;
+    });
+    trObj = points(tp, ts, NT, 3);
+    updatePointScale();
+    /* 3. the network's links (js/netscene.js: segments per kind and dataset, citation links on the lite network only) */
+    netKeys().forEach(buildNetEdges);
+    /* 4. the traces' links and their traced paths; 5. the layer planes */
+    buildTraceLinks();
+    buildLayers();
+    applyColors();
+    applySelection();
+    T.edgeCost = edgeCost();
+    M.nodes = NP;
+    M.edges = Object.keys(netEdges).reduce(function (s, k) { return s + netEdges[k].m; }, 0);
+    T.buildMs = Math.round(performance.now() - t0);
+  }
+  function points(pos, size, n, order) {
     var g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(POS, 3));
-    g.setAttribute('aColor', new THREE.BufferAttribute(new Float32Array(N * 3), 3));
-    g.setAttribute('aAlpha', new THREE.BufferAttribute(new Float32Array(N).fill(1), 1));
-    g.setAttribute('aDist', new THREE.BufferAttribute(new Float32Array(N), 1));   // distance to the chosen trace (applyFocus)
-    var size = new Float32Array(N);
-    for (var i = 0; i < N; i++) size[i] = SIZE[cname(i)] || 6;
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('aColor', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+    g.setAttribute('aAlpha', new THREE.BufferAttribute(new Float32Array(n).fill(LIGHT), 1));
     g.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
     g.computeBoundingSphere();
-    CELL = (G.ext[1] - G.ext[0]) / (G.cols || 7);          // one area cell of the floor's grid, in world units
-    SIGMA = FOCUS.sigmaCells * CELL;
-    FOCUS_U.uSigma.value = SIGMA;
-    FOCUS_U.uRest.value = FOCUS.rest;
-    var U = { uScale: { value: 1 }, uBg: { value: VL.rawColor(TH.bg, new THREE.Color()) }, uFog: FOG, uRim: { value: TH.dark ? 0.7 : 0.84 },
-      uFocus: FOCUS_U.uFocus, uSigma: FOCUS_U.uSigma, uRest: FOCUS_U.uRest, uHaze: { value: 0 }, uSplat: { value: FOCUS.splat }, uTint: { value: TH.dark ? FOCUS.tint.dark : FOCUS.tint.light } };
-    pointsMat = new THREE.ShaderMaterial({ uniforms: U, vertexShader: PT_VS, fragmentShader: PT_FS, transparent: false, depthWrite: true });
-    pointsObj = new THREE.Points(g, pointsMat);
-    pointsObj.renderOrder = 2;
-    scene.add(pointsObj);
-    /* the haze: the same nodes, soft splats blended over the solid map and the links, no depth writes */
-    var UH = {};
-    Object.keys(U).forEach(function (k) { UH[k] = U[k]; });
-    UH.uHaze = { value: 1 };
-    hazeMat = new THREE.ShaderMaterial({ uniforms: UH, vertexShader: PT_VS, fragmentShader: PT_FS, transparent: true, depthWrite: false,
-      depthTest: true, blending: THREE.NormalBlending });
-    hazeObj = new THREE.Points(g, hazeMat);
-    hazeObj.renderOrder = 3;
-    scene.add(hazeObj);
-    updatePointScale();
-    /* all links as curves (see LN_VS): two instanced draws, links that visibly bend with SEG segments, near-straight ones
-       (vertical chains, long runs between regions) with 2 */
-    CV = { bend: 0.18, gap: 0.1 * G.H, liftMax: 0.04 * G.H };
-    var kinds = G.kinds || Object.keys(G.e), m = 0;
-    kinds.forEach(function (k) { m += (G.e[k] || []).length / 2; });
-    EDGE = { s: new Int32Array(m), t: new Int32Array(m), k: new Uint8Array(m), base: new Float32Array(m), g: new Uint8Array(m), j: new Int32Array(m) };
-    var e = 0, SEG = CURVES ? (mobile ? 6 : 8) : 1, counts = [0, 0];
-    kinds.forEach(function (k, ki) {
+    if (!ptMat) {
+      ptMat = new THREE.ShaderMaterial({
+        uniforms: { uScale: { value: 1 }, uBg: { value: VL.rawColor(TH.bg, new THREE.Color()) }, uFog: FOG, uRim: { value: TH.dark ? 0.7 : 0.84 } },
+        vertexShader: NS.PT_VS, fragmentShader: NS.PT_FS, transparent: false, depthWrite: true
+      });
+    }
+    var o = new THREE.Points(g, ptMat);
+    o.renderOrder = order;
+    scene.add(o);
+    return o;
+  }
+  function netKeys() { return NS.EDGE_KEYS.filter(function (k) { return k !== 'citation' || DS === 'lite'; }); }
+  function buildNetEdges(k) {
+    var pairs = D.edges[k], m = pairs.length / 2, S = NS.segsFor(k, D.N, { curves: CURVES, soft: SOFT_GL, full: CURVE_FULL });
+    var A = new Float32Array(m * 3), B = new Float32Array(m * 3), al = new Float32Array(m).fill(1);
+    for (var e = 0; e < m; e++) {
+      var s = pairs[2 * e], t = pairs[2 * e + 1];
+      A[3 * e] = D.pos[3 * s]; A[3 * e + 1] = D.pos[3 * s + 1]; A[3 * e + 2] = D.pos[3 * s + 2];
+      B[3 * e] = D.pos[3 * t]; B[3 * e + 1] = D.pos[3 * t + 1]; B[3 * e + 2] = D.pos[3 * t + 2];
+    }
+    var obj = new THREE.LineSegments(NS.curveGeometry(S, A, B, al, null, D.extent), NS.curveMaterial(false, 1, FOG));
+    obj.frustumCulled = false;
+    obj.renderOrder = NS.KINDS.indexOf(k) >= 0 ? 4 : 1;
+    scene.add(obj);
+    netEdges[k] = { obj: obj, m: m, seg: S };
+    M.edgeSegments = M.edgeSegments || {};
+    M.edgeSegments[k] = S;
+  }
+  function buildTraceLinks() {
+    var traced = new Set();
+    TRACED = [];
+    G.t.forEach(function (t) {
+      var e = t.e;
+      for (var j = 0; j < e.length; j += 3) {
+        var kk = pairKey(e[j], e[j + 1]);
+        if (!traced.has(kk)) { traced.add(kk); TRACED.push([e[j], e[j + 1]]); }
+      }
+    });
+    var kinds = G.kinds || Object.keys(G.e), ss = [], tt = [], ki = [];
+    kinds.forEach(function (k, n) {
       var arr = G.e[k] || [];
-      for (var j = 0; j < arr.length; j += 2, e++) {
-        var s = arr[j], tt = arr[j + 1];
-        EDGE.s[e] = s; EDGE.t[e] = tt; EDGE.k[e] = ki;
-        EDGE.base[e] = (KIND_ALPHA[k] || 0.8) * (HOME[s] !== HOME[tt] ? 0.35 : 1);   // links between regions: the sharing, faint
-        var g = CURVES && curveDev(ptOf(s), ptOf(tt)) >= 1.5 ? 0 : 1;
-        EDGE.g[e] = g; EDGE.j[e] = counts[g]++;
+      for (var j = 0; j < arr.length; j += 2) {
+        if (traced.has(pairKey(arr[j], arr[j + 1]))) continue;
+        ss.push(arr[j]); tt.push(arr[j + 1]); ki.push(n);
       }
     });
-    EDGE.kinds = kinds;
-    linesMat = new THREE.ShaderMaterial({
-      uniforms: { uOpacity: { value: 0.5 }, uFog: FOG, uBend: { value: CV.bend }, uLiftMax: { value: CV.liftMax }, uLayer: { value: CV.gap },
-        uFocus: FOCUS_U.uFocus, uSigma: FOCUS_U.uSigma, uRest: FOCUS_U.uRest, uBg: U.uBg, uTint: U.uTint },
-      vertexShader: LN_VS, fragmentShader: LN_FS, transparent: true, depthWrite: false, blending: THREE.NormalBlending
-    });
-    lineGroups = [SEG, CURVES ? 2 : 1].map(function (S, g) {
-      var n = counts[g], A = new Float32Array(3 * n), B = new Float32Array(3 * n);
-      for (var q = 0; q < m; q++) {
-        if (EDGE.g[q] !== g) continue;
-        var a = EDGE.s[q], b = EDGE.t[q], o = 3 * EDGE.j[q];
-        A[o] = POS[3 * a]; A[o + 1] = POS[3 * a + 1]; A[o + 2] = POS[3 * a + 2];
-        B[o] = POS[3 * b]; B[o + 1] = POS[3 * b + 1]; B[o + 2] = POS[3 * b + 2];
-      }
-      var geo = new THREE.InstancedBufferGeometry(), tt2 = new Float32Array(S + 1), idx = new Uint16Array(2 * S);
-      for (var i = 0; i <= S; i++) tt2[i] = i / S;
-      for (var j2 = 0; j2 < S; j2++) { idx[2 * j2] = j2; idx[2 * j2 + 1] = j2 + 1; }
-      geo.setAttribute('aT', new THREE.BufferAttribute(tt2, 1));
-      geo.setIndex(new THREE.BufferAttribute(idx, 1));
-      geo.setAttribute('aA', new THREE.InstancedBufferAttribute(A, 3));
-      geo.setAttribute('aB', new THREE.InstancedBufferAttribute(B, 3));
-      geo.setAttribute('aColor', new THREE.InstancedBufferAttribute(new Float32Array(3 * n), 3));
-      geo.setAttribute('aAlpha', new THREE.InstancedBufferAttribute(new Float32Array(n), 1));
-      geo.setAttribute('aDA', new THREE.InstancedBufferAttribute(new Float32Array(n), 1));
-      geo.setAttribute('aDB', new THREE.InstancedBufferAttribute(new Float32Array(n), 1));
-      geo.instanceCount = n;
-      var obj = new THREE.LineSegments(geo, linesMat);
-      obj.frustumCulled = false;
-      obj.renderOrder = 1;
-      scene.add(obj);
-      return { obj: obj, seg: S, n: n, color: geo.attributes.aColor, alpha: geo.attributes.aAlpha, da: geo.attributes.aDA, db: geo.attributes.aDB };
-    });
-    for (var e2 = 0; e2 < m; e2++) lineGroups[EDGE.g[e2]].alpha.array[EDGE.j[e2]] = EDGE.base[e2];   // fixed; the focus is in the shader
-    lineGroups.forEach(function (L) { L.alpha.needsUpdate = true; });
-    T.linksShown = m;
-    ALPHA = new Float32Array(N).fill(1);
-    T.edgeCost = { curves: CURVES, links: m, vertices: lineGroups.reduce(function (s2, L) { return s2 + L.n * (L.seg + 1); }, 0),
-      segments: lineGroups.reduce(function (s2, L) { return s2 + L.n * L.seg; }, 0), groups: lineGroups.map(function (L) { return [L.n, L.seg]; }) };
-    applyColors();
-    applyFocus(0);
+    var m = ss.length;
+    TL = { s: Int32Array.from(ss), t: Int32Array.from(tt), k: Uint8Array.from(ki), m: m, kinds: kinds };
+    var deg = new Int32Array(NG + 1), e2;
+    for (e2 = 0; e2 < m; e2++) { deg[TL.s[e2]]++; deg[TL.t[e2]]++; }
+    var off = new Int32Array(NG + 1);
+    for (var i = 0; i < NG; i++) off[i + 1] = off[i] + deg[i];
+    var fill = off.slice(0, NG), adj = new Int32Array(off[NG]);
+    for (e2 = 0; e2 < m; e2++) { adj[fill[TL.s[e2]]++] = e2; adj[fill[TL.t[e2]]++] = e2; }
+    TL.off = off;
+    TL.adj = adj;
+    var S = !CURVES ? 1 : (SOFT_GL && !CURVE_FULL ? 4 : 8);
+    var A = new Float32Array(3 * m), B = new Float32Array(3 * m), al = new Float32Array(m).fill(LIGHT), col = new Float32Array(3 * m);
+    for (e2 = 0; e2 < m; e2++) {
+      var a = TL.s[e2], b = TL.t[e2];
+      for (var c = 0; c < 3; c++) { A[3 * e2 + c] = GPOS[3 * a + c]; B[3 * e2 + c] = GPOS[3 * b + c]; }
+    }
+    var obj = new THREE.LineSegments(NS.curveGeometry(S, A, B, al, col, D.extent), NS.curveMaterial(true, 1, FOG));
+    obj.frustumCulled = false;
+    obj.renderOrder = 5;
+    scene.add(obj);
+    trEdges = { obj: obj, m: m, seg: S };
+    lightTr.setPaths(TRACED.map(function (p) { return NS.curvePts(ptOf(p[0]), ptOf(p[1]), CURVES ? LIGHT_SEG : 1); }));
+    T.traced = { segments: TRACED.length, contextLinks: m, strokeSegments: lightTr.count() };
+  }
+  /* per-frame cost of the links: vertices through the shaders and line segments drawn, the network's and the traces' */
+  function edgeCost() {
+    var c = { curves: CURVES, detail: M.curveDetail, links: 0, vertices: 0, segments: 0, trace: { links: trEdges.m, vertices: trEdges.m * (trEdges.seg + 1),
+      segments: trEdges.m * trEdges.seg, strokes: lightTr.count() } };
+    Object.keys(netEdges).forEach(function (k) { var eo = netEdges[k]; c.links += eo.m; c.vertices += eo.m * (eo.seg + 1); c.segments += eo.m * eo.seg; });
+    return c;
+  }
+  /* the six legal-force layers of network-3d.html and, under the lowest, the answers' and questions' planes */
+  function buildLayers() {
+    if (layerGroup) {
+      scene.remove(layerGroup);
+      layerGroup.traverse(function (o) { if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+    }
+    layerGroup = NS.layerPlanes(D, TH);
+    [G.planes.z_answer, G.planes.z_question].forEach(function (z) { layerGroup.add(NS.planeAt(z * NS.ZS, D.extent * 1.06, TH)); });
+    scene.add(layerGroup);
   }
   function applyColors() {
-    var col = pointsObj.geometry.attributes.aColor.array, cache = {};
-    for (var i = 0; i < N; i++) {
-      var hex = nodeColor(i), c = cache[hex] || (cache[hex] = rgb(hex));
-      col[3 * i] = c[0]; col[3 * i + 1] = c[1]; col[3 * i + 2] = c[2];
+    var cache = {};
+    function c3(hex) { return cache[hex] || (cache[hex] = rgb(hex)); }
+    var col = netObj.geometry.attributes.aColor.array, cd = c3(TH.doc), i;
+    for (i = 0; i < NP; i++) { col[3 * i] = cd[0]; col[3 * i + 1] = cd[1]; col[3 * i + 2] = cd[2]; }
+    netObj.geometry.attributes.aColor.needsUpdate = true;
+    var tc = trObj.geometry.attributes.aColor.array;
+    for (i = 0; i < TNODE.length; i++) { var c = c3(nodeColor(TNODE[i])); tc[3 * i] = c[0]; tc[3 * i + 1] = c[1]; tc[3 * i + 2] = c[2]; }
+    trObj.geometry.attributes.aColor.needsUpdate = true;
+    /* the network's links: one neutral colour, each kind at its network-3d.html opacity times LIGHT */
+    var lc = c3(TH.link);
+    Object.keys(netEdges).forEach(function (k) {
+      var u = netEdges[k].obj.material.uniforms;
+      u.uColA.value.setRGB(lc[0], lc[1], lc[2]);
+      u.uColB.value.setRGB(lc[0], lc[1], lc[2]);
+      u.uOpacity.value = NS.edgeOpacity(k, TH.dark, D.N) * LIGHT;
+    });
+    var f = TH.dark ? 0.78 : 0.86, ec = trEdges.obj.geometry.attributes.aColor.array;
+    for (var e = 0; e < TL.m; e++) {
+      var c0 = c3(edgeColorOf(TL.kinds[TL.k[e]], TL.s[e], TL.t[e]));
+      ec[3 * e] = c0[0] * f; ec[3 * e + 1] = c0[1] * f; ec[3 * e + 2] = c0[2] * f;
     }
-    pointsObj.geometry.attributes.aColor.needsUpdate = true;
-    var f = TH.dark ? 0.78 : 0.86;
-    for (var e = 0; e < EDGE.s.length; e++) {
-      var hx = edgeColor(EDGE.kinds[EDGE.k[e]], EDGE.s[e], EDGE.t[e]), c0 = cache[hx] || (cache[hx] = rgb(hx)), lc = lineGroups[EDGE.g[e]].color.array, o = 3 * EDGE.j[e];
-      lc[o] = c0[0] * f; lc[o + 1] = c0[1] * f; lc[o + 2] = c0[2] * f;
-    }
-    lineGroups.forEach(function (L) { L.color.needsUpdate = true; });
-    linesMat.uniforms.uOpacity.value = TH.dark ? 0.42 : 0.55;
-    VL.rawColor(TH.bg, pointsMat.uniforms.uBg.value);
-    pointsMat.uniforms.uRim.value = TH.dark ? 0.7 : 0.84;
-    pointsMat.uniforms.uTint.value = TH.dark ? FOCUS.tint.dark : FOCUS.tint.light;   // the haze tends to this theme's ground
+    trEdges.obj.geometry.attributes.aColor.needsUpdate = true;
+    lightTr.setStyle({ colors: { core: P.core }, widths: { core: LIGHT_W, halo: 0, halo2: 0 }, opacity: LIGHT });
+    VL.rawColor(TH.bg, ptMat.uniforms.uBg.value);
+    ptMat.uniforms.uRim.value = TH.dark ? 0.7 : 0.84;
     needsRender = true;
   }
-  /* the focus volume (v1.1): a chosen question's trace is drawn solid and bold on top; every other node and link takes an
-     opacity from its 3D distance d to the trace (the nearest trace node or link chord):
-       alpha = rest + (1 - rest) * exp(-(d / sigma)^2),   sigma = sigmaCells x one area cell of the floor
-     The distances are computed here once per choice (per node, and per link end - the line shader interpolates along
-     the link); the shaders apply the transfer function and uFocus fades it in and out (uniforms only, no per-frame
-     loop over the nodes). Context nodes are soft splats without depth writes, so the far map becomes a haze that fades
-     toward the page ground, and the depth fog deepens while a question is chosen. Nothing chosen: the whole map, solid. */
-  /* tuned on model renders of Labour and wages #3 (light and dark): sigma 0.7 of an area cell keeps the chosen area
-     legible, the next areas at about 0.2 and the far map at the 0.07 floor; the haze (splats and links) tends to the
-     page ground by tint x (1 - alpha), more in dark, where pale pastels would otherwise add up to a light mist */
-  var FOCUS = { sigmaCells: 0.7, rest: 0.07, tint: { light: 0.5, dark: 0.8 }, splat: 1.3, fog: { light: 0.55, dark: 0.5 }, fogFocus: { light: 0.7, dark: 0.66 },
-    fadeMs: 320, bold: mobile ? 1.3 : 1.5, fgSize: 1.35 };
-  T.focus = FOCUS;
-  var FOCUS_U = { uFocus: { value: 0 }, uSigma: { value: 1 }, uRest: { value: FOCUS.rest } };
-  var CELL = 1, SIGMA = 1, ALPHA = null, DIST = null, fade = null;
-  function transfer(d) { var x = d / SIGMA; return FOCUS.rest + (1 - FOCUS.rest) * Math.exp(-x * x); }
-  /* d of every node to the trace t: the nearest of its link chords (t.e) - its own nodes (t.f) 0, every other node more */
-  function traceDistances(t, out) {
-    var e = t.e, ns = e.length / 3, Sg = new Float64Array(6 * ns), fg = new Uint8Array(N), k, i;
-    for (k = 0; k < ns; k++) {
-      var a = e[3 * k], b = e[3 * k + 1];
-      for (var c = 0; c < 3; c++) { Sg[6 * k + c] = POS[3 * a + c]; Sg[6 * k + 3 + c] = POS[3 * b + c] - POS[3 * a + c]; }
-    }
-    t.f.forEach(function (j) { fg[j] = 1; });
-    for (i = 0; i < N; i++) {
-      if (fg[i]) { out[i] = 0; continue; }
-      var px = POS[3 * i], py = POS[3 * i + 1], pz = POS[3 * i + 2], best = Infinity;
-      for (k = 0; k < ns; k++) {
-        var o = 6 * k, wx = px - Sg[o], wy = py - Sg[o + 1], wz = pz - Sg[o + 2], dx = Sg[o + 3], dy = Sg[o + 4], dz = Sg[o + 5];
-        var L = dx * dx + dy * dy + dz * dz, u = L > 0 ? (wx * dx + wy * dy + wz * dz) / L : 0;
-        u = u < 0 ? 0 : (u > 1 ? 1 : u);
-        var qx = wx - u * dx, qy = wy - u * dy, qz = wz - u * dz, d2 = qx * qx + qy * qy + qz * qz;
-        if (d2 < best) best = d2;
-      }
-      out[i] = Math.max(1e-3, Math.sqrt(best));
-    }
-    return out;
+
+  /* ------------------------------------------------------------------ the choice: solid traces, everything else light */
+  /* SELW: what the last choice set to alpha 1 (network points, trace points, trace links); a new choice puts those back
+     to LIGHT and sets its own: the attributes are written once per choice, never per frame */
+  var SELW = { net: [], tr: [], links: [] }, selPaths = [];
+  function chosenNodes() {
+    var has = new Uint8Array(NG), list = [];
+    state.sel.forEach(function (t) { t.n.forEach(function (i) { if (!has[i]) { has[i] = 1; list.push(i); } }); });
+    return { list: list, has: has };
   }
-  function applyFocus(ms) {
-    if (!pointsObj) return;
-    var sel = state.sel, pa = pointsObj.geometry.attributes, dist = pa.aDist.array;
-    if (sel) {
-      var t0 = performance.now();
-      traceDistances(sel.t, dist);
-      pa.aDist.needsUpdate = true;
-      for (var e = 0; e < EDGE.s.length; e++) {
-        var L = lineGroups[EDGE.g[e]], j = EDGE.j[e];
-        L.da.array[j] = dist[EDGE.s[e]];
-        L.db.array[j] = dist[EDGE.t[e]];
+  function applySelection() {
+    if (!netObj) return;
+    var t0 = performance.now();
+    var na = netObj.geometry.attributes.aAlpha, ta = trObj.geometry.attributes.aAlpha, la = trEdges.obj.geometry.attributes.aAlpha;
+    SELW.net.forEach(function (j) { na.array[j] = LIGHT; });
+    SELW.tr.forEach(function (j) { ta.array[j] = LIGHT; });
+    SELW.links.forEach(function (e) { la.array[e] = LIGHT; });
+    var ch = chosenNodes(), net = [], tr = [], links = [];
+    ch.list.forEach(function (i) {
+      if (IS_WORK[i]) { na.array[WDOC[i]] = 1; net.push(WDOC[i]); } else { ta.array[TPT[i]] = 1; tr.push(TPT[i]); }
+      for (var q = TL.off[i]; q < TL.off[i + 1]; q++) {
+        var e = TL.adj[q], o = TL.s[e] === i ? TL.t[e] : TL.s[e];
+        if (ch.has[o] && la.array[e] !== 1) { la.array[e] = 1; links.push(e); }
       }
-      lineGroups.forEach(function (L2) { L2.da.needsUpdate = true; L2.db.needsUpdate = true; });
-      for (var i = 0; i < N; i++) ALPHA[i] = transfer(dist[i]);
-      T.focusMs = Math.round(performance.now() - t0);
-    } else ALPHA.fill(1);      // the distances stay for the fade out
-    DIST = dist;
-    fadeTo(sel ? 1 : 0, ms);
-  }
-  /* uFocus towards v over ms (FOCUS.fadeMs), stepped by the render loop */
-  function fadeTo(v, ms) {
-    var u = FOCUS_U.uFocus;
-    ms = ms != null ? ms : FOCUS.fadeMs;
-    if (!ms || Math.abs(u.value - v) < 1e-3) { u.value = v; fade = null; T.focusValue = v; needsRender = true; return; }
-    fade = { from: u.value, to: v, t0: performance.now(), ms: ms };
+    });
+    SELW = { net: net, tr: tr, links: links };
+    na.needsUpdate = true;
+    ta.needsUpdate = true;
+    la.needsUpdate = true;
+    drawSelected();
+    T.selectionWrites++;
+    T.selectMs = Math.round((performance.now() - t0) * 10) / 10;
+    T.solid = { docs: net.length, traceNodes: tr.length, links: links.length };
     needsRender = true;
   }
-  function stepFade() {
-    var k = Math.min(1, (performance.now() - fade.t0) / fade.ms), s = k * k * (3 - 2 * k);
-    FOCUS_U.uFocus.value = fade.from + (fade.to - fade.from) * s;
-    T.focusValue = Math.round(FOCUS_U.uFocus.value * 1000) / 1000;
-    if (k >= 1) fade = null;
+  /* the paper's trace widths scaled by BOLD: a chosen trace stands out from the light scene */
+  function boldStyle(w) {
+    var st = VL.traceStyle(P, w);
+    Object.keys(st.widths).forEach(function (k) { st.widths[k] *= BOLD; });
+    return st;
+  }
+  /* the chosen traces' traced paths, each segment once (text-verified wins over structural) */
+  function drawSelected() {
+    var ver = new Set(), seen = new Set(), v = [], s = [];
+    state.sel.forEach(function (t) { var e = t.e; for (var j = 0; j < e.length; j += 3) if (e[j + 2] === 1) ver.add(pairKey(e[j], e[j + 1])); });
+    state.sel.forEach(function (t) {
+      var e = t.e;
+      for (var j = 0; j < e.length; j += 3) {
+        var kk = pairKey(e[j], e[j + 1]);
+        if (seen.has(kk)) continue;
+        seen.add(kk);
+        (ver.has(kk) ? v : s).push(NS.curvePts(ptOf(e[j]), ptOf(e[j + 1]), CURVES ? TRACE_SEG : 1));
+      }
+    });
+    selPaths = v.concat(s);
+    boldV.setStyle(boldStyle(1));
+    boldS.setStyle(boldStyle(0.55));
+    boldS.setStyle({ opacity: P.dark ? 0.6 : 0.62 });
+    boldV.setPaths(v);
+    boldS.setPaths(s);
+    drawFgNodes();
+    T.traceSegments = boldV.count() + boldS.count();
+    T.traceVerified = boldV.count();
+    T.traceStructural = boldS.count();
+    needsRender = true;
+  }
+  /* the chosen traces' foreground nodes over their strokes (as in the paper's figures): a small Points object with the
+     scene's shader and uniforms, far ones first */
+  function drawFgNodes() {
+    if (fgObj) { scene.remove(fgObj); fgObj.geometry.dispose(); fgObj = null; }
+    T.fgDrawn = 0;
+    if (!state.sel.length || !netObj) return;
+    var has = new Uint8Array(NG), ids = [];
+    state.sel.forEach(function (t) { t.f.forEach(function (i) { if (!has[i]) { has[i] = 1; ids.push(i); } }); });
+    var cp = camera.position, d2 = function (i) {
+      var dx = GPOS[3 * i] - cp.x, dy = GPOS[3 * i + 1] - cp.y, dz = GPOS[3 * i + 2] - cp.z; return dx * dx + dy * dy + dz * dz;
+    };
+    ids.sort(function (a, b) { return d2(b) - d2(a); });
+    var n = ids.length, pos = new Float32Array(3 * n), col = new Float32Array(3 * n), sz = new Float32Array(n), al = new Float32Array(n).fill(1);
+    var na = netObj.geometry.attributes, ta = trObj.geometry.attributes;
+    ids.forEach(function (i, j) {
+      var src = IS_WORK[i] ? na : ta, k = IS_WORK[i] ? WDOC[i] : TPT[i];
+      for (var c = 0; c < 3; c++) { pos[3 * j + c] = GPOS[3 * i + c]; col[3 * j + c] = src.aColor.array[3 * k + c]; }
+      sz[j] = (IS_WORK[i] ? Math.max(SIZE.work, src.aSize.array[k]) : src.aSize.array[k]) * FG_SIZE;
+    });
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('aColor', new THREE.BufferAttribute(col, 3));
+    g.setAttribute('aSize', new THREE.BufferAttribute(sz, 1));
+    g.setAttribute('aAlpha', new THREE.BufferAttribute(al, 1));
+    // transparent (alpha 1): drawn in three.js' transparent pass after the trace's strokes, so the nodes lie over them
+    if (!fgMat) fgMat = new THREE.ShaderMaterial({ uniforms: ptMat.uniforms, vertexShader: NS.PT_VS, fragmentShader: NS.PT_FS, depthTest: false, depthWrite: false, transparent: true });
+    fgObj = new THREE.Points(g, fgMat);
+    fgObj.renderOrder = 20;
+    fgObj.frustumCulled = false;
+    scene.add(fgObj);
+    T.fgDrawn = n;
   }
 
   /* ------------------------------------------------------------------ camera */
-  var DIR_ALL = new THREE.Vector3(0, 0.78, 1).normalize();
-  var DIR_TRACE = new THREE.Vector3(0.28, 0.42, 1).normalize();
-  /* camera position and target that show a box (lo, hi) from direction dir with a margin (share of the frame) */
+  /* the network page's direction (js/network3d.js fitAll) */
+  var DIR = new THREE.Vector3(0.18, 0.5, 1).normalize();
+  /* phones: the hop sheet takes up to 46 % of the stage; the whole scene is framed above it, so a choice never needs
+     the camera to move */
+  var SHEET = 0.46;
+  function boxIn(el) {
+    if (!el || el.classList.contains('hidden') || el.hidden) return null;
+    var b = el.getBoundingClientRect(), hr = host.getBoundingClientRect();
+    return b.width > 1 && b.height > 1 ? { x0: b.left - hr.left, y0: b.top - hr.top, x1: b.right - hr.left, y1: b.bottom - hr.top } : null;
+  }
+  /* where the whole scene is framed (on load and by Reset view). The scene is taller than wide (six layers and the Q&A
+     planes), so it takes the canvas's full height: on wide screens from below the stage tools and the hint to the
+     bottom (the narrow legend lies over the scene's lower left, away from the questions at its bottom centre; the open
+     hop panel lies over its right part and a call-out whose node is under it is occluded), on phones above the hop sheet
+     at its tallest and below the hint. The same before and after a choice, so a choice never needs the camera to move */
+  function homeRect() {
+    var sz = stageSize(), r = { x0: 0, y0: 0, x1: sz.w, y1: sz.h - 8 }, h = boxIn(VL.$('#hint', stage));
+    if (mobile) r.y1 = sz.h * (1 - SHEET) - 6;
+    else { var tools = boxIn(VL.$('.stage-tools', stage)); if (tools) r.y0 = Math.max(r.y0, tools.y1 + 6); }
+    if (h) r.y0 = Math.max(r.y0, h.y1 + 6);
+    if (r.y1 - r.y0 < sz.h * 0.3) r.y1 = Math.min(sz.h, r.y0 + sz.h * 0.3);
+    return r;
+  }
   /* the part of the canvas the overlays leave free (CSS px): left of the side panel (on phones above the bottom sheet),
      and above the legend when the legend spans most of that width */
   function freeRect() {
@@ -588,39 +687,8 @@
     }
     return r;
   }
-  /* the part of the canvas the whole map is framed in. It is the same before and after a pick, so a pick never needs the
-     camera to move: on wide screens the whole canvas below the hint and the stage tools and above the legend - the open
-     hop panel lies over the map's right part, and a call-out whose node is under it is occluded, not misplaced; on
-     phones above the hop sheet at its tallest (46 % of the stage) and below the hint (the map is as wide as the screen
-     there, so a taller rectangle would not make it bigger) */
-  var SHEET = 0.46;
-  /* wide screens: gutters left and right of the map for the call-outs of its outermost areas (nothing can be placed
-     beyond them) */
-  var GUTTER = { left: 80, right: 24 };
-  function boxIn(el) {
-    if (!el || el.classList.contains('hidden') || el.hidden) return null;
-    var b = el.getBoundingClientRect(), hr = host.getBoundingClientRect();
-    return b.width > 1 && b.height > 1 ? { x0: b.left - hr.left, y0: b.top - hr.top, x1: b.right - hr.left, y1: b.bottom - hr.top } : null;
-  }
-  function mapRect() {
-    var sz = stageSize(), r = { x0: 0, y0: 0, x1: sz.w, y1: sz.h }, h = boxIn(VL.$('#hint', stage)), lg = boxIn(legendEl);
-    if (mobile) {
-      r.y1 = sz.h * (1 - SHEET) - 6;
-    } else {
-      var tools = boxIn(VL.$('.stage-tools', stage)), st = boxIn(statusEl);
-      r.x0 = GUTTER.left;
-      r.x1 = sz.w - GUTTER.right;
-      if (tools) r.y0 = Math.max(r.y0, tools.y1 + 6);
-      if (lg) r.y1 = Math.min(r.y1, lg.y0 - 6);
-      else if (st) r.y1 = Math.min(r.y1, st.y0 - 6);
-    }
-    if (h) r.y0 = Math.max(r.y0, h.y1 + 6);
-    if (r.y1 - r.y0 < sz.h * 0.3) r.y1 = Math.min(sz.h, r.y0 + sz.h * 0.3);
-    return r;
-  }
-  /* camera for the box seen along dir: the closest distance at which the box fits the rectangle rect of the canvas
-     (default: all of it) with the margin; the camera is then shifted sideways so the box centre lands on the
-     rectangle's centre (the view keeps its direction, so orbiting and picking need no special projection) */
+  /* camera for the box (lo, hi) seen along dir: the closest distance at which the box fits the rectangle rect of the
+     canvas with the margin; the camera is then shifted sideways so the box centre lands on the rectangle's centre */
   function fitBox(lo, hi, dir, margin, rect) {
     var sz = stageSize(), c = new THREE.Vector3().addVectors(lo, hi).multiplyScalar(0.5);
     dir = dir.clone().normalize();
@@ -644,35 +712,26 @@
     var a = 1, b = 64;
     while (!ok(b) && b < 1e6) b *= 2;
     for (var it = 0; it < 30; it++) { var mid = (a + b) / 2; if (ok(mid)) b = mid; else a = mid; }
-    viewRadius = lo.distanceTo(hi) / 2;
     var fwd = dir.clone().negate(), right = new THREE.Vector3().crossVectors(fwd, camera.up).normalize();
     var up = new THREE.Vector3().crossVectors(right, fwd), halfH = b * tanH, halfW = halfH * sz.w / sz.h;
     var ncx = (rect.x0 + rect.x1) / sz.w - 1, ncy = 1 - (rect.y0 + rect.y1) / sz.h;
     var target = c.clone().addScaledVector(right, -ncx * halfW).addScaledVector(up, -ncy * halfH);
     return { pos: target.clone().addScaledVector(dir, b), target: target };
   }
-  function boxOf(ids) {
-    var lo = new THREE.Vector3(Infinity, Infinity, Infinity), hi = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
-    ids.forEach(function (i) {
-      lo.x = Math.min(lo.x, POS[3 * i]); lo.y = Math.min(lo.y, POS[3 * i + 1]); lo.z = Math.min(lo.z, POS[3 * i + 2]);
-      hi.x = Math.max(hi.x, POS[3 * i]); hi.y = Math.max(hi.y, POS[3 * i + 1]); hi.z = Math.max(hi.z, POS[3 * i + 2]);
-    });
-    return { lo: lo, hi: hi };
-  }
-  /* the box fit framed by the nodes themselves: the box's near corners project wider than any node, so the box alone
-     leaves the map smaller than the rectangle allows. Project every node with the camera, move it along its axis until
-     the nodes' extent fills the rectangle (less the margin) and sideways until their middle is the rectangle's middle;
-     a few rounds, as moving changes the perspective a little. The view keeps its direction */
-  function fitNodes(f, margin, rect) {
+  /* refine a fit on the points themselves (pts: x, y, z, ...): the box's near corners project wider than any point, so
+     the box alone leaves the scene smaller than the rectangle allows. Project the points, move the camera along its
+     axis until their extent fills the rectangle (less the margin) and sideways until their middle is its middle; a few
+     rounds, as moving changes the perspective a little. The view keeps its direction */
+  function fitPoints(f, margin, rect, pts) {
     var sz = stageSize(), cam = new THREE.PerspectiveCamera(camera.fov, sz.w / sz.h, 1, 1e6), v = new THREE.Vector3();
-    var k = sz.h / (2 * Math.tan(camera.fov * Math.PI / 360));
+    var k = sz.h / (2 * Math.tan(camera.fov * Math.PI / 360)), n = pts.length / 3;
     var rw = (rect.x1 - rect.x0) * (1 - 2 * margin), rh = (rect.y1 - rect.y0) * (1 - 2 * margin);
     var pos = f.pos.clone(), target = f.target.clone(), back = new THREE.Vector3(), right = new THREE.Vector3(), up = new THREE.Vector3();
     for (var it = 0; it < 4; it++) {
       cam.position.copy(pos); cam.up.copy(camera.up); cam.lookAt(target); cam.updateMatrixWorld();
       var x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-      for (var i = 0; i < N; i++) {
-        v.set(POS[3 * i], POS[3 * i + 1], POS[3 * i + 2]).project(cam);
+      for (var i = 0; i < n; i++) {
+        v.set(pts[3 * i], pts[3 * i + 1], pts[3 * i + 2]).project(cam);
         var sx = (v.x + 1) / 2 * sz.w, sy = (1 - v.y) / 2 * sz.h;
         if (sx < x0) x0 = sx;
         if (sx > x1) x1 = sx;
@@ -684,7 +743,6 @@
       back.subVectors(pos, target).normalize();
       right.setFromMatrixColumn(cam.matrixWorld, 0);
       up.setFromMatrixColumn(cam.matrixWorld, 1);
-      /* s times closer, the nodes' middle sits s times further from the canvas centre: shift it onto the rectangle's */
       var dx = ((x0 + x1) / 2 - sz.w / 2) * s - ((rect.x0 + rect.x1) / 2 - sz.w / 2);
       var dy = ((y0 + y1) / 2 - sz.h / 2) * s - ((rect.y0 + rect.y1) / 2 - sz.h / 2);
       target.addScaledVector(right, dx * d / k).addScaledVector(up, -dy * d / k);
@@ -692,57 +750,82 @@
     }
     return { pos: pos, target: target };
   }
-  /* the whole map in mapRect(): on load and on Reset view only */
+  function pointsOf(ids) {
+    var out = new Float32Array(3 * ids.length);
+    ids.forEach(function (i, j) { out[3 * j] = GPOS[3 * i]; out[3 * j + 1] = GPOS[3 * i + 1]; out[3 * j + 2] = GPOS[3 * i + 2]; });
+    return out;
+  }
+  function boxOf(ids) {
+    var lo = new THREE.Vector3(Infinity, Infinity, Infinity), hi = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
+    ids.forEach(function (i) {
+      lo.x = Math.min(lo.x, GPOS[3 * i]); lo.y = Math.min(lo.y, GPOS[3 * i + 1]); lo.z = Math.min(lo.z, GPOS[3 * i + 2]);
+      hi.x = Math.max(hi.x, GPOS[3 * i]); hi.y = Math.max(hi.y, GPOS[3 * i + 1]); hi.z = Math.max(hi.z, GPOS[3 * i + 2]);
+    });
+    return { lo: lo, hi: hi };
+  }
+  /* the whole scene: the network's documents (every k-th, at most 12,000), every trace node and the corners of the top
+     layer and of the questions' plane (the layer names stand at the corners) */
+  var FIT = null;
+  function scenePoints() {
+    if (FIT) return FIT;
+    var step = Math.max(1, Math.ceil(D.N / 12000)), nd = Math.ceil(D.N / step), out = new Float32Array(3 * (nd + NG + 8)), o = 0, i;
+    for (i = 0; i < D.N; i += step) { out[o++] = D.pos[3 * i]; out[o++] = D.pos[3 * i + 1]; out[o++] = D.pos[3 * i + 2]; }
+    for (i = 0; i < NG; i++) { out[o++] = GPOS[3 * i]; out[o++] = GPOS[3 * i + 1]; out[o++] = GPOS[3 * i + 2]; }
+    var E = D.extent * 1.06, ys = [NS.layerY(D, 0), G.planes.z_question * NS.ZS];
+    ys.forEach(function (y) { [[-E, -E], [E, -E], [E, E], [-E, E]].forEach(function (c) { out[o++] = c[0]; out[o++] = y; out[o++] = c[1]; }); });
+    FIT = out.subarray(0, o);
+    return FIT;
+  }
+  function sceneBox() {
+    var E = D.extent * 1.06, lo = Infinity;
+    for (var i = 0; i < NG; i++) lo = Math.min(lo, GPOS[3 * i + 1]);
+    return { lo: new THREE.Vector3(-E, Math.min(lo, G.planes.z_question * NS.ZS), -E), hi: new THREE.Vector3(E, NS.layerY(D, 0), E) };
+  }
+  /* the whole scene, framed on load and by Reset view only */
   function homeView() {
-    var e = G.ext, rect = mapRect();
-    return fitNodes(fitBox(new THREE.Vector3(e[0], 0, e[2]), new THREE.Vector3(e[1], e[4], e[3]), DIR_ALL, 0.03, rect), 0.03, rect);
+    var b = sceneBox(), rect = homeRect();
+    return fitPoints(fitBox(b.lo, b.hi, DIR, 0.03, rect), 0.03, rect, scenePoints());
   }
   function fitAll(ms) {
     var f = homeView();
     moveCamera(f.pos, f.target, ms);
     if (ms) T.flights++;
   }
-  /* the camera frames what the call-outs name: the call-out nodes and the trace's nodes in their regions; a traced
-     stroke into another region (a shared law or a term defined elsewhere) leaves the frame towards it */
-  /* a term shared by several areas is one node, placed in one region: for a question of another area it lies far away */
-  function localTerm(t) {
-    var k = t.co[4];
-    return k >= 0 && (HOME[k] === HOME[t.co[0]] || HOME[k] === HOME[t.co[2]] || HOME[k] === HOME[t.co[3]]);
-  }
-  function framedNodes(t) {
-    var homes = {}, ids = [];
-    t.co.forEach(function (k, j) { if (k >= 0 && (j !== 4 || localTerm(t))) { homes[HOME[k]] = 1; ids.push(k); } });
-    t.f.forEach(function (i) { if (homes[HOME[i]] && ids.indexOf(i) < 0) ids.push(i); });
+  /* Zoom to selection: every chosen trace's foreground nodes in the part of the canvas the panels leave free */
+  function chosenFg() {
+    var has = new Uint8Array(NG), ids = [];
+    state.sel.forEach(function (t) { t.f.forEach(function (i) { if (!has[i]) { has[i] = 1; ids.push(i); } }); });
     return ids;
   }
-  function fitTrace(t, ms) {
-    var b = boxOf(framedNodes(t)), pad = 12;
+  function fitChosen(ms) {
+    var ids = chosenFg(), b = boxOf(ids), pad = 20, rect = freeRect(), m = mobile ? 0.16 : 0.12;
     b.lo.addScalar(-pad); b.hi.addScalar(pad);
-    b.hi.y += 30;                                   // headroom above the area node for its call-out
-    var f = fitBox(b.lo, b.hi, DIR_TRACE, mobile ? 0.18 : 0.16, freeRect());
+    b.hi.y += 40;                                   // headroom above the law for its call-out
+    var f = fitPoints(fitBox(b.lo, b.hi, DIR, m, rect), m, rect, pointsOf(ids));
     moveCamera(f.pos, f.target, ms);
     T.flights++;
   }
   function moveCamera(pos, target, ms) {
-    T.cameraMoves = (T.cameraMoves || 0) + 1;
+    T.cameraMoves++;
     if (!ms) {
       tween = null;
       camera.position.copy(pos); controls.target.copy(target); camera.lookAt(target); controls.update();
       needsRender = true; updateLabelSizes(); scheduleCallouts(); return;
     }
     tween = { t0: null, ms: ms, p0: camera.position.clone(), p1: pos, q0: controls.target.clone(), q1: target };
+    M.flying = true;
   }
   function stepTween(t) {
     if (tween.t0 == null) tween.t0 = t;
     var u = Math.min(1, (t - tween.t0) / tween.ms), e = u < 0.5 ? 2 * u * u : 1 - Math.pow(-2 * u + 2, 2) / 2;
     camera.position.lerpVectors(tween.p0, tween.p1, e);
     controls.target.lerpVectors(tween.q0, tween.q1, e);
-    if (u >= 1) { tween = null; T.cameraSettled = (T.cameraSettled || 0) + 1; if (state.sel) drawFgNodes(); scheduleCallouts(); }
+    if (u >= 1) { tween = null; M.flying = false; T.cameraSettled = (T.cameraSettled || 0) + 1; if (state.sel.length) drawFgNodes(); updateLabelSizes(); scheduleCallouts(); }
   }
   function orbit(dAz, dPol, zoom) {
     var off = camera.position.clone().sub(controls.target), sph = new THREE.Spherical().setFromVector3(off);
     sph.theta += dAz;
-    sph.phi = Math.min(Math.PI / 2 - 0.02, Math.max(0.08, sph.phi + dPol));
+    sph.phi = Math.min(Math.PI - 0.05, Math.max(0.05, sph.phi + dPol));
     sph.radius *= zoom || 1;
     off.setFromSpherical(sph);
     camera.position.copy(controls.target).add(off);
@@ -754,17 +837,24 @@
 
   /* ------------------------------------------------------------------ call-outs (js/paper3d.js VL.Callouts) */
   function worldPerPx() { return VL.spriteWpp(camera, host.clientHeight); }
+  /* call-out text: Vietnamese · English, long names shortened (the full name is in the panel and the tooltip) */
+  var LBL = mobile ? { vi: 34, en: 38, one: 24, px: 18, pxSel: 19, qvi: 36, qen: 40, layer: 18 } : { vi: 48, en: 52, one: 30, px: 22, pxSel: 23, qvi: 46, qen: 50, layer: 21 };
+  /* which call-outs of the shown trace must be shown (the question always); on phones the law when it fits (the hop
+     sheet's title names it), on wide screens the law too */
+  var MUST = mobile ? { provision: true, law: false } : { provision: true, law: true };
+  function nodeR(i) { return (IS_WORK[i] && netObj ? Math.max(SIZE.work, netObj.geometry.attributes.aSize.array[WDOC[i]]) : (SIZE[cname(i)] || 9)) / 2; }
   function makeLabel(lines, o) {
     var opt = VL.paperCallout(P, !!o.sel);
     opt.lines = lines;
     opt.px = o.px || LBL.px;
     opt.weight = '400';
     var s = VL.TextSprite(lines[0].map(function (p) { return p.text; }).join(''), opt);
-    s.__id = o.id; s.__pri = o.pri || 0; s.__must = !!o.must; s.__sel = !!o.sel; s.__node = o.node;
-    s.__r = (SIZE[cname(o.node)] || 6) / 2;
-    s.__lines = o.linesFn || null;
-    s.layers.set(1);
-    s.position.set(POS[3 * o.node], POS[3 * o.node + 1], POS[3 * o.node + 2]);
+    s.__id = o.id; s.__pri = o.pri || 0; s.__must = !!o.must; s.__sel = !!o.sel; s.__layer = !!o.layer;
+    s.__node = o.node != null ? o.node : -1;
+    s.__r = s.__node >= 0 ? nodeR(s.__node) : 0;
+    s.layers.set(1);                  // hidden until VL.Callouts places it
+    if (o.at) s.position.set(o.at[0], o.at[1], o.at[2]);
+    else s.position.set(GPOS[3 * o.node], GPOS[3 * o.node + 1], GPOS[3 * o.node + 2]);
     s.fit(worldPerPx());
     labelGroup.add(s);
     labels.push(s);
@@ -775,11 +865,6 @@
     labels = [];
   }
   function updateLabelSizes() { if (!camera) return; var w = worldPerPx(); labels.forEach(function (s) { s.fit(w); }); }
-  /* call-out text: Vietnamese · English, long names shortened (the full name is in the panel and the tooltip) */
-  var LBL = mobile ? { vi: 34, en: 38, one: 24, px: 18, pxSel: 19, qvi: 36, qen: 40 } : { vi: 48, en: 52, one: 30, px: 22, pxSel: 23, qvi: 46, qen: 50 };
-  /* which call-outs of a picked trace must be shown (the question always); on phones the law when it fits (the hop
-     sheet's title names it), on wide screens the law too */
-  var MUST = mobile ? { provision: true, law: false } : { provision: true, law: true };
   /* call-out lines in the language mode (js/paper3d.js VL.paperLines): EN–VI "Tiếng Việt · English" (on one line when
      short), EN or VI one line */
   function bi(i, prefix) {
@@ -788,49 +873,58 @@
   }
   /* the question: EN–VI its Vietnamese title over the English gloss (as in v1), EN the gloss, VI the title */
   function questionLines(t) {
-    var q = QBY[AREAS[t.a].id + ':' + t.r];
+    var q = t.q;
     if (!q) return bi(t.co[0]);
     return VL.paperLines(VL.short(q.vi, LBL.qvi), VL.short(q.en || '', LBL.qen), P, { twoLines: true });
   }
   function areaLines(i) { var p = VL.kpair('tr3d.area'); return bi(i, [p.vi, p.en]); }
-  /* the call-outs of the current view: the chosen trace's question, provision, law (must; on phones the law when it
-     fits), term and area; with nothing chosen the 27 areas' names */
+  /* "Bậc 0 · Hiến pháp" over "Rank 0 · Constitution" (EN–VI), or one line in EN or VI, as on network-3d.html */
+  function rankLabel(r) {
+    var rk = (D.net.ranks || [])[r] || {}, k = 'net.rank.' + r;
+    var name = VL.i18n.has(k) ? VL.kpair(k) : VL.pair(rk.vi || rk.en || '', rk.en || '');
+    return VL.paperTL('net.rank.label', { r: r, name: name }, P, { twoLines: true });
+  }
+  function planeLines(k) { return VL.paperTL(k, null, P, { twoLines: true }); }
+  /* the call-outs: the layer names at their corners (always); the shown trace's question, provision, law (must; on
+     phones the law where it fits), term and area, the other chosen questions where they fit; with nothing chosen the
+     27 areas' names */
   function buildLabels() {
-    if (!labelGroup) return;
+    if (!labelGroup || !D) return;
     clearLabels();
-    var sel = state.sel;
-    if (sel) {
-      var t = sel.t, co = t.co;
-      // the static map: the question, its provision and its law must be named next to the trace; the term and the area
-      // when there is room (the hop panel names them, and the list's heading the area)
-      makeLabel(questionLines(t), { id: G.i[co[0]], node: co[0], sel: true, must: true, pri: 1000, px: LBL.pxSel });
-      makeLabel(bi(co[2]), { id: G.i[co[2]], node: co[2], must: MUST.provision, pri: 900 });
-      if (co[3] !== co[2]) makeLabel(bi(co[3]), { id: G.i[co[3]], node: co[3], must: MUST.law, pri: 880 });
-      if (co[4] >= 0) makeLabel(bi(co[4]), { id: G.i[co[4]], node: co[4], must: false, pri: localTerm(t) ? 860 : 820 });
-      makeLabel(areaLines(co[5]), { id: G.i[co[5]], node: co[5], must: false, pri: 840 });
+    var E = D.extent * 1.06, ids = {};
+    for (var r = 0; r <= 5; r++) makeLabel(rankLabel(r), { id: 'rank-' + r, layer: true, at: [-E, NS.layerY(D, r), -E], pri: 10 - r, px: LBL.layer });
+    makeLabel(planeLines('tr3d.plane.answers'), { id: 'plane-answers', layer: true, at: [-E, G.planes.z_answer * NS.ZS, -E], pri: 4, px: LBL.layer });
+    makeLabel(planeLines('tr3d.plane.questions'), { id: 'plane-questions', layer: true, at: [-E, G.planes.z_question * NS.ZS, -E], pri: 3, px: LBL.layer });
+    function add(lines, o) { if (ids[o.id]) return; ids[o.id] = 1; makeLabel(lines, o); }
+    var cur = current();
+    if (cur) {
+      var co = cur.co;
+      add(questionLines(cur), { id: G.i[co[0]], node: co[0], sel: true, must: true, pri: 1000, px: LBL.pxSel });
+      add(bi(co[2]), { id: G.i[co[2]], node: co[2], must: MUST.provision, pri: 900 });
+      if (co[3] !== co[2]) add(bi(co[3]), { id: G.i[co[3]], node: co[3], must: MUST.law, pri: 880 });
+      add(areaLines(co[5]), { id: G.i[co[5]], node: co[5], pri: 840 });
+      if (co[4] >= 0) add(bi(co[4]), { id: G.i[co[4]], node: co[4], pri: 820 });
+      state.sel.forEach(function (t, k) { if (t !== cur) add(questionLines(t), { id: G.i[t.co[0]], node: t.co[0], pri: 600 - k }); });
     } else {
-      // the whole map: the 27 areas' names where they fit
-      for (var j = 0; j < N; j++) if (cname(j) === 'area') makeLabel(areaLines(j), { id: G.i[j], node: j, pri: 300, px: LBL.px - 1 });
+      G.areas.forEach(function (a) { add(areaLines(a.n), { id: G.i[a.n], node: a.n, pri: 300, px: LBL.px - 1 }); });
     }
     T.labels = labels.length;
     M.labelsLang = VL.lang();
     scheduleCallouts();
   }
+  /* a layer's name stands left of its plane's back-left corner (the planes' left ends are empty; the legend is lower) */
+  function layerOffset(w) { return [-w / 2 - 4, 0]; }
   function calloutItems() {
-    return labels.map(function (s) { return { id: s.__id, sprite: s, pri: s.__pri, must: s.__must, sel: s.__sel, r: s.__r }; });
+    return labels.map(function (s) { return { id: s.__id, sprite: s, pri: s.__pri, must: s.__must, sel: s.__sel, r: s.__r, fixed: s.__layer ? layerOffset : null }; });
   }
-  /* ink the call-outs keep clear of: the chosen trace (its foreground nodes and traced segments), else the labelled
-     area nodes; the faded rest is background, as in the paper */
+  /* ink the call-outs keep clear of: the chosen traces (their foreground nodes and traced segments), else the labelled
+     area nodes; the light rest of the scene is background, as in the paper */
   function calloutInk() {
-    var discs = [], paths = [], sel = state.sel;
-    function disc(i) { discs.push({ id: G.i[i], x: POS[3 * i], y: POS[3 * i + 1], z: POS[3 * i + 2], r: (SIZE[cname(i)] || 6) / 2 }); }
-    if (sel) {
-      sel.t.f.forEach(disc);
-      (sel.paths || []).forEach(function (p) { paths.push(p); });
-    } else {
-      labels.forEach(function (s) { disc(s.__node); });
-    }
-    return { discs: discs, paths: paths };
+    var discs = [];
+    function disc(i) { discs.push({ id: G.i[i], x: GPOS[3 * i], y: GPOS[3 * i + 1], z: GPOS[3 * i + 2], r: nodeR(i) }); }
+    if (state.sel.length) { chosenFg().forEach(disc); return { discs: discs, paths: selPaths }; }
+    labels.forEach(function (s) { if (s.__node >= 0) disc(s.__node); });
+    return { discs: discs, paths: [] };
   }
   function obstacles() {
     var hr = host.getBoundingClientRect(), out = [];
@@ -847,6 +941,7 @@
     }
     return out;
   }
+  var lastPlacement = '';
   function scheduleCallouts() {
     if (!camera || !labels.length) { if (camera) M.callouts = { runs: (M.callouts && M.callouts.runs) || 0, placed: [], nodes: [], shown: 0, mustHidden: 0 }; return; }
     if (!callouts) {
@@ -855,10 +950,15 @@
         size: function () { return { w: host.clientWidth, h: host.clientHeight }; },
         items: calloutItems, ink: calloutInk, ui: obstacles,
         leaderColor: function () { return P.leader; },
-        discMaxPx: 30 / Math.min(window.devicePixelRatio || 1, 2),
-        segPad: Math.ceil(VL.TRACE_W.halo2 * FOCUS.bold / 2),   // half the bold outer halo
+        discMaxPx: 30 / Math.min(window.devicePixelRatio || 1, 2), segCap: 16000,
+        segPad: Math.ceil(VL.TRACE_W.halo2 * BOLD / 2),   // half the bold outer halo
         metrics: M, key: 'callouts',
-        onDone: function (st) { T.calloutsShown = st.shown; needsRender = true; }
+        onDone: function (st) {
+          T.calloutsShown = st.shown;
+          /* a frame only when the call-outs changed (a frame of the full network is slow on a software renderer) */
+          var sig = labels.length + '#' + st.placed.map(function (q) { return q.id + ':' + q.box.join(','); }).join('|');
+          if (sig !== lastPlacement) { lastPlacement = sig; needsRender = true; M.calloutFrames = (M.calloutFrames || 0) + 1; }
+        }
       });
     }
     callouts.schedule();
@@ -883,7 +983,7 @@
     return o + cq + '" lang="vi">' + esc(qa.vi) + c + (qa.en ? o + cg + '">' + esc(qa.en) + c : '');
   }
   /* an area heading: EN–VI "Tiếng Việt · English" (v1's tab label), EN or VI one name; then the number of its
-     questions the search shows */
+     questions the search shows and the button that chooses all of them */
   function headName(a) {
     return VL.lang() === 'envi' ? '<span lang="vi">' + esc(a.label_vi) + '</span><span class="sep" aria-hidden="true"> · </span><span>' + esc(a.label_en) + '</span>'
       : VL.UH(areaPair(a));
@@ -891,23 +991,41 @@
   function headCount(n) {
     return '<span class="n" aria-hidden="true">' + fmt(n) + '</span><span class="sr-only">' + esc(VL.U('tr3d.groupCount', { n: nv(n) })) + '</span>';
   }
+  function headHtml(a, ai) {
+    var n = GROUPS[ai].length;
+    return '<h3 class="tr-head" id="tr-h-' + a.id + '" tabindex="-1"><span class="tr-head-name">' + headName(a) + '</span><span class="tr-head-n"></span>' +
+      '<button type="button" class="tr-all" data-area="' + a.id + '" aria-pressed="false" aria-label="' + esc(VL.U('tr3d.all.aria', { n: fmt(n), area: VL.U(areaPair(a)) })) + '"' +
+      tipAttr('tr3d.all.aria', { n: fmt(n), area: VL.U(areaPair(a)) }) + '>' + VL.UH('tr3d.all', { n: fmt(n) }) + '</button></h3>';
+  }
   function itemId(q) { return 'tr-item-' + q.id + '-' + q.rank; }
+  /* a question: the row (a click chooses it alone; Space or Ctrl/Cmd-click adds or removes it) and its round button
+     (adds or removes it; out of the tab order, the row's Space does the same) */
   function itemHtml(q) {
     return '<li><button type="button" class="tr-item" id="' + itemId(q) + '" data-area="' + q.id + '" data-rank="' + q.rank + '">' +
       '<span class="tr-rank">' + q.rank + '</span><span class="tr-item-body"><span class="tr-law">' + esc(lawShort(q.law)) + '</span>' +
-      qHtml(q, 'span', 'tr-q', 'tr-g') + verdictBadge(q) + '</span></button></li>';
+      qHtml(q, 'span', 'tr-q', 'tr-g') + verdictBadge(q) + '</span></button>' +
+      '<button type="button" class="tr-pick" tabindex="-1" data-area="' + q.id + '" data-rank="' + q.rank + '" aria-pressed="false" aria-label="' +
+      esc(VL.U('tr3d.pick', { n: q.rank })) + '"' + tipAttr('tr3d.pick', { n: q.rank }) + '><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4.2 8.3l2.5 2.5 5.1-5.3"/></svg></button></li>';
   }
-  var SEC = [], HEADN = [], listReady = null;
+  var SEC = [], HEADN = [], HEADB = [], listReady = null;
   function renderList() {
     if (!QS.length) return;
     var t0 = performance.now();
     listEl.innerHTML = AREAS.map(function (a, ai) {
-      return '<section class="tr-group" id="tr-g-' + a.id + '" data-area="' + a.id + '" aria-labelledby="tr-h-' + a.id + '">' +
-        '<h3 class="tr-head" id="tr-h-' + a.id + '" tabindex="-1"><span class="tr-head-name">' + headName(a) + '</span><span class="tr-head-n"></span></h3>' +
+      return '<section class="tr-group" id="tr-g-' + a.id + '" data-area="' + a.id + '" aria-labelledby="tr-h-' + a.id + '">' + headHtml(a, ai) +
         '<ol class="tr-sub">' + GROUPS[ai].map(itemHtml).join('') + '</ol></section>';
     }).join('') + '<p class="tr-status" id="tr-none" hidden></p>';
-    QS.forEach(function (q) { q.btn = document.getElementById(itemId(q)); q.li = q.btn ? q.btn.parentNode : null; });
-    AREAS.forEach(function (a, ai) { SEC[ai] = document.getElementById('tr-g-' + a.id); HEADN[ai] = SEC[ai].querySelector('.tr-head-n'); });
+    QS.forEach(function (q) {
+      q.btn = document.getElementById(itemId(q));
+      q.li = q.btn ? q.btn.parentNode : null;
+      q.pick = q.li ? q.li.querySelector('.tr-pick') : null;
+    });
+    AREAS.forEach(function (a, ai) {
+      SEC[ai] = document.getElementById('tr-g-' + a.id);
+      HEADN[ai] = SEC[ai].querySelector('.tr-head-n');
+      HEADB[ai] = SEC[ai].querySelector('.tr-all');
+    });
+    marked = [];
     T.groups = AREAS.length;
     applySearch();
     markList(false);
@@ -932,19 +1050,42 @@
     state.query = raw;
     T.query = raw;
     T.shown = shown;
-    countEl.textContent = VL.U('tr3d.count', { n: fmt(shown), total: fmt(QS.length) });
+    updateCount();
     var none = document.getElementById('tr-none');
     if (none) { none.hidden = shown > 0; none.textContent = shown ? '' : VL.U('tr3d.noMatch', { q: raw.trim() }); }
   }
-  var curItem = null;
+  /* the live line: "540 of 540 questions · 3 chosen"; Clear is shown while something is chosen */
+  function updateCount() {
+    var n = state.sel.length;
+    countEl.textContent = VL.U('tr3d.count', { n: fmt(T.shown), total: fmt(QS.length) }) + (n ? ' · ' + VL.U('tr3d.chosen', { n: nv(n) }) : '');
+    if (clearEl) clearEl.hidden = !n;
+    T.countText = countEl.textContent;
+  }
+  /* the chosen rows (their round buttons pressed), the shown one (aria-current), the headings whose 20 are all chosen */
+  var marked = [];
   function markList(scroll) {
-    if (curItem) curItem.removeAttribute('aria-current');
-    curItem = null;
-    var q = state.sel && state.sel.q;
-    if (!q || !q.btn) return;
-    q.btn.setAttribute('aria-current', 'true');
-    curItem = q.btn;
-    if (scroll && !q.li.hidden) { try { q.btn.scrollIntoView({ block: 'nearest' }); } catch (e) { /* old engines */ } }
+    marked.forEach(function (q) {
+      if (q.li) q.li.classList.remove('is-chosen');
+      if (q.pick) q.pick.setAttribute('aria-pressed', 'false');
+      if (q.btn) q.btn.removeAttribute('aria-current');
+    });
+    marked = [];
+    var per = {};
+    state.sel.forEach(function (t) {
+      per[t.a] = (per[t.a] || 0) + 1;
+      var q = t.q;
+      if (!q || !q.li) return;
+      q.li.classList.add('is-chosen');
+      q.pick.setAttribute('aria-pressed', 'true');
+      marked.push(q);
+    });
+    var cur = current(), cq = cur && cur.q;
+    if (cq && cq.btn) {
+      cq.btn.setAttribute('aria-current', 'true');
+      if (scroll && !cq.li.hidden) { try { cq.btn.scrollIntoView({ block: 'nearest' }); } catch (e) { /* old engines */ } }
+    }
+    HEADB.forEach(function (b, ai) { if (b) b.setAttribute('aria-pressed', GROUPS[ai].length && per[ai] === GROUPS[ai].length ? 'true' : 'false'); });
+    updateCount();
   }
   /* an area's heading at the top of the list (v1's area links #area=<id>; on phones the list sheet opens); a search that
      hides the area is cleared first. Chooses nothing */
@@ -963,16 +1104,28 @@
     });
   }
   function visibleItems() { var out = []; QS.forEach(function (q) { if (q.btn && !q.li.hidden) out.push(q.btn); }); return out; }
+  function isRow(el) { return !!(el && el.classList && el.classList.contains('tr-item')); }
   listEl.addEventListener('click', function (e) {
+    var all = e.target.closest('.tr-all');
+    if (all) { chooseArea(all.getAttribute('data-area'), { user: true }); if (mobile) setSide(false); return; }
+    var pk = e.target.closest('.tr-pick');
+    if (pk) { toggleTrace(pk.getAttribute('data-area'), +pk.getAttribute('data-rank'), { user: true, scroll: false }); return; }
     var b = e.target.closest('.tr-item');
     if (!b) return;
-    selectTrace(b.getAttribute('data-area'), +b.getAttribute('data-rank'), { user: true, scroll: false });
+    if (e.ctrlKey || e.metaKey) { toggleTrace(b.getAttribute('data-area'), +b.getAttribute('data-rank'), { user: true, scroll: false }); return; }
+    chooseOnly(b.getAttribute('data-area'), +b.getAttribute('data-rank'), { user: true, scroll: false });
     if (mobile) setSide(false);
   });
-  /* arrows move through the shown questions (across the headings), Home / End to the first / last, up from the first
-     back to the search; Enter (the buttons') chooses */
+  /* Space on a row adds or removes its question (the button's own Space click is cancelled, so it does not also choose
+     it alone); arrows move through the shown questions (across the headings), Home / End to the first / last, up from
+     the first back to the search; Enter chooses */
   listEl.addEventListener('keydown', function (e) {
     var k = e.key;
+    if ((k === ' ' || k === 'Spacebar') && isRow(e.target)) {
+      e.preventDefault();
+      if (!e.repeat) toggleTrace(e.target.getAttribute('data-area'), +e.target.getAttribute('data-rank'), { user: true, scroll: false });
+      return;
+    }
     if (k !== 'ArrowDown' && k !== 'ArrowUp' && k !== 'Home' && k !== 'End') return;
     var items = visibleItems(), i = items.indexOf(document.activeElement);
     if (i < 0) return;
@@ -980,6 +1133,7 @@
     if (k === 'ArrowUp' && i === 0 && searchEl) { searchEl.focus(); return; }
     items[k === 'Home' ? 0 : k === 'End' ? items.length - 1 : Math.max(0, Math.min(items.length - 1, i + (k === 'ArrowDown' ? 1 : -1)))].focus();
   });
+  listEl.addEventListener('keyup', function (e) { if ((e.key === ' ' || e.key === 'Spacebar') && isRow(e.target)) e.preventDefault(); });
   var searchRaf = 0;
   if (searchEl) {
     searchEl.addEventListener('input', function () {
@@ -999,31 +1153,32 @@
       }
     });
   }
+  if (clearEl) clearEl.addEventListener('click', function () { clearSelection(true); closePanel(); if (searchEl && !mobile) searchEl.focus(); });
 
   /* ------------------------------------------------------------------ the Fig. 5 hop panel */
   var REASON = { law_not_resolved: 'tr3d.reason.law', number_not_in_scope: 'tr3d.reason.number', article_not_parsed: 'tr3d.reason.article' };
   function primary(tr) { for (var i = 0; i < tr.paths.length; i++) if (tr.paths[i].pr) return tr.paths[i]; return tr.paths[0]; }
   function lawTitle(law) {
-    var num = law.number || '', named = (law.vi || '').indexOf(num) >= 0 || (law.en || '').indexOf(num) >= 0;
-    return VL.TH(VL.pair(law.vi || '', law.en || '')) + (num && !named ? ' · <span class="num">' + esc(num) + '</span>' : '');
+    var n = law.number || '', named = (law.vi || '').indexOf(n) >= 0 || (law.en || '').indexOf(n) >= 0;
+    return VL.TH(VL.pair(law.vi || '', law.en || '')) + (n && !named ? ' · <span class="num">' + esc(n) + '</span>' : '');
   }
   function pathLabel(tr, p) {
     var N_ = tr.nodes, prov = N_[p.n.length > 3 ? p.n[2] : p.n[p.n.length - 1]], work = N_[p.n[p.n.length - 1]];
     if (p.u === 'work') return VL.TH(VL.pair(work.vi, work.en)) + ' ' + VL.UH('tr3d.citedWhole');
     return VL.TH(VL.pair(prov.vi, prov.en)) + ' ' + VL.UH('tr3d.of') + ' ' + VL.UH(VL.pair(work.vi, work.en));
   }
-  /* a hop of the Fig. 5 panel: EN–VI \"1 Question Câu hỏi · extra\" as in v1, EN or VI \"1 Question  extra\" in one language */
-  function hop(cls, n, key, extra, body) {
-    var e = VL.kpair(key), head;
+  /* a hop of the Fig. 5 panel: EN–VI "1 Question Câu hỏi · extra" as in v1, EN or VI "1 Question  extra" in one language */
+  function hop(cls, n, k, extra, body) {
+    var e = VL.kpair(k), head;
     if (VL.lang() === 'envi') head = '<b>' + n + ' ' + esc(e.en) + '</b> <span lang="vi">' + esc(e.vi) + '</span>' + (extra ? ' · ' + extra : '');
-    else head = '<b>' + n + ' ' + VL.UH(key) + '</b>' + (extra ? ' <span>' + extra + '</span>' : '');
+    else head = '<b>' + n + ' ' + VL.UH(k) + '</b>' + (extra ? ' <span>' + extra + '</span>' : '');
     return '<section class="hop hop-' + cls + '"><h3>' + head + '</h3>' + body + '</section>';
   }
   /* a sentence pair (notes, the hop arrows) in EN–VI as v1 wrote it: the English, then the Vietnamese (lang="vi");
      EN or VI: one language */
-  function enFirst(key, vars, sep) {
-    var t = VL.TL(key, vars);
-    if (VL.lang() !== 'envi' || !t.secondary) return VL.UH(key, vars);
+  function enFirst(k, vars, sep) {
+    var t = VL.TL(k, vars);
+    if (VL.lang() !== 'envi' || !t.secondary) return VL.UH(k, vars);
     return esc(t.secondary) + (sep == null ? ' ' : sep) + '<span lang="vi">' + esc(t.primary) + '</span>';
   }
   /* where the law's English name comes from (build-time phrases): the phrase in English as in v1, translated in VI */
@@ -1070,6 +1225,7 @@
       '<p>' + VL.UH('tr3d.sourceStatus') + ' ' + VL.TH(VL.pair(tr.law.status_vi, tr.law.status_en)) + '</p>' +
       '<p>' + VL.UH('tr3d.englishName', { v: enSource(tr.law.en_src) }) + '</p>' +
       (rec ? '<p>' + VL.UH('tr3d.vnRecord', null, { html: { link: rec.u ? ext(rec.u, 'vbpl:' + esc(tr.law.doc_id)) : 'vbpl:' + esc(tr.law.doc_id) } }) + '</p>' : '') +
+      (tr.law.doc_id ? '<p>' + netLink(tr.law.doc_id) + '</p>' : '') +
       '<p class="pv">' + esc(work.i) + ' · ' + esc(wp[2] || '') + '</p>');
     var terms = tr.terms.map(function (t) {
       var n = N_[t.n], d = t.d != null ? N_[t.d] : null;
@@ -1086,15 +1242,27 @@
       '<div class="hop-arrow">↓ ' + enFirst('tr3d.definesTerms', null, ' · ') + '</div>' + b5 + '</div>';
   }
   function closeHtml() { return '<button type="button" class="btn panel-close" data-close aria-label="' + esc(VL.U('tr3d.close')) + '"' + tipAttr('tr3d.close') + '>×</button>'; }
+  /* the stepper through the chosen traces: "3 of 20" between previous and next (the list's order) */
+  function stepHtml() {
+    var n = state.sel.length, i = state.cur;
+    if (n < 2 || i < 0) return '';
+    return '<div class="tr-step" role="group" aria-label="' + esc(VL.U('tr3d.step.aria')) + '">' +
+      '<button type="button" class="btn btn-xs" data-step="-1"' + (i <= 0 ? ' disabled' : '') + ' aria-label="' + esc(VL.U('tr3d.step.prev')) + '"' + tipAttr('tr3d.step.prev') + '>‹</button>' +
+      '<span class="tr-step-n">' + esc(VL.U('tr3d.step.n', { i: fmt(i + 1), n: fmt(n) })) + '</span>' +
+      '<button type="button" class="btn btn-xs" data-step="1"' + (i >= n - 1 ? ' disabled' : '') + ' aria-label="' + esc(VL.U('tr3d.step.next')) + '"' + tipAttr('tr3d.step.next') + '>›</button></div>';
+  }
+  function netLink(id) { return '<a href="network-3d.html#doc=' + encodeURIComponent(String(id)) + '">' + VL.UH('tr3d.openNetwork') + '</a>'; }
   function tracePanelHtml(a, tr) {
-    return closeHtml() +
+    return closeHtml() + stepHtml() +
       '<p class="tf-area">#' + tr.rank + ' · ' + VL.TH(areaPair(a)) + '</p>' +
       '<h2 id="tp-title">' + lawTitle(tr.law) + '</h2>' +
       qHtml(tr.qa, 'p', 'tf-q', 'tf-g') +
       '<p class="tf-links">' + verdictBadge(tr) + ' · ' + VL.UH('tr3d.answersIn', { n: fmt(tr.article.n), area: VL.U(areaPair(a)), article: VL.U(VL.pair(tr.article.vi || '', tr.article.en || '')),
-        na: fmt(tr.article.na) }) + ' · <a href="#area=' + a.id + '&amp;q=' + tr.rank + '">' + VL.UH('tr3d.linkTrace') + '</a></p>' + hopsHtml(tr);
+        na: fmt(tr.article.na) }) + ' · <a href="#q=' + a.id + ':' + tr.rank + '">' + VL.UH('tr3d.linkTrace') + '</a></p>' + hopsHtml(tr);
   }
-  var panelNode = -1;   // the node whose details the panel shows (-1: the selected trace or nothing)
+  /* the panel shows the shown trace (panelNode -1), a trace node's details (its index) or a network document's
+     (NG + its point) */
+  var panelNode = -1;
   function openPanel(html, keepScroll) {
     var st = panel.scrollTop;
     panel.innerHTML = html;
@@ -1102,6 +1270,7 @@
     stage.classList.add('panel-open');
     panel.scrollTop = keepScroll ? st : 0;
     T.hops = VL.$$('.hop', panel).length;
+    T.step = VL.$('.tr-step-n', panel) ? VL.$('.tr-step-n', panel).textContent : null;
     requestAnimationFrame(function () { onResize(); });
   }
   function closePanel() {
@@ -1109,13 +1278,16 @@
     panel.classList.add('hidden');
     stage.classList.remove('panel-open');
     T.hops = 0;
+    T.step = null;
     panelNode = -1;
     requestAnimationFrame(function () { onResize(); });
   }
   panel.addEventListener('click', function (e) {
     if (e.target.closest('[data-close]')) { clearSelection(true); closePanel(); return; }
+    var st = e.target.closest('[data-step]');
+    if (st && !st.disabled) { step(+st.getAttribute('data-step'), { user: true }); return; }
     var b = e.target.closest('[data-trace]');
-    if (b) { var x = b.getAttribute('data-trace').split(':'); selectTrace(x[0], +x[1], { user: true }); }
+    if (b) { var x = b.getAttribute('data-trace').split(':'); chooseOnly(x[0], +x[1], { user: true }); }
   });
 
   /* ------------------------------------------------------------------ node details (hover, click) */
@@ -1124,10 +1296,16 @@
     if (VL.lang() === 'envi') return '<h2 lang="vi">' + esc(n[0]) + '</h2><p class="vi">' + esc(n[1]) + '</p>';
     return '<h2>' + VL.UH(VL.pair(n[0], n[1])) + '</h2>';
   }
+  function areasOf(i) {
+    var seen = {}, out = [];
+    tracesOf(i).forEach(function (k) { var a = G.t[k].a; if (!seen[a]) { seen[a] = 1; out.push(AREAS[a]); } });
+    return out;
+  }
   function nodeHtml(i) {
-    var n = names(i), c = cname(i), cn = classNames(c), ts = tracesOf(i), a = AREAS[HOME[i]];
-    var url = G.u[String(i)];
-    var rows = '<dt>' + VL.UH('tr3d.k.id') + '</dt><dd class="iri">' + esc(G.i[i]) + '</dd><dt>' + VL.UH('tr3d.k.region') + '</dt><dd>' + VL.TH(areaPair(a)) + '</dd>' +
+    var n = names(i), c = cname(i), cn = classNames(c), ts = tracesOf(i), ars = areasOf(i), url = G.u[String(i)], doc = IS_WORK[i] ? G.d[String(i)] : null;
+    var rows = '<dt>' + VL.UH('tr3d.k.id') + '</dt><dd class="iri">' + esc(G.i[i]) + '</dd>' +
+      (ars.length ? '<dt>' + VL.UH('tr3d.k.areas') + '</dt><dd>' + ars.slice(0, 6).map(function (a) { return VL.TH(areaPair(a)); }).join('; ') + (ars.length > 6 ? ' …' : '') + '</dd>' : '') +
+      (doc != null ? '<dt>' + VL.UH('tr3d.k.network') + '</dt><dd>' + netLink(doc) + '</dd>' : '') +
       (url ? '<dt>' + VL.UH('tr3d.k.source') + '</dt><dd>' + ext(url, VL.UH('tr3d.openSource'), VL.U('tr3d.newTab')) + '</dd>' : '');
     var list = ts.slice(0, 14).map(function (k) {
       var t = G.t[k], ar = AREAS[t.a];
@@ -1139,34 +1317,75 @@
       '<h3>' + VL.TH('tr3d.inTraces', { n: nv(ts.length) }) + '</h3>' +
       (ts.length ? '<ul class="plist">' + list + '</ul>' + (ts.length > 14 ? '<p class="side-note">' + VL.UH('tr3d.andMore', { n: fmt(ts.length - 14) }) + '</p>' : '') : '');
   }
+  /* a document of the network no trace reaches: its title (Vietnamese), number, layer and year, and a link to it on
+     network-3d.html */
+  function docHtml(j) {
+    var r = D.rank[j], rk = 'net.rank.' + r, y = D.year[j];
+    return closeHtml() +
+      '<p class="panel-kind"><span class="badge">' + VL.TH(VL.kpair('tr3d.cls.document')) + '</span></p>' +
+      '<h2 lang="vi">' + esc(D.title[j] || D.num[j] || D.ids[j]) + '</h2>' +
+      '<dl class="kv">' + (D.num[j] ? '<dt>' + VL.UH('tr3d.k.number') + '</dt><dd>' + esc(D.num[j]) + '</dd>' : '') +
+      '<dt>' + VL.UH('tr3d.k.layer') + '</dt><dd>' + r + ' · ' + (VL.i18n.has(rk) ? VL.TH(VL.kpair(rk)) : '') + '</dd>' +
+      (y > 0 ? '<dt>' + VL.UH('tr3d.k.year') + '</dt><dd>' + y + '</dd>' : '') +
+      '<dt>' + VL.UH('tr3d.k.network') + '</dt><dd>' + netLink(D.ids[j]) + '</dd></dl>' +
+      '<p class="side-note">' + VL.UH('tr3d.notTraced') + '</p>';
+  }
   var raycaster = null, ndc = null;
+  /* the node under the pointer: {g: trace node or -1, doc: network point or -1}; chosen (solid) nodes and larger ones
+     win over light and small ones, the traced laws over other documents */
   function pick(cx, cy) {
-    if (!pointsObj) return -1;
+    if (!netObj) return null;
     if (!raycaster) { raycaster = new THREE.Raycaster(); ndc = new THREE.Vector2(); }
     var r = renderer.domElement.getBoundingClientRect();
     ndc.set(((cx - r.left) / r.width) * 2 - 1, -((cy - r.top) / r.height) * 2 + 1);
     var dist = camera.position.distanceTo(controls.target);
     raycaster.params.Points.threshold = Math.max(2, dist * worldPerPx() * 6);
     raycaster.setFromCamera(ndc, camera);
-    var hits = raycaster.intersectObject(pointsObj, false), best = -1, bestScore = Infinity;
-    hits.forEach(function (h) {
-      var i = h.index;
-      if (!ALPHA || ALPHA[i] < 0.05) return;
-      var score = h.distanceToRay / (1 + (ALPHA[i] > 0.5 ? 1 : 0)) / (0.6 + (SIZE[cname(i)] || 6) / 12) + h.distance * 1e-4;
-      if (score < bestScore) { bestScore = score; best = i; }
+    var best = null, bestScore = Infinity, ta = trObj.geometry.attributes, na = netObj.geometry.attributes;
+    raycaster.intersectObject(trObj, false).forEach(function (h) {
+      var j = h.index, score = h.distanceToRay / (1 + (ta.aAlpha.array[j] > 0.5 ? 1 : 0)) / (0.6 + ta.aSize.array[j] / 12) + h.distance * 1e-4;
+      if (score < bestScore) { bestScore = score; best = { g: TNODE[j], doc: -1 }; }
+    });
+    raycaster.intersectObject(netObj, false).forEach(function (h) {
+      var j = h.index, gi = DOCG[j];
+      var score = h.distanceToRay / (1 + (na.aAlpha.array[j] > 0.5 ? 1 : 0) + (gi >= 0 ? 0.5 : 0)) / (0.6 + na.aSize.array[j] / 12) + h.distance * 1e-4;
+      if (score < bestScore) { bestScore = score; best = { g: gi, doc: j }; }
     });
     return best;
   }
-  function clickNode(i) {
-    var c = cname(i);
-    if (c === 'question' || c === 'answer') {
-      var ts = tracesOf(i).map(function (k) { return G.t[k]; }).filter(function (t) { return t.co[0] === i || t.co[1] === i; });
-      var t = ts.filter(function (x) { return x.co[0] === i; })[0] || ts[0];     // a question node chooses its question
-      if (t) { selectTrace(AREAS[t.a].id, t.r, { user: true }); return; }
+  function pickId(p) { return !p ? null : p.g >= 0 ? G.i[p.g] : 'doc:' + D.ids[p.doc]; }
+  /* a click: a question or answer chooses its question (Ctrl/Cmd-click adds or removes it); another node opens its details */
+  function clickPick(p, ev) {
+    if (!p) return;
+    if (p.g >= 0) {
+      var c = cname(p.g);
+      if (c === 'question' || c === 'answer') {
+        var ts = tracesOf(p.g).map(function (k) { return G.t[k]; }).filter(function (t) { return t.co[0] === p.g || t.co[1] === p.g; });
+        var t = ts.filter(function (x) { return x.co[0] === p.g; })[0] || ts[0];
+        if (t) {
+          if (ev && (ev.ctrlKey || ev.metaKey)) toggleTrace(AREAS[t.a].id, t.r, { user: true });
+          else chooseOnly(AREAS[t.a].id, t.r, { user: true });
+          return;
+        }
+      }
+      T.clicked = G.i[p.g];
+      openPanel(nodeHtml(p.g));
+      panelNode = p.g;
+      return;
     }
-    T.clicked = G.i[i];
-    openPanel(nodeHtml(i));
-    panelNode = i;
+    T.clicked = 'doc:' + D.ids[p.doc];
+    openPanel(docHtml(p.doc));
+    panelNode = NG + p.doc;
+  }
+  function tipHtml(p) {
+    if (p.g >= 0) {
+      var n = names(p.g), cn = classNames(cname(p.g)), k = tracesOf(p.g).length, lim = QNODE[p.g] ? 140 : 60;
+      return '<b>' + VL.TH(VL.pair(VL.short(n[0], lim), VL.short(n[1], lim))) + '</b>' +
+        '<div class="t-sub">' + VL.TH(VL.pair(cn[0], cn[1])) + ' · ' + VL.UH('tr3d.tipTraces', { n: nv(k) }) + '</div>';
+    }
+    var j = p.doc, rk = 'net.rank.' + D.rank[j];
+    return '<b lang="vi">' + esc(VL.short((D.num[j] ? D.num[j] + ' · ' : '') + D.title[j], 90)) + '</b>' +
+      '<div class="t-sub">' + VL.TH(VL.kpair('tr3d.cls.document')) + (VL.i18n.has(rk) ? ' · ' + VL.TH(VL.kpair(rk)) : '') + '</div>';
   }
   var down = null, hoverRaf = 0;
   function bindPointer() {
@@ -1177,8 +1396,7 @@
       var moved = Math.abs(e.clientX - down.x) + Math.abs(e.clientY - down.y);
       down = null;
       if (moved > 6) return;
-      var i = pick(e.clientX, e.clientY);
-      if (i >= 0) clickNode(i);
+      clickPick(pick(e.clientX, e.clientY), e);
     });
     cv.addEventListener('pointermove', function (e) {
       if (e.pointerType === 'touch' || down) { tip.classList.add('hidden'); return; }
@@ -1186,13 +1404,11 @@
       var x = e.clientX, y = e.clientY;
       hoverRaf = requestAnimationFrame(function () {
         hoverRaf = 0;
-        var i = pick(x, y);
-        cv.style.cursor = i >= 0 ? 'pointer' : '';
-        T.hover = i >= 0 ? G.i[i] : null;
-        if (i < 0) { tip.classList.add('hidden'); return; }
-        var n = names(i), cn = classNames(cname(i)), k = tracesOf(i).length, lim = QNODE[i] ? 140 : 60;
-        tip.innerHTML = '<b>' + VL.TH(VL.pair(VL.short(n[0], lim), VL.short(n[1], lim))) + '</b>' +
-          '<div class="t-sub">' + VL.TH(VL.pair(cn[0], cn[1])) + ' · ' + VL.UH('tr3d.tipTraces', { n: nv(k) }) + '</div>';
+        var p = pick(x, y);
+        cv.style.cursor = p ? 'pointer' : '';
+        T.hover = pickId(p);
+        if (!p) { tip.classList.add('hidden'); return; }
+        tip.innerHTML = tipHtml(p);
         tip.classList.remove('hidden');
         var hr = stage.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
         var lx = Math.min(hr.width - tw - 8, x - hr.left + 14), ly = y - hr.top + 14;
@@ -1204,7 +1420,7 @@
     cv.addEventListener('pointerleave', function () { tip.classList.add('hidden'); });
   }
 
-  /* ------------------------------------------------------------------ selection */
+  /* ------------------------------------------------------------------ the choice */
   var seq = 0;
   function setHash(h) {
     if (location.hash === h) return;
@@ -1214,113 +1430,137 @@
     if (!location.hash) return;
     try { history.replaceState(history.state, '', location.pathname + location.search); } catch (e) { location.hash = ''; }
   }
-  /* the chosen question's area on the phones' toolbar */
+  /* the deep link of the choice: one area's 20 -> #area=<id>&all=1 (&q=<rank> when another than its first is shown);
+     else #q=<area>:<r>,<r>;<area>:<r> with the shown trace first */
+  function hashFor() {
+    var sel = state.sel, cur = current();
+    if (!sel.length || !cur) return '';
+    var a0 = sel[0].a, one = sel.every(function (t) { return t.a === a0; });
+    if (one && sel.length > 1 && sel.length === (AREA_T[a0] || []).length) return '#area=' + AREAS[a0].id + '&all=1' + (cur !== sel[0] ? '&q=' + cur.r : '');
+    var order = [], by = {};
+    [cur].concat(sel.filter(function (t) { return t !== cur; })).forEach(function (t) {
+      var id = AREAS[t.a].id;
+      if (!by[id]) { by[id] = []; order.push(id); }
+      by[id].push(t.r);
+    });
+    return '#q=' + order.map(function (id) { return id + ':' + by[id].join(','); }).join(';');
+  }
+  function writeHash() { var h = hashFor(); if (h) setHash(h); else clearHash(); }
+  /* the shown question's area on the phones' toolbar */
   function areaLabelM() {
-    var m = VL.$('#tr-area-m');
-    if (m) m.innerHTML = state.sel ? VL.UH(areaPair(AREAS[state.sel.t.a])) : '';
+    var m = VL.$('#tr-area-m'), t = current();
+    if (m) m.innerHTML = t ? VL.UH(areaPair(AREAS[t.a])) : '';
   }
-  /* choose a question: its trace solid and bold, the focus volume, call-outs, the hop panel (the area file is loaded for
-     the panel); the camera stays where it is ('Zoom to selection' flies in) */
-  function selectTrace(areaId, rank, opts) {
+  function traceOf(areaId, rank) { var a = BY[areaId]; return a ? TRK[AIX[a.id] + ':' + rank] || null : null; }
+  function canonical(list) {
+    var seen = {}, out = [];
+    list.forEach(function (t) { if (t && !seen[t.k]) { seen[t.k] = 1; out.push(t); } });
+    return out.sort(function (x, y) { return x.a - y.a || x.r - y.r; });
+  }
+  function noteCurrent() {
+    var t = current();
+    T.selected = state.sel.map(key);
+    if (!t) { T.current = null; return; }
+    var co = t.co;
+    T.current = { key: key(t), area: AREAS[t.a].id, rank: t.r, index: state.cur, of: state.sel.length, q: G.i[co[0]], answer: G.i[co[1]],
+      provision: G.i[co[2]], law: G.i[co[3]], term: co[4] >= 0 ? G.i[co[4]] : null, areaNode: G.i[co[5]], fg: t.f.length, nodes: t.n.length,
+      segments: t.e.length / 3 };
+  }
+  /* the choice becomes list (traces; kept in the list's order) with cur shown: the rows, the deep link, the scene's
+     alphas and bold paths (once), the call-outs and the hop panel */
+  function setSelection(list, cur, opts) {
     opts = opts || {};
-    var a = BY[areaId], t = a ? TRK[AIX[a.id] + ':' + rank] : null;
+    list = canonical(list);
+    state.sel = list;
+    state.cur = list.length ? Math.max(0, list.indexOf(cur)) : -1;
+    if (opts.user) writeHash();
+    noteCurrent();
+    markList(opts.scroll !== false);
+    areaLabelM();
+    if (!T.fallback) { applySelection(); buildLabels(); }
+    T.choices = (T.choices || 0) + 1;
+    return showCurrent(opts);
+  }
+  function chooseOnly(areaId, rank, opts) {
+    var t = traceOf(areaId, rank);
+    return t ? setSelection([t], t, opts) : Promise.resolve(null);
+  }
+  /* add a trace (it is shown) or remove it (the shown one removed: its neighbour in the list is shown) */
+  function toggleTrace(areaId, rank, opts) {
+    var t = traceOf(areaId, rank);
     if (!t) return Promise.resolve(null);
-    var my = ++seq;
-    if (!AD[a.id]) openPanel(closeHtml() + '<p class="tr-status">' + VL.TH('tr3d.loading') + '</p>');   // the area's file first
-    return loadArea(a).then(function () {
-      if (my !== seq) return null;                 // a later choice won, or the panel was closed meanwhile
-      var tr = AD[a.id][rank];
-      state.sel = { t: t, tr: tr, q: QBY[a.id + ':' + rank] || null };
-      if (opts.user) setHash('#q=' + a.id + ':' + rank);
-      markList(opts.scroll !== false);
-      openPanel(tracePanelHtml(a, tr));
-      panelNode = -1;
-      var co = t.co;
-      T.selected = { area: a.id, rank: rank, q: G.i[co[0]], answer: G.i[co[1]], provision: G.i[co[2]], law: G.i[co[3]],
-        term: co[4] >= 0 ? G.i[co[4]] : null, areaNode: G.i[co[5]], fg: t.f.length, nodes: t.n.length, segments: t.e.length / 3 };
-      areaLabelM();
-      if (T.fallback) { drawFallback(a, tr); return t; }
-      applyFocus();
-      drawTrace();
-      buildLabels();
-      return t;
-    }, function (err) {
-      T.errors.push(String(err && err.message || err));
-      if (my === seq) openPanel(closeHtml() + '<p class="tr-status">' + VL.UH('tr3d.areaError', { file: a.file }) + '</p>');
-      return null;
-    });
+    var i = state.sel.indexOf(t), list = state.sel.slice(), cur = current();
+    if (i >= 0) { list.splice(i, 1); if (cur === t) cur = list[Math.min(i, list.length - 1)] || null; }
+    else { list.push(t); cur = t; }
+    return setSelection(list, cur, opts);
   }
-  var TRACE_SEG = 16;      // the traced ribbon: the links' curve, finely sampled
-  /* the paper's trace widths scaled by FOCUS.bold: the picked trace stands out from the faded graph */
-  function boldStyle(w) {
-    var st = VL.traceStyle(P, w);
-    Object.keys(st.widths).forEach(function (k) { st.widths[k] *= FOCUS.bold; });
-    return st;
-  }
-  function drawTrace() {
-    var sel = state.sel, v = [], s = [];
-    if (sel) {
-      var e = sel.t.e;
-      for (var j = 0; j < e.length; j += 3) (e[j + 2] === 1 ? v : s).push(curvePts(ptOf(e[j]), ptOf(e[j + 1]), TRACE_SEG));
-      sel.paths = v.concat(s);
+  /* an area heading's 'All 20': its 20 questions become the choice (the first shown); pressed again (all 20 chosen) they
+     leave it */
+  function chooseArea(areaId, opts) {
+    var a = BY[areaId];
+    if (!a) return Promise.resolve(null);
+    opts = opts || {};
+    var ai = AIX[a.id], all = AREA_T[ai] || [];
+    if (!all.length) return Promise.resolve(null);
+    var allIn = all.every(function (t) { return state.sel.indexOf(t) >= 0; });
+    if (allIn && opts.toggle !== false) {
+      var rest = state.sel.filter(function (t) { return t.a !== ai; }), cur = current();
+      return setSelection(rest, rest.indexOf(cur) >= 0 ? cur : rest[0] || null, opts);
     }
-    traceV.setStyle(boldStyle(1));
-    traceS.setStyle(boldStyle(0.55));
-    traceS.setStyle({ opacity: P.dark ? 0.6 : 0.62 });
-    traceV.setPaths(v);
-    traceS.setPaths(s);
-    drawFgNodes();
-    T.traceSegments = traceV.count() + traceS.count();
-    T.traceVerified = traceV.count();
-    T.traceStructural = traceS.count();
-    needsRender = true;
+    return setSelection(all, all[0], opts);
   }
-  /* the trace's nodes over its strokes: a small Points object (same shader and uniforms as the graph), far ones first */
-  function drawFgNodes() {
-    if (fgObj) { scene.remove(fgObj); fgObj.geometry.dispose(); fgObj = null; }
-    var sel = state.sel;
-    if (!sel || !pointsObj) return;
-    var cp = camera.position, d2 = function (i) {
-      var dx = POS[3 * i] - cp.x, dy = POS[3 * i + 1] - cp.y, dz = POS[3 * i + 2] - cp.z; return dx * dx + dy * dy + dz * dz;
-    };
-    var ids = sel.t.f.slice().sort(function (a, b) { return d2(b) - d2(a); }), n = ids.length;
-    var src = pointsObj.geometry.attributes, pos = new Float32Array(3 * n), col = new Float32Array(3 * n), sz = new Float32Array(n), al = new Float32Array(n);
-    ids.forEach(function (i, j) {
-      for (var c = 0; c < 3; c++) { pos[3 * j + c] = POS[3 * i + c]; col[3 * j + c] = src.aColor.array[3 * i + c]; }
-      sz[j] = src.aSize.array[i] * FOCUS.fgSize;
-      al[j] = 1;
-    });
-    var g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    g.setAttribute('aColor', new THREE.BufferAttribute(col, 3));
-    g.setAttribute('aSize', new THREE.BufferAttribute(sz, 1));
-    g.setAttribute('aAlpha', new THREE.BufferAttribute(al, 1));
-    g.setAttribute('aDist', new THREE.BufferAttribute(new Float32Array(n), 1));     // on the trace: d = 0, solid
-    // transparent (alpha 1): drawn in three.js' transparent pass after the trace's strokes (renderOrder 7 / 10), so the
-    // nodes lie over the strokes as in the paper's figures (an opaque material would be drawn before every transparent one)
-    if (!fgMat) fgMat = new THREE.ShaderMaterial({ uniforms: pointsMat.uniforms, vertexShader: PT_VS, fragmentShader: PT_FS, depthTest: false, depthWrite: false,
-      transparent: true });
-    fgObj = new THREE.Points(g, fgMat);
-    fgObj.renderOrder = 20;
-    fgObj.frustumCulled = false;
-    scene.add(fgObj);
-    T.fgDrawn = n;
+  /* the stepper: the previous or next chosen trace is shown (the choice and the scene's alphas stay) */
+  function step(d, opts) {
+    var n = state.sel.length;
+    if (n < 2) return Promise.resolve(null);
+    var i = Math.max(0, Math.min(n - 1, state.cur + d));
+    if (i === state.cur) return Promise.resolve(current());
+    state.cur = i;
+    if (opts && opts.user) writeHash();
+    noteCurrent();
+    markList(true);
+    areaLabelM();
+    if (!T.fallback) buildLabels();
+    T.steps = (T.steps || 0) + 1;
+    return showCurrent(opts);
   }
   function clearSelection(user) {
-    seq++;                                         // also drops a choice whose area file is still loading
-    if (!state.sel) return;
-    state.sel = null;
-    T.selected = null;
+    seq++;                                         // also drops a panel whose area file is still loading
+    if (!state.sel.length) return;
+    state.sel = [];
+    state.cur = -1;
+    noteCurrent();
+    T.panel = null;
     markList(false);
     if (user) clearHash();
     areaLabelM();
     if (T.fallback) { fbEl.innerHTML = ''; fbEl.classList.add('hidden'); return; }
-    applyFocus();
-    drawTrace();
+    applySelection();
     buildLabels();
   }
+  /* the hop panel of the shown trace (its area's file loaded first; a later choice wins) */
+  function showCurrent(opts) {
+    opts = opts || {};
+    var t = current();
+    if (!t) { seq++; closePanel(); return Promise.resolve(null); }
+    var a = AREAS[t.a], my = ++seq;
+    if (!AD[a.id]) openPanel(closeHtml() + stepHtml() + '<p class="tr-status">' + VL.TH('tr3d.loading') + '</p>');
+    return loadArea(a).then(function () {
+      if (my !== seq) return null;
+      var tr = AD[a.id][t.r];
+      openPanel(tracePanelHtml(a, tr), !!opts.keepScroll);
+      panelNode = -1;
+      T.panel = key(t);
+      if (T.fallback) drawFallback(a, tr);
+      return t;
+    }, function (err) {
+      T.errors.push(String(err && err.message || err));
+      if (my === seq) openPanel(closeHtml() + stepHtml() + '<p class="tr-status">' + VL.UH('tr3d.areaError', { file: a.file }) + '</p>');
+      return null;
+    });
+  }
 
-  /* ------------------------------------------------------------------ no WebGL: the selected trace in 2D */
+  /* ------------------------------------------------------------------ no WebGL: the shown trace in 2D */
   function drawFallback(a, tr) {
     var view = window.matchMedia('(min-width: 760px)').matches ? 'wide' : 'tall';
     var mode = VL.lang();
@@ -1334,10 +1574,10 @@
 
   /* ------------------------------------------------------------------ legend, tools, theme */
   /* the traced path as the scene draws it: the links' S-curve (vertical tangents, control points at 45 % of the rise),
-     navy core over the gold halo; ' s' = structural (fainter, thinner core) */
+     navy core over the gold halo; ' s' = structural (fainter, thinner core), ' l' = a trace not chosen (thin, light) */
   function curveSwatch(mod) {
     var d = 'M2 10 C2 6.4 20 5.6 20 2';
-    return '<svg class="tr-sw' + mod + '" viewBox="0 0 22 12" aria-hidden="true"><path class="halo" d="' + d + '"/><path class="core" d="' + d + '"/></svg>';
+    return '<svg class="tr-sw' + mod + '" viewBox="0 0 22 12" aria-hidden="true"' + (mod === ' l' ? ' style="opacity:' + LIGHT + '"' : '') + '><path class="halo" d="' + d + '"/><path class="core" d="' + d + '"/></svg>';
   }
   /* the flat legend: "Tiếng Việt · English" entries in EN–VI, one language in EN or VI */
   function renderLegend() {
@@ -1345,11 +1585,17 @@
     function li(color, pair, small) {
       return '<li><span class="swatch' + (small ? ' small' : '') + '" style="background:' + color + '"></span>' + VL.TH(pair, null, SEP) + '</li>';
     }
-    var items = VL.PAPER_CLASSES.filter(function (c) { return c.key !== 'intent'; }).map(function (c) { return li(c.v, VL.pair(c.vi, c.en)); });
+    var items = [li('var(--cls-work)', VL.kpair('tr3d.cls.document')),
+      '<li>' + curveSwatch(' n') + VL.TH('tr3d.lg.docLinks', null, SEP) + '</li>',
+      /* the provision fan: three flat swatches (chapter, article, point), as the paper's legends use flat colours */
+      '<li><span class="tr-sw3" aria-hidden="true">' + ['chapter', 'article', 'point'].map(function (k) {
+        return '<span class="swatch" style="background:var(--cls-' + k + ')"></span>'; }).join('') + '</span>' + VL.TH(VL.kpair('tr3d.lg.provisions'), null, SEP) + '</li>'];
+    VL.PAPER_CLASSES.forEach(function (c) { if (['term', 'question', 'answer', 'area'].indexOf(c.key) >= 0) items.push(li(c.v, VL.pair(c.vi, c.en))); });
     items.push(li('var(--cls-question)', VL.kpair('tr3d.lg.other'), true));
     legendEl.innerHTML = '<h3>' + VL.TH('tr3d.lg.title') + '</h3><ul>' + items.join('') +
       '<li>' + curveSwatch('') + VL.TH('tr3d.lg.traced', null, SEP) + '</li>' +
-      '<li>' + curveSwatch(' s') + VL.TH('tr3d.lg.structural', null, SEP) + '</li></ul>' +
+      '<li>' + curveSwatch(' s') + VL.TH('tr3d.lg.structural', null, SEP) + '</li>' +
+      '<li>' + curveSwatch(' l') + VL.TH('tr3d.lg.light', null, SEP) + '</li></ul>' +
       '<p class="lg-note">' + enFirst('tr3d.lg.note') + '</p>';
     legendEl.classList.toggle('hidden', !state.legendOpen);
     VL.$('#btn-legend').setAttribute('aria-expanded', state.legendOpen ? 'true' : 'false');
@@ -1358,16 +1604,12 @@
   VL.$('#btn-legend').innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>';
   VL.$('#btn-reset').innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>';
   VL.$('#btn-legend').addEventListener('click', function () { state.legendOpen = !state.legendOpen; renderLegend(); scheduleCallouts(); });
-  function resetView() {
-    clearSelection(true);
-    closePanel();
-    if (camera) fitAll(800);
-  }
-  /* the map never moves by itself (choosing, searching and the list only change the drawing); this flies to the chosen
-     trace, or shows the whole map when nothing is chosen */
+  /* the scene never moves by itself (choosing, searching and the list only change the drawing): Reset view returns to
+     the whole scene (the choice stays), Zoom to selection frames every chosen trace (nothing chosen: the whole scene) */
+  function resetView() { if (camera && D) fitAll(800); }
   function zoomToSelection() {
-    if (!camera) return;
-    if (state.sel) fitTrace(state.sel.t, 800);
+    if (!camera || !D) return;
+    if (state.sel.length) fitChosen(800);
     else fitAll(800);
   }
   var zoomBtn = VL.$('#btn-zoom');
@@ -1383,7 +1625,11 @@
     if (open) closePanel();
     scheduleCallouts();          // the sheet is an obstacle of the call-outs while it is open
   }
-  VL.$('#btn-list-m').addEventListener('click', function () { setSide(!app.classList.contains('side-open')); });
+  VL.$('#btn-list-m').addEventListener('click', function () {
+    var open = !app.classList.contains('side-open');
+    setSide(open);
+    if (!open && current()) showCurrent({});     // the sheet closed: the hop sheet of the shown trace comes back
+  });
   host.addEventListener('keydown', function (e) {
     var k = e.key;
     if (!camera) return;
@@ -1401,7 +1647,7 @@
     var typing = /INPUT|TEXTAREA|SELECT/.test((e.target && e.target.tagName) || '') && !(e.target === searchEl && !searchEl.value);
     if (e.key !== 'Escape' || typing) return;
     if (app.classList.contains('side-open')) { setSide(false); return; }
-    if (state.sel) { clearSelection(true); closePanel(); return; }
+    if (state.sel.length) { clearSelection(true); closePanel(); return; }
     if (!panel.classList.contains('hidden')) { seq++; closePanel(); }
   });
   function showHint() { if (VL.store.get('hint-traces3d') !== 'off') { VL.$('#hint').classList.remove('hidden'); scheduleCallouts(); } }
@@ -1409,15 +1655,16 @@
   VL.$('#hint-close').addEventListener('click', function () { hideHint(); VL.store.set('hint-traces3d', 'off'); });
   function status() {
     if (!G) return;
-    statusEl.textContent = VL.U('tr3d.status', { nodes: fmt(N), links: fmt(T.graph.links), traces: fmt(G.t.length) }) + (T.fps ? ' · ' + fmt(T.fps) + ' fps' : '');
+    statusEl.textContent = VL.U('tr3d.status', { docs: fmt(D ? D.N : G.net.nodes), nodes: fmt(TNODE.length || NG), traces: fmt(G.t.length) }) + (T.fps ? ' · ' + fmt(T.fps) + ' fps' : '');
   }
   function applyTheme() {
     readTheme();
     renderLegend();
-    if (renderer) {
+    if (renderer && netObj) {
       renderer.setClearColor(TH.bg, 1);
+      buildLayers();
       applyColors();
-      drawTrace();
+      drawSelected();
       buildLabels();
     }
     T.themeRenders++;
@@ -1438,8 +1685,8 @@
 
   /* ------------------------------------------------------------------ language switch (js/i18n.js 'vl:lang'): the data
      line, the list (headings, entries, count; its scroll, focus and search kept), the open panel (scroll kept), legend,
-     status, the 2D fallback and the call-outs are rendered again in the new mode, then placed again; the chosen trace
-     and the camera stay */
+     status, the 2D fallback and the call-outs are rendered again in the new mode, then placed again; the choice and the
+     camera stay */
   function applyLang() {
     T.langRenders = (T.langRenders || 0) + 1;
     M.langRenders = (M.langRenders || 0) + 1;
@@ -1452,83 +1699,174 @@
     }
     areaLabelM();
     if (!panel.classList.contains('hidden')) {
-      if (state.sel && panelNode < 0) openPanel(tracePanelHtml(BY[AREAS[state.sel.t.a].id], state.sel.tr), true);
+      var t = current();
+      if (panelNode < 0 && t && AD[AREAS[t.a].id]) openPanel(tracePanelHtml(AREAS[t.a], AD[AREAS[t.a].id][t.r]), true);
+      else if (panelNode >= NG && D) { var pd = panelNode; openPanel(docHtml(pd - NG), true); panelNode = pd; }
       else if (panelNode >= 0) { var pn = panelNode; openPanel(nodeHtml(pn), true); panelNode = pn; }
     }
     renderLegend();
     status();
     tip.classList.add('hidden');
-    if (T.fallback) { if (state.sel) drawFallback(BY[AREAS[state.sel.t.a].id], state.sel.tr); else M.labelsLang = VL.lang(); }
-    else if (labelGroup) buildLabels();
+    if (T.fallback) { var c = current(); if (c && AD[AREAS[c.a].id]) drawFallback(AREAS[c.a], AD[AREAS[c.a].id][c.r]); else M.labelsLang = VL.lang(); }
+    else if (labelGroup && D) buildLabels();
     else M.labelsLang = VL.lang();
   }
   document.addEventListener('vl:lang', applyLang);
 
-  /* ------------------------------------------------------------------ routing: #q=<area>:<rank> chooses a question (v1's
-     #area=<id>&q=<rank> too); #area=<id> alone scrolls the list to the area's heading and chooses nothing */
-  function route() {
-    var h = VL.params(), area = null, rank = null;
-    if (h.q && String(h.q).indexOf(':') > 0) { var p = String(h.q).split(':'); area = p[0]; rank = parseInt(p[1], 10); }
-    else if (h.area) { area = h.area; rank = h.q ? parseInt(h.q, 10) : null; }
-    var a = BY[area];
-    if (a && rank && TRK[AIX[a.id] + ':' + rank]) {
-      if (state.sel && state.sel.t.a === AIX[a.id] && state.sel.t.r === rank) return Promise.resolve(null);
-      return selectTrace(a.id, rank, {});
+  /* ------------------------------------------------------------------ routing */
+  /* #q=<area>:<r>[,<r>...][;<area>:<r>...] chooses those (the first listed shown); #area=<id>&all=1[&q=<rank>] the
+     area's 20; v1's #area=<id>&q=<rank> one; #area=<id> alone scrolls the list to the area and chooses nothing */
+  function parseHash() {
+    var h = VL.params(), list = [], cur = null, scroll = null;
+    if (h.q && String(h.q).indexOf(':') > 0) {
+      String(h.q).split(';').forEach(function (grp) {
+        var p = grp.split(':'), a = BY[p[0]];
+        if (!a || p.length < 2) return;
+        p[1].split(',').forEach(function (r) { var t = TRK[AIX[a.id] + ':' + parseInt(r, 10)]; if (t && list.indexOf(t) < 0) list.push(t); });
+      });
+      cur = list[0] || null;
+    } else if (h.area && BY[h.area]) {
+      var ai = AIX[h.area];
+      if (h.all === '1') { list = (AREA_T[ai] || []).slice(); cur = TRK[ai + ':' + parseInt(h.q, 10)] || list[0] || null; }
+      else if (h.q) { var t = TRK[ai + ':' + parseInt(h.q, 10)]; if (t) { list = [t]; cur = t; } }
+      else scroll = h.area;
     }
-    if (state.sel) { clearSelection(false); closePanel(); }
-    return a ? scrollToArea(a.id, { open: true }) : Promise.resolve(null);
+    return { list: list, cur: cur, scroll: scroll };
   }
-  window.addEventListener('hashchange', route);
+  function sameChoice(list, cur) {
+    var a = canonical(list);
+    return a.length === state.sel.length && a.every(function (t, i) { return t === state.sel[i]; }) && cur === current();
+  }
+  function route() {
+    var r = parseHash();
+    if (r.list.length) return sameChoice(r.list, r.cur) ? Promise.resolve(null) : setSelection(r.list, r.cur, {});
+    if (state.sel.length) { clearSelection(false); closePanel(); }
+    return r.scroll ? scrollToArea(r.scroll, { open: true }) : Promise.resolve(null);
+  }
+  window.addEventListener('hashchange', function () { if (G) route(); });
+
+  /* ------------------------------------------------------------------ test and preview interface */
+  function r3(v) { return Math.round(v * 1000) / 1000; }
+  function hist(arr) {
+    var h = {};
+    for (var i = 0; i < arr.length; i++) { var k = String(r3(arr[i])); h[k] = (h[k] || 0) + 1; }
+    return h;
+  }
+  function nodeIndex(id) {
+    var s = String(id);
+    if (s.indexOf('doc:') === 0 && D) { var j = D.idx[s.slice(4)]; return j == null ? null : { g: DOCG[j], doc: j }; }
+    var i = G ? G.i.indexOf(s) : -1;
+    return i < 0 ? null : { g: i, doc: IS_WORK[i] ? WDOC[i] : -1 };
+  }
   window.VLApp = window.VLApp || {};
   window.VLApp.traces = {
     area: function (id) { return scrollToArea(id, { open: true }); },     // the list at the area's heading (chooses nothing)
-    select: function (id, rank) { return selectTrace(id, rank, { user: true }); },
+    select: function (id, rank) { return chooseOnly(id, rank, { user: true }); },
+    toggle: function (id, rank) { return toggleTrace(id, rank, { user: true }); },
+    areaAll: function (id) { return chooseArea(id, { user: true, toggle: false }); },
+    clear: function () { clearSelection(true); closePanel(); },
+    step: function (d) { return step(d, { user: true }); },
     search: function (q) { if (searchEl) { searchEl.value = q; applySearch(); } return T.shown; },
     question: function (id, rank) { var q = QBY[id + ':' + rank]; return q ? { vi: q.vi, en: q.en, law: q.law, node: q.t ? G.i[q.t.co[0]] : null } : null; },
-    /* the focus volume at a node: its distance to the chosen trace and the opacity the transfer function gives it */
-    focusAt: function (id) { var i = G ? G.i.indexOf(id) : -1; return i < 0 || !ALPHA ? null : { d: DIST ? DIST[i] : 0, alpha: ALPHA[i], focus: FOCUS_U.uFocus.value, sigma: SIGMA, rest: FOCUS.rest }; },
-    clear: function () { clearSelection(true); closePanel(); },
+    choice: function () { return { selected: T.selected.slice(), current: T.current ? T.current.key : null, index: state.cur, of: state.sel.length, hash: location.hash, step: T.step }; },
+    /* the alpha the shaders get for a node (a trace node id, or 'doc:<network id>'): 1 = chosen, LIGHT = the rest */
+    alphaOf: function (id) {
+      if (!netObj) return null;
+      var n = nodeIndex(id);
+      if (!n) return null;
+      var a = n.doc >= 0 ? netObj.geometry.attributes.aAlpha.array[n.doc] : trObj.geometry.attributes.aAlpha.array[TPT[n.g]];
+      return { alpha: r3(a), light: LIGHT, doc: n.doc >= 0, traced: n.g >= 0 };
+    },
+    /* every alpha of the scene, as the shaders get them: per buffer the values and their counts, the link materials'
+       opacities (each kind's network-3d.html opacity times LIGHT), the strokes' opacity; mismatched = trace nodes whose
+       alpha is not 1 exactly when chosen */
+    alphaState: function () {
+      if (!netObj) return null;
+      var ch = chosenNodes(), bad = 0, solid = 0, na = netObj.geometry.attributes.aAlpha.array, ta = trObj.geometry.attributes.aAlpha.array;
+      for (var i = 0; i < NG; i++) {
+        var a = IS_WORK[i] ? na[WDOC[i]] : ta[TPT[i]];
+        if ((a === 1) !== !!ch.has[i]) bad++;
+        if (a === 1) solid++;
+      }
+      var docsOff = 0;      // documents no trace reaches must stay light
+      for (var j = 0; j < NP; j++) if (DOCG[j] < 0 && na[j] !== LIGHT32) docsOff++;
+      var nl = {};
+      Object.keys(netEdges).forEach(function (k) {
+        nl[k] = { opacity: r3(netEdges[k].obj.material.uniforms.uOpacity.value), base: r3(NS.edgeOpacity(k, TH.dark, D.N)), links: netEdges[k].m,
+          alphas: hist(netEdges[k].obj.geometry.attributes.aAlpha.array) };
+      });
+      return { light: LIGHT, docs: hist(na), traceNodes: hist(ta), traceLinks: hist(trEdges.obj.geometry.attributes.aAlpha.array), chosenNodes: ch.list.length,
+        solidNodes: solid, mismatched: bad, untracedDocsNotLight: docsOff, netLinks: nl, strokes: { opacity: LIGHT, width: LIGHT_W, segments: lightTr.count(), traced: TRACED.length },
+        bold: { verified: boldV.count(), structural: boldS.count() }, fg: T.fgDrawn, solid: T.solid, writes: T.selectionWrites };
+    },
+    /* the traced laws: each one's network point, its position and the document's (they must be the same) */
+    laws: function () {
+      if (!D) return null;
+      var out = [];
+      for (var i = 0; i < NG; i++) {
+        if (!IS_WORK[i]) continue;
+        var j = WDOC[i], extra = j >= D.N;
+        out.push({ node: G.i[i], doc: String(G.d[String(i)]), point: j, extra: extra, docId: extra ? null : D.ids[j], rank: extra ? rankOfY(GPOS[3 * i + 1]) : D.rank[j],
+          pos: [r3(GPOS[3 * i]), r3(GPOS[3 * i + 1]), r3(GPOS[3 * i + 2])], data: [G.p[3 * i] / 10, G.p[3 * i + 1] / 10, G.p[3 * i + 2] / 10],
+          docPos: extra ? null : [r3(D.pos[3 * j]), r3(D.pos[3 * j + 1]), r3(D.pos[3 * j + 2])] });
+      }
+      return out;
+    },
     areas: function () { return AREAS.map(function (a) { return a.id; }); },
-    pick: function (x, y) { var i = pick(x, y); return i >= 0 ? G.i[i] : null; },
+    pick: function (x, y) { return pickId(pick(x, y)); },
     project: function (id) {                       // screen position (CSS px in the canvas) of a node, for tests
-      var i = G.i.indexOf(id);
-      if (i < 0 || !camera) return null;
-      var v = new THREE.Vector3(POS[3 * i], POS[3 * i + 1], POS[3 * i + 2]).project(camera);
+      var n = nodeIndex(id);
+      if (!n || !camera) return null;
+      var p = n.g >= 0 ? ptOf(n.g) : { x: D.pos[3 * n.doc], y: D.pos[3 * n.doc + 1], z: D.pos[3 * n.doc + 2] };
+      var v = new THREE.Vector3(p.x, p.y, p.z).project(camera);
       return { x: (v.x + 1) / 2 * host.clientWidth, y: (1 - v.y) / 2 * host.clientHeight, inside: Math.abs(v.x) <= 1 && Math.abs(v.y) <= 1 && v.z < 1 };
     },
-    settle: function () { return !tween && !fade && !(callouts && callouts.last === null); },
+    settle: function () { return T.sceneReady && !tween && !(callouts && callouts.last === null); },
     /* the camera (position, target) and the rectangles the views are framed in; Zoom to selection and Reset view */
     camera: function () { return camera ? { pos: camera.position.toArray(), target: controls.target.toArray() } : null; },
-    view: function () { return camera ? { map: mapRect(), free: freeRect(), home: (function (f) { return { pos: f.pos.toArray(), target: f.target.toArray() }; })(homeView()) } : null; },
+    view: function () { return camera && D ? { home: homeRect(), free: freeRect(), homeView: (function (f) { return { pos: f.pos.toArray(), target: f.target.toArray() }; })(homeView()) } : null; },
     zoom: function () { zoomToSelection(); },
     reset: function () { resetView(); },
-    /* the current view as data (camera, the colours / alphas / sizes the shaders get, the call-outs placed), for tests and
-       offline previews of the page without a GPU; read-only */
+    /* the current view as data, for tests and offline previews of the page without a GPU (read-only): the camera, the
+       colours, alphas and sizes the shaders get (the network's positions and links are the data files'), the traced and
+       chosen segments, the call-outs placed */
     snapshot: function () {
-      if (!camera) return null;
-      var pa = pointsObj.geometry.attributes, lines = [];
-      for (var e = 0; e < EDGE.s.length; e++) {
-        var L = lineGroups[EDGE.g[e]], j = EDGE.j[e], fv = FOCUS_U.uFocus.value;
-        var a0 = L.alpha.array[j] * (1 + (transfer(L.da.array[j]) - 1) * fv), a1 = L.alpha.array[j] * (1 + (transfer(L.db.array[j]) - 1) * fv), al = Math.max(a0, a1);
-        if (al > 0.01) lines.push([EDGE.s[e], EDGE.t[e], Math.round(a0 * 1000) / 1000, Math.round(a1 * 1000) / 1000,
-          Math.round(L.color.array[3 * j] * 255), Math.round(L.color.array[3 * j + 1] * 255), Math.round(L.color.array[3 * j + 2] * 255), L.seg]);
+      if (!camera || !netObj) return null;
+      var na = netObj.geometry.attributes, ta = trObj.geometry.attributes, la = trEdges.obj.geometry.attributes, solidDocs = [], i;
+      for (i = 0; i < NP; i++) if (na.aAlpha.array[i] !== LIGHT32) solidDocs.push([i, r3(na.aAlpha.array[i])]);
+      var links = [];
+      for (i = 0; i < TL.m; i++) links.push([TL.s[i], TL.t[i], r3(la.aAlpha.array[i]), Math.round(la.aColor.array[3 * i] * 255), Math.round(la.aColor.array[3 * i + 1] * 255), Math.round(la.aColor.array[3 * i + 2] * 255)]);
+      var fg = null;
+      if (fgObj) {
+        var fa = fgObj.geometry.attributes;
+        fg = { pos: Array.prototype.map.call(fa.position.array, function (v) { return Math.round(v * 10) / 10; }), size: Array.prototype.map.call(fa.aSize.array, function (v) { return Math.round(v * 10) / 10; }),
+          color: Array.prototype.map.call(fa.aColor.array, function (v) { return Math.round(v * 255); }) };
       }
-      var r3 = function (v) { return Math.round(v * 1000) / 1000; };
+      var bold = { v: [], s: [] }, ver = new Set(), seen = new Set();
+      state.sel.forEach(function (t) { var e = t.e; for (var j = 0; j < e.length; j += 3) if (e[j + 2] === 1) ver.add(pairKey(e[j], e[j + 1])); });
+      state.sel.forEach(function (t) {
+        var e = t.e;
+        for (var j = 0; j < e.length; j += 3) { var kk = pairKey(e[j], e[j + 1]); if (seen.has(kk)) continue; seen.add(kk); (ver.has(kk) ? bold.v : bold.s).push([e[j], e[j + 1]]); }
+      });
       return {
-        w: host.clientWidth, h: host.clientHeight, fov: camera.fov, near: camera.near,
+        w: host.clientWidth, h: host.clientHeight, fov: camera.fov, near: camera.near, far: camera.far, dpr: renderer.getPixelRatio(),
         pos: camera.position.toArray().map(r3), target: controls.target.toArray().map(r3), up: camera.up.toArray(),
-        color: Array.prototype.map.call(pa.aColor.array, function (v) { return Math.round(v * 255); }),
-        alpha: Array.prototype.map.call(ALPHA, r3), dist: Array.prototype.map.call(pa.aDist.array, function (v) { return Math.round(v * 10) / 10; }),
-        size: Array.prototype.slice.call(pa.aSize.array),
-        lines: lines, lineOpacity: linesMat.uniforms.uOpacity.value, curve: { curves: CURVES, bend: CV.bend, gap: CV.gap, liftMax: CV.liftMax, traceSeg: TRACE_SEG },
-        bg: TH.bg, rim: pointsMat.uniforms.uRim.value,
-        fog: [FOG.value.x, FOG.value.y, FOG.value.z], dark: !!TH.dark,
+        dataset: DS, docs: D.N, extra: EXTRA.map(function (gi) { return gi; }), light: LIGHT, bg: TH.bg, dark: !!TH.dark, docColor: TH.doc, linkColor: TH.link,
+        zs: NS.ZS, extent: D.extent, layers: [0, 1, 2, 3, 4, 5].map(function (r) { return NS.layerY(D, r); }), qaPlanes: [G.planes.z_answer * NS.ZS, G.planes.z_question * NS.ZS],
+        plane: { color: TH.plane, opacity: TH.planeOpacity, line: TH.planeLine, lineOpacity: TH.planeLineOpacity },
+        netLinks: Object.keys(netEdges).map(function (k) { return { kind: k, m: netEdges[k].m, seg: netEdges[k].seg, opacity: r3(netEdges[k].obj.material.uniforms.uOpacity.value) }; }),
+        docSize: Array.prototype.map.call(na.aSize.array, function (v) { return Math.round(v * 10) / 10; }), docSolid: solidDocs,
+        gpos: Array.prototype.map.call(GPOS, function (v) { return Math.round(v * 10) / 10; }),
+        traceNodes: { nodes: TNODE, alpha: Array.prototype.map.call(ta.aAlpha.array, r3), size: Array.prototype.slice.call(ta.aSize.array),
+          color: Array.prototype.map.call(ta.aColor.array, function (v) { return Math.round(v * 255); }) },
+        traceLinks: links, traceLinkSeg: trEdges.seg, traced: TRACED, strokes: { width: LIGHT_W, opacity: LIGHT, color: P.core, seg: LIGHT_SEG },
+        bold: bold, boldStyle: { v: boldStyle(1), s: boldStyle(0.55), sOpacity: P.dark ? 0.6 : 0.62, seg: TRACE_SEG }, fg: fg,
+        curve: { curves: CURVES, bend: NS.BEND, gap: NS.LAYER_GAP, liftMax: NS.LIFT_MAX },
+        rim: ptMat.uniforms.uRim.value, fog: [FOG.value.x, FOG.value.y, FOG.value.z],
         paper: { core: P.core, halo: P.halo, halo2: P.halo2, calloutBg: P.calloutBg, calloutLine: P.calloutLine, selBg: P.selBg,
           selLine: P.selLine, ink: P.ink, ink2: P.ink2, leader: P.leader },
-        traceStyle: { v: boldStyle(1), s: boldStyle(0.55), sOpacity: P.dark ? 0.6 : 0.62 }, focus: FOCUS,
-        focusVolume: { value: FOCUS_U.uFocus.value, sigma: SIGMA, cell: CELL, rest: FOCUS.rest, tint: pointsMat.uniforms.uTint.value, splat: FOCUS.splat },
-        labels: labels.map(function (s) { return { id: s.__id, sel: !!s.__sel, must: !!s.__must, px: s.__px, lines: s.__opts.lines }; }),
-        callouts: M.callouts || null, free: freeRect(), selected: T.selected
+        labels: labels.map(function (s) { return { id: s.__id, sel: !!s.__sel, must: !!s.__must, layer: !!s.__layer, px: s.__px, lines: s.__opts.lines }; }),
+        callouts: M.callouts || null, home: homeRect(), free: freeRect(), selected: T.selected, current: T.current
       };
     }
   };
@@ -1537,11 +1875,13 @@
   renderLegend();
   var t0 = performance.now();
   listReady = loadQuestions().then(function (d) { prepareQuestions(d); renderList(); return d; });
+  var routed = null;
   VL.fontsReady().then(function () {
     return Promise.all([loadGraph(), listReady]);
   }).then(function (r) {
-    prepare(r[0]);
+    prepareGraph(r[0]);
     linkQuestionNodes();
+    T.graphMs = Math.round(performance.now() - t0);
     T.webgl = webglOk();
     if (T.webgl) {
       try { initThree(); } catch (e) { T.webgl = false; T.webglError = String(e && e.message || e); renderer = null; }
@@ -1550,30 +1890,44 @@
       T.fallback = true;
       stage.classList.add('tr-no-webgl');
       if (TD) { var d = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); d.setAttribute('class', 'tr-defs'); d.setAttribute('width', '0'); d.setAttribute('height', '0'); d.setAttribute('aria-hidden', 'true'); d.innerHTML = TD.defs(); document.body.appendChild(d); }
-    } else {
+    }
+    /* a deep link chooses as soon as the list and the traces are known (the hop panel opens); the scene shows the choice
+       when the network is drawn */
+    routed = route();
+    status();
+    if (T.fallback) { hideVeil(); return null; }
+    veilText(DS === 'full' ? VL.U('net.loadingAll', { n: fmt(NS.dsCount('full')) }) : VL.U('net.loadingN', { n: fmt(NS.dsCount('lite')) }));
+    var tn = performance.now();
+    return NS.load(DS).then(function (net) {
+      if (!net) throw new Error('data/' + NS.datasetKey(DS) + '.js did not register ' + NS.datasetKey(DS));
+      return new Promise(function (res) { setTimeout(function () { res(net); }, 20); });
+    }).then(function (net) {
+      T.loadMs = Math.round(performance.now() - tn);
+      linkNetwork(net);
       buildScene();
       bindPointer();
-      showHint();          // first visit: the hint is part of the frame the whole map is placed in
+      showHint();
       fitAll(0);
-      buildLabels();       // nothing chosen: the 27 areas' names
-    }
-    T.buildMs = Math.round(performance.now() - t0);
-    status();
-    return route();
+      buildLabels();
+      T.sceneReady = true;
+      status();
+      hideVeil();
+    });
   }).then(function () {
-    hideVeil();
+    return routed;
+  }).then(function () {
+    T.readyMs = Math.round(performance.now() - t0);
     return new Promise(function (res) { requestAnimationFrame(function () { requestAnimationFrame(res); }); });
   }).then(function () {
     return T.fallback ? null : measureFps(700);
   }).then(function (fps) {
     if (fps != null) T.fps = fps;
     status();
-    VL.setReady({ tracesQuestions: QS.length, webglRenderer: M.webglRenderer, fps: T.fps });
+    VL.setReady({ tracesQuestions: QS.length, webglRenderer: M.webglRenderer, fps: T.fps, dataset: DS });
   }).catch(function (e) {
     console.error(e);
     T.errors.push(String(e && e.message || e));
-    var v = VL.$('#veil-text');
-    if (v) v.textContent = VL.U('tr3d.loadError', { msg: e && e.message });
+    veilText(VL.U('tr3d.loadError', { msg: e && e.message }));
     VL.setReady({ tracesError: String(e && e.message || e) });
   });
 })();

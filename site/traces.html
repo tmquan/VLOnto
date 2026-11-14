@@ -6,12 +6,12 @@
 <script>/* theme before first paint: ?theme=, else stored choice, else system (css/site.css, js/common.js) */(function(d,w){var t=null,m=/[?&]theme=(light|dark)(?:&|$)/.exec(w.location.search);if(m)t=m[1];else{try{t=w.localStorage.getItem('vlonto.theme')}catch(e){}if(t!=='light'&&t!=='dark'){try{t=w.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}catch(e){t='light'}}}d.setAttribute('data-theme',t);d.style.colorScheme=t})(document.documentElement,window);</script>
 <script src="js/i18n.js"></script>
 <title data-i18n="traces.page.title">Question traces · VLOnto</title>
-<meta name="description" data-i18n-content="traces.page.description" content="All 540 traced answers of 27 legal areas in one 3D graph: pick a question to light its trace from the answer through the cited provision up to the law, drawn like the figures of the VLOnto paper.">
+<meta name="description" data-i18n-content="traces.page.description" content="The whole 3D legal network with all 540 traced answers of 27 legal areas: choose questions to draw their traces solid, from the question through the answer and the cited provision up to the law; everything else stays light.">
 <!-- social preview (Open Graph, Twitter cards): written by scripts/site/build_site.py; edit the title and description instead -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="VLOnto">
 <meta property="og:title" content="Question traces · VLOnto">
-<meta property="og:description" content="All 540 traced answers of 27 legal areas in one 3D graph: pick a question to light its trace from the answer through the cited provision up to the law, drawn like the figures of the VLOnto paper.">
+<meta property="og:description" content="The whole 3D legal network with all 540 traced answers of 27 legal areas: choose questions to draw their traces solid, from the question through the answer and the cited provision up to the law; everything else stays light.">
 <meta property="og:url" content="https://tmquan.github.io/VLOnto/traces.html">
 <meta property="og:image" content="https://tmquan.github.io/VLOnto/img/vlonto-network-3d-social.png">
 <meta property="og:image:secure_url" content="https://tmquan.github.io/VLOnto/img/vlonto-network-3d-social.png">
@@ -23,7 +23,7 @@
 <meta property="og:locale:alternate" content="vi_VN">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Question traces · VLOnto">
-<meta name="twitter:description" content="All 540 traced answers of 27 legal areas in one 3D graph: pick a question to light its trace from the answer through the cited provision up to the law, drawn like the figures of the VLOnto paper.">
+<meta name="twitter:description" content="The whole 3D legal network with all 540 traced answers of 27 legal areas: choose questions to draw their traces solid, from the question through the answer and the cited provision up to the law; everything else stays light.">
 <meta name="twitter:image" content="https://tmquan.github.io/VLOnto/img/vlonto-network-3d-social.png">
 <meta name="twitter:image:alt" content="VLOnto 3D legal network of Vietnamese law: documents layered by legal force, with change and legal-basis links; the Labour Code 2019 (45/2019/QH14) is selected">
 <!-- /social preview -->
@@ -51,16 +51,16 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true" class="icon"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.6-3.6"/></svg>
           <input id="tr-search" class="input" type="search" autocomplete="off" spellcheck="false" placeholder="Search questions, laws, areas" aria-label="Search the questions: words of the question or its English gloss, the law's name or number, the area" aria-controls="tr-list" aria-describedby="tr-count" data-i18n-placeholder="traces.search.placeholder" data-i18n-aria="traces.search.aria">
         </div>
-        <p class="tr-count" id="tr-count" aria-live="polite"></p>
+        <div class="tr-count-row"><p class="tr-count" id="tr-count" aria-live="polite"></p><button class="btn btn-xs tr-clear" type="button" id="tr-clear" hidden aria-label="Clear the chosen questions" data-i18n="traces.clear" data-i18n-aria="traces.clear.aria">Clear</button></div>
       </div>
       <div class="tr-list" id="tr-list"><p class="tr-status"><span data-i18n="traces.loading">Loading</span></p></div>
       <div class="side-section tr-about">
         <details class="tr-notes" id="tr-notes">
           <summary data-i18n="traces.howToRead">How to read</summary>
           <ul>
-            <li data-note="traces.note.graph">One graph holds all 540 traced answers of the 27 areas; every law, provision, term and answer appears once, and shared ones link the areas that use them. Each area is a region of the floor, in the order of the list.</li>
-            <li data-note="traces.note.layout">Within a region the laws hang from the top with their chapters, articles and clauses below them; questions and answers stand on the floor under the provisions they cite, the terms they name float between them, and the other answers that cite the same provisions hang faded beneath.</li>
-            <li data-note="traces.note.trace">Choose a question in the list or click it in the map: its trace stays solid inside the whole graph, and the rest fades with its distance from the trace. Dark strokes are text-verified (at least half of the cited provision's word 5-grams appear in the answer, as in the paper) and include the hop from the question's term to the clause that defines it; a thinner stroke is structural, kept and not verified.</li>
+            <li data-note="traces.note.graph">The scene is the 3D legal network of the network page: every document at its place, its height the layer of its legal force. All 540 traced answers of the 27 areas live in it: each traced law is its document there, with its chapters, articles and clauses hanging just below it.</li>
+            <li data-note="traces.note.layout">Under the lowest layer lie the answers, then the questions on a plane of their own, the terms they name in between and the other answers that cite the same provisions just under the answers. A question stands under the laws its trace reaches; an area's name marks the middle of its questions.</li>
+            <li data-note="traces.note.trace">Everything is drawn at once and light; the chosen traces are solid. A click on a question (list or scene) chooses it alone; its round button, Space on the row or Ctrl/⌘-click add or remove it, and an area's “All 20” chooses its 20 questions. Dark strokes are text-verified (at least half of the cited provision's word 5-grams appear in the answer, as in the paper) and include the hop from the question's term to the clause that defines it; a thinner stroke is structural, kept and not verified.</li>
             <li data-note="traces.note.sources">Question titles are as published on thuvienphapluat.vn; English glosses and the normalised English law names are machine-assisted. Per area: the 20 articles its answers cite most, one representative answer each. No answer text, provision text, definitions or person names are shown; each node links to its source.</li>
             <li class="tr-revs" id="tr-revs"></li>
           </ul>
@@ -70,12 +70,11 @@
           arXiv:2611.11426). Numbers here are computed from the <span data-vl-release>VLOnto v1</span> release.</p>
       </div>
     </aside>
-    <section class="scene-stage" id="stage" aria-label="3D graph of the question traces" data-i18n-aria="traces.stage.aria">
-      <div class="scene-canvas" id="canvas-host" tabindex="0" role="application" aria-roledescription="3D graph" aria-label="3D graph of all traced questions and the laws they cite. Drag or use the arrow keys to rotate, scroll or press plus and minus to zoom, click a node for details; pick a question in the list to light its trace." data-i18n-aria="traces.canvas.aria"></div>
+    <section class="scene-stage" id="stage" aria-label="3D legal network with the question traces" data-i18n-aria="traces.stage.aria">
+      <div class="scene-canvas" id="canvas-host" tabindex="0" role="application" aria-roledescription="3D graph" aria-label="3D legal network with all traced questions. Drag or use the arrow keys to rotate, scroll or press plus and minus to zoom, click a node for details; choose questions in the list to draw their traces solid." data-i18n-aria="traces.canvas.aria"></div>
       <div class="legend" id="legend" data-legend></div>
       <div class="hint hidden" id="hint" role="note">
-        <p><strong data-i18n="traces.hint.title">All traced answers in one graph.</strong> <span data-i18n="traces.hint.body">Choose a question in the list (search by words, law or area) or click one in the map: its trace stays solid
-          and the rest of the map fades with distance.</span> <span class="desk-only" data-i18n="traces.hint.desk">Drag to rotate, scroll to zoom.</span><span class="touch-only" data-i18n="traces.hint.touch">Drag to rotate, pinch to zoom.</span></p>
+        <p><strong data-i18n="traces.hint.title">All traced answers in the 3D legal network.</strong> <span data-i18n="traces.hint.body">Choose a question in the list (search by words, law or area) or click one in the scene: its trace is drawn solid, the rest stays light; the round button next to a question adds it.</span> <span class="desk-only" data-i18n="traces.hint.desk">Drag to rotate, scroll to zoom.</span><span class="touch-only" data-i18n="traces.hint.touch">Drag to rotate, pinch to zoom.</span></p>
         <button class="btn btn-xs" type="button" id="hint-close" data-i18n="traces.hint.ok">Got it</button>
       </div>
       <div class="stage-tools">
@@ -105,6 +104,7 @@
 <script src="vendor/three/three.iife.min.js"></script>
 <script src="js/labels3d.js"></script>
 <script src="js/paper3d.js"></script>
+<script src="js/netscene.js"></script>
 <script src="js/trace-draw.js"></script>
 <script src="js/traces3d.js"></script>
 <script src="js/scene-text.js"></script>

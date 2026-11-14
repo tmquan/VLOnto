@@ -504,6 +504,7 @@
   --label-sel-bg: #fdf6e6; --label-sel-fg: #2b3036;
   --layer-label-fg: #2b3036; --layer-label-bg: #ffffff;
   --net-plane: #c9ced6; --net-plane-opacity: .14; --net-plane-line: #d3d7dc; --net-plane-line-opacity: 1;
+  --tr-link: #c4cad1;                                         /* traces.html: the links behind the traces */
   --o3d-link-subclass: #9aa3ad; --o3d-link-alignment: #c4c7cf; --o3d-link-inscheme: #c6c4d8; --o3d-link-instance: #c9cdd3;
   --o3d-link-result: #ecc890; --o3d-link-default: #b8bdc6; --o3d-link-dim: #eceef2; --o3d-icon: #6b7280;
 }
@@ -519,6 +520,7 @@
   --label-sel-bg: #2a2417; --label-sel-fg: #f6f1e6;
   --layer-label-fg: #e8ebef; --layer-label-bg: #161b23;
   --net-plane: #8a95a8; --net-plane-opacity: .05; --net-plane-line: #2c3440; --net-plane-line-opacity: 1;
+  --tr-link: #4a5462;
   --o3d-link-subclass: #5f6875; --o3d-link-alignment: #4a525e; --o3d-link-inscheme: #545a6e; --o3d-link-instance: #3d4450;
   --o3d-link-result: #ecc890; --o3d-link-default: #56606c; --o3d-link-dim: #1b2129; --o3d-icon: #b5bcc6;
 }
@@ -1538,11 +1540,48 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
 .page-onto3d .legend .lg-shape svg circle, .page-onto3d .legend .lg-shape svg path { stroke: rgba(0, 0, 0, .28); stroke-width: .8; }
 :root[data-theme="dark"] .page-onto3d .legend .lg-shape svg circle, :root[data-theme="dark"] .page-onto3d .legend .lg-shape svg path { stroke: rgba(255, 255, 255, .3); }
 .page-onto3d #link-toggles .check .swatch-curve { margin-right: 2px; }
-/* traces.html is one static map (v1.1): the canvas keeps its size when the hop panel opens (on phones the bottom sheet),
-   so a pick never changes the projection. The panel lies over the canvas like the legend does: on wide screens the
-   whole map is framed on the full canvas and the open panel may cover its right part, on phones the map is framed
-   above the sheet (js/traces3d.js mapRect). */
+/* traces.html is one static scene (v1.2: the 3D legal network with all traces): the canvas keeps its size when the hop
+   panel opens (on phones the bottom sheet), so a choice never changes the projection. The panel lies over the canvas
+   like the legend does: on wide screens the whole scene is framed on the full canvas and the open panel may cover its
+   right part, on phones the scene is framed above the sheet (js/traces3d.js homeRect). */
 .page-traces .scene-stage.panel-open .scene-canvas { right: 0; bottom: 0; }
+/* the loading veil stays under the hop panel: a deep link's panel shows while the network loads */
+.page-traces .loading-veil { z-index: 9; }
+/* several questions at once (v1.2): a row chooses its question alone, its round button (Space on the row, Ctrl/Cmd-click)
+   adds or removes it; an area heading's 'All 20' chooses the area's 20; Clear next to the live count */
+.tr-sub li { display: flex; align-items: flex-start; gap: 2px; }
+.tr-sub li > .tr-item { flex: 1 1 auto; min-width: 0; width: auto; }
+.tr-sub li.is-chosen > .tr-item { background: var(--paper-sel-bg); }
+/* the round button: its ring in the muted text colour (an icon button's colour, at least 3:1 on the side); the tick shows
+   on hover and when pressed (white on the trace's core colour) */
+.tr-pick { flex: 0 0 auto; display: grid; place-items: center; width: 24px; height: 24px; margin: 8px 4px 0 0; padding: 0; border-radius: 50%;
+  border: 1.5px solid currentColor; background: none; color: var(--scene-muted); cursor: pointer; }
+.tr-pick svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; visibility: hidden; }
+.tr-pick:hover svg, .tr-pick[aria-pressed="true"] svg { visibility: visible; }
+.tr-pick:hover { border-color: var(--paper-sel-line); }
+.tr-pick[aria-pressed="true"] { background: var(--paper-trace-core); border-color: var(--paper-trace-core); color: var(--scene-surface); }
+.tr-head .tr-head-name { flex: 1 1 auto; min-width: 0; }
+.tr-head .tr-all { flex: 0 0 auto; align-self: center; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--scene-muted); background: none;
+  color: var(--scene-fg-2); font: 500 11px/1.4 var(--vlo-font-sans); cursor: pointer; white-space: nowrap; }
+.tr-head .tr-all:hover { border-color: var(--paper-sel-line); color: var(--scene-strong); }
+.tr-head .tr-all[aria-pressed="true"] { background: var(--paper-sel-bg); border-color: var(--paper-sel-line); color: var(--scene-strong); }
+.tr-count-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 6px 0 0; }
+.tr-count-row .tr-count { flex: 1 1 auto; min-width: 0; margin: 0; }
+.tr-count-row .tr-clear { flex: 0 0 auto; }
+.tr-step { display: flex; align-items: center; gap: 6px; margin: 0 44px 10px 0; font: 500 12.5px/1.3 var(--vlo-font-sans); color: var(--scene-fg-2); }
+.tr-step .btn { min-width: 30px; justify-content: center; }
+.tr-step-n { min-width: 4.5em; text-align: center; }
+/* legend swatches: the network's links (their neutral grey, --tr-link) and a trace not chosen (the core colour, thin and light) */
+[data-style="paper"] .tr-sw.n .halo, [data-style="paper"] .tr-sw.l .halo { display: none; }
+[data-style="paper"] .tr-sw.n .core { stroke: var(--tr-link); stroke-width: 1.2; }
+[data-style="paper"] .tr-sw.l .core { stroke-width: 1.4; }
+[data-style="paper"] .tr-sw3 { display: inline-flex; gap: 2px; flex: 0 0 auto; }
+[data-style="paper"] .legend .tr-sw3 .swatch { width: 8px; height: 8px; }
+/* the scene takes the stage's full height: the legend stays narrow at the lower left, away from the questions at the
+   scene's bottom centre */
+@media (min-width: 761px) {
+  [data-style="paper"] .page-traces .legend { max-width: min(400px, calc(100% - 28px)); }
+}
 /* phones: with the hop sheet open the stage tools sit in a row at the top right, above the map (the hint is hidden
    then); the scenes' 58 % + 8 px would put the column over the map's right end, where the call-outs are placed */
 @media (max-width: 760px) {
