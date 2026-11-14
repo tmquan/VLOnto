@@ -55,10 +55,15 @@ the contrast check run through `scripts/site/ci_pages.py`, which appends the con
 (pages with a `ready` condition outside `ontology/`) and contrast `PAGES`, leaving the scripts unchanged. With today's
 config nothing is added, so the checks are exactly the node's. Page-specific behaviour still lives in
 `interaction_tests.py`: `traces.html` is in the header navigation, so the about test expects 9 internal navigation links
-(`len(internal) == 9`), and the Traces page has its own test (`traces`: one WebGL scene of all traces; tabs, lazy loading,
-keyboard, a question selected in three areas with its trace pixels, call-outs and hop panel, node details, deep links and
-the theme switch), which `check.sh` and `ci_check.sh` run by default; it is also one of the WebGL `SCENES` of the theme,
-gallery and contrast checks.
+(`len(internal) == 9`), and the Traces page has its own test (`traces`: the whole 3D legal network with all traces in
+one WebGL scene, every traced law at its network document, the one light alpha read from the page; one list with search
+and keyboard, lazy loading, a question chosen in three areas with its trace pixels, call-outs and hop panel, several at
+once (round button, Space, Ctrl/Cmd-click, an area's All 20, the stepper, Clear), node details, deep links and the theme
+switch), which `check.sh` and `ci_check.sh` run by default; it is also one of the WebGL `SCENES` of the theme, gallery
+and contrast checks. The traces test's per-theme and per-language loads open it with the lite network (`#ds=lite`, what
+phones load) and the theme group's page loops (`theme`, `paper`, `lang`) with the lite network and straight links
+(`#ds=lite&curves=0`); the traces test's main load, the gallery, site_check and the contrast check draw the full network
+on wide screens.
 
 ## Runtime
 
