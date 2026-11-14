@@ -1237,10 +1237,20 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
 .scene-stage.panel-open .scene-canvas { right: 380px; }
 .scene-stage.panel-open .stage-tools, .scene-stage.panel-open .stage-status { right: 394px; }
 .scene-stage.panel-open .hint { right: 380px; max-width: min(520px, calc(100% - 410px)); }
-/* the first-visit hint never sits under the stage tools (top right): while the details panel is open, and on stages too
-   narrow for the centred hint and the tools side by side, it moves below the tools' row (phones: see the 760px block) */
-.scene-stage.panel-open .hint { top: 58px; }
-@media (min-width: 761px) and (max-width: 1180px) { .hint { top: 58px; } }
+/* the first-visit hint never runs under the stage tools (top right). Wide screens: it is centred between insets of
+   14 px + the tools' width + 10 px on both sides (2 tools = 78 px; traces: 3 tools = 120 px), which keeps its v1 place
+   wherever there is room; 761-1180 px: it sits below the tools' row and is hidden while the details panel is open
+   (too narrow); phones: see the 760px block */
+@media (min-width: 1181px) {
+  .scene-stage { --hint-inset: 102px; }
+  .page-traces .scene-stage { --hint-inset: 144px; }
+  .scene-stage .hint { left: var(--hint-inset); right: var(--hint-inset); max-width: min(560px, calc(100% - 2 * var(--hint-inset))); }
+  .scene-stage.panel-open .hint { right: calc(380px + var(--hint-inset)); max-width: min(520px, calc(100% - 380px - 2 * var(--hint-inset))); }
+}
+@media (min-width: 761px) and (max-width: 1180px) {
+  .scene-stage .hint { top: 58px; }
+  .scene-stage.panel-open .hint { display: none; }
+}
 .scene-stage.panel-open .query-drawer { right: 380px; }
 .scene-stage.drawer-open .scene-canvas { bottom: 46%; }
 .scene-stage.drawer-open.drawer-min .scene-canvas { bottom: 54px; }
