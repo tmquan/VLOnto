@@ -1879,6 +1879,9 @@
      max-height and scrolls */
   function fitLegendHeight() {
     if (!legendEl) return;
+    // a resized column (wide screens: .cols-custom, js/common.js VL.columns) can bring the status line under the legend:
+    // the legend then sits above it, as on the other 3D views (js/paper3d.js VL.fitLegend); the default layout is as before
+    if (stage.classList.contains('cols-custom')) VL.fitLegend(stage, legendEl, statusEl); else stage.classList.remove('legend-lift');
     legendEl.style.maxHeight = '';
     T.legendMaxH = null;
     if (legendEl.classList.contains('hidden')) return;
@@ -2270,6 +2273,10 @@
     paintHeads();
     T.graphMs = Math.round(performance.now() - t0);
     T.webgl = webglOk();
+    /* the side column and the details panel: resizable on wide screens (js/common.js VL.columns); the page's own resize
+       follows (renderer size, camera aspect, call-outs, legend; the camera's position and target stay) */
+    window.VLApp.columns = VL.columns({ app: VL.$('#app'), side: VL.$('#side'), stage: VL.$('#stage'), panel: VL.$('#panel'),
+      onResize: onResize, live: function () { return !SOFT_GL; } });
     if (T.webgl) {
       try { initThree(); } catch (e) { T.webgl = false; T.webglError = String(e && e.message || e); renderer = null; }
     }

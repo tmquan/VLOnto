@@ -18,6 +18,8 @@
     'net.search.placeholderMobile': { en: 'Number or title', vi: 'Số, ký hiệu hoặc tên', k: 'ui' },
     'net.filters': { en: 'Filters', vi: 'Bộ lọc', k: 'ui' },
     'net.controls.aria': { en: 'Network controls', vi: 'Điều khiển mạng', k: 'ui' },
+    'cols.side': { en: 'Resize the side column', vi: 'Đổi độ rộng cột bên', k: 'ui' },
+    'cols.panel': { en: 'Resize the details panel', vi: 'Đổi độ rộng khung chi tiết', k: 'ui' },
     'net.find': { en: 'Find a document', vi: 'Tìm văn bản', k: 'ui' },
     'net.search.placeholder': { en: 'e.g. 45/2019/QH14', vi: 'vd. 45/2019/QH14', k: 'ui' },
     'net.side.documents': { en: 'Documents', vi: 'Văn bản', k: 'ui' },

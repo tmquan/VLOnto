@@ -874,9 +874,12 @@ blockquote.attr + blockquote.attr { margin-top: 10px; }
 
 /* ------------------------------------------------------------------ scenes (3D pages) */
 body.page-scene { background: var(--scene-bg); color: var(--scene-fg); overflow: hidden; }
-.scene-app { position: relative; height: calc(100vh - var(--header-h) - var(--footbar-h)); height: calc(100dvh - var(--header-h) - var(--footbar-h)); display: flex; }
+.scene-app { position: relative; height: calc(100vh - var(--header-h) - var(--footbar-h)); height: calc(100dvh - var(--header-h) - var(--footbar-h)); display: flex;
+  --side-w: 300px; --panel-w: 380px; }
+/* the widths of the side column and the details panel (wide screens): the defaults here; js/common.js VL.columns sets
+   them on #app when a column is resized (its handle) or a width is stored */
 .scene-side {
-  flex: 0 0 300px; width: 300px; height: 100%; overflow-y: auto; overflow-x: hidden;
+  flex: 0 0 var(--side-w); width: var(--side-w); height: 100%; overflow-y: auto; overflow-x: hidden;
   background: var(--scene-side); border-right: 1px solid var(--scene-line); padding: 14px 14px 18px;
   scrollbar-width: thin; scrollbar-color: var(--scene-scroll) transparent;
 }
@@ -978,9 +981,30 @@ body.page-scene { background: var(--scene-bg); color: var(--scene-fg); overflow:
 
 /* details panel (right) */
 .scene-panel {
-  position: absolute; top: 0; right: 0; bottom: 0; z-index: 10; width: 380px; max-width: 100%;
+  position: absolute; top: 0; right: 0; bottom: 0; z-index: 10; width: var(--panel-w); max-width: 100%;
   background: var(--scene-surface); border-left: 1px solid var(--scene-line); overflow-y: auto; overflow-x: hidden;
   padding: 16px 18px 22px; box-shadow: -10px 0 30px var(--scene-shadow); scrollbar-width: thin; scrollbar-color: var(--scene-scroll) transparent;
+}
+/* the columns' resize handles (js/common.js VL.columns): on the side column's right edge (in the side's parent) and on
+   the details panel's left edge (in the stage, while the panel is open); invisible until hovered, focused or dragged;
+   wide screens only (phones: the columns are sheets) */
+.col-handle { position: absolute; top: 0; bottom: 0; z-index: 12; width: 8px; cursor: col-resize; touch-action: none; background: transparent; outline-offset: -2px; }
+.col-handle-side { left: calc(var(--side-w) - 2px); }
+.col-handle-panel { right: calc(var(--panel-w) - 2px); display: none; }
+.scene-stage.panel-open .col-handle-panel { display: block; }
+.col-handle::after { content: ''; position: absolute; top: 50%; left: 2px; width: 4px; height: 44px; margin-top: -22px; border-radius: 2px; background: var(--scene-accent); opacity: 0; transition: opacity .12s; }
+.col-handle:hover::after, .col-handle:focus-visible::after, .col-handle.dragging::after { opacity: .85; }
+.col-dragging, .col-dragging * { cursor: col-resize !important; user-select: none !important; -webkit-user-select: none !important; }
+@media (max-width: 760px) { .col-handle { display: none !important; } }
+/* wide screens, a column resized (.cols-custom on the stage, set by VL.columns while a width differs from its default,
+   so the default layouts are exactly as before): with the details panel open the legend stays left of the panel, and
+   the first-visit hint is hidden where it would get less than 280 px between its insets (.cols-tight) */
+@media (min-width: 761px) {
+  .scene-stage.cols-custom.panel-open .legend { max-width: calc(100% - var(--panel-w) - 28px); }
+  .scene-stage.cols-custom.panel-open .legend li { white-space: normal; }
+  [data-style="paper"] .page-traces .scene-stage.cols-custom.panel-open .legend { max-width: min(400px, calc(100% - var(--panel-w) - 28px)); }
+  [data-style="paper"] .page-traces .scene-stage.cols-custom.panel-open .legend.lg-area { width: min(400px, calc(100% - var(--panel-w) - 28px)); max-width: min(400px, calc(100% - var(--panel-w) - 28px)); }
+  .scene-stage.cols-custom.panel-open.cols-tight .hint { display: none; }
 }
 .panel-close { position: absolute; top: 10px; right: 10px; }
 .panel-kind { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 40px 8px 0; }
@@ -1242,9 +1266,9 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
   padding: 6px 9px !important; max-width: 320px; white-space: normal !important;
 }
 .float-tooltip-kap .t-sub, .tooltip3d .t-sub { color: var(--scene-muted); font-size: 11.5px; }
-.scene-stage.panel-open .scene-canvas { right: 380px; }
-.scene-stage.panel-open .stage-tools, .scene-stage.panel-open .stage-status { right: 394px; }
-.scene-stage.panel-open .hint { right: 380px; max-width: min(520px, calc(100% - 410px)); }
+.scene-stage.panel-open .scene-canvas { right: var(--panel-w); }
+.scene-stage.panel-open .stage-tools, .scene-stage.panel-open .stage-status { right: calc(var(--panel-w) + 14px); }
+.scene-stage.panel-open .hint { right: var(--panel-w); max-width: min(520px, calc(100% - var(--panel-w) - 30px)); }
 /* the first-visit hint never runs under the stage tools (top right). Wide screens: it is centred between insets of
    14 px + the tools' width + 10 px on both sides (2 tools = 78 px; traces: 3 tools = 120 px), which keeps its v1 place
    wherever there is room; 761-1180 px: it sits below the tools' row and is hidden while the details panel is open
@@ -1253,13 +1277,13 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
   .scene-stage { --hint-inset: 102px; }
   .page-traces .scene-stage { --hint-inset: 144px; }
   .scene-stage .hint { left: var(--hint-inset); right: var(--hint-inset); max-width: min(560px, calc(100% - 2 * var(--hint-inset))); }
-  .scene-stage.panel-open .hint { right: calc(380px + var(--hint-inset)); max-width: min(520px, calc(100% - 380px - 2 * var(--hint-inset))); }
+  .scene-stage.panel-open .hint { right: calc(var(--panel-w) + var(--hint-inset)); max-width: min(520px, calc(100% - var(--panel-w) - 2 * var(--hint-inset))); }
 }
 @media (min-width: 761px) and (max-width: 1180px) {
   .scene-stage .hint { top: 58px; }
   .scene-stage.panel-open .hint { display: none; }
 }
-.scene-stage.panel-open .query-drawer { right: 380px; }
+.scene-stage.panel-open .query-drawer { right: var(--panel-w); }
 .scene-stage.drawer-open .scene-canvas { bottom: 46%; }
 .scene-stage.drawer-open.drawer-min .scene-canvas { bottom: 54px; }
 .scene-stage.drawer-open .legend, .scene-stage.drawer-open .stage-status, .scene-stage.drawer-open .hint { display: none; }
@@ -1416,12 +1440,12 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
    way up, so the page never grows wider than the screen); at the left one list of all the questions under their area
    headings, with its search; the scene with legend and tools; the chosen trace hop by hop (Fig. 5) in the panel at the
    right. Phones: the question list (with its search) and the panel are bottom sheets over the scene. */
-.tr-app { flex-direction: column; }
+.tr-app { flex-direction: column; --side-w: 340px; }
 .tr-bar { flex: 0 0 auto; display: flex; align-items: center; gap: 12px; min-width: 0; max-width: 100%;
   padding: 5px 12px; background: var(--scene-side); border-bottom: 1px solid var(--scene-line); }
 .tr-title { flex: 0 0 auto; margin: 0; font: 400 17px/1.2 var(--vlo-font-paper); color: var(--scene-strong); white-space: nowrap; }
 .tr-body { flex: 1 1 auto; display: flex; min-height: 0; min-width: 0; position: relative; }
-.tr-side { flex: 0 0 340px; width: 340px; padding: 0 0 12px; }
+.tr-side { flex: 0 0 var(--side-w); width: var(--side-w); padding: 0 0 12px; }
 /* the one list (v1.1): all 540 questions under their 27 area headings; the head (title, search, live count) stays at the
    top of the scrolling side */
 .tr-side-head { position: sticky; top: 0; z-index: 2; background: var(--scene-side); padding: 12px 14px 8px; border-bottom: 1px solid var(--scene-line-2); }

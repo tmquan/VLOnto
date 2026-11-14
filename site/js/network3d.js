@@ -1216,6 +1216,10 @@
   VL.$('#edge-toggles').addEventListener('change', function (e) { if (e.target.getAttribute('data-edge') === 'citation') switchDataset.userSetCitation = true; });
 
   VL.fontsReady().then(function () {
+    /* the side column and the details panel: resizable on wide screens (js/common.js VL.columns); the page's own resize
+       follows (renderer size, camera aspect, call-outs, legend; the camera's position and target stay) */
+    window.VLApp.columns = VL.columns({ app: VL.$('#app'), side: VL.$('#side'), stage: VL.$('#stage'), panel: VL.$('#panel'),
+      onResize: onResize, live: function () { return !SOFT_GL; } });
     initThree();
     bindPointer();
     return switchDataset(state.ds);

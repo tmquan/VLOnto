@@ -297,7 +297,189 @@
   VL.isMobile = function () { return window.matchMedia('(max-width: 760px)').matches; };
   VL.store = {
     get: function (k) { try { return window.localStorage.getItem('vlonto.' + k); } catch (e) { return null; } },
-    set: function (k, v) { try { window.localStorage.setItem('vlonto.' + k, v); return true; } catch (e) { return false; /* storage blocked */ } }
+    set: function (k, v) { try { window.localStorage.setItem('vlonto.' + k, v); return true; } catch (e) { return false; /* storage blocked */ } },
+    remove: function (k) { try { window.localStorage.removeItem('vlonto.' + k); return true; } catch (e) { return false; } }
+  };
+
+  /* ------------------------------------------------------------------ resizable columns of the 3D views
+     index.html, network-3d.html, traces.html: the side column (left) and the details panel (right) are resized with the
+     mouse, pen or touch by a handle on the column's inner edge (pointer capture: the canvas never gets the drag), or with
+     the keyboard on the focused handle: Left / Right 16 px, with Shift 64 px, Home / End the minimum / maximum, Enter or
+     a double-click the default width. The widths are the scene app's custom properties --side-w / --panel-w; every rule
+     of css/site.css that placed something by a column's width uses them and their defaults stay there (300 px side,
+     340 px on traces.html, 380 px panel), so with nothing stored a page is as before. Limits (VL.COLS): side 220-560 px,
+     panel 300-720 px, and the stage between them never narrower than 360 px: clamped while dragging and again on window
+     resize and when the panel opens or closes. A width the user sets is stored (VL.store 'cols.side' / 'cols.panel', one
+     key per column shared by the three pages; with storage blocked it lasts for the page view); the default removes it.
+     Wide screens only: at 760 px and below the columns are sheets, the handles are not rendered and stored widths are
+     not applied. The page's resize (o.onResize: renderer size, camera aspect, call-outs, legend; never the camera's
+     position) runs at most once per animation frame while dragging, or once on release where o.live() is false (slow
+     software renderers); o.onChange after every change of a width.
+     o: { app, side, stage, panel, onResize, live, onChange }; returns { widths(), set(col, px), reset(col), limits(col) } */
+  VL.COLS = { side: [220, 560], panel: [300, 720], stage: 360 };
+  VL.columns = function (o) {
+    var app = o.app, stage = o.stage, M = window.__VLONTO_METRICS = window.__VLONTO_METRICS || {};
+    var KEY = { side: 'cols.side', panel: 'cols.panel' }, VAR = { side: '--side-w', panel: '--panel-w' };
+    var CTRL = { side: o.side, panel: o.panel }, handles = {}, frame = 0, dragging = null;
+    var stat = M.columns = { side: null, panel: null, resizes: 0, drags: 0, stored: {}, defaults: {} };
+    function wide() { return !VL.isMobile(); }
+    function px(v) { var n = parseFloat(v); return isFinite(n) ? n : null; }
+    function cssDefault(col) {
+      var had = app.style.getPropertyValue(VAR[col]);
+      if (had) app.style.removeProperty(VAR[col]);
+      var v = px(getComputedStyle(app).getPropertyValue(VAR[col]));
+      if (had) app.style.setProperty(VAR[col], had);
+      return v != null ? v : (col === 'side' ? 300 : 380);
+    }
+    var DEF = { side: cssDefault('side'), panel: cssDefault('panel') };
+    stat.defaults = { side: DEF.side, panel: DEF.panel };
+    function panelOpen() { return !!stage && stage.classList.contains('panel-open'); }
+    function cur(col) { var v = px(app.style.getPropertyValue(VAR[col])); return v != null ? v : DEF[col]; }
+    function limits(col) {
+      var W = app.clientWidth || window.innerWidth, L = VL.COLS[col];
+      var other = col === 'side' ? (panelOpen() ? cur('panel') : 0) : cur('side');
+      return [L[0], Math.max(L[0], Math.min(L[1], Math.floor(W - other - VL.COLS.stage)))];
+    }
+    function clamp(col, w) { var l = limits(col); return Math.round(Math.min(l[1], Math.max(l[0], w))); }
+    function aria(col) {
+      var h = handles[col], l = limits(col);
+      if (!h) return;
+      h.setAttribute('aria-valuemin', String(l[0]));
+      h.setAttribute('aria-valuemax', String(l[1]));
+      h.setAttribute('aria-valuenow', String(Math.round(cur(col))));
+    }
+    function resizeNow() {
+      frame = 0;
+      stat.resizes++;
+      if (o.onResize) o.onResize();
+    }
+    function schedule(final) {
+      if (!final && dragging && o.live && !o.live()) return;        // slow renderer: the canvas follows on release
+      if (!frame) frame = requestAnimationFrame(resizeNow);
+    }
+    function changed() {
+      stat.side = Math.round(cur('side'));
+      stat.panel = Math.round(cur('panel'));
+      aria('side');
+      aria('panel');
+      // the first-visit hint: hidden while a resized column leaves it less than 280 px between its insets (css/site.css)
+      if (stage) {
+        var custom = !!(app.style.getPropertyValue(VAR.side) || app.style.getPropertyValue(VAR.panel));
+        var inset = px(getComputedStyle(stage).getPropertyValue('--hint-inset')) || 14;
+        var free = (stage.clientWidth || 0) - (panelOpen() ? cur('panel') : 0) - 2 * inset;
+        stat.tight = custom && panelOpen() && free < 280;
+        stat.custom = custom;
+        stage.classList.toggle('cols-custom', custom);
+        stage.classList.toggle('cols-tight', stat.tight);
+      }
+      if (o.onChange) o.onChange(stat);
+    }
+    // set a column's width (clamped); store: remember it (a user's action)
+    function set(col, w, store) {
+      if (!wide()) return cur(col);
+      var v = clamp(col, w);
+      app.style.setProperty(VAR[col], v + 'px');
+      if (store) { stat.stored[col] = VL.store.set(KEY[col], String(v)) ? v : null; }
+      changed();
+      schedule(!dragging);
+      return v;
+    }
+    function reset(col) {
+      app.style.removeProperty(VAR[col]);
+      VL.store.remove(KEY[col]);
+      stat.stored[col] = null;
+      changed();
+      schedule(true);
+      return cur(col);
+    }
+    // the handles: role=separator on the column's inner edge
+    function handle(col) {
+      var h = document.createElement('div');
+      h.className = 'col-handle col-handle-' + col;
+      h.setAttribute('role', 'separator');
+      h.setAttribute('aria-orientation', 'vertical');
+      h.setAttribute('aria-controls', CTRL[col].id);
+      h.setAttribute('tabindex', '0');
+      h.setAttribute('data-i18n-aria', 'cols.' + col);
+      var sign = col === 'side' ? 1 : -1;                         // the panel's handle widens it towards the left
+      h.addEventListener('pointerdown', function (e) {
+        if (e.button !== 0 || !wide()) return;
+        e.preventDefault();
+        e.stopPropagation();
+        try { h.setPointerCapture(e.pointerId); } catch (x) { /* synthetic events */ }
+        dragging = { col: col, id: e.pointerId, x0: e.clientX, w0: cur(col) };
+        h.classList.add('dragging');
+        app.classList.add('col-dragging');
+        stat.drags++;
+      });
+      h.addEventListener('pointermove', function (e) {
+        if (!dragging || dragging.col !== col || e.pointerId !== dragging.id) return;
+        e.preventDefault();
+        set(col, dragging.w0 + sign * (e.clientX - dragging.x0), false);
+      });
+      function end(e) {
+        if (!dragging || dragging.col !== col || (e && e.pointerId != null && e.pointerId !== dragging.id)) return;
+        var moved = Math.round(cur(col)) !== Math.round(dragging.w0);
+        dragging = null;
+        h.classList.remove('dragging');
+        app.classList.remove('col-dragging');
+        try { if (e && h.hasPointerCapture && h.hasPointerCapture(e.pointerId)) h.releasePointerCapture(e.pointerId); } catch (x) { /* released */ }
+        if (moved) set(col, cur(col), true);
+        schedule(true);
+      }
+      h.addEventListener('pointerup', end);
+      h.addEventListener('pointercancel', end);
+      h.addEventListener('lostpointercapture', end);
+      h.addEventListener('dblclick', function (e) { e.preventDefault(); reset(col); });
+      h.addEventListener('keydown', function (e) {
+        var step = e.shiftKey ? 64 : 16, w = cur(col), l = limits(col), k = e.key;
+        if (k === 'ArrowLeft' || k === 'ArrowRight') set(col, w + (k === 'ArrowRight' ? sign : -sign) * step, true);
+        else if (k === 'Home') set(col, l[0], true);
+        else if (k === 'End') set(col, l[1], true);
+        else if (k === 'Enter') reset(col);
+        else return;
+        e.preventDefault();
+        e.stopPropagation();
+      });
+      return h;
+    }
+    if (o.side) { handles.side = handle('side'); o.side.parentNode.appendChild(handles.side); }
+    if (o.panel && stage) { handles.panel = handle('panel'); stage.appendChild(handles.panel); }
+    if (VL.i18n && VL.i18n.apply) Object.keys(handles).forEach(function (c) { VL.i18n.apply(handles[c]); });
+    // the stored widths (wide screens), clamped; on narrow screens none
+    function applyStored() {
+      ['side', 'panel'].forEach(function (col) {
+        if (!wide()) { app.style.removeProperty(VAR[col]); return; }
+        var v = px(VL.store.get(KEY[col]));
+        stat.stored[col] = v;
+        if (v != null) app.style.setProperty(VAR[col], clamp(col, v) + 'px');
+      });
+      // a width set before (stored or dragged) stays within the limits of the window as it is now
+      ['side', 'panel'].forEach(function (col) {
+        if (wide() && app.style.getPropertyValue(VAR[col])) app.style.setProperty(VAR[col], clamp(col, cur(col)) + 'px');
+      });
+      changed();
+    }
+    applyStored();
+    var rz = 0;
+    window.addEventListener('resize', function () {
+      if (rz) return;
+      rz = requestAnimationFrame(function () { rz = 0; applyStored(); });
+    });
+    if (stage && window.MutationObserver) {
+      var open = panelOpen();
+      new MutationObserver(function () {
+        if (panelOpen() === open) return;
+        open = panelOpen();
+        var before = [cur('side'), cur('panel')];
+        applyStored();
+        if (before[0] !== cur('side') || before[1] !== cur('panel')) schedule(true);
+      }).observe(stage, { attributes: true, attributeFilter: ['class'] });
+    }
+    return {
+      widths: function () { return { side: Math.round(cur('side')), panel: Math.round(cur('panel')), defaults: { side: DEF.side, panel: DEF.panel } }; },
+      limits: limits, set: function (col, w) { return set(col, w, true); }, reset: reset, handles: handles
+    };
   };
 
   /* ------------------------------------------------------------------ theme (light / dark)
