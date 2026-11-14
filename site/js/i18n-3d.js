@@ -331,6 +331,10 @@
     'tr3d.lg.docLinks': { en: 'Links', vi: 'Liên kết', k: 'pair' },
     'tr3d.lg.provisions': { en: 'Chapter … point', vi: 'Chương … điểm', k: 'pair' },
     'tr3d.lg.light': { en: 'Not chosen (light)', vi: 'Chưa chọn (nhạt)', k: 'pair' },
+    'tr3d.colorBy.aria': { en: 'Colour points by', vi: 'Tô màu điểm theo', k: 'ui' },
+    'tr3d.colorBy.area': { en: 'Area', vi: 'Lĩnh vực', k: 'pair' },
+    'tr3d.colorBy.kind': { en: 'Kind', vi: 'Loại', k: 'pair' },
+    'tr3d.lg.kinds': { en: 'Kinds: by layer and size', vi: 'Loại: theo tầng và cỡ', k: 'pair' },
     /* ---- js/trace-draw.js (traces.html) */
     'tdraw.cls.work': { en: 'Work', vi: 'Văn bản', k: 'pair' },
     'tdraw.cls.record': { en: 'Record', vi: 'Bản ghi', k: 'pair' },

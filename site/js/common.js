@@ -328,7 +328,8 @@
     var n = parseInt(m[1], 16);
     return 'rgba(' + (n >> 16) + ', ' + ((n >> 8) & 255) + ', ' + (n & 255) + ', ' + a + ')';
   };
-  VL.areaColors = function () { var out = []; for (var i = 0; i < 12; i++) out.push(VL.tok('--area-' + i)); return out; };
+  /* the legal areas' colours --area-0..n-1 (12 by default: network-3d.html; traces.html uses all 27 of its areas) */
+  VL.areaColors = function (n) { var out = []; for (var i = 0; i < (n || 12); i++) out.push(VL.tok('--area-' + i)); return out; };
   VL.refreshPalette = function () {
     var cs = getComputedStyle(ROOT);
     function t(n, fb) { var v = cs.getPropertyValue(n).trim(); return v || fb; }

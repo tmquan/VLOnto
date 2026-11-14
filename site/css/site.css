@@ -485,6 +485,12 @@
   --area-0: #e69ba0; --area-1: #fec1a6; --area-2: #d4ab70; --area-3: #d8d597;
   --area-4: #9ac086; --area-5: #9fe2c4; --area-6: #66c5c4; --area-7: #97ddf9;
   --area-8: #8cb6eb; --area-9: #ccccfc; --area-10: #c8a2da; --area-11: #f8bcdd;
+  /* traces.html colours all 27 legal areas of its traces (js/traces3d.js, by documents in the whole network): 0-11 as
+     above, 12-26 chosen for it (tools: CIEDE2000 >= 14.7 from every colour above and each other; >= 3:1 on the dark
+     ground; the chosen points carry an ink ring on the light ground) - the same in both themes */
+  --area-12: #e15d6a; --area-13: #946667; --area-14: #f1815b; --area-15: #b6562a; --area-16: #967d60;
+  --area-17: #a4a638; --area-18: #73770f; --area-19: #838d6a; --area-20: #0a825f; --area-21: #06b687;
+  --area-22: #5a938e; --area-23: #187c95; --area-24: #3781e1; --area-25: #6e6da3; --area-26: #bb468c;
   --area-none: #dcdee2; --area-other: #92959a;
   --hue-blue: #8db8e8; --hue-pink: #f5b0cd; --hue-orange: #f4b183; --hue-teal: #6fb7b4; --hue-violet: #b9a3e3;
   --hue-yellow: #e8cf83; --hue-green: #7dbe8e; --hue-red: #e18a77; --hue-slate: #a0a5ac; --hue-cyan: #8bd6de;
@@ -1574,9 +1580,34 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
 /* legend swatches: the network's links (their neutral grey, --tr-link) and a trace not chosen (the core colour, thin and light) */
 [data-style="paper"] .tr-sw.n .halo, [data-style="paper"] .tr-sw.l .halo { display: none; }
 [data-style="paper"] .tr-sw.n .core { stroke: var(--tr-link); stroke-width: 1.2; }
-[data-style="paper"] .tr-sw.l .core { stroke-width: 1.4; }
+[data-style="paper"] .tr-sw.l { opacity: .75; }
+[data-style="paper"] .tr-sw.l .core { stroke-width: 1; }
 [data-style="paper"] .tr-sw3 { display: inline-flex; gap: 2px; flex: 0 0 auto; }
 [data-style="paper"] .legend .tr-sw3 .swatch { width: 8px; height: 8px; }
+/* colour by legal area (the default) or by kind: the switch in the legend's head row; by area the legend lists the
+   27 areas in two columns in the side list's order ("Tiếng Việt · English" in EN-VI, as every legend entry), as wide as
+   by kind and taller, over the scene's empty left margin (the documents and the traces lie in the middle, the hop panel
+   covers the right); its note on the full width; it never runs under the hint or the stage tools (js/traces3d.js
+   fitLegendHeight: a max-height, then it scrolls) */
+.page-traces .legend { overflow-y: auto; overscroll-behavior: contain; }
+.tr-lg-head { display: flex; align-items: center; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; margin: 0 0 5px; }
+[data-style="paper"] .legend .tr-lg-head h3 { margin: 0; }
+.tr-colorby.seg button { font: 600 11.5px/1.2 var(--vlo-font-sans); padding: 3px 8px; }
+.tr-colorby.seg button .sep { opacity: .75; }
+[data-style="paper"] .legend ul.tr-areas { display: block; columns: 2; column-gap: 12px; margin: 0 0 6px; }
+[data-style="paper"] .legend ul.tr-areas li { display: flex; align-items: flex-start; gap: 5px; white-space: normal; break-inside: avoid; padding: 0 0 2px;
+  font-size: 12px; line-height: 1.2; }
+[data-style="paper"] .legend ul.tr-areas .swatch { width: 10px; height: 10px; border-radius: 50%; margin-top: 2px; flex: 0 0 auto; }
+.tr-areas .tr-an { min-width: 0; }
+[data-style="paper"] .page-traces .legend.lg-area { width: min(400px, calc(100% - 28px)); max-width: min(400px, calc(100% - 28px)); box-sizing: border-box; }
+[data-style="paper"] .page-traces .legend.lg-area .lg-note { max-width: none; }
+.tr-kinds { display: inline-flex; align-items: center; gap: 2px; flex: 0 0 auto; }
+.tr-kinds i { display: block; border-radius: 50%; background: var(--paper-ink-2); }
+/* the area's colour before its name in the side list (colour by area only) and in a point's tooltip */
+.tr-head .tr-head-sw { flex: 0 0 auto; align-self: center; width: 10px; height: 10px; border-radius: 50%; margin-right: -2px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12); }
+.tr-color-kind .tr-head .tr-head-sw { display: none; }
+.tooltip3d .t-sw { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; vertical-align: -.05em; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12); }
 /* the scene takes the stage's full height: the legend stays narrow at the lower left, away from the questions at the
    scene's bottom centre */
 @media (min-width: 761px) {
@@ -1586,6 +1617,9 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
    then); the scenes' 58 % + 8 px would put the column over the map's right end, where the call-outs are placed */
 @media (max-width: 760px) {
   .page-traces .scene-stage.panel-open .stage-tools { top: 8px; bottom: auto; flex-direction: row; }
+  /* the legend stays left of the stage tools' column (36 px + 8 px), which keeps its buttons free to press */
+  [data-style="paper"] .page-traces .legend { max-width: calc(100% - 60px); }
+  [data-style="paper"] .page-traces .legend.lg-area { width: calc(100% - 60px); max-width: calc(100% - 60px); }
 }
 
 /* ================================================================== end of 3D TRACK */

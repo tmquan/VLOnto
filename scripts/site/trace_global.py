@@ -37,7 +37,8 @@ Output: build_graph(areas, src, net) returns the payload of site/data/traces/gra
           nodes: the traced path, the question, its answer and area, the call-out nodes], "e": [i, j, style, ...] traced
           segments (style 1 = text-verified path or term -> defining clause, 2 = structural primary path),
           "co": [question, answer, provision, law, term or -1, area]}
-  areas   [{"id", "n": label node index}] in list order
+  areas   [{"id", "n": label node index, "docs": the area's documents in the whole network}] in list order
+  wa      {law node index: area index (list order) of its network document}
 No question titles, answer text, provision text or definitions: labels are the law, provision and term names already
 published in the area files.
 """
@@ -386,13 +387,24 @@ class Graph:
                            "co": [ix[x["q"]], ix[x["ans"]], ix[x["prov"]], ix[x["law"]], ix[x["term"]] if x["term"] else -1,
                                   ix[x["area"]]]})
         lay = self.net.get("layout") or {}
+        # colour by legal area (js/traces3d.js): every area's documents in the whole network (the page ranks the 27
+        # colours by them, on phones too, where only the lite network is loaded) and every law's area (its network
+        # document's), so a law the lite network lacks still takes its own colour
+        net_area = [a[0] for a in (self.net.get("areas") or [])]
+
+        def doc_area(k):
+            v = nodes[k][F["area"]]
+            return net_area[v] if isinstance(v, int) and 0 <= v < len(net_area) else None
+        docs_by_area = Counter(a for a in (doc_area(k) for k in range(len(nodes))) if a is not None)
+        wa = {str(ix[w]): self.tab[doc_area(k)] for w, k in sorted(self.doc.items(), key=lambda kv: ix[kv[0]]) if doc_area(k) in self.tab}
         return {
             "v": 2, "classes": CLASSES, "kinds": KINDS,
             "planes": {**{"z_" + {"other_question": "other"}.get(k, k): v for k, v in Z.items()}, "fan": FAN_DEPTH},
             "net": {"nodes": len(nodes), "z_by_rank": lay.get("z_by_rank")},
             "i": ids, "c": [CLASSES.index(self.cls[i]) for i in ids], "p": pos, "d": doc,
             "vi": vi, "en": en, "u": urls, "e": e, "t": traces,
-            "areas": [{"id": a, "n": ix[self.area_node[a]]} for a in self.areas if self.area_node.get(a) in ix],
+            "areas": [{"id": a, "n": ix[self.area_node[a]], "docs": docs_by_area.get(a, 0)} for a in self.areas if self.area_node.get(a) in ix],
+            "wa": wa,
         }
 
 

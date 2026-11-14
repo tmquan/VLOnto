@@ -13,11 +13,22 @@
      with nothing chosen everything is drawn at the light alpha (LIGHT); while traces are chosen, they are solid (their
      nodes and links opaque, their traced paths bold: navy core over the gold halo, js/paper3d.js VL.TraceLines; the V/W
      arms with the term -> defining clause hop) and every other item of the traces (questions, answers, other answers,
-     terms, provisions, areas, the links among them, the thin strokes) drops to the faint alpha (FAINT), while the
-     network's documents and links stay at LIGHT. The documents are mixed toward the page ground (as network-3d.html
-     draws them); the trace nodes, the links and the strokes are transparent (no depth write), so a faint node never
+     terms, provisions, areas) drops to the faint alpha (FAINT), while the network's documents and links stay at LIGHT.
+     Every traced path not chosen is a thread (v1.4): a 1-device-px GL line at THREAD_A, set so that where the 540
+     traces bundle (up to 26 threads over one pixel on wide screens at the 99th percentile, 35 on phones) the
+     accumulated opacity stays near 0.5 (x FAINT / LIGHT while something is chosen); the traces' context links are
+     drawn only between chosen nodes (CTX_REST). The documents are mixed toward the page ground (as network-3d.html
+     draws them); the trace nodes, the links and the threads are transparent (no depth write), so a faint node never
      covers what lies behind it. No area is dimmed and nothing fades with distance; a choice writes the alpha
      attributes once.
+   - Colour (v1.4): by legal area by default - the 27 areas of the traces in --area-0..26 (css/site.css; 0-11 those of
+     network-3d.html), ranked by the areas' documents in the whole network: each document in its area's colour, each
+     trace node in the area of its law (laws, provisions) or of the first trace in list order that holds it
+     (questions, answers, other answers, terms, area names); or by kind (the paper's class colours, the documents in the
+     colour of a law). The legend's switch (VL.store 'traces3d-color'; #color=area|kind) changes the colours only: the
+     choice, the alphas and the camera stay. LIGHT and FAINT scale the alpha of either colour.
+   - The chosen traces' points (every node of graph.js t[].n) are drawn last, over every stroke: opaque, without depth
+     test, at least their size at load, with an ink ring inside a ring of the ground's colour (ORDER: the draw order).
    - Several traces at once: a click on a question (list or scene) chooses it alone; the round button of its row,
      Space on the row or Ctrl/Cmd-click add or remove it; an area heading's 'All 20' chooses the area's 20 questions;
      'Clear', the panel's x and Esc choose none. The Fig. 5 hop panel shows the last chosen trace, with a '3 of 20'
@@ -47,7 +58,7 @@
   var IDX = window.VLONTO.traces_index;
   var T = M.traces = { available: false, areas: 0, groups: 0, shown: 0, query: '', loaded: [], selected: [], current: null, panel: null,
     traceSegments: 0, hops: 0, listItems: 0, renders: 0, frames: 0, errors: [], webgl: null, fallback: false, flights: 0, themeRenders: 0,
-    cameraMoves: 0, selectionWrites: 0, sceneReady: false };
+    cameraMoves: 0, selectionWrites: 0, sceneReady: false, colorBy: null, colorSwitches: 0, legendAreas: 0, legendMaxH: null };
   var esc = VL.esc, fmt = VL.fmt;
   /* a count that picks the English singular (en_one) */
   function nv(c) { return c === 1 ? 1 : fmt(c); }
@@ -124,7 +135,9 @@
        neutral tone (css/site.css --tr-link, a light grey on either ground): the class colours of the trace nodes and the
        traces' navy and gold stay the only colours that compete for attention */
     TH = { dark: P.dark, bg: P.bg, plane: pl.plane, planeOpacity: pl.planeOpacity, planeLine: pl.planeLine, planeLineOpacity: pl.planeLineOpacity,
-      doc: P.cls.work, link: VL.tok('--tr-link') || P.leader };
+      doc: P.cls.work, link: VL.tok('--tr-link') || P.leader,
+      /* the 27 legal-area colours (css/site.css --area-0..26: 0-11 as network-3d.html, 12-26 for the rest), by rank */
+      areas: VL.areaColors(27), areaNone: VL.tok('--area-none') || '#dcdee2', ink: P.ink };
     M.sceneBg = P.bg;
     M.traceCore = P.core;
   }
@@ -298,6 +311,74 @@
     T.network = { dataset: DS, docs: D.N, extra: EXTRA.length, points: NP, laws: laws, lawsInDataset: inData, lawPosMaxDev: Math.round(dev * 1000) / 1000,
       layers: D.layerZ, extent: D.extent, traceNodes: TNODE.length };
     M.dataset = DS;
+    prepareAreas();
+  }
+
+  /* ------------------------------------------------------------------ colour by legal area */
+  /* AREA_RANK[area] = its colour's index: the 27 areas ranked by their documents in the whole network (graph.js
+     areas[].docs, the same on phones, where only the lite network is loaded; ties in list order), so the 12 most
+     frequent take network-3d.html's 12 colours and the other 15 --area-12..26. NETA[network area index] = the area (the
+     network's 51-entry list; its documents use exactly the 27 areas of the traces). NAREA[node]: a law its document's
+     area (graph.js wa); a provision its law's (up the 'contains' links); a question, answer, other answer, term or area
+     name the area of the first trace in list order (area, then rank) that holds it - SHARED counts the nodes that traces
+     of two or more areas hold. AREA_Q[area] = the questions (traced and other answers) drawn in its colour */
+  var AREA_RANK = null, AREA_ORDER = [], NETA = null, NAREA = null, AREA_Q = null, SHARED = 0;
+  var STRUCT = { chapter: 1, section: 1, article: 1, clause: 1, point: 1 };
+  /* the ranks need graph.js only: the legend and the side list's swatches get them before the network loads */
+  function rankAreas() {
+    var order = (G.areas || []).map(function (a, k) { return { a: AIX[a.id], docs: a.docs || 0, k: k }; }).filter(function (o) { return o.a != null; });
+    order.sort(function (x, y) { return y.docs - x.docs || x.k - y.k; });
+    AREA_RANK = new Int16Array(AREAS.length).fill(-1);
+    order.forEach(function (o, r) { AREA_RANK[o.a] = r; });
+    AREA_ORDER = order.map(function (o) { return o.a; });
+  }
+  function prepareAreas() {
+    if (!AREA_RANK) rankAreas();
+    NETA = (D.net.areas || []).map(function (a) { var id = Array.isArray(a) ? a[0] : (a && a.id); return AIX[id] != null ? AIX[id] : -1; });
+    NAREA = new Int16Array(NG).fill(-1);
+    var wa = G.wa || {};
+    Object.keys(wa).forEach(function (k) { NAREA[+k] = wa[k]; });
+    var first = new Int16Array(NG).fill(-1), multi = new Uint8Array(NG);
+    G.t.forEach(function (t) { t.n.forEach(function (i) { if (first[i] < 0) first[i] = t.a; else if (first[i] !== t.a) multi[i] = 1; }); });
+    var parent = new Int32Array(NG).fill(-1), cont = (G.e && G.e.contains) || [];
+    for (var j = 0; j < cont.length; j += 2) parent[cont[j + 1]] = cont[j];
+    AREA_Q = new Int32Array(AREAS.length);
+    SHARED = 0;
+    var sharedBy = {};
+    for (var i = 0; i < NG; i++) {
+      var c = cname(i);
+      if (IS_WORK[i]) { if (NAREA[i] < 0) NAREA[i] = first[i]; continue; }
+      if (STRUCT[c]) {
+        var w = i, hops = 0;
+        while (w >= 0 && !IS_WORK[w] && hops++ < 64) w = parent[w];
+        NAREA[i] = w >= 0 && IS_WORK[w] && NAREA[w] >= 0 ? NAREA[w] : first[i];
+        continue;
+      }
+      NAREA[i] = first[i];
+      if (multi[i]) { SHARED++; sharedBy[c] = (sharedBy[c] || 0) + 1; }
+      if ((c === 'question' || c === 'other_question') && NAREA[i] >= 0) AREA_Q[NAREA[i]]++;
+    }
+    var noDoc = 0;
+    for (var j2 = 0; j2 < NP; j2++) if (docArea(j2) < 0) noDoc++;
+    T.areaColour = { ranked: AREA_ORDER.map(function (a) { return AREAS[a].id; }), shared: SHARED, sharedByClass: sharedBy,
+      unassigned: (function () { var u = 0; for (var q = 0; q < NG; q++) if (NAREA[q] < 0) u++; return u; })(), docsWithoutArea: noDoc,
+      questions: AREAS.map(function (a, k) { return AREA_Q[k]; }) };
+  }
+  /* the colour of an area (its rank's token), or --area-none */
+  function areaHex(a) { var r = a != null && a >= 0 ? AREA_RANK[a] : -1; return r >= 0 && TH.areas[r] ? TH.areas[r] : TH.areaNone; }
+  /* the area of a network point (a document: its own area field; a traced law the lite network lacks: its law node's) */
+  function docArea(j) { return j < D.N ? (D.area[j] >= 0 ? NETA[D.area[j]] : -1) : NAREA[EXTRA[j - D.N]]; }
+  function docColor(j) { return state.colorBy === 'area' ? areaHex(docArea(j)) : TH.doc; }
+  /* the documents' colours as their buffer holds them (snapshot): the distinct colours and each point's index */
+  function docColorTable() {
+    var col = netObj.geometry.attributes.aColor.array, pal = [], ix = {}, idx = new Array(NP);
+    function h2(v) { var x = Math.round(v * 255); return (x < 16 ? '0' : '') + x.toString(16); }
+    for (var j = 0; j < NP; j++) {
+      var h = '#' + h2(col[3 * j]) + h2(col[3 * j + 1]) + h2(col[3 * j + 2]);
+      if (ix[h] == null) { ix[h] = pal.length; pal.push(h); }
+      idx[j] = ix[h];
+    }
+    return { palette: pal, idx: idx };
   }
 
   /* ------------------------------------------------------------------ three setup (as js/network3d.js) */
@@ -308,11 +389,19 @@
      as network-3d.html does; #curves=full keeps the full detail there too */
   var CURVES = params.curves !== '0', SOFT_GL = false, CURVE_FULL = params.curves === 'full';
   var renderer = null, scene, camera, controls, netObj = null, trObj = null, ptMat = null, trMat = null, netEdges = {}, trEdges = null, layerGroup = null;
-  var lightTr = null, boldV = null, boldS = null, fgObj = null, fgMat = null, labelGroup = null, labels = [], callouts = null;
+  var threads = null, boldV = null, boldS = null, fgObj = null, fgMat = null, labelGroup = null, labels = [], callouts = null;
   var needsRender = true, tween = null;
   /* the reader's state: the chosen traces (sel, in list order: area, then rank), the one the panel shows (cur, an index
      of sel), the legend, the search text. No area is ever 'open': the 27 areas are one scene and one list */
-  var state = { sel: [], cur: -1, legendOpen: !mobile, query: '' };
+  var state = { sel: [], cur: -1, legendOpen: !mobile, query: '', colorBy: 'area' };
+  /* colour the points by legal area (the default: the 27 areas' colours) or by kind (the paper's class colours):
+     #color=area|kind for links and tests, else the reader's last choice (VL.store), else area */
+  var COLOR_KEY = 'traces3d-color';
+  state.colorBy = (function () {
+    var p = params.color, s = VL.store.get(COLOR_KEY);
+    return p === 'area' || p === 'kind' ? p : (s === 'area' || s === 'kind' ? s : 'area');
+  })();
+  T.colorBy = state.colorBy;
   function current() { return state.cur >= 0 ? state.sel[state.cur] || null : null; }
 
   function webglOk() {
@@ -346,11 +435,9 @@
     controls.addEventListener('start', hideHint);
     labelGroup = new THREE.Group();
     scene.add(labelGroup);
-    /* the traced paths: every trace thin and light (core colour only, depth-tested), the chosen ones bold on top */
-    lightTr = VL.TraceLines({ depthTest: true, renderOrder: 6 });
-    boldS = VL.TraceLines({ depthTest: false, renderOrder: 7 });
-    boldV = VL.TraceLines({ depthTest: false, renderOrder: 10 });
-    scene.add(lightTr.object);
+    /* the traced paths: every trace a thin thread (GL lines, buildThreads), the chosen ones bold ribbons on top */
+    boldS = VL.TraceLines({ depthTest: false, renderOrder: ORDER.boldS });
+    boldV = VL.TraceLines({ depthTest: false, renderOrder: ORDER.boldV });
     scene.add(boldS.object);
     scene.add(boldV.object);
     try {
@@ -370,11 +457,13 @@
     camera.updateProjectionMatrix();
     updatePointScale();
     updateLabelSizes();
+    fitLegendHeight();
     needsRender = true;
     scheduleCallouts();
   }
   function updatePointScale() {
     if (ptMat) ptMat.uniforms.uScale.value = renderer.domElement.height / (2 * Math.tan(camera.fov * Math.PI / 360));
+    if (fgMat) fgUniforms();
   }
   function updateFog() { if (camera && D) NS.updateFog(FOG, camera, controls.target, D.extent, TH.dark); }
   function loop(t) {
@@ -390,7 +479,12 @@
   }
 
   /* ------------------------------------------------------------------ scene objects */
+  /* a trace node's colour: its area's (colour by area) or its class's (colour by kind) */
   function nodeColor(i) {
+    if (state.colorBy === 'area' && NAREA) return areaHex(NAREA[i]);
+    return kindColor(i);
+  }
+  function kindColor(i) {
     var c = cname(i);
     return c === 'work' ? TH.doc : (P.cls[c === 'other_question' ? 'question' : c] || '#9aa3ad');
   }
@@ -401,12 +495,43 @@
     return c === 'work' ? TH.doc : (P.cls[c] || '#9aa3ad');
   }
   function pairKey(a, b) { return a < b ? a * NG + b : b * NG + a; }
-  /* TRACED: the traced segments of all 540 traces, once each ([i, j] graph nodes): thin light strokes. TL: every other
-     link of the traces (other answers' citations, the provision chains off the traced paths, applies_to, ...): curves in
-     their class colours, with the node -> links index (off, adj) a choice uses to make its own links opaque */
-  var TRACED = [], TL = null;
-  var LIGHT_W = mobile ? 1.1 : 1.3, LIGHT_SEG = 8, TRACE_SEG = 16;
+  /* TRACED: the traced segments of all 540 traces, once each ([i, j] graph nodes): the thin threads; STROKE_AREA: the
+     area of the first trace in list order (area, then rank) that holds each (its colour by area). TL: every other link
+     of the traces (other answers' citations, the provision chains off the traced paths, applies_to, ...): curves in their
+     class colours, with the node -> links index (off, adj) a choice uses to make its own links opaque */
+  var TRACED = [], STROKE_AREA = null, TL = null;
+  var LIGHT_SEG = 8, TRACE_SEG = 16;
+  /* v1.4, after the real-browser screenshots of v1.2 (CI, Chrome + SwiftShader): the 540 traces' light strokes (ribbons of
+     the navy core at LIGHT) stacked into a solid navy mass (a near-white one in the dark theme). The traces not chosen are
+     now threads: GL lines (THREE.LineSegments, 1 device px, no ribbon geometry), each in its base colour - its area's when
+     colouring by area, the links' grey by kind - mixed halfway (THREAD_MIX) to the theme's ink, so that it reads over the
+     network's light grey links, at THREAD_A: the alpha for which the 99th-percentile pixel of the load view keeps an
+     accumulated opacity 1 - (1 - a)^n of about 0.47, n = the strokes over one device pixel (tools_lang3d/overlap14.py on
+     the load view: p99 26 on wide screens, 1100 x 783 at 1 device px, full network; p99 35 on phones, 390 x 700 at 2);
+     x FAINT / LIGHT while something is chosen. #thread=<alpha> overrides it (tests, previews) */
+  /* colouring by area on wide screens the legend's top stays at or below LEGEND_TOP of the canvas (fitLegendHeight: it
+     scrolls inside): the 27 areas' legend (400 x 568 px in EN-VI at 1440 x 900) would otherwise take the room left of
+     the scene where the laws' call-outs go. All 540 traces chosen one by one at 1440 x 900 (tools_lang3d sweep): EN-VI
+     25 traces with a must-show call-out hidden and 2,646 call-outs shown without the cap, 51 at 0.35, 8 at 0.45, 1 and
+     4,603 at 0.55, 2 at 0.6; EN 1 -> 0 (5,035 -> 5,319 shown), VI 1 at 0.55. #lgtop=<fraction> overrides it */
+  var LEGEND_TOP = (function () { var v = parseFloat(params.lgtop); return v >= 0 && v < 1 ? v : 0.55; })();
+  var THREAD_A = (function () { var v = parseFloat(params.thread); return v > 0 && v <= 1 ? v : (mobile ? 0.018 : 0.024); })(), THREAD_MIX = 0.5;
+  /* the context links (9,198: other answers' citations, the provision chains off the paths, terms, applies_to) are drawn
+     only between chosen nodes (alpha 1): at the load view their overlap reaches 173 links per device pixel at the 99th
+     percentile (citations 177), so any visible alpha stacks into a solid mass (at 0.3 the median covered pixel is at
+     0.94) and the alpha for an accumulated 0.5 (0.004) is below one 8-bit step */
+  var CTX_REST = 0;
+  var TH_VS = ['attribute vec3 aColor; varying vec3 vColor;',
+    'void main() { vColor = aColor; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }'].join('\n');
+  var TH_FS = ['uniform float uOpacity; varying vec3 vColor;',
+    'void main() { gl_FragColor = vec4(vColor, uOpacity); }'].join('\n');
   var BOLD = mobile ? 1.3 : 1.5, FG_SIZE = 1.3;
+  /* the draw order. three.js draws the opaque documents first (depth written), then the transparent objects by
+     renderOrder: the layer and Q&A planes 0, the network's legal-basis / citation links 1 and change links 2, the traces'
+     context links 3, the trace nodes 4, the threads of every trace 5, the chosen traces' bold paths (structural
+     8-10, verified 11-13: halo2, halo, core), the chosen traces' points 20 (no depth test: over every stroke), the
+     call-outs' leaders 29 and labels 30 (js/labels3d.js) */
+  var ORDER = { planes: 0, netLinks: 1, netChange: 2, context: 3, traceNodes: 4, strokes: 5, boldS: 8, boldV: 11, chosen: 20 };
   function buildScene() {
     var t0 = performance.now();
     /* 1. the network's documents, sized as on network-3d.html, and the traced laws the dataset lacks */
@@ -427,7 +552,7 @@
       ts[k] = SIZE[cname(gi)] || 9;
     });
     if (!trMat) trMat = new THREE.ShaderMaterial({ uniforms: ptMat.uniforms, vertexShader: NS.PT_VS, fragmentShader: NS.PT_FS_A, transparent: true, depthWrite: false });
-    trObj = points(tp, ts, NT, 3, trMat);
+    trObj = points(tp, ts, NT, ORDER.traceNodes, trMat);
     updatePointScale();
     /* 3. the network's links (js/netscene.js: segments per kind and dataset, citation links on the lite network only) */
     netKeys().forEach(buildNetEdges);
@@ -472,7 +597,7 @@
     }
     var obj = new THREE.LineSegments(NS.curveGeometry(S, A, B, al, null, D.extent), NS.curveMaterial(false, 1, FOG));
     obj.frustumCulled = false;
-    obj.renderOrder = NS.KINDS.indexOf(k) >= 0 ? 4 : 1;
+    obj.renderOrder = NS.KINDS.indexOf(k) >= 0 ? ORDER.netChange : ORDER.netLinks;
     scene.add(obj);
     netEdges[k] = { obj: obj, m: m, seg: S };
     M.edgeSegments = M.edgeSegments || {};
@@ -481,13 +606,15 @@
   function buildTraceLinks() {
     var traced = new Set();
     TRACED = [];
+    var sa = [];
     G.t.forEach(function (t) {
       var e = t.e;
       for (var j = 0; j < e.length; j += 3) {
         var kk = pairKey(e[j], e[j + 1]);
-        if (!traced.has(kk)) { traced.add(kk); TRACED.push([e[j], e[j + 1]]); }
+        if (!traced.has(kk)) { traced.add(kk); TRACED.push([e[j], e[j + 1]]); sa.push(t.a); }
       }
     });
+    STROKE_AREA = Int16Array.from(sa);
     var kinds = G.kinds || Object.keys(G.e), ss = [], tt = [], ki = [];
     kinds.forEach(function (k, n) {
       var arr = G.e[k] || [];
@@ -507,23 +634,56 @@
     TL.off = off;
     TL.adj = adj;
     var S = !CURVES ? 1 : (SOFT_GL && !CURVE_FULL ? 4 : 8);
-    var A = new Float32Array(3 * m), B = new Float32Array(3 * m), al = new Float32Array(m).fill(LIGHT), col = new Float32Array(3 * m);
+    var A = new Float32Array(3 * m), B = new Float32Array(3 * m), al = new Float32Array(m).fill(CTX_REST), col = new Float32Array(3 * m);
     for (e2 = 0; e2 < m; e2++) {
       var a = TL.s[e2], b = TL.t[e2];
       for (var c = 0; c < 3; c++) { A[3 * e2 + c] = GPOS[3 * a + c]; B[3 * e2 + c] = GPOS[3 * b + c]; }
     }
     var obj = new THREE.LineSegments(NS.curveGeometry(S, A, B, al, col, D.extent), NS.curveMaterial(true, 1, FOG));
     obj.frustumCulled = false;
-    obj.renderOrder = 5;
+    obj.renderOrder = ORDER.context;
     scene.add(obj);
     trEdges = { obj: obj, m: m, seg: S };
-    lightTr.setPaths(TRACED.map(function (p) { return NS.curvePts(ptOf(p[0]), ptOf(p[1]), CURVES ? LIGHT_SEG : 1); }));
-    T.traced = { segments: TRACED.length, contextLinks: m, strokeSegments: lightTr.count() };
+    buildThreads();
+    T.traced = { segments: TRACED.length, contextLinks: m, strokeSegments: threads.pieces };
   }
+  /* the threads: every traced segment once, its curve in LIGHT_SEG pieces (two vertices each), a colour per vertex */
+  function buildThreads() {
+    var segN = CURVES ? LIGHT_SEG : 1, n = TRACED.length, pos = new Float32Array(n * segN * 6);
+    TRACED.forEach(function (pr, i) {
+      var pts = NS.curvePts(ptOf(pr[0]), ptOf(pr[1]), segN);
+      for (var q = 0; q < segN; q++) {
+        var a = pts[q], b = pts[q + 1], o = (i * segN + q) * 6;
+        pos[o] = a.x; pos[o + 1] = a.y; pos[o + 2] = a.z; pos[o + 3] = b.x; pos[o + 4] = b.y; pos[o + 5] = b.z;
+      }
+    });
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('aColor', new THREE.BufferAttribute(new Float32Array(n * segN * 6), 3));
+    var mat = new THREE.ShaderMaterial({ uniforms: { uOpacity: { value: THREAD_A } }, vertexShader: TH_VS, fragmentShader: TH_FS,
+      transparent: true, depthWrite: false, depthTest: true });
+    var obj = new THREE.LineSegments(g, mat);
+    obj.renderOrder = ORDER.strokes;
+    obj.frustumCulled = false;
+    scene.add(obj);
+    threads = { obj: obj, mat: mat, segN: segN, n: n, pieces: n * segN };
+  }
+  /* a thread's colour: its base (its area's by area; the links' grey by kind) mixed THREAD_MIX of the way to the ink
+     (in sRGB, per channel, rounded to 8 bits) */
+  var THREAD_HEX = {};
+  function threadMix(base) {
+    var key = base + TH.ink;
+    if (THREAD_HEX[key]) return THREAD_HEX[key];
+    var a = rgb(base), b = rgb(TH.ink);
+    return (THREAD_HEX[key] = '#' + [0, 1, 2].map(function (c) {
+      var v = Math.round((a[c] * (1 - THREAD_MIX) + b[c] * THREAD_MIX) * 255); return (v < 16 ? '0' : '') + v.toString(16);
+    }).join(''));
+  }
+  function threadHex(i) { return threadMix(state.colorBy === 'area' ? areaHex(STROKE_AREA[i]) : TH.link); }
   /* per-frame cost of the links: vertices through the shaders and line segments drawn, the network's and the traces' */
   function edgeCost() {
     var c = { curves: CURVES, detail: M.curveDetail, links: 0, vertices: 0, segments: 0, trace: { links: trEdges.m, vertices: trEdges.m * (trEdges.seg + 1),
-      segments: trEdges.m * trEdges.seg, strokes: lightTr.count() } };
+      segments: trEdges.m * trEdges.seg, strokes: threads.pieces } };
     Object.keys(netEdges).forEach(function (k) { var eo = netEdges[k]; c.links += eo.m; c.vertices += eo.m * (eo.seg + 1); c.segments += eo.m * eo.seg; });
     return c;
   }
@@ -540,8 +700,8 @@
   function applyColors() {
     var cache = {};
     function c3(hex) { return cache[hex] || (cache[hex] = rgb(hex)); }
-    var col = netObj.geometry.attributes.aColor.array, cd = c3(TH.doc), i;
-    for (i = 0; i < NP; i++) { col[3 * i] = cd[0]; col[3 * i + 1] = cd[1]; col[3 * i + 2] = cd[2]; }
+    var col = netObj.geometry.attributes.aColor.array, i;
+    for (i = 0; i < NP; i++) { var cd = c3(docColor(i)); col[3 * i] = cd[0]; col[3 * i + 1] = cd[1]; col[3 * i + 2] = cd[2]; }
     netObj.geometry.attributes.aColor.needsUpdate = true;
     var tc = trObj.geometry.attributes.aColor.array;
     for (i = 0; i < TNODE.length; i++) { var c = c3(nodeColor(TNODE[i])); tc[3 * i] = c[0]; tc[3 * i + 1] = c[1]; tc[3 * i + 2] = c[2]; }
@@ -560,7 +720,13 @@
       ec[3 * e] = c0[0] * f; ec[3 * e + 1] = c0[1] * f; ec[3 * e + 2] = c0[2] * f;
     }
     trEdges.obj.geometry.attributes.aColor.needsUpdate = true;
-    lightTr.setStyle({ colors: { core: P.core }, widths: { core: LIGHT_W, halo: 0, halo2: 0 }, opacity: strokeAlpha });
+    var thc = threads.obj.geometry.attributes.aColor.array, per = threads.segN * 2;
+    for (var s2 = 0; s2 < threads.n; s2++) {
+      var tc3 = c3(threadHex(s2));
+      for (var v = 0; v < per; v++) { var o3 = 3 * (s2 * per + v); thc[o3] = tc3[0]; thc[o3 + 1] = tc3[1]; thc[o3 + 2] = tc3[2]; }
+    }
+    threads.obj.geometry.attributes.aColor.needsUpdate = true;
+    threads.mat.uniforms.uOpacity.value = strokeAlpha;
     VL.rawColor(TH.bg, ptMat.uniforms.uBg.value);
     ptMat.uniforms.uRim.value = TH.dark ? 0.7 : 0.84;
     needsRender = true;
@@ -569,8 +735,9 @@
   /* ------------------------------------------------------------------ the choice: solid traces, the other traces faint */
   /* SELW: the network points the last choice set to 1 (put back to LIGHT by the next); the trace points and links are
      all written by every choice (FAINT while something is chosen, LIGHT with nothing chosen, 1 for the chosen traces'
-     own). The attributes are written once per choice, never per frame; strokeAlpha is the thin strokes' opacity */
-  var SELW = { net: [], tr: [], links: [] }, selPaths = [], strokeAlpha = LIGHT;
+     own). The attributes are written once per choice, never per frame; strokeAlpha is the threads' opacity (THREAD_A,
+     x FAINT / LIGHT while something is chosen); the context links are 0 unless both ends are chosen (CTX_REST) */
+  var SELW = { net: [], tr: [], links: [] }, selPaths = [], strokeAlpha = THREAD_A;
   function chosenNodes() {
     var has = new Uint8Array(NG), list = [];
     state.sel.forEach(function (t) { t.n.forEach(function (i) { if (!has[i]) { has[i] = 1; list.push(i); } }); });
@@ -583,9 +750,9 @@
     var rest = state.sel.length ? FAINT : LIGHT;
     SELW.net.forEach(function (j) { na.array[j] = LIGHT; });
     ta.array.fill(rest);
-    la.array.fill(rest);
-    strokeAlpha = rest;
-    lightTr.setStyle({ opacity: rest });
+    la.array.fill(CTX_REST);
+    strokeAlpha = state.sel.length ? THREAD_A * FAINT / LIGHT : THREAD_A;
+    threads.mat.uniforms.uOpacity.value = strokeAlpha;
     var ch = chosenNodes(), net = [], tr = [], links = [];
     ch.list.forEach(function (i) {
       if (IS_WORK[i]) { na.array[WDOC[i]] = 1; net.push(WDOC[i]); } else { ta.array[TPT[i]] = 1; tr.push(TPT[i]); }
@@ -635,34 +802,73 @@
     T.traceStructural = boldS.count();
     needsRender = true;
   }
-  /* the chosen traces' foreground nodes over their strokes (as in the paper's figures): a small Points object with the
-     scene's shader and uniforms, far ones first */
+  /* the chosen traces' points, drawn last over every stroke (renderOrder ORDER.chosen, no depth test): every node of the
+     chosen traces (graph.js t[].n: the question, its answer, the other answers, the provisions, the terms, the area and
+     the laws), opaque in its colour (area or kind), no fog, at least as large as at load (x FG_SIZE, or its load size +
+     two rings) and at least FG_MIN_PX across, with two thin rings: the ink of the theme (apart from the ground) inside
+     a ring of the ground's colour (apart from the navy core or the gold halo under it). Far ones first */
+  var FG_MIN_PX = 9, FG_RING_PX = 1.25, fgNodes = [];
+  var FG_VS = [
+    'attribute vec3 aColor; attribute float aSize;',
+    'uniform float uScale; uniform float uMinPx; uniform float uPad;',
+    'varying vec3 vColor; varying float vPx;',
+    'void main() {',
+    '  vColor = aColor;',
+    '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
+    '  float s = clamp(aSize * uScale / max(1.0, -mv.z), 2.0, 56.0);',
+    '  vPx = min(64.0, max(max(s * ' + FG_SIZE.toFixed(2) + ', s + uPad), uMinPx));',
+    '  gl_PointSize = vPx;',
+    '  gl_Position = projectionMatrix * mv;',
+    '}'].join('\n');
+  var FG_FS = [
+    'uniform vec3 uBg; uniform vec3 uInk; uniform float uRing;',
+    'varying vec3 vColor; varying float vPx;',
+    'void main() {',
+    '  vec2 c = gl_PointCoord - vec2(0.5); float R = 0.5 * vPx, d = length(c) * vPx;',
+    '  if (d > R) discard;',
+    '  if (d > R - uRing) { gl_FragColor = vec4(uBg, 1.0); return; }',
+    '  if (d > R - 2.0 * uRing) { gl_FragColor = vec4(uInk, 1.0); return; }',
+    '  float r = d / max(1.0, R - 2.0 * uRing);',
+    '  gl_FragColor = vec4(min(vec3(1.0), vColor * (0.92 + 0.1 * (1.0 - r * r))), 1.0);',
+    '}'].join('\n');
+  function fgUniforms() {
+    var dpr = renderer ? renderer.getPixelRatio() : 1;
+    fgMat.uniforms.uMinPx.value = FG_MIN_PX * dpr;
+    fgMat.uniforms.uRing.value = FG_RING_PX * dpr;
+    fgMat.uniforms.uPad.value = 4 * FG_RING_PX * dpr + 0.5;
+    VL.rawColor(TH.ink, fgMat.uniforms.uInk.value);
+  }
   function drawFgNodes() {
     if (fgObj) { scene.remove(fgObj); fgObj.geometry.dispose(); fgObj = null; }
     T.fgDrawn = 0;
     if (!state.sel.length || !netObj) return;
-    var has = new Uint8Array(NG), ids = [];
-    state.sel.forEach(function (t) { t.f.forEach(function (i) { if (!has[i]) { has[i] = 1; ids.push(i); } }); });
+    var ids = chosenNodes().list;
     var cp = camera.position, d2 = function (i) {
       var dx = GPOS[3 * i] - cp.x, dy = GPOS[3 * i + 1] - cp.y, dz = GPOS[3 * i + 2] - cp.z; return dx * dx + dy * dy + dz * dz;
     };
     ids.sort(function (a, b) { return d2(b) - d2(a); });
-    var n = ids.length, pos = new Float32Array(3 * n), col = new Float32Array(3 * n), sz = new Float32Array(n), al = new Float32Array(n).fill(1);
+    var n = ids.length, pos = new Float32Array(3 * n), col = new Float32Array(3 * n), sz = new Float32Array(n);
+    fgNodes = ids.slice();
     var na = netObj.geometry.attributes, ta = trObj.geometry.attributes;
     ids.forEach(function (i, j) {
       var src = IS_WORK[i] ? na : ta, k = IS_WORK[i] ? WDOC[i] : TPT[i];
       for (var c = 0; c < 3; c++) { pos[3 * j + c] = GPOS[3 * i + c]; col[3 * j + c] = src.aColor.array[3 * k + c]; }
-      sz[j] = (IS_WORK[i] ? Math.max(SIZE.work, src.aSize.array[k]) : src.aSize.array[k]) * FG_SIZE;
+      sz[j] = IS_WORK[i] ? Math.max(SIZE.work, src.aSize.array[k]) : src.aSize.array[k];
     });
     var g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     g.setAttribute('aColor', new THREE.BufferAttribute(col, 3));
     g.setAttribute('aSize', new THREE.BufferAttribute(sz, 1));
-    g.setAttribute('aAlpha', new THREE.BufferAttribute(al, 1));
-    // transparent (alpha 1): drawn in three.js' transparent pass after the trace's strokes, so the nodes lie over them
-    if (!fgMat) fgMat = new THREE.ShaderMaterial({ uniforms: ptMat.uniforms, vertexShader: NS.PT_VS, fragmentShader: NS.PT_FS, depthTest: false, depthWrite: false, transparent: true });
+    if (!fgMat) {
+      fgMat = new THREE.ShaderMaterial({
+        uniforms: { uScale: ptMat.uniforms.uScale, uBg: ptMat.uniforms.uBg, uInk: { value: new THREE.Color() }, uMinPx: { value: FG_MIN_PX },
+          uRing: { value: FG_RING_PX }, uPad: { value: 5 } },
+        vertexShader: FG_VS, fragmentShader: FG_FS, transparent: true, depthTest: false, depthWrite: false
+      });
+    }
+    fgUniforms();
     fgObj = new THREE.Points(g, fgMat);
-    fgObj.renderOrder = 20;
+    fgObj.renderOrder = ORDER.chosen;
     fgObj.frustumCulled = false;
     scene.add(fgObj);
     T.fgDrawn = n;
@@ -1015,9 +1221,15 @@
   }
   function headHtml(a, ai) {
     var n = GROUPS[ai].length;
-    return '<h3 class="tr-head" id="tr-h-' + a.id + '" tabindex="-1"><span class="tr-head-name">' + headName(a) + '</span><span class="tr-head-n"></span>' +
+    return '<h3 class="tr-head" id="tr-h-' + a.id + '" tabindex="-1"><span class="tr-head-sw" data-a="' + ai + '" aria-hidden="true"' +
+      (AREA_RANK ? ' style="background:' + areaHex(ai) + '"' : '') + '></span><span class="tr-head-name">' + headName(a) + '</span><span class="tr-head-n"></span>' +
       '<button type="button" class="tr-all" data-area="' + a.id + '" aria-pressed="false" aria-label="' + esc(VL.U('tr3d.all.aria', { n: fmt(n), area: VL.U(areaPair(a)) })) + '"' +
       tipAttr('tr3d.all.aria', { n: fmt(n), area: VL.U(areaPair(a)) }) + '>' + VL.UH('tr3d.all', { n: fmt(n) }) + '</button></h3>';
+  }
+  /* the area's colour before its heading (hidden while colouring by kind: .tr-color-kind) */
+  function paintHeads() {
+    if (!AREA_RANK) return;
+    VL.$$('.tr-head-sw').forEach(function (e) { e.style.background = areaHex(+e.getAttribute('data-a')); });
   }
   function itemId(q) { return 'tr-item-' + q.id + '-' + q.rank; }
   /* a question: the row (a click chooses it alone; Space or Ctrl/Cmd-click adds or removes it) and its round button
@@ -1403,11 +1615,16 @@
     if (p.g >= 0) {
       var n = names(p.g), cn = classNames(cname(p.g)), k = tracesOf(p.g).length, lim = QNODE[p.g] ? 140 : 60;
       return '<b>' + VL.TH(VL.pair(VL.short(n[0], lim), VL.short(n[1], lim))) + '</b>' +
-        '<div class="t-sub">' + VL.TH(VL.pair(cn[0], cn[1])) + ' · ' + VL.UH('tr3d.tipTraces', { n: nv(k) }) + '</div>';
+        '<div class="t-sub">' + VL.TH(VL.pair(cn[0], cn[1])) + ' · ' + VL.UH('tr3d.tipTraces', { n: nv(k) }) + '</div>' + tipArea(NAREA ? NAREA[p.g] : -1);
     }
     var j = p.doc, rk = 'net.rank.' + D.rank[j];
     return '<b lang="vi">' + esc(VL.short((D.num[j] ? D.num[j] + ' · ' : '') + D.title[j], 90)) + '</b>' +
-      '<div class="t-sub">' + VL.TH(VL.kpair('tr3d.cls.document')) + (VL.i18n.has(rk) ? ' · ' + VL.TH(VL.kpair(rk)) : '') + '</div>';
+      '<div class="t-sub">' + VL.TH(VL.kpair('tr3d.cls.document')) + (VL.i18n.has(rk) ? ' · ' + VL.TH(VL.kpair(rk)) : '') + '</div>' + tipArea(docArea(j));
+  }
+  /* colouring by area, a point's tooltip names the area of its colour */
+  function tipArea(a) {
+    if (state.colorBy !== 'area' || a == null || a < 0 || !AREAS[a]) return '';
+    return '<div class="t-sub t-area"><span class="t-sw" style="background:' + areaHex(a) + '" aria-hidden="true"></span>' + VL.TH(areaPair(AREAS[a])) + '</div>';
   }
   var down = null, hoverRaf = 0;
   function bindPointer() {
@@ -1596,33 +1813,105 @@
 
   /* ------------------------------------------------------------------ legend, tools, theme */
   /* the traced path as the scene draws it: the links' S-curve (vertical tangents, control points at 45 % of the rise),
-     navy core over the gold halo; ' s' = structural (fainter, thinner core), ' l' = a trace not chosen (thin, light) */
+     navy core over the gold halo; ' s' = structural (fainter, thinner core); ' l' = the traces not chosen: thin threads
+     in their colours (by area those of the three largest areas, by kind the one neutral thread colour) */
   function curveSwatch(mod) {
     var d = 'M2 10 C2 6.4 20 5.6 20 2';
-    return '<svg class="tr-sw' + mod + '" viewBox="0 0 22 12" aria-hidden="true"' + (mod === ' l' ? ' style="opacity:' + LIGHT + '"' : '') + '><path class="halo" d="' + d + '"/><path class="core" d="' + d + '"/></svg>';
+    if (mod === ' l') {
+      var cols = state.colorBy === 'area' && AREA_RANK ? [0, 1, 2].map(function (r) { return threadMix(TH.areas[r]); }) : [threadMix(TH.link)];
+      var ds = cols.length > 1 ? ['M1 10 C1 6.4 16 5.6 16 2', 'M3.5 10 C3.5 6.4 18.5 5.6 18.5 2', 'M6 10 C6 6.4 21 5.6 21 2'] : [d];
+      return '<svg class="tr-sw l" viewBox="0 0 22 12" aria-hidden="true">' + cols.map(function (c, k) {
+        return '<path class="core" style="stroke:' + c + '" d="' + ds[k] + '"/>';
+      }).join('') + '</svg>';
+    }
+    return '<svg class="tr-sw' + mod + '" viewBox="0 0 22 12" aria-hidden="true"><path class="halo" d="' + d + '"/><path class="core" d="' + d + '"/></svg>';
   }
-  /* the flat legend: "Tiếng Việt · English" entries in EN–VI, one language in EN or VI */
-  function renderLegend() {
+  /* the legend: a head row (its title, the colour switch), then colouring by area the 27 areas (in the side list's
+     order, in three columns) and one line for the kinds (told apart by layer and size), or colouring by
+     kind the paper's class colours; the links and the strokes; the note. "Tiếng Việt · English" entries in EN-VI, one
+     language in EN or VI */
+  function colorSwitch() {
     var SEP = { sep: '\u00a0· ' };
+    return '<div class="seg tr-colorby" role="group" aria-label="' + esc(VL.U('tr3d.colorBy.aria')) + '">' + ['area', 'kind'].map(function (m) {
+      return '<button type="button" data-color="' + m + '" aria-pressed="' + (state.colorBy === m ? 'true' : 'false') + '">' + VL.TH('tr3d.colorBy.' + m, null, SEP) + '</button>';
+    }).join('') + '</div>';
+  }
+  function areaLegendName(a) { return VL.TH(areaPair(a), null, { sep: '\u00a0· ' }); }
+  function renderLegend() {
+    var SEP = { sep: '\u00a0· ' }, byArea = state.colorBy === 'area';
     function li(color, pair, small) {
       return '<li><span class="swatch' + (small ? ' small' : '') + '" style="background:' + color + '"></span>' + VL.TH(pair, null, SEP) + '</li>';
     }
-    var items = [li('var(--cls-work)', VL.kpair('tr3d.cls.document')),
-      '<li>' + curveSwatch(' n') + VL.TH('tr3d.lg.docLinks', null, SEP) + '</li>',
-      /* the provision fan: three flat swatches (chapter, article, point), as the paper's legends use flat colours */
-      '<li><span class="tr-sw3" aria-hidden="true">' + ['chapter', 'article', 'point'].map(function (k) {
-        return '<span class="swatch" style="background:var(--cls-' + k + ')"></span>'; }).join('') + '</span>' + VL.TH(VL.kpair('tr3d.lg.provisions'), null, SEP) + '</li>'];
-    VL.PAPER_CLASSES.forEach(function (c) { if (['term', 'question', 'answer', 'area'].indexOf(c.key) >= 0) items.push(li(c.v, VL.pair(c.vi, c.en))); });
-    items.push(li('var(--cls-question)', VL.kpair('tr3d.lg.other'), true));
-    legendEl.innerHTML = '<h3>' + VL.TH('tr3d.lg.title') + '</h3><ul>' + items.join('') +
-      '<li>' + curveSwatch('') + VL.TH('tr3d.lg.traced', null, SEP) + '</li>' +
+    var strokes = '<li>' + curveSwatch('') + VL.TH('tr3d.lg.traced', null, SEP) + '</li>' +
       '<li>' + curveSwatch(' s') + VL.TH('tr3d.lg.structural', null, SEP) + '</li>' +
-      '<li>' + curveSwatch(' l') + VL.TH('tr3d.lg.light', null, SEP) + '</li></ul>' +
+      '<li>' + curveSwatch(' l') + VL.TH('tr3d.lg.light', null, SEP) + '</li>';
+    var docLinks = '<li>' + curveSwatch(' n') + VL.TH('tr3d.lg.docLinks', null, SEP) + '</li>', body;
+    if (byArea) {
+      var none = T.areaColour ? T.areaColour.unassigned + T.areaColour.docsWithoutArea : 0;
+      body = '<ul class="tr-areas">' + AREAS.map(function (a, ai) {
+        return '<li data-area="' + a.id + '"><span class="swatch" style="background:' + (AREA_RANK ? areaHex(ai) : 'transparent') + '"></span><span class="tr-an">' + areaLegendName(a) + '</span></li>';
+      }).join('') + '</ul><ul>' +
+        (none ? li(TH.areaNone, VL.kpair('net.lg.noArea')) : '') +
+        '<li><span class="tr-kinds" aria-hidden="true"><i style="width:10px;height:10px"></i><i style="width:7px;height:7px"></i><i style="width:4px;height:4px"></i></span>' +
+        VL.TH('tr3d.lg.kinds', null, SEP) + '</li>' + docLinks + strokes + '</ul>';
+    } else {
+      var items = [li('var(--cls-work)', VL.kpair('tr3d.cls.document')), docLinks,
+        /* the provision fan: three flat swatches (chapter, article, point), as the paper's legends use flat colours */
+        '<li><span class="tr-sw3" aria-hidden="true">' + ['chapter', 'article', 'point'].map(function (k) {
+          return '<span class="swatch" style="background:var(--cls-' + k + ')"></span>'; }).join('') + '</span>' + VL.TH(VL.kpair('tr3d.lg.provisions'), null, SEP) + '</li>'];
+      VL.PAPER_CLASSES.forEach(function (c) { if (['term', 'question', 'answer', 'area'].indexOf(c.key) >= 0) items.push(li(c.v, VL.pair(c.vi, c.en))); });
+      items.push(li('var(--cls-question)', VL.kpair('tr3d.lg.other'), true));
+      body = '<ul>' + items.join('') + strokes + '</ul>';
+    }
+    legendEl.innerHTML = '<div class="tr-lg-head"><h3>' + VL.TH('tr3d.lg.title') + '</h3>' + colorSwitch() + '</div>' + body +
       '<p class="lg-note">' + enFirst('tr3d.lg.note') + '</p>';
+    legendEl.classList.toggle('lg-area', byArea);
     legendEl.classList.toggle('hidden', !state.legendOpen);
+    VL.$$('.tr-colorby button', legendEl).forEach(function (b) {
+      b.addEventListener('click', function () { setColorBy(b.getAttribute('data-color'), { focus: true }); });
+    });
     VL.$('#btn-legend').setAttribute('aria-expanded', state.legendOpen ? 'true' : 'false');
     T.legendEntries = VL.$$('li', legendEl).length;
+    T.legendAreas = byArea ? VL.$$('.tr-areas li', legendEl).length : 0;
+    fitLegendHeight();
   }
+  /* the legend never runs under the stage tools or the first-visit hint above it: taller than the room left, it gets a
+     max-height and scrolls */
+  function fitLegendHeight() {
+    if (!legendEl) return;
+    legendEl.style.maxHeight = '';
+    T.legendMaxH = null;
+    if (legendEl.classList.contains('hidden')) return;
+    var hr = host.getBoundingClientRect(), lr = legendEl.getBoundingClientRect();
+    if (lr.width < 2 || lr.height < 2) return;
+    var lx0 = lr.left - hr.left, lx1 = lr.right - hr.left, lb = lr.bottom - hr.top, top = 8;
+    // colouring by area on wide screens: the 27 areas' legend reaches no higher than LEGEND_TOP of the canvas (it scrolls
+    // inside), so the laws' call-outs left of the scene keep their room
+    if (state.colorBy === 'area' && !mobile) top = Math.max(top, Math.round(hr.height * LEGEND_TOP));
+    ['.stage-tools', '#hint'].forEach(function (q) {
+      var b = boxIn(VL.$(q, stage));
+      if (b && b.x0 < lx1 && b.x1 > lx0 && (b.y0 + b.y1) / 2 < lb - 40) top = Math.max(top, b.y1 + 8);
+    });
+    var room = Math.floor(lb - top);
+    if (lr.height > room) { legendEl.style.maxHeight = Math.max(80, room) + 'px'; T.legendMaxH = Math.max(80, room); }
+  }
+  /* colour by area or by kind (the legend's switch, VL.store, #color=): only the colours change - the choice, the alphas,
+     the camera and the panel stay; the call-outs are placed again around the new legend */
+  function setColorBy(mode, opts) {
+    if ((mode !== 'area' && mode !== 'kind') || mode === state.colorBy) return;
+    state.colorBy = mode;
+    T.colorBy = M.colorBy = mode;
+    T.colorSwitches = (T.colorSwitches || 0) + 1;
+    VL.store.set(COLOR_KEY, mode);
+    app.classList.toggle('tr-color-kind', mode === 'kind');
+    renderLegend();
+    if (opts && opts.focus) { var b = VL.$('.tr-colorby [data-color="' + mode + '"]', legendEl); if (b) b.focus(); }
+    if (renderer && netObj) { applyColors(); drawFgNodes(); }
+    tip.classList.add('hidden');
+    needsRender = true;
+    scheduleCallouts();
+  }
+  app.classList.toggle('tr-color-kind', state.colorBy === 'kind');
   VL.$('#btn-legend').innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>';
   VL.$('#btn-reset').innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>';
   VL.$('#btn-legend').addEventListener('click', function () { state.legendOpen = !state.legendOpen; renderLegend(); scheduleCallouts(); });
@@ -1672,8 +1961,8 @@
     if (state.sel.length) { clearSelection(true); closePanel(); return; }
     if (!panel.classList.contains('hidden')) { seq++; closePanel(); }
   });
-  function showHint() { if (VL.store.get('hint-traces3d') !== 'off') { VL.$('#hint').classList.remove('hidden'); scheduleCallouts(); } }
-  function hideHint() { var h = VL.$('#hint'); if (h && !h.classList.contains('hidden')) { h.classList.add('hidden'); scheduleCallouts(); } }
+  function showHint() { if (VL.store.get('hint-traces3d') !== 'off') { VL.$('#hint').classList.remove('hidden'); fitLegendHeight(); scheduleCallouts(); } }
+  function hideHint() { var h = VL.$('#hint'); if (h && !h.classList.contains('hidden')) { h.classList.add('hidden'); fitLegendHeight(); scheduleCallouts(); } }
   VL.$('#hint-close').addEventListener('click', function () { hideHint(); VL.store.set('hint-traces3d', 'off'); });
   function status() {
     if (!G) return;
@@ -1769,6 +2058,18 @@
 
   /* ------------------------------------------------------------------ test and preview interface */
   function r3(v) { return Math.round(v * 1000) / 1000; }
+  function r4(v) { return Math.round(v * 10000) / 10000; }
+  /* the threads as their buffer holds them (snapshot): GL lines, the opacity, the distinct colours and each one's index */
+  function threadTable() {
+    var col = threads.obj.geometry.attributes.aColor.array, per = threads.segN * 2, pal = [], ix = {}, idx = new Array(threads.n);
+    function h2(v) { var x = Math.round(v * 255); return (x < 16 ? '0' : '') + x.toString(16); }
+    for (var i = 0; i < threads.n; i++) {
+      var o = 3 * i * per, h = '#' + h2(col[o]) + h2(col[o + 1]) + h2(col[o + 2]);
+      if (ix[h] == null) { ix[h] = pal.length; pal.push(h); }
+      idx[i] = ix[h];
+    }
+    return { kind: 'lines', width: 1, opacity: r4(strokeAlpha), base: THREAD_A, mix: THREAD_MIX, seg: threads.segN, color: TH.link, palette: pal, colorIdx: idx, area: Array.prototype.slice.call(STROKE_AREA) };
+  }
   function hist(arr) {
     var h = {};
     for (var i = 0; i < arr.length; i++) { var k = String(r3(arr[i])); h[k] = (h[k] || 0) + 1; }
@@ -1806,17 +2107,39 @@
     materials: function () {
       if (!netObj) return null;
       function alphaOut(fs) { var m = /gl_FragColor = vec4\((.*)\);/.exec(fs || ''), s = m ? m[1] : '', d = 0; for (var i = s.length - 1; i >= 0; i--) { var ch = s[i]; if (ch === ')') d++; else if (ch === '(') d--; else if (ch === ',' && d === 0) return s.slice(i + 1).trim(); } return s; }
-      function one(name, mat) { return { name: name, transparent: !!mat.transparent, depthWrite: !!mat.depthWrite, depthTest: mat.depthTest !== false, alpha: alphaOut(mat.fragmentShader) }; }
-      var out = [one('documents', netObj.material), one('traceNodes', trObj.material), one('contextLinks', trEdges.obj.material)];
-      Object.keys(netEdges).forEach(function (k) { out.push(one('networkLinks.' + k, netEdges[k].obj.material)); });
-      lightTr.object.children.forEach(function (m, i) { out.push(one('strokes.' + ['halo2', 'halo', 'core'][i], m.material)); });
-      if (fgObj) out.push(one('foreground', fgObj.material));
+      function alphasOut(fs) {
+        var re = /gl_FragColor = (vec4\(.*\));/g, m, out = [];
+        while ((m = re.exec(fs || ''))) { var a = alphaOut('gl_FragColor = ' + m[1] + ';'); if (out.indexOf(a) < 0) out.push(a); }
+        return out;
+      }
+      function one(name, obj) {
+        var mat = obj.material;
+        return { name: name, renderOrder: obj.renderOrder, transparent: !!mat.transparent, depthWrite: !!mat.depthWrite, depthTest: mat.depthTest !== false,
+          alpha: alphaOut(mat.fragmentShader), alphas: alphasOut(mat.fragmentShader) };
+      }
+      var out = [one('documents', netObj), one('traceNodes', trObj), one('contextLinks', trEdges.obj)];
+      Object.keys(netEdges).forEach(function (k) { out.push(one('networkLinks.' + k, netEdges[k].obj)); });
+      out.push(one('strokes', threads.obj));
+      [['bold.structural', boldS], ['bold.verified', boldV]].forEach(function (b) {
+        b[1].object.children.forEach(function (m, i) { out.push(one(b[0] + '.' + ['halo2', 'halo', 'core'][i], m)); });
+      });
+      if (layerGroup) {         // the layer and Q&A planes: their meshes' highest draw order
+        var po = { name: 'planes', renderOrder: -1, meshes: 0 };
+        layerGroup.traverse(function (o) { if (o.material) { po.meshes++; po.renderOrder = Math.max(po.renderOrder, o.renderOrder); } });
+        out.push(po);
+      }
+      if (fgObj) {
+        var fo = one('foreground', fgObj);
+        fo.count = fgObj.geometry.attributes.position.count;
+        fo.uniforms = { minPx: r3(fgMat.uniforms.uMinPx.value), ring: r3(fgMat.uniforms.uRing.value), pad: r3(fgMat.uniforms.uPad.value), fog: 'uFog' in fgMat.uniforms };
+        out.push(fo);
+      }
       function sum(a) { var s = 0; for (var i = 0; i < a.length; i++) s += a[i]; return Math.round(s * 10) / 10; }
       return { list: out, sizes: { documents: sum(netObj.geometry.attributes.aSize.array), traceNodes: sum(trObj.geometry.attributes.aSize.array) } };
     },
     /* every alpha of the scene, as the shaders get them: per buffer the values and their counts, the link materials'
-       opacities (each kind's network-3d.html opacity times LIGHT), the strokes' opacity (LIGHT, FAINT while something is
-       chosen); mismatched = trace nodes whose alpha is not 1 exactly when chosen */
+       opacities (each kind's network-3d.html opacity times LIGHT), the threads' opacity (THREAD_A, x FAINT / LIGHT while
+       something is chosen); mismatched = trace nodes whose alpha is not 1 exactly when chosen */
     alphaState: function () {
       if (!netObj) return null;
       var ch = chosenNodes(), bad = 0, solid = 0, na = netObj.geometry.attributes.aAlpha.array, ta = trObj.geometry.attributes.aAlpha.array;
@@ -1834,7 +2157,8 @@
       });
       return { light: LIGHT, faint: FAINT, rest: r3(state.sel.length ? FAINT32 : LIGHT32), docs: hist(na), traceNodes: hist(ta), traceLinks: hist(trEdges.obj.geometry.attributes.aAlpha.array), chosenNodes: ch.list.length,
         solidNodes: solid, mismatched: bad, untracedDocsNotLight: docsOff, netLinks: nl,
-        strokes: { opacity: r3(lightTr.object.children[2].material.uniforms.uOpacity.value), width: LIGHT_W, segments: lightTr.count(), traced: TRACED.length },
+        strokes: { opacity: r4(threads.mat.uniforms.uOpacity.value), base: THREAD_A, mix: THREAD_MIX, width: 1, segments: threads.pieces, traced: TRACED.length, kind: 'lines' },
+        contextRest: CTX_REST,
         bold: { verified: boldV.count(), structural: boldS.count() }, fg: T.fgDrawn, solid: T.solid, writes: T.selectionWrites };
     },
     /* the traced laws: each one's network point, its position and the document's (they must be the same) */
@@ -1851,6 +2175,26 @@
       return out;
     },
     areas: function () { return AREAS.map(function (a) { return a.id; }); },
+    colorBy: function () { return state.colorBy; },
+    setColorBy: function (m) { setColorBy(m); return state.colorBy; },
+    /* the colours as drawn: the mode, the areas' ranks, colours and tokens, the area rule's counts */
+    colorState: function () {
+      if (!AREA_RANK) return null;
+      return { mode: state.colorBy, ranked: AREA_ORDER.map(function (a) { return AREAS[a].id; }),
+        colors: AREAS.map(function (a, k) { return { id: a.id, rank: AREA_RANK[k], color: areaHex(k), token: '--area-' + AREA_RANK[k] }; }),
+        rule: T.areaColour || null, legendAreas: T.legendAreas, fg: T.fgDrawn };
+    },
+    /* a node (graph id) or document (network id): its area and the colour it is drawn in now */
+    colorOf: function (id) {
+      var n = nodeIndex(id);
+      if (!n) return null;
+      if (n.g >= 0) {
+        var a = NAREA && NAREA[n.g] >= 0 ? AREAS[NAREA[n.g]].id : null;
+        return { node: id, area: a, color: IS_WORK[n.g] ? docColor(WDOC[n.g]) : nodeColor(n.g), rule: nodeColor(n.g), kind: kindColor(n.g) };
+      }
+      var da = docArea(n.doc);
+      return { doc: id, area: da >= 0 ? AREAS[da].id : null, color: docColor(n.doc) };
+    },
     pick: function (x, y) { return pickId(pick(x, y)); },
     project: function (id) {                       // screen position (CSS px in the canvas) of a node, for tests
       var n = nodeIndex(id);
@@ -1878,7 +2222,8 @@
       if (fgObj) {
         var fa = fgObj.geometry.attributes;
         fg = { pos: Array.prototype.map.call(fa.position.array, function (v) { return Math.round(v * 10) / 10; }), size: Array.prototype.map.call(fa.aSize.array, function (v) { return Math.round(v * 10) / 10; }),
-          color: Array.prototype.map.call(fa.aColor.array, function (v) { return Math.round(v * 255); }) };
+          color: Array.prototype.map.call(fa.aColor.array, function (v) { return Math.round(v * 255); }),
+          scale: FG_SIZE, minPx: FG_MIN_PX, ringPx: FG_RING_PX, ink: TH.ink, ring: TH.bg, order: ORDER.chosen, nodes: fgNodes.slice() };
       }
       var bold = { v: [], s: [] }, ver = new Set(), seen = new Set();
       state.sel.forEach(function (t) { var e = t.e; for (var j = 0; j < e.length; j += 3) if (e[j + 2] === 1) ver.add(pairKey(e[j], e[j + 1])); });
@@ -1890,6 +2235,7 @@
         w: host.clientWidth, h: host.clientHeight, fov: camera.fov, near: camera.near, far: camera.far, dpr: renderer.getPixelRatio(),
         pos: camera.position.toArray().map(r3), target: controls.target.toArray().map(r3), up: camera.up.toArray(),
         dataset: DS, docs: D.N, extra: EXTRA.map(function (gi) { return gi; }), light: LIGHT, bg: TH.bg, dark: !!TH.dark, docColor: TH.doc, linkColor: TH.link,
+        colorBy: state.colorBy, docColors: docColorTable(),
         zs: NS.ZS, extent: D.extent, layers: [0, 1, 2, 3, 4, 5].map(function (r) { return NS.layerY(D, r); }), qaPlanes: [G.planes.z_answer * NS.ZS, G.planes.z_question * NS.ZS],
         plane: { color: TH.plane, opacity: TH.planeOpacity, line: TH.planeLine, lineOpacity: TH.planeLineOpacity },
         netLinks: Object.keys(netEdges).map(function (k) { return { kind: k, m: netEdges[k].m, seg: netEdges[k].seg, opacity: r3(netEdges[k].obj.material.uniforms.uOpacity.value) }; }),
@@ -1897,7 +2243,7 @@
         gpos: Array.prototype.map.call(GPOS, function (v) { return Math.round(v * 10) / 10; }),
         traceNodes: { nodes: TNODE, alpha: Array.prototype.map.call(ta.aAlpha.array, r3), size: Array.prototype.slice.call(ta.aSize.array),
           color: Array.prototype.map.call(ta.aColor.array, function (v) { return Math.round(v * 255); }), blend: trObj.material.transparent && !trObj.material.depthWrite ? 'alpha' : 'opaque' },
-        faint: FAINT, traceLinks: links, traceLinkSeg: trEdges.seg, traced: TRACED, strokes: { width: LIGHT_W, opacity: strokeAlpha, color: P.core, seg: LIGHT_SEG },
+        faint: FAINT, traceLinks: links, traceLinkSeg: trEdges.seg, traced: TRACED, strokes: threadTable(),
         bold: bold, boldStyle: { v: boldStyle(1), s: boldStyle(0.55), sOpacity: P.dark ? 0.6 : 0.62, seg: TRACE_SEG }, fg: fg,
         curve: { curves: CURVES, bend: NS.BEND, gap: NS.LAYER_GAP, liftMax: NS.LIFT_MAX },
         rim: ptMat.uniforms.uRim.value, fog: [FOG.value.x, FOG.value.y, FOG.value.z],
@@ -1919,6 +2265,9 @@
   }).then(function (r) {
     prepareGraph(r[0]);
     linkQuestionNodes();
+    rankAreas();
+    renderLegend();
+    paintHeads();
     T.graphMs = Math.round(performance.now() - t0);
     T.webgl = webglOk();
     if (T.webgl) {
