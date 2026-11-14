@@ -16,8 +16,9 @@ Checks (each records pass/fail, details, console errors, page errors, failed and
   about         navigation has the 9 pages (index.html first, traces.html among them) + the Paper link; tool cards link to
                 existing pages; paper card
   traces        traces.html: the whole 3D legal network (network-3d.html's documents and links, layers) with all 540
-                traces and 27 areas in it, everything at the light alpha, while traces are chosen the other traces at
-                the faint alpha (the network stays light); every traced law is its network document; no
+                traces and 27 areas in it, everything at the light alpha (the unchosen traced paths as 1 px threads at
+                0.024, 0.018 on phones), while traces are chosen the other traces at the faint alpha (the network
+                stays light); every traced law is its network document; no
                 area cells; one list of the 540 questions under 27 area headings with a search (VI / EN, diacritic-
                 insensitive; 'n of 540') and arrow keys; three questions chosen: exactly each trace opaque (alphas read
                 from the page), its pixels lit, call-outs clean (a must under the open hop panel is occluded), Fig. 5
@@ -2042,9 +2043,12 @@ JS_LAYERS = """() => { const g = window.VLONTO.traces_graph, A = window.VLApp.tr
     areaCellFields: g.areas.filter(a => 'c' in a || 'r' in a || 'cell' in a).length, cellElements: document.querySelectorAll('[data-cell], .tr-cell, .area-cell').length }; }"""
 # the alphas the page holds for a choice (VLApp.traces.alphaState(): every alpha buffer's values and their counts, the
 # link materials' opacities), two levels: exactly the chosen traces' nodes (graph.js t[].n) and the links among them at
-# 1; with nothing chosen every document, trace node, link and stroke at the light alpha (T.light); while something is
-# chosen every other trace node, trace link and the thin strokes at the faint alpha (T.faint) and the documents at the
-# light one; each network link kind at its network-3d.html opacity times the light alpha, always; the bold paths and
+# 1; with nothing chosen every document and trace node at the light alpha (T.light); while something is chosen every
+# other trace node at the faint alpha (T.faint) and the documents at the light one; v1.4: the traces' context links not
+# between two chosen nodes at 0 (not drawn), the threads (every traced segment once: GL lines, 1 device px) at the page's
+# THREAD_A, 0.024 wide / 0.018 on phones (1 - (1 - a)^n <= 0.5 for the load view's 99th-percentile overlap n = 26 / 35,
+# tools_lang3d/overlap14.py), times faint / light while something is chosen; each network link kind at its
+# network-3d.html opacity times the light alpha, always; the bold paths and
 # foreground nodes only while something is chosen. The materials (VLApp.traces.materials()): the trace nodes, the
 # traces' and the network's links and the strokes transparent without depth write, the fragment's alpha the per-vertex
 # alpha (strokes: their uniform opacity); the point size attributes the same as at the page's first call
@@ -2066,18 +2070,90 @@ JS_ALPHA = """(keys) => { const A = window.VLApp.traces, st = A.alphaState(), g 
   mats.list.forEach(m => { M[m.name] = m; });
   const see = n => !!M[n] && M[n].transparent && !M[n].depthWrite, netMats = Object.keys(M).filter(n => n.indexOf('networkLinks.') === 0);
   const matOk = see('traceNodes') && M.traceNodes.alpha === 'vAlpha' && see('contextLinks') && /vAlpha/.test(M.contextLinks.alpha) &&
-    ['halo2', 'halo', 'core'].every(k => see('strokes.' + k) && /uOpacity/.test(M['strokes.' + k].alpha)) &&
+    see('strokes') && M.strokes.depthTest && /uOpacity/.test(M.strokes.alpha) &&
     netMats.length > 0 && netMats.every(n => see(n) && /vAlpha/.test(M[n].alpha));
   if (!window.__vlTraceSizes) window.__vlTraceSizes = JSON.stringify(mats.sizes);
   const sizeOk = JSON.stringify(mats.sizes) === window.__vlTraceSizes;
+  const fgM = M.foreground, below = mats.list.filter(m => m.name !== 'foreground' && m.renderOrder != null);
+  const fgOk = any ? !!fgM && fgM.count === want.size && st.fg === want.size && fgM.transparent && !fgM.depthWrite && !fgM.depthTest &&
+    fgM.alphas.length > 0 && fgM.alphas.every(a => a === '1.0') && fgM.renderOrder === 20 && below.every(m => m.renderOrder < 20) && !fgM.uniforms.fog : !fgM && st.fg === 0;
+  const ro = n => (M[n] ? M[n].renderOrder : null), net1 = netMats.filter(n => /\\.(basis|citation)$/.test(n)), net2 = netMats.filter(n => !/\\.(basis|citation)$/.test(n));
+  const orderOk = (!M.planes || M.planes.renderOrder <= 0) && net1.every(n => ro(n) === 1) && net2.every(n => ro(n) === 2) && ro('contextLinks') === 3 && ro('traceNodes') === 4 &&
+    ro('strokes') === 5 && ['halo2', 'halo', 'core'].every((k, i) => ro('bold.structural.' + k) === 8 + i && ro('bold.verified.' + k) === 11 + i);
+  const TA = st.strokes.base, p99 = ({ '0.024': 26, '0.018': 35 })[String(TA)], wantS = Math.round(TA * (any ? F / L : 1) * 1e4) / 1e4;
+  const threadOk = st.strokes.kind === 'lines' && st.strokes.width === 1 && p99 != null && 1 - Math.pow(1 - TA, p99) <= 0.5 &&
+    st.strokes.opacity === wantS && st.contextRest === 0;
   const pass = st.chosenNodes === want.size && st.solidNodes === want.size && st.mismatched === 0 && st.untracedDocsNotLight === 0 &&
-    only(st.docs, ['1', lk]) && only(st.traceNodes, ['1', rk]) && only(st.traceLinks, ['1', rk]) && (st.traceNodes[rk] || 0) > 0 &&
+    only(st.docs, ['1', lk]) && only(st.traceNodes, ['1', rk]) && only(st.traceLinks, ['1', '0']) && (st.traceNodes[rk] || 0) > 0 &&
     n1(st.docs) === works && n1(st.traceNodes) === want.size - works && n1(st.traceLinks) === ctxSolid && netOk &&
-    st.rest === r3(R) && st.strokes.opacity === r3(R) && st.strokes.traced === C.traced && matOk && sizeOk &&
+    st.rest === r3(R) && threadOk && st.strokes.traced === C.traced && matOk && sizeOk && fgOk && orderOk &&
     (keys.length ? st.bold.verified + st.bold.structural > 0 && st.fg > 0 : st.bold.verified + st.bold.structural === 0 && st.fg === 0);
   return { pass, light: L, faint: F, rest: st.rest, want: want.size, works, ctxSolid, docs: st.docs, traceNodes: st.traceNodes, traceLinks: st.traceLinks,
     mismatched: st.mismatched, untracedDocsNotLight: st.untracedDocsNotLight, netLinks: net, strokes: st.strokes, bold: st.bold, fg: st.fg, writes: st.writes,
-    matOk, sizeOk, sizes: mats.sizes, materials: mats.list.map(m => [m.name, m.transparent, m.depthWrite, m.alpha]) }; }"""
+    matOk, sizeOk, fgOk, orderOk, threadOk, threadWant: wantS, foreground: fgM || null, sizes: mats.sizes,
+    materials: mats.list.map(m => [m.name, m.renderOrder, m.transparent, m.depthWrite, m.depthTest, (m.alphas || [m.alpha]).join('|')]) }; }"""
+# v1.4 colours (js/traces3d.js), computed here from the data and the CSS tokens and compared with the colour buffers the
+# shaders get (VLApp.traces.snapshot(): the trace nodes, the documents, the chosen points), the legend and the side list's
+# heading swatches. By area the 27 areas ranked by their documents in the whole network (graph.js areas[].docs, ties in list
+# order) take --area-0..26; a document its own area's (the network file's 'area'; a traced law the lite network lacks:
+# graph.js wa), a law its document's (wa), a provision its law's (up the 'contains' links), any other trace node the area of
+# the first trace in list order holding it; by kind the class tokens (--cls-*: other answers as questions, documents as
+# laws). The threads (v1.4, every traced segment once): by area the area of the first trace in list order holding the
+# segment, by kind the links' grey (--tr-link), either mixed halfway to the theme's ink (--paper-ink) in sRGB. The legend by area: the switch (Area pressed), the 27 areas in the side list's order with their colours and 5 more
+# rows; by kind the 11 rows of v1.3 and the switch (Kind pressed); the heading swatches hidden by kind
+JS_COLOURS = """(mode) => { const A = window.VLApp.traces, s = A.snapshot(), g = window.VLONTO.traces_graph, ids = A.areas(), NG = g.i.length;
+  if (!s) return null;
+  const cs = getComputedStyle(document.documentElement), tok = n => cs.getPropertyValue(n).trim().toLowerCase();
+  const rgb = h => { const m = /rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)/.exec(h || ''); if (m) return [+m[1], +m[2], +m[3]]; const n = parseInt(String(h).slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
+  const near = (a, b) => a.every((v, k) => Math.abs(v - b[k]) <= 1), aix = {};
+  ids.forEach((id, k) => { aix[id] = k; });
+  const order = g.areas.map((a, k) => ({ a: aix[a.id], docs: a.docs || 0, k })).filter(o => o.a != null).sort((x, y) => y.docs - x.docs || x.k - y.k);
+  const rank = new Array(ids.length).fill(-1); order.forEach((o, r) => { rank[o.a] = r; });
+  const work = g.classes.indexOf('work'), parent = new Int32Array(NG).fill(-1), cont = g.e.contains || [];
+  for (let j = 0; j < cont.length; j += 2) parent[cont[j + 1]] = cont[j];
+  const first = new Int16Array(NG).fill(-1), held = new Array(NG);
+  g.t.forEach(t => t.n.forEach(i => { if (first[i] < 0) first[i] = t.a; (held[i] = held[i] || new Set()).add(t.a); }));
+  const STR = new Set(['chapter', 'section', 'article', 'clause', 'point']), lawArea = i => (g.wa && g.wa[i] != null ? g.wa[i] : first[i]);
+  const area = new Int16Array(NG).fill(-1); let shared = 0;
+  for (let i = 0; i < NG; i++) { const c = g.classes[g.c[i]];
+    if (g.c[i] === work) { area[i] = lawArea(i); continue; }
+    if (STR.has(c)) { let x = i, h = 0; while (x >= 0 && g.c[x] !== work && h++ < 64) x = parent[x]; area[i] = x >= 0 && g.c[x] === work ? lawArea(x) : first[i]; continue; }
+    area[i] = first[i]; if (held[i] && held[i].size > 1) shared++; }
+  const tokens = []; for (let r = 0; r < 27; r++) tokens.push(tok('--area-' + r));
+  const aHex = a => (a >= 0 && rank[a] >= 0 ? tokens[rank[a]] : tok('--area-none'));
+  const kHex = i => { const c = g.classes[g.c[i]]; return tok('--cls-' + (c === 'other_question' ? 'question' : c)); };
+  let tBad = 0, dBad = 0, fBad = 0; const ex = [];
+  const tn = s.traceNodes.nodes, tc = s.traceNodes.color;
+  for (let k = 0; k < tn.length; k++) { const i = tn[k], w = rgb(mode === 'area' ? aHex(area[i]) : kHex(i));
+    if (!near(w, [tc[3 * k], tc[3 * k + 1], tc[3 * k + 2]])) { tBad++; if (ex.length < 4) ex.push(['node', g.i[i]]); } }
+  const net = window.VLONTO[s.dataset === 'full' ? 'legal_network' : 'legal_network_lite'], F = {};
+  net.fields.forEach((f, k) => { F[f] = k; });
+  const netA = net.areas.map(a => { const id = Array.isArray(a) ? a[0] : a.id; return aix[id] != null ? aix[id] : -1; });
+  const dc = s.docColors, docHex = tok('--cls-work');
+  for (let j = 0; j < dc.idx.length; j++) { let w;
+    if (mode !== 'area') w = docHex; else if (j < s.docs) { const a = net.nodes[j][F.area]; w = aHex(a == null || a < 0 ? -1 : netA[a]); } else w = aHex(area[s.extra[j - s.docs]]);
+    if (!near(rgb(dc.palette[dc.idx[j]]), rgb(w))) { dBad++; if (ex.length < 8) ex.push(['doc', j]); } }
+  if (s.fg) for (let k = 0; k < s.fg.nodes.length; k++) { const i = s.fg.nodes[k], w = rgb(mode === 'area' ? aHex(area[i]) : g.c[i] === work ? docHex : kHex(i));
+    if (!near(w, [s.fg.color[3 * k], s.fg.color[3 * k + 1], s.fg.color[3 * k + 2]])) { fBad++; if (ex.length < 12) ex.push(['fg', g.i[i]]); } }
+  const ink = rgb(tok('--paper-ink')), lkHex = tok('--tr-link'), S = s.strokes, seen = new Set(), sArea = [];
+  g.t.forEach(t => { for (let j = 0; j < t.e.length; j += 3) { const a = t.e[j], b = t.e[j + 1], q = a < b ? a * NG + b : b * NG + a; if (!seen.has(q)) { seen.add(q); sArea.push(t.a); } } });
+  let sBad = S && S.kind === 'lines' && S.colorIdx.length === sArea.length ? 0 : -1;
+  if (sBad === 0) for (let i = 0; i < sArea.length; i++) { const w = rgb(mode === 'area' ? aHex(sArea[i]) : lkHex).map((v, k) => Math.round(v * (1 - S.mix) + ink[k] * S.mix));
+    if (!near(w, rgb(S.palette[S.colorIdx[i]]))) { sBad++; if (ex.length < 14) ex.push(['thread', i]); } }
+  const lg = document.getElementById('legend'), btns = Array.from(lg.querySelectorAll('.tr-colorby button'));
+  const pressed = btns.filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.getAttribute('data-color')).join();
+  const lis = Array.from(lg.querySelectorAll('.tr-areas li')), rest = Array.from(lg.querySelectorAll('li')).filter(li => !li.closest('.tr-areas'));
+  const lgOk = btns.length === 2 && pressed === mode && lg.classList.contains('lg-area') === (mode === 'area') && (mode === 'area'
+    ? lis.length === 27 && lis.map(li => li.getAttribute('data-area')).join() === ids.join() && lis.every(li => near(rgb(getComputedStyle(li.querySelector('.swatch')).backgroundColor), rgb(aHex(aix[li.getAttribute('data-area')])))) && rest.length === 5
+    : lis.length === 0 && rest.length === 11);
+  const heads = Array.from(document.querySelectorAll('#tr-list .tr-head .tr-head-sw')), hidden = document.getElementById('app').classList.contains('tr-color-kind');
+  const headOk = heads.length === 27 && hidden === (mode === 'kind') && heads.every(e => near(rgb(getComputedStyle(e).backgroundColor), rgb(aHex(+e.getAttribute('data-a'))))) &&
+    heads.every(e => (getComputedStyle(e).display === 'none') === hidden);
+  const st = A.colorState();
+  const pass = s.colorBy === mode && A.colorBy() === mode && tBad + dBad + fBad === 0 && sBad === 0 && tokens.every(t => /^#[0-9a-f]{6}$/.test(t)) && lgOk && headOk &&
+    st.ranked.join() === order.map(o => ids[o.a]).join() && st.rule.shared === shared && st.rule.unassigned === 0 && st.rule.docsWithoutArea === 0;
+  return { pass, mode: s.colorBy, traceNodes: tn.length, tBad, docs: dc.idx.length, dBad, docColours: dc.palette.length, fg: s.fg ? s.fg.nodes.length : 0, fBad,
+    threads: sArea.length, sBad, threadColours: S ? S.palette.length : 0, shared, sharedBy: st.rule.sharedByClass, legend: { pressed, areas: lis.length, rest: rest.length, ok: lgOk }, heads: { n: heads.length, hidden, ok: headOk }, ex }; }"""
 TRACE_LIGHT = 0.3       # js/traces3d.js LIGHT: everything with nothing chosen, the network always (the v1.2 report's model renders)
 TRACE_FAINT = 0.12      # js/traces3d.js FAINT: the traces not chosen while some are chosen (the v1.3 report's model renders)
 # the choice is `keys` (any order) with `cur` shown in the hop panel (its area file loaded) and the scene settled
@@ -2202,24 +2278,29 @@ JS_HINT_CLASH = """() => {
 }"""
 # the trace's own pixels (trace_pixels): its navy (light) / off-white (dark) core outside the call-out boxes and the gold
 # band next to that core; after a choice from the list as the difference to the same view with nothing chosen, for a deep
-# link as they are. Lower bounds re-derived for the v1.2 scene (the bold trace over the whole network, its core 4.2 px)
-# from model renders of the CI views (tools_lang3d/px12.py, render12.py): the three picks add 1,380-1,660 core and
-# 2,741-3,597 gold pixels at 1440 x 900 (full network, light) and 1,549-2,073 / 3,893-3,997 on a 390 x 844 phone (lite,
-# 2 device px per CSS px); the deep link counts 1,769-3,953 core and 3,396-7,309 gold pixels (both themes); about a fifth
-# of the smallest, for rendering differences (antialiasing, SwiftShader's line rasteriser, call-outs over the trace)
+# link as they are. v1.4: expected counts from the calibrated model (tools_lang3d/render14.py, three.js's draw order: the
+# opaque documents, then the transparent objects by renderOrder, which reproduces the CI screenshots of 98c1d56; px12.py
+# on jsdom snapshots of the CI views). With nothing chosen the threads (1 px lines in the areas' colours) leave no
+# core-coloured pixel outside the call-outs (1440 and 390: 0 core, 0 gold) - in v1.2 the stacked navy strokes did, which
+# made the deltas of 98c1d56 small or negative (+49 / -106) - so each of the three picks adds its whole trace: 1,219-1,608
+# core and 2,233-3,261 gold pixels at 1440 x 900 (full network, light), 931-1,623 / 2,432-3,165 on a 390 x 844 phone (lite,
+# 2 device px per CSS px); the deep link counts 1,477-3,492 core and 3,085-6,156 gold pixels (both themes, 1440 and 390).
+# The minimums stay below a third of the smallest expected count (core 250 of 931, gold 500 of 2,233) for rendering
+# differences (antialiasing, SwiftShader's line rasteriser, call-outs over the trace)
 TRACE_PX_MIN = {"core": 250, "halo": 500}
 
 
 def t_traces(c: Ctx):
     """traces.html (v1.3): the whole 3D legal network of network-3d.html with all 540 traced answers and 27 areas in it,
-    everything at the light alpha with nothing chosen; the chosen traces opaque, the other traces at the faint alpha and
-    the network at the light one while some are chosen (js/traces3d.js; data/traces/graph.js and the
+    everything at the light alpha with nothing chosen (v1.4: the traced paths as 1-device-px threads at 0.024, 0.018 on
+    phones, the traces' context links drawn only between chosen nodes); the chosen traces opaque, the other traces at the
+    faint alpha and the network at the light one while some are chosen (js/traces3d.js; data/traces/graph.js and the
     network's data file: data/legal_network.js on wide screens, data/legal_network_lite.js on phones, as network-3d.html).
     The scene: the network's documents (site_meta's count; on phones the lite file's, plus the traced laws it lacks) and
     links, its six layers and the answers' and questions' planes, no area cells; every traced law is its network document
     at the network's coordinates (all of them, a sample shown). One side list of the 540 questions under 27 area headings
     with a search (VI / EN, diacritic-insensitive; 'n of 540') and arrow keys, a round button per row, the heading's
-    All 20, Clear. Load: nothing chosen, everything at the light alpha; the trace layer's materials see-through (no depth
+    All 20, Clear. Load: nothing chosen, everything at the light alpha (the threads at theirs); the trace layer's materials see-through (no depth
     write, the per-vertex alpha). Three questions chosen from the list: exactly each one's trace opaque, the other traces
     faint, the point sizes as at load, its pixels lit, call-outs clean (the must-show ones on the free canvas; under the open hop
     panel occluded), the hop panel's five boxes. Several: the round button, Space and Ctrl/Cmd-click add and remove, the
@@ -2280,7 +2361,13 @@ def t_traces(c: Ctx):
         if not a or not a["pass"] or abs(a["light"] - TRACE_LIGHT) > 1e-9 or abs(a["faint"] - TRACE_FAINT) > 1e-9:
             raise RuntimeError(f"{where}: alphas {json.dumps(a)[:1200]}")
         return {k: a[k] for k in ("light", "faint", "rest", "want", "works", "ctxSolid", "docs", "traceNodes", "traceLinks", "netLinks", "bold", "fg",
-                                  "sizes", "materials")}
+                                  "fgOk", "orderOk", "foreground", "sizes", "materials")}
+
+    def colours(pg, mode, where):
+        k = pg.evaluate(JS_COLOURS, mode)
+        if not k or not k["pass"]:
+            raise RuntimeError(f"{where}: colours {json.dumps(k)[:1500]}")
+        return {x: k[x] for x in ("mode", "traceNodes", "docs", "docColours", "fg", "shared", "sharedBy", "legend", "heads")}
 
     def judge(s, co, where, pg):
         """the shown trace: drawn, five hops, list entry marked, call-outs clean (the question's never forced on desktop).
@@ -2383,7 +2470,8 @@ def t_traces(c: Ctx):
             return {"list": s["listItems"], "groups": s["groups"], "count": s["count"], "graph": s["graph"], "fps": s["fps"],
                     "edge_cost": s["edgeCost"], "callouts": s["labels"], "alpha": a0, "camera": cam}
         check("load: one list of the 540 questions under 27 area headings (a round button per row, All 20 per heading, no tabs, "
-              "'540 of 540'); nothing chosen; every document, trace node, link and stroke at the light alpha (the trace layer "
+              "'540 of 540'); nothing chosen; every document and trace node at the light alpha, the threads at 0.024 (phones "
+              "0.018), the context links not drawn (the trace layer "
               "drawn see-through: transparent, no depth write, the per-vertex alpha); the 27 areas, "
               "six layers and two planes named; the camera at the home view", one_place, pg)
 
@@ -2441,16 +2529,33 @@ def t_traces(c: Ctx):
             if c.mobile:
                 pg.locator("#btn-legend").click()
             L = pg.evaluate("""() => { const l = document.querySelector('[data-legend]'); if (!l) return null; const r = l.getBoundingClientRect();
-                return { entries: l.querySelectorAll('li').length, text: l.textContent.replace(/\\s+/g, ' '), visible: r.width > 0 && r.height > 0,
-                  flat: Array.from(l.querySelectorAll('.swatch:not(.trace)')).every(s => getComputedStyle(s).backgroundImage === 'none') }; }""")
+                const t = document.querySelector('.stage-tools').getBoundingClientRect(), h = document.getElementById('hint'), hr = h && !h.classList.contains('hidden') ? h.getBoundingClientRect() : null;
+                const clear = o => !o || o.width < 1 || o.right <= r.left || o.left >= r.right || o.bottom <= r.top || o.top >= r.bottom;
+                return { entries: l.querySelectorAll('li').length, areas: l.querySelectorAll('.tr-areas li').length, text: l.textContent.replace(/\\s+/g, ' '), visible: r.width > 0 && r.height > 0,
+                  flat: Array.from(l.querySelectorAll('.swatch:not(.trace)')).every(s => getComputedStyle(s).backgroundImage === 'none'),
+                  inside: r.top >= 0 && r.bottom <= innerHeight + 1, clearOfTools: clear(t), clearOfHint: clear(hr), scrolls: l.scrollHeight > l.clientHeight + 1,
+                  box: [r.left, r.top, r.right, r.bottom].map(Math.round), maxH: window.__VLONTO_METRICS.traces.legendMaxH }; }""")
+            k = colours(pg, "area", "legend")
             if c.mobile:
                 pg.locator("#btn-legend").click()
-            need = ("Văn bản", "Document", "Liên kết", "Links", "Đường truy vết", "Traced answer", "Structure only", "Not chosen (light)")
-            if not L or not L["visible"] or L["entries"] != 11 or not L["flat"] or any(n not in L["text"] for n in need):
+            need = ("Lĩnh vực", "Area", "Liên kết", "Links", "Đường truy vết", "Traced answer", "Structure only", "Not chosen (light)", "Kinds: by layer and size")
+            if (not L or not L["visible"] or L["areas"] != 27 or L["entries"] != 32 or not L["flat"] or any(n not in L["text"] for n in need)
+                    or not L["clearOfTools"] or not L["clearOfHint"]):
                 raise RuntimeError(f"legend {L}")
-            return {"entries": L["entries"], "flat_swatches": L["flat"]}
-        check("flat bilingual legend: documents, their links, provisions, terms, Q&A, area, other answers, the traced and the "
-              "structural path, the light rest", legend, pg)
+            return {"entries": L["entries"], "areas": L["areas"], "flat_swatches": L["flat"], "box": L["box"], "scrolls": L["scrolls"], "maxH": L["maxH"], "legend": k["legend"]}
+        check("legend, colour by area (the default): the switch (Area | Kind, Area pressed), the 27 areas in the side list's order "
+              "in their colours, the kinds row, the links, the traced and structural path, the light rest, the note; clear of the "
+              "stage tools and the hint", legend, pg)
+
+        def colour_load():
+            k = colours(pg, "area", "load")
+            stored = pg.evaluate("() => window.localStorage.getItem('vlonto.traces3d-color')")
+            if stored is not None:
+                raise RuntimeError(f"the load wrote the colour choice: {stored}")
+            return k
+        check("colour by legal area at load: every trace node and document (the colour buffers) in its area's colour "
+              "(--area-0..26, ranked by documents in the whole network), the side list's 27 heading swatches; the load "
+              "stores nothing", colour_load, pg)
 
         def search():
             side(pg, True)
@@ -2491,9 +2596,45 @@ def t_traces(c: Ctx):
                 out.append(d)
             return {"traces": out, "page_width": no_hscroll(c, pg, "traces with a trace selected")}
         check("three questions from the one list (three areas), one at a time: exactly its trace opaque (its nodes and the links "
-              "among them at 1), the other traces' nodes, links and strokes at the faint alpha, the network's documents and "
+              "among them at 1), the other traces' nodes at the faint alpha and their threads at 0.4 x theirs, the network's documents and "
               "links at the light one (each link kind at its network-3d.html opacity times it), point sizes as at load; its "
               "trace pixels lit; call-outs clean; five hops", three, pg)
+
+        def colour_switch():
+            """the legend's switch (v1.4): by kind, then by area again; only the colours change (wide screens with Labour
+            #3 chosen; phones with nothing chosen: the hop sheet would lie over the legend)"""
+            keys = []
+            if c.mobile:
+                clear(pg)
+                pg.locator("#btn-legend").click()
+            else:
+                area, rank = TRACE_PICKS[0]
+                select(pg, area, rank)
+                keys = [f"{area}:{rank}"]
+            c0, m0 = pg.evaluate(CAM), pg.evaluate(MOVES)
+            sel0 = pg.evaluate("() => JSON.stringify(window.__VLONTO_METRICS.traces.selected)")
+            out = {}
+            for mode in ("kind", "area"):
+                r0 = runs(pg)
+                pg.locator(f'#legend .tr-colorby [data-color="{mode}"]').click()
+                pg.wait_for_function("(a) => window.__VLONTO_METRICS.traces.colorBy === a.m && ((window.__VLONTO_METRICS.callouts || {}).runs || 0) > a.r && "
+                                     "window.VLApp.traces.settle()", arg={"m": mode, "r": r0}, timeout=T_(30000))
+                k = colours(pg, mode, f"colour by {mode}")
+                a = alpha(pg, keys, f"colour by {mode}")
+                st = pg.evaluate("""() => ({ stored: window.localStorage.getItem('vlonto.traces3d-color'), focus: document.activeElement && document.activeElement.getAttribute('data-color'),
+                    sel: JSON.stringify(window.__VLONTO_METRICS.traces.selected), panel: window.__VLONTO_METRICS.traces.panel })""")
+                c1, m1 = pg.evaluate(CAM), pg.evaluate(MOVES)
+                if st["stored"] != mode or st["focus"] != mode or st["sel"] != sel0 or c1 != c0 or m1 != m0:
+                    raise RuntimeError(f"colour by {mode}: {st}, camera kept {c0 == c1}, moves {m0} -> {m1}")
+                out[mode] = {"colours": k, "fg": a["fg"], "fgOk": a["fgOk"], "stored": st["stored"], "panel": st["panel"]}
+            if c.mobile:
+                pg.locator("#btn-legend").click()
+            # leave the choice as `three` left it (its last pick chosen and current): the checks after this one start there
+            select(pg, *TRACE_PICKS[-1])
+            return out
+        check("the legend's switch: colour by kind, then by area again - every point's colour follows (the buffers against the "
+              "tokens), the legend and the heading swatches follow; the choice, its alphas, the panel and the camera stay; the "
+              "choice is stored (VL.store 'traces3d-color'), focus stays on the switch", colour_switch, pg)
 
         def node_click():
             S = pg.evaluate("window.__VLONTO_METRICS.traces.current")
@@ -2791,6 +2932,43 @@ def t_traces(c: Ctx):
                 ctx.close()
         check(f"deep link #area=lao-dong-tien-luong&q=3 (v1) lights exactly the trace ({theme}); the theme switch keeps it and its "
               f"alphas (the other traces faint; the links at the other theme's opacities times the light alpha)", deep)
+
+    # the colour mode at load (v1.4): the stored choice (VL.store 'traces3d-color'), #color= over it; the load never writes
+    # the store; with storage blocked the page loads by area and the switch still works (the lite network, #ds=lite)
+    def colour_store():
+        out = {}
+        for name, page, seed, want in (("stored kind", f"traces.html#{LITE}", "kind", "kind"),
+                                       ("#color=area over a stored kind", f"traces.html#color=area&{LITE}", "kind", "area"),
+                                       ("#color=kind, nothing stored", f"traces.html#color=kind&{LITE}", None, "kind")):
+            init = ("try { window.localStorage.setItem('vlonto.traces3d-color', '" + seed + "'); } catch (e) {}") if seed else None
+            ctx, pg, log = c.open(page, init_script=init, ready_timeout=T_(240000))
+            try:
+                pg.wait_for_function("() => window.__VLONTO_METRICS.traces.sceneReady && window.VLApp.traces.settle()", timeout=T_(120000))
+                k = colours(pg, want, name)
+                stored = pg.evaluate("() => window.localStorage.getItem('vlonto.traces3d-color')")
+                if stored != seed:
+                    raise RuntimeError(f"{name}: the load changed the store to {stored}")
+                out[name] = {"mode": k["mode"], "stored": stored}
+            finally:
+                merge(log)
+                ctx.close()
+        blocked = "Object.defineProperty(window, 'localStorage', { configurable: true, get() { throw new DOMException('blocked', 'SecurityError'); } });"
+        ctx, pg, log = c.open(f"traces.html#{LITE}", init_script=blocked, ready_timeout=T_(240000))
+        try:
+            pg.wait_for_function("() => window.__VLONTO_METRICS.traces.sceneReady && window.VLApp.traces.settle()", timeout=T_(120000))
+            colours(pg, "area", "storage blocked")
+            if c.mobile:
+                pg.locator("#btn-legend").click()
+            pg.locator('#legend .tr-colorby [data-color="kind"]').click()
+            pg.wait_for_function("() => window.__VLONTO_METRICS.traces.colorBy === 'kind' && window.VLApp.traces.settle()", timeout=T_(30000))
+            colours(pg, "kind", "storage blocked, switched")
+            out["storage blocked"] = {"load": "area", "switch": "kind"}
+        finally:
+            merge(log)
+            ctx.close()
+        return out
+    check("the colour mode at load: a stored 'kind' loads by kind, #color=area over it by area, #color=kind by kind; the load "
+          "never writes the store; storage blocked: by area, and the switch works", colour_store)
 
     # the page in EN and in VI (?lang=): one language in the headings, search, count line, Clear, list, hop panel, legend and
     # call-outs; the header switch back to EN–VI renders them as v1 (title over gloss, paired headings and hop headings)

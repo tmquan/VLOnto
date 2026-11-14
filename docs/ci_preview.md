@@ -57,7 +57,9 @@ config nothing is added, so the checks are exactly the node's. Page-specific beh
 `interaction_tests.py`: `traces.html` is in the header navigation, so the about test expects 9 internal navigation links
 (`len(internal) == 9`), and the Traces page has its own test (`traces`: the whole 3D legal network with all traces in
 one WebGL scene, every traced law at its network document, the two alpha levels read from the page (light with nothing
-chosen; while some are chosen the other traces faint, the network light) and the trace layer's see-through materials; one list with search
+chosen; while some are chosen the other traces faint, the network light) and the trace layer's see-through materials; v1.4: the colours by legal area
+(the default) and by kind against the colour buffers, the legend's switch and the stored choice, the traces not chosen as 1-px threads whose
+alpha keeps the densest overlap of the load view near 0.5, and the chosen traces' points opaque on top in an explicit draw order; one list with search
 and keyboard, lazy loading, a question chosen in three areas with its trace pixels, call-outs and hop panel, several at
 once (round button, Space, Ctrl/Cmd-click, an area's All 20, the stepper, Clear), node details, deep links and the theme
 switch), which `check.sh` and `ci_check.sh` run by default; it is also one of the WebGL `SCENES` of the theme, gallery
