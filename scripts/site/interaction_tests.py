@@ -16,7 +16,8 @@ Checks (each records pass/fail, details, console errors, page errors, failed and
   about         navigation has the 9 pages (index.html first, traces.html among them) + the Paper link; tool cards link to
                 existing pages; paper card
   traces        traces.html: the whole 3D legal network (network-3d.html's documents and links, layers) with all 540
-                traces and 27 areas in it, everything at one light alpha; every traced law is its network document; no
+                traces and 27 areas in it, everything at the light alpha, while traces are chosen the other traces at
+                the faint alpha (the network stays light); every traced law is its network document; no
                 area cells; one list of the 540 questions under 27 area headings with a search (VI / EN, diacritic-
                 insensitive; 'n of 540') and arrow keys; three questions chosen: exactly each trace opaque (alphas read
                 from the page), its pixels lit, call-outs clean (a must under the open hop panel is occluded), Fig. 5
@@ -2040,12 +2041,17 @@ JS_LAYERS = """() => { const g = window.VLONTO.traces_graph, A = window.VLApp.tr
     areaClass: g.areas.every(a => g.classes[g.c[a.n]] === 'area'), cellKeys: ['h', 'ext', 'cols', 'cells', 'H'].filter(k => k in g),
     areaCellFields: g.areas.filter(a => 'c' in a || 'r' in a || 'cell' in a).length, cellElements: document.querySelectorAll('[data-cell], .tr-cell, .area-cell').length }; }"""
 # the alphas the page holds for a choice (VLApp.traces.alphaState(): every alpha buffer's values and their counts, the
-# link materials' opacities): exactly the chosen traces' nodes (graph.js t[].n) and the links among them at 1; every
-# other document, trace node, link and stroke at the page's one light alpha (T.light); each network link kind at its
-# network-3d.html opacity times that alpha; the bold paths and foreground nodes only while something is chosen
+# link materials' opacities), two levels: exactly the chosen traces' nodes (graph.js t[].n) and the links among them at
+# 1; with nothing chosen every document, trace node, link and stroke at the light alpha (T.light); while something is
+# chosen every other trace node, trace link and the thin strokes at the faint alpha (T.faint) and the documents at the
+# light one; each network link kind at its network-3d.html opacity times the light alpha, always; the bold paths and
+# foreground nodes only while something is chosen. The materials (VLApp.traces.materials()): the trace nodes, the
+# traces' and the network's links and the strokes transparent without depth write, the fragment's alpha the per-vertex
+# alpha (strokes: their uniform opacity); the point size attributes the same as at the page's first call
 JS_ALPHA = """(keys) => { const A = window.VLApp.traces, st = A.alphaState(), g = window.VLONTO.traces_graph, ids = A.areas();
   if (!st) return null;
-  const L = st.light, lk = String(Math.round(L * 1000) / 1000), want = new Set(), NG = g.i.length;
+  const r3 = x => Math.round(x * 1000) / 1000, L = st.light, F = st.faint, lk = String(r3(L)), fk = String(r3(F)), want = new Set(), NG = g.i.length;
+  const any = keys.length > 0, R = any ? F : L, rk = any ? fk : lk;
   keys.forEach(k => { const [a, r] = k.split(':'); g.t.find(t => ids[t.a] === a && t.r === +r).n.forEach(i => want.add(i)); });
   if (!window.__vlTraceCtx) { const traced = new Set(), key = (a, b) => (a < b ? a * NG + b : b * NG + a), ctx = [];
     g.t.forEach(t => { for (let j = 0; j < t.e.length; j += 3) traced.add(key(t.e[j], t.e[j + 1])); });
@@ -2053,16 +2059,27 @@ JS_ALPHA = """(keys) => { const A = window.VLApp.traces, st = A.alphaState(), g 
     window.__vlTraceCtx = { ctx, traced: traced.size }; }
   const C = window.__vlTraceCtx, works = Array.from(want).filter(i => g.classes[g.c[i]] === 'work').length;
   const ctxSolid = C.ctx.filter(([a, b]) => want.has(a) && want.has(b)).length;
-  const two = h => Object.keys(h).every(k => k === '1' || k === lk), n1 = h => h['1'] || 0;
+  const only = (h, ks) => Object.keys(h).every(k => ks.indexOf(k) >= 0), n1 = h => h['1'] || 0;
   const net = Object.keys(st.netLinks).map(k => [k, st.netLinks[k].opacity, st.netLinks[k].base, Object.keys(st.netLinks[k].alphas).join()]);
-  const netOk = net.every(x => Math.abs(x[1] - Math.round(x[2] * L * 1000) / 1000) < 2e-3 && x[3] === '1');
+  const netOk = net.every(x => Math.abs(x[1] - r3(x[2] * L)) < 2e-3 && x[3] === '1');
+  const mats = A.materials(), M = {};
+  mats.list.forEach(m => { M[m.name] = m; });
+  const see = n => !!M[n] && M[n].transparent && !M[n].depthWrite, netMats = Object.keys(M).filter(n => n.indexOf('networkLinks.') === 0);
+  const matOk = see('traceNodes') && M.traceNodes.alpha === 'vAlpha' && see('contextLinks') && /vAlpha/.test(M.contextLinks.alpha) &&
+    ['halo2', 'halo', 'core'].every(k => see('strokes.' + k) && /uOpacity/.test(M['strokes.' + k].alpha)) &&
+    netMats.length > 0 && netMats.every(n => see(n) && /vAlpha/.test(M[n].alpha));
+  if (!window.__vlTraceSizes) window.__vlTraceSizes = JSON.stringify(mats.sizes);
+  const sizeOk = JSON.stringify(mats.sizes) === window.__vlTraceSizes;
   const pass = st.chosenNodes === want.size && st.solidNodes === want.size && st.mismatched === 0 && st.untracedDocsNotLight === 0 &&
-    two(st.docs) && two(st.traceNodes) && two(st.traceLinks) && n1(st.docs) === works && n1(st.traceNodes) === want.size - works &&
-    n1(st.traceLinks) === ctxSolid && netOk && st.strokes.opacity === L && st.strokes.traced === C.traced &&
+    only(st.docs, ['1', lk]) && only(st.traceNodes, ['1', rk]) && only(st.traceLinks, ['1', rk]) && (st.traceNodes[rk] || 0) > 0 &&
+    n1(st.docs) === works && n1(st.traceNodes) === want.size - works && n1(st.traceLinks) === ctxSolid && netOk &&
+    st.rest === r3(R) && st.strokes.opacity === r3(R) && st.strokes.traced === C.traced && matOk && sizeOk &&
     (keys.length ? st.bold.verified + st.bold.structural > 0 && st.fg > 0 : st.bold.verified + st.bold.structural === 0 && st.fg === 0);
-  return { pass, light: L, want: want.size, works, ctxSolid, docs: st.docs, traceNodes: st.traceNodes, traceLinks: st.traceLinks,
-    mismatched: st.mismatched, untracedDocsNotLight: st.untracedDocsNotLight, netLinks: net, strokes: st.strokes, bold: st.bold, fg: st.fg, writes: st.writes }; }"""
-TRACE_LIGHT = 0.3       # js/traces3d.js LIGHT: the one alpha of everything not chosen (the v1.2 report's model renders)
+  return { pass, light: L, faint: F, rest: st.rest, want: want.size, works, ctxSolid, docs: st.docs, traceNodes: st.traceNodes, traceLinks: st.traceLinks,
+    mismatched: st.mismatched, untracedDocsNotLight: st.untracedDocsNotLight, netLinks: net, strokes: st.strokes, bold: st.bold, fg: st.fg, writes: st.writes,
+    matOk, sizeOk, sizes: mats.sizes, materials: mats.list.map(m => [m.name, m.transparent, m.depthWrite, m.alpha]) }; }"""
+TRACE_LIGHT = 0.3       # js/traces3d.js LIGHT: everything with nothing chosen, the network always (the v1.2 report's model renders)
+TRACE_FAINT = 0.12      # js/traces3d.js FAINT: the traces not chosen while some are chosen (the v1.3 report's model renders)
 # the choice is `keys` (any order) with `cur` shown in the hop panel (its area file loaded) and the scene settled
 JS_CHOICE = """(a) => { const T = window.__VLONTO_METRICS.traces, s = T.selected || [], c = T.current;
   return s.length === a.keys.length && a.keys.every(k => s.indexOf(k) >= 0) && (!a.cur || (!!c && c.key === a.cur && T.panel === a.cur)) &&
@@ -2194,15 +2211,17 @@ TRACE_PX_MIN = {"core": 250, "halo": 500}
 
 
 def t_traces(c: Ctx):
-    """traces.html (v1.2): the whole 3D legal network of network-3d.html with all 540 traced answers and 27 areas in it,
-    everything not chosen at one light alpha, the chosen traces opaque (js/traces3d.js; data/traces/graph.js and the
+    """traces.html (v1.3): the whole 3D legal network of network-3d.html with all 540 traced answers and 27 areas in it,
+    everything at the light alpha with nothing chosen; the chosen traces opaque, the other traces at the faint alpha and
+    the network at the light one while some are chosen (js/traces3d.js; data/traces/graph.js and the
     network's data file: data/legal_network.js on wide screens, data/legal_network_lite.js on phones, as network-3d.html).
     The scene: the network's documents (site_meta's count; on phones the lite file's, plus the traced laws it lacks) and
     links, its six layers and the answers' and questions' planes, no area cells; every traced law is its network document
     at the network's coordinates (all of them, a sample shown). One side list of the 540 questions under 27 area headings
     with a search (VI / EN, diacritic-insensitive; 'n of 540') and arrow keys, a round button per row, the heading's
-    All 20, Clear. Load: nothing chosen, everything at the one light alpha. Three questions chosen from the list: exactly
-    each one's trace opaque, its pixels lit, call-outs clean (the must-show ones on the free canvas; under the open hop
+    All 20, Clear. Load: nothing chosen, everything at the light alpha; the trace layer's materials see-through (no depth
+    write, the per-vertex alpha). Three questions chosen from the list: exactly each one's trace opaque, the other traces
+    faint, the point sizes as at load, its pixels lit, call-outs clean (the must-show ones on the free canvas; under the open hop
     panel occluded), the hop panel's five boxes. Several: the round button, Space and Ctrl/Cmd-click add and remove, the
     heading's All 20 chooses exactly its 20, the stepper walks them ('3 of 20') without writing the alphas again; Zoom to
     selection frames every chosen trace, Reset view returns home and keeps the choice; Clear. A click on a question node
@@ -2258,9 +2277,10 @@ def t_traces(c: Ctx):
 
     def alpha(pg, keys, where):
         a = pg.evaluate(JS_ALPHA, list(keys))
-        if not a or not a["pass"] or abs(a["light"] - TRACE_LIGHT) > 1e-9:
-            raise RuntimeError(f"{where}: alphas {json.dumps(a)[:900]}")
-        return {k: a[k] for k in ("light", "want", "works", "ctxSolid", "docs", "traceNodes", "traceLinks", "netLinks", "bold", "fg")}
+        if not a or not a["pass"] or abs(a["light"] - TRACE_LIGHT) > 1e-9 or abs(a["faint"] - TRACE_FAINT) > 1e-9:
+            raise RuntimeError(f"{where}: alphas {json.dumps(a)[:1200]}")
+        return {k: a[k] for k in ("light", "faint", "rest", "want", "works", "ctxSolid", "docs", "traceNodes", "traceLinks", "netLinks", "bold", "fg",
+                                  "sizes", "materials")}
 
     def judge(s, co, where, pg):
         """the shown trace: drawn, five hops, list entry marked, call-outs clean (the question's never forced on desktop).
@@ -2363,7 +2383,8 @@ def t_traces(c: Ctx):
             return {"list": s["listItems"], "groups": s["groups"], "count": s["count"], "graph": s["graph"], "fps": s["fps"],
                     "edge_cost": s["edgeCost"], "callouts": s["labels"], "alpha": a0, "camera": cam}
         check("load: one list of the 540 questions under 27 area headings (a round button per row, All 20 per heading, no tabs, "
-              "'540 of 540'); nothing chosen; every document, trace node, link and stroke at the one light alpha; the 27 areas, "
+              "'540 of 540'); nothing chosen; every document, trace node, link and stroke at the light alpha (the trace layer "
+              "drawn see-through: transparent, no depth write, the per-vertex alpha); the 27 areas, "
               "six layers and two planes named; the camera at the home view", one_place, pg)
 
         def side_scroll():
@@ -2470,8 +2491,9 @@ def t_traces(c: Ctx):
                 out.append(d)
             return {"traces": out, "page_width": no_hscroll(c, pg, "traces with a trace selected")}
         check("three questions from the one list (three areas), one at a time: exactly its trace opaque (its nodes and the links "
-              "among them at 1), everything else at the one light alpha (each network link kind at its network-3d.html opacity "
-              "times that alpha); its trace pixels lit; call-outs clean; five hops", three, pg)
+              "among them at 1), the other traces' nodes, links and strokes at the faint alpha, the network's documents and "
+              "links at the light one (each link kind at its network-3d.html opacity times it), point sizes as at load; its "
+              "trace pixels lit; call-outs clean; five hops", three, pg)
 
         def node_click():
             S = pg.evaluate("window.__VLONTO_METRICS.traces.current")
@@ -2646,7 +2668,7 @@ def t_traces(c: Ctx):
                     or len(s2["selected"]) != 20 or s2["writes"] != w0):
                 raise RuntimeError(f"stepper: {s3['step']} (hash {s3['hash']}), back {s2['step']}; chosen {len(s2['selected'])}; alpha writes {w0} -> {s2['writes']}")
             return {"alpha": a, "first": d1["callouts"], "third": {"placed": d3["placed"], "occluded": d3["occluded_by_panel"]}, "writes": w0, "shot": shot}
-        check("an area heading's All 20 chooses exactly its 20 traces (all opaque, the rest light; heading pressed, #area=<id>&all=1, "
+        check("an area heading's All 20 chooses exactly its 20 traces (all opaque, the other traces faint, the network light; heading pressed, #area=<id>&all=1, "
               "'1 of 20'); the stepper shows #3 ('3 of 20', its must-show call-outs) and back, without writing the alphas again", area_all, pg)
 
         def static_map():
@@ -2768,7 +2790,7 @@ def t_traces(c: Ctx):
                 merge(log)
                 ctx.close()
         check(f"deep link #area=lao-dong-tien-luong&q=3 (v1) lights exactly the trace ({theme}); the theme switch keeps it and its "
-              f"alphas (the links at the other theme's opacities times the light alpha)", deep)
+              f"alphas (the other traces faint; the links at the other theme's opacities times the light alpha)", deep)
 
     # the page in EN and in VI (?lang=): one language in the headings, search, count line, Clear, list, hop panel, legend and
     # call-outs; the header switch back to EN–VI renders them as v1 (title over gloss, paired headings and hop headings)

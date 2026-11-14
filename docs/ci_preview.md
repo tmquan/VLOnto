@@ -56,7 +56,8 @@ the contrast check run through `scripts/site/ci_pages.py`, which appends the con
 config nothing is added, so the checks are exactly the node's. Page-specific behaviour still lives in
 `interaction_tests.py`: `traces.html` is in the header navigation, so the about test expects 9 internal navigation links
 (`len(internal) == 9`), and the Traces page has its own test (`traces`: the whole 3D legal network with all traces in
-one WebGL scene, every traced law at its network document, the one light alpha read from the page; one list with search
+one WebGL scene, every traced law at its network document, the two alpha levels read from the page (light with nothing
+chosen; while some are chosen the other traces faint, the network light) and the trace layer's see-through materials; one list with search
 and keyboard, lazy loading, a question chosen in three areas with its trace pixels, call-outs and hop panel, several at
 once (round button, Space, Ctrl/Cmd-click, an area's All 20, the stepper, Clear), node details, deep links and the theme
 switch), which `check.sh` and `ci_check.sh` run by default; it is also one of the WebGL `SCENES` of the theme, gallery
