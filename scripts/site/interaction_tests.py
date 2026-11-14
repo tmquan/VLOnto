@@ -2889,7 +2889,7 @@ def t_gallery(c: Ctx):
     return [{"test": "gallery", "checks": [{"name": "review screenshots of every page", "pass": not bad, "details": shots}], "log": {}}]
 
 
-LANG_NAV = {"en": "Traces", "vi": "Truy v\u1ebft", "envi": "Traces"}      # the traces link in each mode
+LANG_NAV = {"en": "3D Traces", "vi": "Truy v\u1ebft 3D", "envi": "3D Traces"}      # the traces link in each mode
 LANG_HTML = {"en": "en", "vi": "vi", "envi": "en"}                          # html[lang]: English carries the envi page
 JS_LANG = r"""() => {
   const M = window.__VLONTO_METRICS || {}, de = document.documentElement, se = document.scrollingElement || de;
@@ -2942,7 +2942,7 @@ def wait_labels(pg, want):
 def t_lang(c: Ctx):
     """Language switch (EN, VI, EN-VI): the default is EN-VI; the header switch (menu sheet on phones) changes the
     whole page without a reload, navigation and buttons stay single-language in every mode (the traces link reads
-    'Traces' in EN and EN-VI, with a 'Truy vet' tooltip in EN-VI, and 'Truy vet' in VI; the old mixed label is gone),
+    '3D Traces' in EN and EN-VI, with a 'Truy vet 3D' tooltip in EN-VI, and 'Truy vet 3D' in VI; the old mixed label is gone),
     3D canvas labels are redrawn in the new mode, nothing overflows the viewport or clips in the header, the choice
     persists across pages and reloads (localStorage, or ?lang= carried on internal links when storage is blocked),
     and ?lang= forces a mode."""
@@ -2968,7 +2968,7 @@ def t_lang(c: Ctx):
             p.append(f"{when}: html lang {s['html']!r}, expected {LANG_HTML[want]!r}")
         if not s["nav"] or any(t != LANG_NAV[want] for t in s["nav"]):
             p.append(f"{when}: traces link reads {s['nav']}, expected {LANG_NAV[want]!r}")
-        if want == "envi" and not any("Truy v\u1ebft" in t for t in s["tip"]):
+        if want == "envi" and not any("Truy v\u1ebft 3D" in t for t in s["tip"]):
             p.append(f"{when}: traces link has no Vietnamese tooltip ({s['tip']})")
         if s["mixed"]:
             p.append(f"{when}: the mixed label 'Truy vet - Traces' is still on the page")

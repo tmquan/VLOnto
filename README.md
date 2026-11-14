@@ -3,7 +3,7 @@
 *Ontology và đồ thị tri thức pháp luật Việt Nam*
 
 [3D Ontology Playground](https://tmquan.github.io/VLOnto/) · [3D Legal Network](https://tmquan.github.io/VLOnto/network-3d.html) ·
-[SPARQL Playground](https://tmquan.github.io/VLOnto/sparql.html) · [Question Traces](https://tmquan.github.io/VLOnto/traces.html) · [Dashboard](https://tmquan.github.io/VLOnto/dashboard.html) · [Playbook (PDF)](https://tmquan.github.io/VLOnto/downloads/VLOnto-playbook.pdf)
+[3D Traces](https://tmquan.github.io/VLOnto/traces.html) · [SPARQL Playground](https://tmquan.github.io/VLOnto/sparql.html) · [Dashboard](https://tmquan.github.io/VLOnto/dashboard.html) · [Playbook (PDF)](https://tmquan.github.io/VLOnto/downloads/VLOnto-playbook.pdf)
 
 **Paper:** [Vietnamese Legal Ontology: Every legal answer, traced to the article that grounds it](https://arxiv.org/abs/2611.11426)
 (Khac-Hoai Nam Bui, Quan Tran Minh; arXiv:2611.11426, 2026). The approach is described in the paper; the numbers below

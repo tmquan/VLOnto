@@ -113,13 +113,13 @@
   ];
 
   /* index.html is the 3D ontology playground (the landing page); about.html is the overview; ontology-3d.html redirects;
-     key = the navigation label in js/i18n.js, one language per mode ('Traces' in en and envi, 'Truy vết' in vi; in envi
+     key = the navigation label in js/i18n.js, one language per mode ('3D Traces' in en and envi, 'Truy vết 3D' in vi; in envi
      the Vietnamese is the link's tooltip); label = the English, for scripts and tests */
   VL.PAGES = [
     { href: 'index.html', label: '3D Ontology', key: 'chrome.nav.index' },
     { href: 'network-3d.html', label: '3D Legal Network', key: 'chrome.nav.network' },
+    { href: 'traces.html', label: '3D Traces', key: 'chrome.nav.traces' },
     { href: 'sparql.html', label: 'SPARQL', key: 'chrome.nav.sparql' },
-    { href: 'traces.html', label: 'Traces', key: 'chrome.nav.traces' },
     { href: 'dashboard.html', label: 'Dashboard', key: 'chrome.nav.dashboard' },
     { href: 'ontology.html', label: 'Ontology docs', key: 'chrome.nav.ontology' },
     { href: 'playbook.html', label: 'Playbook', key: 'chrome.nav.playbook' },

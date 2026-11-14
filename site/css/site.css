@@ -636,7 +636,7 @@ kbd { font-size: 12px; border: 1px solid var(--line-2); border-bottom-width: 2px
    1,316 px without; VI (longer page names) 1,511 / 1,401 px. Below the first width the tag line goes, below the second
    the pages move into the menu (at least 24 px to spare; 1440 px keeps 36 px in EN / EN–VI and 39 px in VI). */
 @media (max-width: 1429px) { .vl-brand .tag { display: none; } }
-@media (max-width: 1539px) { :root[data-lang="vi"] .vl-brand .tag { display: none; } }
+@media (max-width: 1563px) { :root[data-lang="vi"] .vl-brand .tag { display: none; } }   /* 1539 + the width of " 3D" in the 3D Traces label */
 @media (max-width: 1339px) {
   .vl-menu-btn { display: inline-flex; }
   .vl-tools { margin-left: auto; }
