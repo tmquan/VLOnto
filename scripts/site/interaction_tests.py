@@ -2156,8 +2156,20 @@ def t_traces(c: Ctx):
                 "verified_segments": s["verified"], "structural_segments": s["structural"], "callouts": callout_summary(co),
                 "placed": [p["id"] for p in co["placed"]], "occluded_by_panel": occluded, "panel": geo["panel"]}
 
+    # the first-visit hint and the stage tools (top right) never overlap: null = hint not shown (nothing to check)
+    JS_HINT_CLASH = """() => {
+      const h = document.getElementById('hint'), t = document.querySelector('.stage-tools');
+      if (!h || !t || h.classList.contains('hidden') || getComputedStyle(h).display === 'none') return null;
+      const a = h.getBoundingClientRect(), b = t.getBoundingClientRect();
+      const w = Math.min(a.right, b.right) - Math.max(a.left, b.left), v = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+      return (w > 0 && v > 0) ? {hint: [a.left, a.top, a.right, a.bottom].map(Math.round), tools: [b.left, b.top, b.right, b.bottom].map(Math.round)} : false;
+    }"""
+
     ctx, pg, log = c.open("traces.html", ready_timeout=T_(240000))
     try:
+        clash0 = pg.evaluate(JS_HINT_CLASH)
+        if clash0:
+            raise RuntimeError(f"on load the first-visit hint overlaps the stage tools: {clash0}")
         if pg.evaluate("() => { const h = document.getElementById('hint'); return !!h && !h.classList.contains('hidden'); }"):
             pg.locator("#hint-close").click()             # the first-visit hint: dismissed like a visitor would
 
@@ -2451,6 +2463,9 @@ def t_traces(c: Ctx):
                 applied = pg.evaluate("document.documentElement.getAttribute('data-theme')")
                 if applied != theme:
                     raise RuntimeError(f"theme {applied}, expected {theme}")
+                clash = pg.evaluate(JS_HINT_CLASH)
+                if clash:
+                    raise RuntimeError(f"deep link ({theme}): the first-visit hint overlaps the stage tools while the panel is open: {clash}")
                 d1 = judge(pg.evaluate(JS_TRACES), pg.evaluate(JS_CALLOUTS), f"deep link ({theme})", pg)
                 px1 = trace_pixels(pg, "#canvas-host", theme)
                 if px1["core"] < 30 or px1["halo"] < 60:
@@ -2467,7 +2482,7 @@ def t_traces(c: Ctx):
                 if px2["core"] < 30 or px2["halo"] < 60:
                     raise RuntimeError(f"after switching to {other}: trace pixels {px2}")
                 shot2 = c.shot(pg, f"traces_deep__{theme}_to_{other}")
-                return {"theme": [d1["callouts"], px1, shot1], "switched": [d2["callouts"], px2, shot2], "page_width": no_hscroll(c, pg, "traces deep link")}
+                return {"theme": [d1["callouts"], px1, shot1], "switched": [d2["callouts"], px2, shot2], "hint_checked": clash is not None, "page_width": no_hscroll(c, pg, "traces deep link")}
             finally:
                 merge(log)
                 ctx.close()

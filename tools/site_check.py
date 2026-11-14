@@ -760,7 +760,9 @@ def run_one(browser, root: Path, page: str, mode: str, vp, base_http: str, cfg: 
             canv.append({**c, "checked": False})
             continue
         try:
-            png = loc.nth(c["index"]).screenshot(timeout=T_(15000))
+            # 30 s x VLONTO_TIMEOUT_SCALE: the 3D legal network draws at about 1 fps in SwiftShader on CI runners, and a slow
+            # runner (run 43473053998: pages 1.3-1.6x slower) took over 60 s for one frame
+            png = loc.nth(c["index"]).screenshot(timeout=T_(30000))
             st = canvas_stats(png)
             cpath = outdir / "canvas" / f"{slug(page)}__{mode}__{w}x{h}__canvas{c['index']}.png"
             cpath.parent.mkdir(parents=True, exist_ok=True)
