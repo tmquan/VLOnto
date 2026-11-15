@@ -2792,6 +2792,13 @@ def t_traces(c: Ctx):
                 before = trace_pixels(pg, "#canvas-host", "light")
                 s, co = select(pg, area, rank)
                 d = judge(s, co, f"{area} #{rank}", pg)
+                if not c.mobile:
+                    # the details panel moves the status line left, under the legend of the 27 areas: the legend sits above it
+                    try:
+                        pg.wait_for_function("(" + JS_OVERLAYS + ")().length === 0", timeout=T_(20000))
+                    except Exception:
+                        raise RuntimeError(f"{area} #{rank}: overlays meet with the panel open: " + "; ".join(pg.evaluate(JS_OVERLAYS)))
+                    d["overlays"] = "apart"
                 d["alpha"] = alpha(pg, [f"{area}:{rank}"], f"{area} #{rank}")
                 after = trace_pixels(pg, "#canvas-host", "light")
                 d["pixels"] = pixels_lit(before, after, f"{area} #{rank}")
