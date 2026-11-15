@@ -261,7 +261,20 @@ def columns_check(pg, cam, select=None, reload_ready=None):
     def near(a, b, tol=1.01):
         return a is not None and b is not None and abs(a - b) <= tol
 
-    cam0 = pg.evaluate(cam)
+    def at_rest():
+        # a flight (a selection, a reset) or the damped spin left by measureFps still moves the camera: read it only at rest,
+        # i.e. no flight flagged and two readings 400 ms apart equal (slow renderers draw about one frame a second)
+        pg.wait_for_function("() => !(window.__VLONTO_METRICS && window.__VLONTO_METRICS.flying)", timeout=T_(60000))
+        last = pg.evaluate(cam)
+        for _ in range(int(T_(30000) / 400)):
+            pg.wait_for_timeout(400)
+            now = pg.evaluate(cam)
+            if now == last:
+                return now
+            last = now
+        raise RuntimeError(f"the camera did not come to rest: {last}")
+
+    cam0 = at_rest()
     s0 = pg.evaluate(JS_COLS)
     a = s0["aria"]["side"]
     if not s0["handles"]["side"] or not a or a[:3] != ["separator", "vertical", "side"] or a[6] != "0" or not a[7] or a[4] != "220":
@@ -303,11 +316,14 @@ def columns_check(pg, cam, select=None, reload_ready=None):
         a = p0["aria"]["panel"]
         if not p0["handles"]["panel"] or not a or a[:3] != ["separator", "vertical", "panel"] or a[4] != "300" or not a[7]:
             faults.append(f"panel handle {p0['handles']['panel']} aria {a}")
-        dpanel, q0, f0, cam2 = p0["widths"]["defaults"]["panel"], W(p0, "panel"), p0["free"], pg.evaluate(cam)
+        cam2 = at_rest()                      # the selection that opened the panel may fly the camera
+        p0 = pg.evaluate(JS_COLS)
+        dpanel, q0, f0 = p0["widths"]["defaults"]["panel"], W(p0, "panel"), p0["free"]
         p1 = drag(".col-handle-panel", -80, settle=True)
         if not near(W(p1, "panel"), q0 + 80) or not near(p1["free"], f0 - 80) or (pr and p1["canvas"] and abs(p1["canvas"][0] - W(p1, "host") * pr) > 2) \
                 or pg.evaluate(cam) != cam2 or p1["scrollW"] > p1["innerW"] or p1["stored"][1] not in (str(int(round(q0 + 80))), "blocked"):
-            faults.append(f"panel +80: panel {W(p1, 'panel')} (from {q0}), stage {p1['free']} (from {f0}), renderer {p1['canvas']}, stored {p1['stored']}")
+            faults.append(f"panel +80: panel {W(p1, 'panel')} (from {q0}), stage {p1['free']} (from {f0}), renderer {p1['canvas']}, "
+                          f"camera kept {pg.evaluate(cam) == cam2}, stored {p1['stored']}")
         p2 = drag(".col-handle-panel", -900, settle=True)
         o2 = pg.evaluate(JS_COLS_OVERLAYS)
         p3 = drag(".col-handle-panel", 900, settle=True)
