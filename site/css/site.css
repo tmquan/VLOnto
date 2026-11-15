@@ -1268,6 +1268,8 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
 .float-tooltip-kap .t-sub, .tooltip3d .t-sub { color: var(--scene-muted); font-size: 11.5px; }
 .scene-stage.panel-open .scene-canvas { right: var(--panel-w); }
 .scene-stage.panel-open .stage-tools, .scene-stage.panel-open .stage-status { right: calc(var(--panel-w) + 14px); }
+/* with a wide details panel the status line shortens (ellipsis) instead of running under the side column */
+.scene-stage.panel-open .stage-status { max-width: calc(100% - var(--panel-w) - 28px); overflow: hidden; text-overflow: ellipsis; }
 .scene-stage.panel-open .hint { right: var(--panel-w); max-width: min(520px, calc(100% - var(--panel-w) - 30px)); }
 /* the first-visit hint never runs under the stage tools (top right). Wide screens: it is centred between insets of
    14 px + the tools' width + 10 px on both sides (2 tools = 78 px; traces: 3 tools = 120 px), which keeps its v1 place
@@ -1618,6 +1620,10 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
 [data-style="paper"] .legend .tr-lg-head h3 { margin: 0; }
 .tr-colorby.seg button { font: 600 11.5px/1.2 var(--vlo-font-sans); padding: 3px 8px; }
 .tr-colorby.seg button .sep { opacity: .75; }
+/* the English half of a pair is muted by default (--pair-en): on a segmented button it takes the button's colour (white
+   on the pressed segment), and in the area legend, which lies over the scene, the stronger text colour */
+.seg button span.en[lang="en"], .seg button span.vi { color: inherit; }
+.page-traces .legend .tr-an span.en[lang="en"] { color: var(--scene-fg-2); }
 [data-style="paper"] .legend ul.tr-areas { display: block; columns: 2; column-gap: 12px; margin: 0 0 6px; }
 [data-style="paper"] .legend ul.tr-areas li { display: flex; align-items: flex-start; gap: 5px; white-space: normal; break-inside: avoid; padding: 0 0 2px;
   font-size: 12px; line-height: 1.2; }
