@@ -261,18 +261,22 @@ def columns_check(pg, cam, select=None, reload_ready=None):
     def near(a, b, tol=1.01):
         return a is not None and b is not None and abs(a - b) <= tol
 
-    def at_rest():
-        # a flight (a selection, a reset) or the damped spin left by measureFps still moves the camera: read it only at rest,
-        # i.e. no flight flagged and two readings 400 ms apart equal (slow renderers draw about one frame a second)
-        pg.wait_for_function("() => !(window.__VLONTO_METRICS && window.__VLONTO_METRICS.flying)", timeout=T_(60000))
-        last = pg.evaluate(cam)
-        for _ in range(int(T_(30000) / 400)):
-            pg.wait_for_timeout(400)
-            now = pg.evaluate(cam)
-            if now == last:
-                return now
-            last = now
-        raise RuntimeError(f"the camera did not come to rest: {last}")
+    def at_rest(need=90):
+        # a flight (a selection, a reset) or the damped spin left by measureFps still moves the camera, and a slow renderer
+        # draws a frame every few seconds (network-3d in SwiftShader: 0.3 fps), so two equal readings a fixed time apart
+        # prove nothing: the camera is at rest when `need` animation frames in a row leave it unchanged with no flight
+        # flagged (the controls update it on every frame; the spin decays by 9% a frame, so nothing is left after 90)
+        js = ("() => new Promise((resolve) => { const read = " + cam + "; let last = read(), same = 0, n = 0; const t0 = performance.now(); "
+              "const step = () => { const now = read(); n++; "
+              "if (now === last && !((window.__VLONTO_METRICS || {}).flying)) same++; else same = 0; last = now; "
+              "if (same >= %d) return resolve({ cam: now, frames: n, ms: Math.round(performance.now() - t0) }); "
+              "if (performance.now() - t0 > %d) return resolve({ cam: null, last: now, frames: n, same: same, ms: Math.round(performance.now() - t0) }); "
+              "requestAnimationFrame(step); }; requestAnimationFrame(step); })" % (need, T_(300000)))
+        r = pg.evaluate(js)
+        if not r or r.get("cam") is None:
+            raise RuntimeError(f"the camera did not come to rest: {json.dumps(r)[:400]}")
+        out.setdefault("rest", []).append({"frames": r["frames"], "ms": r["ms"]})
+        return r["cam"]
 
     cam0 = at_rest()
     s0 = pg.evaluate(JS_COLS)
@@ -287,7 +291,7 @@ def columns_check(pg, cam, select=None, reload_ready=None):
     if not near(W(s1, "side"), w0 + 80) or not near(W(s1, "host"), h0 - 80) or (pr and s1["canvas"] and abs(s1["canvas"][0] - W(s1, "host") * pr) > 2) \
             or cam1 != cam0 or s1["selection"] or s1["scrollW"] > s1["innerW"] or s1["stored"][0] not in (str(int(round(w0 + 80))), "blocked"):
         faults.append(f"side +80: side {W(s1, 'side')} (from {w0}), canvas area {W(s1, 'host')} (from {h0}), renderer {s1['canvas']}, "
-                      f"camera kept {cam1 == cam0}, selection {s1['selection']!r}, page {s1['scrollW']} / {s1['innerW']}, stored {s1['stored']}")
+                      f"camera kept {cam1 == cam0} ({cam0} -> {cam1}), selection {s1['selection']!r}, page {s1['scrollW']} / {s1['innerW']}, stored {s1['stored']}")
     s2 = drag(".col-handle-side", 600)
     s3 = drag(".col-handle-side", -900)
     if not near(W(s2, "side"), s2["limits"]["side"][1]) or s2["limits"]["side"][1] > 560 or s2["free"] < 359.5 or not near(W(s3, "side"), 220):
@@ -320,10 +324,11 @@ def columns_check(pg, cam, select=None, reload_ready=None):
         p0 = pg.evaluate(JS_COLS)
         dpanel, q0, f0 = p0["widths"]["defaults"]["panel"], W(p0, "panel"), p0["free"]
         p1 = drag(".col-handle-panel", -80, settle=True)
+        cam3 = pg.evaluate(cam)
         if not near(W(p1, "panel"), q0 + 80) or not near(p1["free"], f0 - 80) or (pr and p1["canvas"] and abs(p1["canvas"][0] - W(p1, "host") * pr) > 2) \
-                or pg.evaluate(cam) != cam2 or p1["scrollW"] > p1["innerW"] or p1["stored"][1] not in (str(int(round(q0 + 80))), "blocked"):
+                or cam3 != cam2 or p1["scrollW"] > p1["innerW"] or p1["stored"][1] not in (str(int(round(q0 + 80))), "blocked"):
             faults.append(f"panel +80: panel {W(p1, 'panel')} (from {q0}), stage {p1['free']} (from {f0}), renderer {p1['canvas']}, "
-                          f"camera kept {pg.evaluate(cam) == cam2}, stored {p1['stored']}")
+                          f"camera kept {cam3 == cam2} ({cam2} -> {cam3}), stored {p1['stored']}")
         p2 = drag(".col-handle-panel", -900, settle=True)
         o2 = pg.evaluate(JS_COLS_OVERLAYS)
         p3 = drag(".col-handle-panel", 900, settle=True)
