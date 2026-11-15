@@ -1879,9 +1879,9 @@
      max-height and scrolls */
   function fitLegendHeight() {
     if (!legendEl) return;
-    // a resized column (wide screens: .cols-custom, js/common.js VL.columns) can bring the status line under the legend:
-    // the legend then sits above it, as on the other 3D views (js/paper3d.js VL.fitLegend); the default layout is as before
-    if (stage.classList.contains('cols-custom')) VL.fitLegend(stage, legendEl, statusEl); else stage.classList.remove('legend-lift');
+    // the details panel (and a resized column, js/common.js VL.columns) brings the status line under the 400 px legend of
+    // the 27 areas: the legend then sits above it, as on the other 3D views (js/paper3d.js VL.fitLegend)
+    VL.fitLegend(stage, legendEl, statusEl);
     legendEl.style.maxHeight = '';
     T.legendMaxH = null;
     if (legendEl.classList.contains('hidden')) return;
