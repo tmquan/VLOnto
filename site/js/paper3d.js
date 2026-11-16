@@ -13,6 +13,8 @@
                          emphasised in their link-type colours but not traced
    * VL.Callouts()       screen-space placement of the call-outs: text never hides graph ink, call-outs never overlap
    * VL.fitLegend()      moves the legend up above the status line where the two would meet on the stage's bottom edge
+   * figure look (site v1.3, the paper's Figs. 1, 6 and 12): VL.DOC_TYPES, VL.pathColors(), VL.smoothPath(),
+     VL.FigPaths(), VL.FigMarkers(), VL.figText(), VL.figLayout(), VL.figFrame() and the legend's rows (section at the end)
    Classic script (works from file://); load after vendor/three/three.iife.min.js, js/common.js and js/labels3d.js. */
 (function () {
   'use strict';
@@ -32,14 +34,16 @@
       core: t('--paper-trace-core', '#2c3a47'), halo: t('--paper-trace-halo', '#ecc890'), halo2: t('--paper-trace-halo-2', '#f4dcac'),
       selBg: t('--paper-sel-bg', '#fdf6e6'), selLine: t('--paper-sel-line', '#2c3a47'),
       fade: num('--paper-fade', 0.2), linkOpacity: num('--paper-link-opacity', 0.7),
+      paths: VL.pathColors ? VL.pathColors(el) : [], path0: t('--path-0', '#1b1b1b'),
       cls: cls
     };
   };
-  /* call-out options for VL.TextSprite in the paper style (white box, 1 px light-grey border, square-ish corners,
-     Libertinus Sans, thin grey leader line); sel = the selected node's call-out (pale-gold box, border in the core colour) */
+  /* call-out options for VL.TextSprite in the figure look (site v1.3, the paper's Figs. 1, 6 and 12): no box and no
+     border - the text (Libertinus Sans, Vietnamese then English in two greys) with a halo of the ground's colour, so it
+     stays legible over the scene's ink, and a thin grey leader to its node; sel = the selected node's call-out (bold) */
   VL.paperCallout = function (P, sel) {
-    return { font: VL.PAPER_FONT, bg: sel ? P.selBg : P.calloutBg, border: sel ? P.selLine : P.calloutLine, borderPx: sel ? 1.5 : 1,
-      radius: 1.5, leaderColor: P.leader, ink: P.ink, ink2: P.ink2 };
+    return { font: VL.PAPER_FONT, bg: null, border: null, halo: P.bg, haloPx: 2.6, weight: sel ? '700' : '600', padX: 0.25,
+      leaderColor: P.leader, ink: P.ink, ink2: P.ink2 };
   };
   /* ------------------------------------------------------------------ call-out text in the language mode
      (js/i18n.js, docs/i18n.md). EN and VI: one line in that language (the other one where a record has none, e.g. a
@@ -259,12 +263,14 @@
     setStyle({});
     return { object: group, setPaths: setPaths, setStyle: setStyle, count: function () { return R.n; }, dispose: dispose };
   };
-  /* trace style of the theme: navy core (light core on the dark ground) over the two gold tones; w (at most 1) scales the
-     capped widths */
+  /* trace style of the theme in the figure look (site v1.3): one solid line in the first path colour (--path-0: ink on
+     the light ground, near-white on the dark one) over a thin casing of the ground's colour (the 'halo' layer), no gold
+     halo (the 'halo2' layer is not drawn); w (at most 1) scales the width */
   VL.traceStyle = function (P, w) {
     w = Math.max(0.3, Math.min(1, w || 1));
-    return { colors: { core: P.core, halo: P.halo, halo2: P.halo2 },
-      widths: { core: TRACE_W.core * w, halo: TRACE_W.halo * w, halo2: TRACE_W.halo2 * w }, opacity: P.dark ? 0.96 : 1 };
+    var core = VL.FIG_PATH.main * w;
+    return { colors: { core: P.path0 || P.core, halo: P.bg, halo2: P.bg },
+      widths: { core: core, halo: core + 2 * VL.FIG_PATH.casing, halo2: 0 }, opacity: 1 };
   };
   /* thin lines, each in its own colour, at constant pixel width: the links of a selection that are not on the traced
      path, emphasised in their link-type colours (the paper keeps them pastel). opts: depthTest (default true),
@@ -640,12 +646,393 @@
   VL.fitLegend = function (stage, legend, status) {
     if (!stage) return false;
     var was = stage.classList.contains('legend-lift'), lift = false;
-    if (legend && status && !legend.hidden && !legend.classList.contains('hidden') && legend.offsetParent !== null && status.offsetParent !== null) {
+    /* the figure look's legend on a wide stage is a column under the stage tools, above the status line by its height
+       limit (css/site.css .fig-legend): never lifted */
+    var column = legend && legend.classList.contains('fig-legend') && !VL.isMobile();
+    if (!column && legend && status && !legend.hidden && !legend.classList.contains('hidden') && legend.offsetParent !== null && status.offsetParent !== null) {
       var a = legend.getBoundingClientRect(), b = status.getBoundingClientRect();
       lift = a.width > 1 && b.width > 1 && b.left - a.right < (was ? 24 : 8);
     }
     if (lift === was) return false;
     stage.classList.toggle('legend-lift', lift);
     return true;
+  };
+
+  /* ------------------------------------------------------------------ figure look (site v1.3)
+     The look of the paper's 3D figures (Figs. 1, 6 and 12; the paper's code/boxlook.py) on the 3D views:
+     * VL.DOC_TYPES       documents by type in the paper's seven groups (Constitution; Code; Law; Ordinance + Resolution
+                          + Joint resolution; Decree; Decision; Circular + Joint circular), colours from the tokens
+                          --doctype-* (css/site.css), never written in the scripts
+     * VL.pathColors()    the twelve saturated path colours (--path-0 .. --path-11), taken in order by the views' paths
+     * VL.smoothPath()    a C1 curve through a path's nodes (centripetal Catmull-Rom, as boxlook.smooth)
+     * VL.FigPaths()      thick smooth curves, each in its own colour and width, with a thin casing of the ground's colour
+                          (each path's casing drawn just before its own colour, as the paper draws them), no halo, above
+                          the documents and the links
+     * VL.FigMarkers()    a diamond (ground fill, path-coloured stroke) on a path's first node, a filled square on its last
+                          and small ringed beads, drawn last
+     * VL.figText()       the title line (top left) and the monospace line of the layout's parameters (bottom left)
+     * VL.figLayout()     the legend as a column at the right side of the stage, under the stage tools (left of the
+                          details panel when it is open), collapsed behind its button where the stage is too narrow for
+                          the scene and the legend; the parameter line kept left of the status line
+     * VL.figDotRow() ... the legend's rows: dots with counts, hairline link swatches with counts, one row per path */
+  VL.DOC_TYPES = [
+    { key: 'constitution', codes: ['HP'], vi: 'Hiến pháp', en: 'Constitution' },
+    { key: 'code', codes: ['BL'], vi: 'Bộ luật', en: 'Code' },
+    { key: 'law', codes: ['L'], vi: 'Luật', en: 'Law' },
+    { key: 'ordinance', codes: ['PL', 'NQ', 'NQLT'], vi: 'Pháp lệnh, nghị quyết', en: 'Ordinance, resolution' },
+    { key: 'decree', codes: ['NĐ'], vi: 'Nghị định', en: 'Decree' },
+    { key: 'decision', codes: ['QĐ'], vi: 'Quyết định', en: 'Decision' },
+    { key: 'circular', codes: ['TT', 'TTLT'], vi: 'Thông tư', en: 'Circular' }
+  ];
+  var DT_OF = {};
+  VL.DOC_TYPES.forEach(function (t, i) { t.codes.forEach(function (c) { DT_OF[c.normalize('NFC')] = i; }); });
+  /* the group (index into VL.DOC_TYPES) of a type code of the legal network; -1 for none */
+  VL.docTypeIndex = function (code) { var i = code == null ? null : DT_OF[String(code).normalize('NFC')]; return i == null ? -1 : i; };
+  VL.docTypeColors = function (el) { return VL.DOC_TYPES.map(function (t) { return VL.tok('--doctype-' + t.key, el) || '#b9b9b9'; }); };
+  VL.docTypeOther = function (el) { return VL.tok('--doctype-other', el) || '#b9b9b9'; };
+  VL.pathColors = function (el) {
+    var out = [];
+    for (var i = 0; i < 12; i++) out.push(VL.tok('--path-' + i, el) || '#1b1b1b');
+    return out;
+  };
+
+  /* a C1 curve through the points (each {x, y, z}), per segments between two nodes: centripetal Catmull-Rom (no loops
+     or overshoot between unevenly spaced nodes), the first and last points mirrored; two points give a straight line */
+  VL.smoothPath = function (P, per) {
+    per = per || 12;
+    if (!P || P.length < 2) return (P || []).slice();
+    function at(p) { return [p.x, p.y || 0, p.z || 0]; }
+    var A = P.map(at), out = [], n = A.length, i, k;
+    if (n === 2) {
+      for (i = 0; i <= per; i++) { var t = i / per; out.push({ x: A[0][0] + (A[1][0] - A[0][0]) * t, y: A[0][1] + (A[1][1] - A[0][1]) * t, z: A[0][2] + (A[1][2] - A[0][2]) * t }); }
+      return out;
+    }
+    var Q = [A[0].map(function (v, c) { return 2 * v - A[1][c]; })].concat(A, [A[n - 1].map(function (v, c) { return 2 * v - A[n - 2][c]; })]);
+    function dist(a, b) { var dx = a[0] - b[0], dy = a[1] - b[1], dz = a[2] - b[2]; return Math.max(Math.sqrt(dx * dx + dy * dy + dz * dz), 1e-9); }
+    function lerp(a, b, wa, wb) { return [a[0] * wa + b[0] * wb, a[1] * wa + b[1] * wb, a[2] * wa + b[2] * wb]; }
+    for (i = 1; i < Q.length - 2; i++) {
+      var p0 = Q[i - 1], p1 = Q[i], p2 = Q[i + 1], p3 = Q[i + 2];
+      var t0 = 0, t1 = t0 + Math.sqrt(dist(p1, p0)), t2 = t1 + Math.sqrt(dist(p2, p1)), t3 = t2 + Math.sqrt(dist(p3, p2));
+      for (k = 0; k < per; k++) {
+        var tt = t1 + (t2 - t1) * k / per;
+        var a1 = lerp(p0, p1, (t1 - tt) / (t1 - t0), (tt - t0) / (t1 - t0));
+        var a2 = lerp(p1, p2, (t2 - tt) / (t2 - t1), (tt - t1) / (t2 - t1));
+        var a3 = lerp(p2, p3, (t3 - tt) / (t3 - t2), (tt - t2) / (t3 - t2));
+        var b1 = lerp(a1, a2, (t2 - tt) / (t2 - t0), (tt - t0) / (t2 - t0));
+        var b2 = lerp(a2, a3, (t3 - tt) / (t3 - t1), (tt - t1) / (t3 - t1));
+        var c = lerp(b1, b2, (t2 - tt) / (t2 - t1), (tt - t1) / (t2 - t1));
+        out.push({ x: c[0], y: c[1], z: c[2] });
+      }
+    }
+    out.push({ x: A[n - 1][0], y: A[n - 1][1], z: A[n - 1][2] });
+    return out;
+  };
+
+  /* paths: the ribbons of VL.TraceLines with a colour and a width per path; aCase = 1 draws the casing (the ground's
+     colour, the path's width plus uCasePx on each side) */
+  var FP_VS = TR_VS.replace('attribute vec3 aOther; attribute float aSide; attribute float aEnd;',
+    'attribute vec3 aOther; attribute float aSide; attribute float aEnd; attribute vec3 aColor; attribute float aW; attribute float aCase;')
+    .replace('uniform vec2 uRes; uniform float uWidth;', 'uniform vec2 uRes; uniform float uDpr; uniform float uCasePx; uniform vec3 uGround;')
+    .replace('varying vec2 vA; varying vec2 vB; varying float vHalf;', 'varying vec2 vA; varying vec2 vB; varying float vHalf; varying vec3 vColor;')
+    .replace('void main() {', 'void main() {\n  vColor = aCase > 0.5 ? uGround : aColor;')
+    .replace('float h = 0.5 * uWidth;', 'float h = 0.5 * aW * uDpr + aCase * uCasePx * uDpr;');
+  var FP_FS = TR_FS.replace('uniform vec3 uColor; uniform float uOpacity;', 'uniform float uOpacity; varying vec3 vColor;')
+    .replace('gl_FragColor = vec4(uColor, uOpacity * a);', 'gl_FragColor = vec4(vColor, uOpacity * a);');
+  /* opts: renderOrder (default 18), casing (CSS px on each side, default 1.5), depthTest (default false: paths draw above
+     the documents and the links). setPaths([{ pts: [{x, y, z}, ...], color: '#hex', width: CSS px }, ...]) in drawing order
+     (a later path covers an earlier one where they cross); setGround(hex) after a theme switch */
+  VL.FigPaths = function (opts) {
+    opts = opts || {};
+    var mat = new THREE.ShaderMaterial({
+      uniforms: { uRes: { value: new THREE.Vector2(1, 1) }, uDpr: { value: 1 }, uCasePx: { value: opts.casing != null ? opts.casing : 1.5 },
+        uGround: { value: new THREE.Color() }, uOpacity: { value: 1 } },
+      vertexShader: FP_VS, fragmentShader: FP_FS, transparent: true, depthWrite: false, depthTest: opts.depthTest === true, side: THREE.DoubleSide
+    });
+    var mesh = new THREE.Mesh(new THREE.BufferGeometry(), mat), size = new THREE.Vector2(), info = { paths: 0, segments: 0 };
+    mesh.name = 'vlonto-fig-paths';
+    mesh.frustumCulled = false;
+    mesh.renderOrder = opts.renderOrder != null ? opts.renderOrder : 18;
+    mesh.visible = false;
+    mesh.onBeforeRender = function (renderer) {
+      renderer.getDrawingBufferSize(size);
+      mat.uniforms.uRes.value.copy(size);
+      mat.uniforms.uDpr.value = renderer.getPixelRatio();
+    };
+    function setPaths(list) {
+      list = (list || []).filter(function (p) { return p && p.pts && p.pts.length > 1; });
+      var quads = 0;
+      list.forEach(function (p) { quads += 2 * (p.pts.length - 1); });
+      var nv = quads * 4, pos = new Float32Array(nv * 3), oth = new Float32Array(nv * 3), col = new Float32Array(nv * 3);
+      var side = new Float32Array(nv), end = new Float32Array(nv), w = new Float32Array(nv), cs = new Float32Array(nv);
+      var idx = nv > 65535 ? new Uint32Array(quads * 6) : new Uint16Array(quads * 6), q = 0, c = new THREE.Color();
+      list.forEach(function (p) {
+        rawColor(p.color, c);
+        for (var pass = 0; pass < 2; pass++) {
+          for (var i = 0; i + 1 < p.pts.length; i++, q++) {
+            var a = p.pts[i], b = p.pts[i + 1];
+            for (var k = 0; k < 4; k++) {
+              var own = k < 2 ? a : b, other = k < 2 ? b : a, v = q * 4 + k;
+              pos[3 * v] = own.x; pos[3 * v + 1] = own.y || 0; pos[3 * v + 2] = own.z || 0;
+              oth[3 * v] = other.x; oth[3 * v + 1] = other.y || 0; oth[3 * v + 2] = other.z || 0;
+              col[3 * v] = c.r; col[3 * v + 1] = c.g; col[3 * v + 2] = c.b;
+              side[v] = k % 2 === 0 ? 1 : -1; end[v] = k < 2 ? 0 : 1;
+              w[v] = p.width || 4; cs[v] = pass === 0 ? 1 : 0;
+            }
+            var o = q * 4;
+            idx[q * 6] = o; idx[q * 6 + 1] = o + 1; idx[q * 6 + 2] = o + 2; idx[q * 6 + 3] = o; idx[q * 6 + 4] = o + 2; idx[q * 6 + 5] = o + 3;
+          }
+        }
+      });
+      var g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      g.setAttribute('aOther', new THREE.BufferAttribute(oth, 3));
+      g.setAttribute('aColor', new THREE.BufferAttribute(col, 3));
+      g.setAttribute('aSide', new THREE.BufferAttribute(side, 1));
+      g.setAttribute('aEnd', new THREE.BufferAttribute(end, 1));
+      g.setAttribute('aW', new THREE.BufferAttribute(w, 1));
+      g.setAttribute('aCase', new THREE.BufferAttribute(cs, 1));
+      g.setIndex(new THREE.BufferAttribute(idx, 1));
+      mesh.geometry.dispose();
+      mesh.geometry = g;
+      mesh.visible = quads > 0;
+      info = { paths: list.length, segments: quads / 2, widths: list.map(function (p) { return p.width || 4; }), colors: list.map(function (p) { return p.color; }) };
+      return info.segments;
+    }
+    return {
+      object: mesh,
+      setPaths: setPaths,
+      setGround: function (hex) { rawColor(hex, mat.uniforms.uGround.value); },
+      setCasing: function (px) { mat.uniforms.uCasePx.value = px; },
+      setOpacity: function (o) { mat.uniforms.uOpacity.value = o; },
+      info: function () { return info; },
+      count: function () { return info.segments; },
+      dispose: function () { mesh.geometry.dispose(); mat.dispose(); }
+    };
+  };
+
+  /* markers at nodes, drawn without depth test: shape 'diamond' (fill = the ground, stroke = the path), 'square' (fill =
+     the path, a thin ring of the ground) or 'bead' (a small ringed dot); size and ring in CSS px */
+  var FM_VS = [
+    'attribute vec3 aFill; attribute vec3 aStroke; attribute float aShape; attribute float aSize; attribute float aRing;',
+    'uniform float uDpr;',
+    'varying vec3 vFill; varying vec3 vStroke; varying float vShape; varying float vPx; varying float vRing;',
+    'void main() {',
+    '  vFill = aFill; vStroke = aStroke; vShape = aShape; vPx = aSize * uDpr; vRing = aRing * uDpr;',
+    '  gl_PointSize = vPx + 2.0;',
+    '  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);',
+    '}'].join('\n');
+  var FM_FS = [
+    'varying vec3 vFill; varying vec3 vStroke; varying float vShape; varying float vPx; varying float vRing;',
+    'void main() {',
+    '  vec2 c = (gl_PointCoord - vec2(0.5)) * (vPx + 2.0);',
+    '  float R = 0.5 * vPx, e;',
+    '  if (vShape > 1.5) e = R - max(abs(c.x), abs(c.y));',
+    '  else if (vShape > 0.5) e = (R - abs(c.x) - abs(c.y)) * 0.70711;',
+    '  else e = R - length(c);',
+    '  float a = clamp(e + 0.5, 0.0, 1.0);',
+    '  if (a <= 0.0) discard;',
+    '  gl_FragColor = vec4(e < vRing ? vStroke : vFill, a);',
+    '}'].join('\n');
+  var SHAPE = { bead: 0, diamond: 1, square: 2 };
+  VL.FigMarkers = function (opts) {
+    opts = opts || {};
+    var mat = new THREE.ShaderMaterial({ uniforms: { uDpr: { value: 1 } }, vertexShader: FM_VS, fragmentShader: FM_FS,
+      transparent: true, depthTest: false, depthWrite: false });
+    var pts = new THREE.Points(new THREE.BufferGeometry(), mat), list = [];
+    pts.name = 'vlonto-fig-markers';
+    pts.frustumCulled = false;
+    pts.renderOrder = opts.renderOrder != null ? opts.renderOrder : 22;
+    pts.visible = false;
+    pts.onBeforeRender = function (renderer) { mat.uniforms.uDpr.value = renderer.getPixelRatio(); };
+    /* items: [{ p: {x, y, z}, shape, fill: '#hex', stroke: '#hex', size: px, ring: px, id }] in drawing order */
+    function set(items) {
+      list = (items || []).filter(function (m) { return m && m.p; });
+      var n = list.length, pos = new Float32Array(3 * n), fill = new Float32Array(3 * n), stroke = new Float32Array(3 * n);
+      var shape = new Float32Array(n), sz = new Float32Array(n), ring = new Float32Array(n), c = new THREE.Color();
+      list.forEach(function (m, i) {
+        pos[3 * i] = m.p.x; pos[3 * i + 1] = m.p.y || 0; pos[3 * i + 2] = m.p.z || 0;
+        rawColor(m.fill, c); fill[3 * i] = c.r; fill[3 * i + 1] = c.g; fill[3 * i + 2] = c.b;
+        rawColor(m.stroke, c); stroke[3 * i] = c.r; stroke[3 * i + 1] = c.g; stroke[3 * i + 2] = c.b;
+        shape[i] = SHAPE[m.shape] || 0; sz[i] = m.size || 8; ring[i] = m.ring != null ? m.ring : 1.5;
+      });
+      var g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+      g.setAttribute('aFill', new THREE.BufferAttribute(fill, 3));
+      g.setAttribute('aStroke', new THREE.BufferAttribute(stroke, 3));
+      g.setAttribute('aShape', new THREE.BufferAttribute(shape, 1));
+      g.setAttribute('aSize', new THREE.BufferAttribute(sz, 1));
+      g.setAttribute('aRing', new THREE.BufferAttribute(ring, 1));
+      pts.geometry.dispose();
+      pts.geometry = g;
+      pts.visible = n > 0;
+    }
+    return {
+      object: pts,
+      set: set,
+      /* the markers as drawn (tests and model renders): id, shape, colours, size, position */
+      list: function () { return list.map(function (m) { return { id: m.id != null ? m.id : null, shape: m.shape, fill: m.fill, stroke: m.stroke, size: m.size, ring: m.ring, p: [m.p.x, m.p.y || 0, m.p.z || 0] }; }); },
+      dispose: function () { pts.geometry.dispose(); mat.dispose(); }
+    };
+  };
+  /* the paper's sizes of the path marks on the site, in CSS px: path widths (main strand, other strands), the casing on
+     each side, the diamond, the square, the beads (VL.FIG_PATH, read by the views and the tests) */
+  VL.FIG_PATH = { main: 4.4, other: 2.2, casing: 1.5, diamond: 15, square: 12, bead: 8, ring: 1.5 };
+  /* the near-parallel view of the three 3D views (the paper's figures are in parallel projection): a perspective camera
+     with a narrow field of view (VL.FIG_FOV degrees, vertical) from VL.FIG_DIST times the distance of the former 45-degree
+     view, so a stack of planes reads as parallel (the top and the bottom plane project at nearly the same size) while
+     the framing on load is the same; near / far planes and zoom limits scale by VL.FIG_DIST. Every fit, the point scale,
+     the label sizes and the call-outs read camera.fov, so they follow. */
+  VL.FIG_FOV = 8;
+  VL.FIG_DIST = Math.tan(22.5 * Math.PI / 180) / Math.tan(VL.FIG_FOV / 2 * Math.PI / 180);
+  /* the projected widths (CSS px on the canvas) of a stack of horizontal planes (each { key, y, x0, x1, z0, z1 }, the top
+     plane first, the bottom one last) as the camera sees them, and the ratio of the narrower to the wider of the top and
+     the bottom plane: 1 in a parallel projection, about 0.97 in the view of VL.FIG_FOV on load, about 0.86 in the former
+     45-degree view (VLApp.figView(), tests: the view stays near-parallel) */
+  VL.figPlaneWidths = function (camera, W, H, planes) {
+    var v = new THREE.Vector3(), out = [];
+    camera.updateMatrixWorld();
+    planes.forEach(function (pl) {
+      var x0 = Infinity, x1 = -Infinity;
+      [[pl.x0, pl.z0], [pl.x1, pl.z0], [pl.x1, pl.z1], [pl.x0, pl.z1]].forEach(function (c) {
+        v.set(c[0], pl.y, c[1]).project(camera);
+        var sx = (v.x + 1) / 2 * W;
+        x0 = Math.min(x0, sx); x1 = Math.max(x1, sx);
+      });
+      out.push({ key: pl.key, y: Math.round(pl.y * 100) / 100, w: Math.round((x1 - x0) * 100) / 100 });
+    });
+    var a = out[0], b = out[out.length - 1], ratio = a && b && Math.max(a.w, b.w) > 0 ? Math.min(a.w, b.w) / Math.max(a.w, b.w) : null;
+    return { fov: camera.fov, figFov: VL.FIG_FOV, near: camera.near, far: camera.far, planes: out, ratio: ratio != null ? Math.round(ratio * 10000) / 10000 : null };
+  };
+
+  /* ------------------------------------------------------------------ stage text and legend */
+  function escH(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  /* the title line and the parameter line of a stage (elements .fig-title and .fig-params inside it): title = HTML,
+     params = plain text; returns the two elements */
+  VL.figText = function (stage, o) {
+    if (!stage) return null;
+    var t = stage.querySelector('.fig-title'), p = stage.querySelector('.fig-params');
+    if (t && o && o.title != null && t.__html !== o.title) { t.innerHTML = o.title; t.__html = o.title; }
+    if (p && o && o.params != null && p.textContent !== o.params) p.textContent = o.params;
+    return { title: t, params: p };
+  };
+  /* the title's count: (n=40,816) with the numbers of the language mode */
+  VL.figCount = function (n) { return '(n=' + VL.fmt(n) + ')'; };
+  /* the name of a record in the legend's path rows: English in EN, else Vietnamese (as the paper's Fig. 1) */
+  VL.figName = function (pair) {
+    if (!pair) return '';
+    var en = pair.en, vi = pair.vi;
+    return VL.lang() === 'en' ? (en || vi || '') : (vi || en || '');
+  };
+  /* rows of the legend (inside <ul class="fig-rows">): a dot, a hairline link swatch, a path */
+  VL.figDotRow = function (color, labelHtml, n, attrs) {
+    return '<li' + (attrs || '') + '><span class="fig-sw fig-sw-dot" style="background:' + escH(color) + '"></span><span class="fig-lb">' + labelHtml +
+      (n != null ? ' <span class="fig-n">' + escH(VL.figCount(n)) + '</span>' : '') + '</span></li>';
+  };
+  VL.figHairRow = function (color, labelHtml, n, attrs) {
+    var c = escH(color);
+    return '<li' + (attrs || '') + '><svg class="fig-sw fig-sw-hair" viewBox="0 0 18 12" aria-hidden="true"><path d="M1 3.6L17 2.4M1 6L17 6M1 8.4L17 9.6" stroke="' + c +
+      '"/></svg><span class="fig-lb">' + labelHtml + (n != null ? ' <span class="fig-n">' + escH(VL.figCount(n)) + '</span>' : '') + '</span></li>';
+  };
+  /* one row per drawn path: its colour, the names of its first and last node and its number of points; a name in the
+     other language than the page's is marked (lang="vi" in EN and EN–VI, where the names are Vietnamese as in the
+     paper's figures) */
+  var VI_CH = /[àáâãèéêìíòóôõùúýăđĩũơưạ-ỹ]/i;
+  function nameHtml(s) {
+    var page = VL.i18n && VL.i18n.htmlLang ? VL.i18n.htmlLang() : 'en';
+    return VI_CH.test(String(s || '')) && page !== 'vi' ? '<span lang="vi">' + escH(s) + '</span>' : escH(s);
+  }
+  VL.figPathText = function (first, last, pts) { return first + ' \u2192 ' + last + ' (' + VL.U('fig.pts', { n: pts }) + ')'; };
+  VL.figPathRow = function (color, first, last, pts, attrs) {
+    return '<li class="fig-path-row" data-pts="' + pts + '"' + (attrs || '') + '><span class="fig-sw fig-sw-path" style="background:' + escH(color) +
+      '"></span><span class="fig-lb">' + nameHtml(first) + ' \u2192 ' + nameHtml(last) + ' (' + VL.UH('fig.pts', { n: pts }) + ')</span></li>';
+  };
+  /* the legend column of a wide stage. o: legend, status (elements), open (the reader's choice: shown), force (shown even
+     where the stage is narrow: the reader pressed the legend's button there). Wide screens: the legend stands at the right
+     side under the stage tools (css/site.css .fig-legend), left of the details panel when it is open; where the stage
+     left free (without the panel) is narrower than the legend plus VL.FIG_MIN_SCENE px of scene, the stage gets
+     .lg-collapsed and the legend waits behind its button. Sets --fig-lg-w on the stage (the legend's width + its gap, 0
+     when it is not shown) for the hint, and keeps the parameter line left of the status line. Returns { shown, collapsed,
+     width }. Phones: nothing changes (the legend opens from its button over the scene, as before). */
+  VL.FIG_MIN_SCENE = 320;
+  VL.figLayout = function (stage, o) {
+    if (!stage) return null;
+    o = o || {};
+    var legend = o.legend, out = { shown: false, collapsed: false, width: 0 };
+    var wide = !VL.isMobile();
+    var panelW = stage.classList.contains('panel-open') ? (parseFloat(getComputedStyle(stage).getPropertyValue('--panel-w')) || 380) : 0;
+    stage.classList.remove('lg-collapsed');
+    if (legend && o.open && !legend.classList.contains('hidden')) {
+      if (wide) {
+        var lw = legend.getBoundingClientRect().width || legend.offsetWidth || 0, free = stage.clientWidth - panelW;
+        if (!o.force && free - lw - 42 < VL.FIG_MIN_SCENE) { stage.classList.add('lg-collapsed'); out.collapsed = true; }
+        else { out.shown = true; out.width = lw; }
+      } else out.shown = true;
+    }
+    stage.style.setProperty('--fig-lg-w', (wide && out.shown ? out.width + 14 : 0) + 'px');
+    var params = stage.querySelector('.fig-params');
+    if (params) {
+      var st = o.status, sb = st && st.offsetParent !== null ? st.getBoundingClientRect() : null, pb = stage.getBoundingClientRect();
+      if (sb && sb.width < 2) sb = null;
+      var right = sb ? sb.left - pb.left : stage.clientWidth - panelW;
+      params.style.maxWidth = Math.max(0, Math.round(right - 14 - 16)) + 'px';
+    }
+    return out;
+  };
+  /* the part of the canvas the scene is framed in (CSS px from the canvas's top left): the canvas without the title
+     line, the parameter and status lines, the details panel where it lies over the canvas (traces.html; the other views
+     narrow their canvas instead) and the legend column while it is shown (wide screens). Returns { left, top, right,
+     bottom, W, H } (W, H: the canvas) */
+  VL.figFrame = function (stage, lay, host) {
+    var el = host || stage, W = el ? el.clientWidth : 0, H = el ? el.clientHeight : 0, wide = !VL.isMobile(), panelW = 0;
+    if (wide && stage && stage.classList.contains('panel-open')) {
+      var pw = parseFloat(getComputedStyle(stage).getPropertyValue('--panel-w')) || 380;
+      if (!host || host.clientWidth > stage.clientWidth - pw / 2) panelW = pw;      // the panel lies over the canvas
+    }
+    var r = { left: wide ? 14 : 8, top: wide ? 40 : 34, right: W - panelW - (wide ? 14 : 8), bottom: H - (wide ? 34 : 8), W: W, H: H };
+    if (wide && lay && lay.shown) r.right = r.right - lay.width - 14;
+    r.right = Math.max(r.left + 120, Math.min(W, r.right));
+    r.bottom = Math.max(r.top + 80, Math.min(H, r.bottom));
+    return r;
+  };
+  /* where the camera stands to frame a scene inside a frame of the canvas (VL.figFrame): looking along dir, at the
+     distance at which every point (each {x, y, z, r}; r = its radius in world units) projects inside the margin m of
+     the frame (1 = up to the frame's edges), or a sphere ({ c, R }) fits inside it, its middle at the frame's middle
+     (the camera's target moves sideways by the frame's offset from the canvas centre, so turning the view keeps the
+     scene in the frame). o: { pts | sphere, dir (THREE.Vector3), frame, margin, minD, centre ({x, y, z}: kept at the
+     frame's middle) }. Returns { pos, target, d, R, c } (THREE.Vector3 pos, target, c). The perspective of the narrow
+     field of view (VL.FIG_FOV) is close to parallel, so the frame's offset is applied at the target's distance. */
+  VL.figCamera = function (camera, o) {
+    var fr = o.frame, W = Math.max(1, fr.W), H = Math.max(1, fr.H), tv = Math.tan(camera.fov * Math.PI / 360), th = tv * W / H;
+    var ox = (fr.left + fr.right) / W - 1, oy = 1 - (fr.top + fr.bottom) / H, m = o.margin || 0.9;
+    var sx = Math.max(0.05, (fr.right - fr.left) / W * m), sy = Math.max(0.05, (fr.bottom - fr.top) / H * m);
+    var dir = o.dir.clone().normalize(), right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), dir).normalize();
+    var up = new THREE.Vector3().crossVectors(dir, right), c = new THREE.Vector3(), v = new THREE.Vector3(), d = o.minD || 10, R = 10;
+    if (o.sphere) {
+      c.set(o.sphere.c.x, o.sphere.c.y, o.sphere.c.z);
+      R = o.sphere.R;
+      d = Math.max(d, R / Math.sin(Math.min(Math.atan(sx * th), Math.atan(sy * tv))));
+    } else {
+      var pts = o.pts || [];
+      if (o.centre) c.set(o.centre.x, o.centre.y, o.centre.z);
+      else if (pts.length) {
+        pts.forEach(function (p) { c.x += p.x; c.y += p.y; c.z += p.z; });
+        c.multiplyScalar(1 / pts.length);
+        var x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+        pts.forEach(function (p) {
+          v.set(p.x - c.x, p.y - c.y, p.z - c.z);
+          var x = v.dot(right), y = v.dot(up);
+          x0 = Math.min(x0, x - p.r); x1 = Math.max(x1, x + p.r); y0 = Math.min(y0, y - p.r); y1 = Math.max(y1, y + p.r);
+        });
+        c.addScaledVector(right, (x0 + x1) / 2).addScaledVector(up, (y0 + y1) / 2);
+      }
+      pts.forEach(function (p) {
+        v.set(p.x - c.x, p.y - c.y, p.z - c.z);
+        var x = v.dot(right), y = v.dot(up), z = v.dot(dir);
+        d = Math.max(d, z + (Math.abs(x) + p.r) / (sx * th), z + (Math.abs(y) + p.r) / (sy * tv));
+        R = Math.max(R, v.length() + p.r);
+      });
+    }
+    var target = c.clone().addScaledVector(right, -ox * d * th).addScaledVector(up, -oy * d * tv);
+    return { pos: target.clone().addScaledVector(dir, d), target: target, d: d, R: R, c: c };
   };
 })();

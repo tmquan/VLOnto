@@ -63,8 +63,8 @@
     <div class="side-section">
       <div class="side-title" data-i18n="net.colorBy">Colour by</div>
       <div class="seg" role="group" aria-label="Colour documents by" data-i18n-aria="net.colorBy.aria">
-        <button type="button" data-color="validity" aria-pressed="true" data-i18n="net.color.validity">Validity</button>
-        <button type="button" data-color="type" aria-pressed="false" data-i18n="net.color.type">Type</button>
+        <button type="button" data-color="type" aria-pressed="true" data-i18n="net.color.type">Type</button>
+        <button type="button" data-color="validity" aria-pressed="false" data-i18n="net.color.validity">Validity</button>
         <button type="button" data-color="area" aria-pressed="false" data-i18n="net.color.area">Area</button>
       </div>
     </div>
@@ -105,7 +105,7 @@
   </aside>
   <section class="scene-stage" id="stage" aria-label="3D legal network" data-i18n-aria="net.scene.aria">
     <div class="scene-canvas" id="canvas-host" tabindex="0" role="application" aria-roledescription="3D network" aria-label="3D network of legal documents. Drag or use the arrow keys to rotate, scroll or press plus and minus to zoom, click a document for details." data-i18n-aria="net.canvas.aria"></div>
-    <div class="legend" id="legend"></div>
+    <div class="legend fig-legend" id="legend"></div>
     <div class="hint hidden" id="hint" role="note">
       <p><strong data-i18n="net.hint.title">Legal documents by legal force.</strong> <span id="hint-body">The Constitution is on top, circulars at the bottom. <span class="desk-only">Click</span><span class="touch-only">Tap</span> a point or search a number such as <span class="nowrap">45/2019/QH14</span> to see its links and validity.</span></p>
       <button class="btn btn-xs" type="button" id="hint-close" data-i18n="net.hint.ok">Got it</button>
@@ -115,6 +115,8 @@
       <button class="btn" type="button" id="btn-legend" title="Show or hide the legend" aria-label="Show or hide the legend" aria-expanded="true" aria-controls="legend" data-i18n-title="net.legend.toggle" data-i18n-aria="net.legend.toggle"></button>
     </div>
     <div class="stage-status" id="status" aria-live="polite"></div>
+    <p class="fig-title" id="fig-title"></p>
+    <p class="fig-params" id="fig-params"></p>
     <div class="tooltip3d hidden" id="tip" role="tooltip"></div>
     <div class="loading-veil" id="veil"><div><div class="spin"></div><span id="veil-text" data-i18n="net.loading">Loading the legal network…</span></div></div>
     <aside class="scene-panel hidden" id="panel" aria-label="Document details" data-i18n-aria="net.panel.aria" tabindex="-1"></aside>

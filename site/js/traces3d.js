@@ -137,7 +137,9 @@
     TH = { dark: P.dark, bg: P.bg, plane: pl.plane, planeOpacity: pl.planeOpacity, planeLine: pl.planeLine, planeLineOpacity: pl.planeLineOpacity,
       doc: P.cls.work, link: VL.tok('--tr-link') || P.leader,
       /* the 27 legal-area colours (css/site.css --area-0..26: 0-11 as network-3d.html, 12-26 for the rest), by rank */
-      areas: VL.areaColors(27), areaNone: VL.tok('--area-none') || '#dcdee2', ink: P.ink };
+      areas: VL.areaColors(27), areaNone: VL.tok('--area-none') || '#dcdee2', ink: P.ink,
+      /* the figure look: documents by type (the paper's seven groups, --doctype-*), the paths' twelve colours (--path-*) */
+      docTypes: VL.docTypeColors(), docOther: VL.docTypeOther(), paths: P.paths };
     M.sceneBg = P.bg;
     M.traceCore = P.core;
   }
@@ -368,7 +370,32 @@
   function areaHex(a) { var r = a != null && a >= 0 ? AREA_RANK[a] : -1; return r >= 0 && TH.areas[r] ? TH.areas[r] : TH.areaNone; }
   /* the area of a network point (a document: its own area field; a traced law the lite network lacks: its law node's) */
   function docArea(j) { return j < D.N ? (D.area[j] >= 0 ? NETA[D.area[j]] : -1) : NAREA[EXTRA[j - D.N]]; }
-  function docColor(j) { return state.colorBy === 'area' ? areaHex(docArea(j)) : TH.doc; }
+  /* the document type of a network point (its group of js/paper3d.js VL.DOC_TYPES): the network's type code; a traced
+     law the lite network lacks, the code in its number (01/2008/TT-BKHCN: TT), else the first words of its name (Bộ
+     luật: BL, Luật: L, Hiến pháp: HP, ...) */
+  var NAME_CODE = [['hiến pháp', 'HP'], ['bộ luật', 'BL'], ['pháp lệnh', 'PL'], ['nghị quyết liên tịch', 'NQLT'], ['nghị quyết', 'NQ'],
+    ['nghị định', 'NĐ'], ['quyết định', 'QĐ'], ['thông tư liên tịch', 'TTLT'], ['thông tư', 'TT'], ['luật', 'L']];
+  var DOC_GROUP = null;
+  function extraCode(gi) {
+    var m = /^[^/]+\/\d{4}\/([^-/\s]+)-/.exec(num(gi));
+    if (m && VL.docTypeIndex(m[1]) >= 0) return m[1];
+    var name = String(G.vi[gi] || '').normalize('NFC').toLowerCase();
+    for (var k = 0; k < NAME_CODE.length; k++) if (name.indexOf(NAME_CODE[k][0]) === 0) return NAME_CODE[k][1];
+    return m ? m[1] : null;
+  }
+  function docGroup(j) {
+    if (!DOC_GROUP) {
+      var tg = D.net.types.map(function (t) { return VL.docTypeIndex(t.code); });
+      DOC_GROUP = new Int8Array(NP);
+      for (var k = 0; k < NP; k++) {
+        if (k < D.N) { var ti = D.type[k]; DOC_GROUP[k] = ti >= 0 && ti < tg.length ? tg[ti] : -1; }
+        else DOC_GROUP[k] = VL.docTypeIndex(extraCode(EXTRA[k - D.N]));
+      }
+    }
+    return DOC_GROUP[j];
+  }
+  function docTypeHex(j) { var g = docGroup(j); return g >= 0 ? TH.docTypes[g] : TH.docOther; }
+  function docColor(j) { return state.colorBy === 'area' ? areaHex(docArea(j)) : state.colorBy === 'type' ? docTypeHex(j) : TH.doc; }
   /* the documents' colours as their buffer holds them (snapshot): the distinct colours and each point's index */
   function docColorTable() {
     var col = netObj.geometry.attributes.aColor.array, pal = [], ix = {}, idx = new Array(NP);
@@ -389,17 +416,18 @@
      as network-3d.html does; #curves=full keeps the full detail there too */
   var CURVES = params.curves !== '0', SOFT_GL = false, CURVE_FULL = params.curves === 'full';
   var renderer = null, scene, camera, controls, netObj = null, trObj = null, ptMat = null, trMat = null, netEdges = {}, trEdges = null, layerGroup = null;
-  var threads = null, boldV = null, boldS = null, fgObj = null, fgMat = null, labelGroup = null, labels = [], callouts = null;
+  var threads = null, figPaths = null, figMarks = null, fgObj = null, fgMat = null, labelGroup = null, labels = [], callouts = null;
   var needsRender = true, tween = null;
   /* the reader's state: the chosen traces (sel, in list order: area, then rank), the one the panel shows (cur, an index
      of sel), the legend, the search text. No area is ever 'open': the 27 areas are one scene and one list */
-  var state = { sel: [], cur: -1, legendOpen: !mobile, query: '', colorBy: 'area' };
-  /* colour the points by legal area (the default: the 27 areas' colours) or by kind (the paper's class colours):
-     #color=area|kind for links and tests, else the reader's last choice (VL.store), else area */
-  var COLOR_KEY = 'traces3d-color';
+  var state = { sel: [], cur: -1, legendOpen: !mobile, legendForce: false, query: '', colorBy: 'type' };
+  /* colour the points by document type (the default, as the paper's figures: the documents in the seven groups' colours,
+     the other nodes in their class colours), by legal area (the 27 areas' colours) or by kind (the paper's class
+     colours): #color=type|area|kind for links and tests, else the reader's last choice (VL.store), else type */
+  var COLOR_KEY = 'traces3d-color', COLOR_MODES = ['type', 'area', 'kind'];
   state.colorBy = (function () {
     var p = params.color, s = VL.store.get(COLOR_KEY);
-    return p === 'area' || p === 'kind' ? p : (s === 'area' || s === 'kind' ? s : 'area');
+    return COLOR_MODES.indexOf(p) >= 0 ? p : (COLOR_MODES.indexOf(s) >= 0 ? s : 'type');
   })();
   T.colorBy = state.colorBy;
   function current() { return state.cur >= 0 ? state.sel[state.cur] || null : null; }
@@ -422,24 +450,27 @@
     renderer.setClearColor(TH.bg, 1);
     host.appendChild(renderer.domElement);
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(45, sz.w / sz.h, 5, 80000);
+    camera = new THREE.PerspectiveCamera(VL.FIG_FOV, sz.w / sz.h, 5 * VL.FIG_DIST, 80000 * VL.FIG_DIST);
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.09;
     controls.screenSpacePanning = true;
     controls.rotateSpeed = 0.55;
     controls.zoomSpeed = 0.9;
-    controls.minDistance = 40;
-    controls.maxDistance = 30000;
+    controls.minDistance = 40 * VL.FIG_DIST;
+    controls.maxDistance = 30000 * VL.FIG_DIST;
     controls.addEventListener('change', function () { needsRender = true; scheduleCallouts(); });
     controls.addEventListener('start', hideHint);
     labelGroup = new THREE.Group();
     scene.add(labelGroup);
-    /* the traced paths: every trace a thin thread (GL lines, buildThreads), the chosen ones bold ribbons on top */
-    boldS = VL.TraceLines({ depthTest: false, renderOrder: ORDER.boldS });
-    boldV = VL.TraceLines({ depthTest: false, renderOrder: ORDER.boldV });
-    scene.add(boldS.object);
-    scene.add(boldV.object);
+    /* the traced paths: every trace a thin thread (GL lines, buildThreads); the chosen ones the paths of the figure look
+       on top (js/paper3d.js VL.FigPaths: each trace in its own colour on a thin casing of the ground's colour) with their
+       marks (VL.FigMarkers: a diamond on the question, a square on the law) */
+    figPaths = VL.FigPaths({ renderOrder: ORDER.paths, casing: VL.FIG_PATH.casing });
+    figPaths.setGround(TH.bg);
+    figMarks = VL.FigMarkers({ renderOrder: ORDER.marks });
+    scene.add(figPaths.object);
+    scene.add(figMarks.object);
     try {
       var gl = renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info');
       M.webglRenderer = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
@@ -457,7 +488,7 @@
     camera.updateProjectionMatrix();
     updatePointScale();
     updateLabelSizes();
-    fitLegendHeight();
+    fitLegend();
     needsRender = true;
     scheduleCallouts();
   }
@@ -509,12 +540,9 @@
      accumulated opacity 1 - (1 - a)^n of about 0.47, n = the strokes over one device pixel (tools_lang3d/overlap14.py on
      the load view: p99 26 on wide screens, 1100 x 783 at 1 device px, full network; p99 35 on phones, 390 x 700 at 2);
      x FAINT / LIGHT while something is chosen. #thread=<alpha> overrides it (tests, previews) */
-  /* colouring by area on wide screens the legend's top stays at or below LEGEND_TOP of the canvas (fitLegendHeight: it
-     scrolls inside): the 27 areas' legend (400 x 568 px in EN-VI at 1440 x 900) would otherwise take the room left of
-     the scene where the laws' call-outs go. All 540 traces chosen one by one at 1440 x 900 (tools_lang3d sweep): EN-VI
-     25 traces with a must-show call-out hidden and 2,646 call-outs shown without the cap, 51 at 0.35, 8 at 0.45, 1 and
-     4,603 at 0.55, 2 at 0.6; EN 1 -> 0 (5,035 -> 5,319 shown), VI 1 at 0.55. #lgtop=<fraction> overrides it */
-  var LEGEND_TOP = (function () { var v = parseFloat(params.lgtop); return v >= 0 && v < 1 ? v : 0.55; })();
+  /* the figure look: on wide screens the legend is a column under the stage tools (css/site.css .fig-legend; it scrolls
+     inside its height); #lgtop=<fraction> sets the column's top at that fraction of the canvas instead (links, tests) */
+  var LEGEND_TOP = (function () { var v = parseFloat(params.lgtop); return v >= 0 && v < 1 ? v : null; })();
   var THREAD_A = (function () { var v = parseFloat(params.thread); return v > 0 && v <= 1 ? v : (mobile ? 0.018 : 0.024); })(), THREAD_MIX = 0.5;
   /* the context links (9,198: other answers' citations, the provision chains off the paths, terms, applies_to) are drawn
      only between chosen nodes (alpha 1): at the load view their overlap reaches 173 links per device pixel at the 99th
@@ -525,13 +553,13 @@
     'void main() { vColor = aColor; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }'].join('\n');
   var TH_FS = ['uniform float uOpacity; varying vec3 vColor;',
     'void main() { gl_FragColor = vec4(vColor, uOpacity); }'].join('\n');
-  var BOLD = mobile ? 1.3 : 1.5, FG_SIZE = 1.3;
+  var FG_SIZE = 1.3;
   /* the draw order. three.js draws the opaque documents first (depth written), then the transparent objects by
      renderOrder: the layer and Q&A planes 0, the network's legal-basis / citation links 1 and change links 2, the traces'
-     context links 3, the trace nodes 4, the threads of every trace 5, the chosen traces' bold paths (structural
-     8-10, verified 11-13: halo2, halo, core), the chosen traces' points 20 (no depth test: over every stroke), the
-     call-outs' leaders 29 and labels 30 (js/labels3d.js) */
-  var ORDER = { planes: 0, netLinks: 1, netChange: 2, context: 3, traceNodes: 4, strokes: 5, boldS: 8, boldV: 11, chosen: 20 };
+     context links 3, the trace nodes 4, the threads of every trace 5, the chosen traces' paths 8 (no depth test; each
+     path's casing, then its colour), the chosen traces' points 20 (no depth test: over every path), the paths' marks 22
+     (the diamond on a question, the square on a law), the call-outs' leaders 29 and labels 30 (js/labels3d.js) */
+  var ORDER = { planes: 0, netLinks: 1, netChange: 2, context: 3, traceNodes: 4, strokes: 5, paths: 8, chosen: 20, marks: 22 };
   function buildScene() {
     var t0 = performance.now();
     /* 1. the network's documents, sized as on network-3d.html, and the traced laws the dataset lacks */
@@ -771,49 +799,110 @@
     T.solid = { docs: net.length, traceNodes: tr.length, links: links.length };
     needsRender = true;
   }
-  /* the paper's trace widths scaled by BOLD: a chosen trace stands out from the light scene */
-  function boldStyle(w) {
-    var st = VL.traceStyle(P, w);
-    Object.keys(st.widths).forEach(function (k) { st.widths[k] *= BOLD; });
-    return st;
+  /* the paths of the figure look (the paper's Fig. 6): each chosen trace in its own colour - the twelve path colours
+     (--path-0 .. --path-11) in the order the traces were chosen, the first the theme's ink - its main strand (the question
+     -> its answer -> the quoted provision -> its law, along the traced links' curves) at full width, its other traced
+     links (terms, other provisions, the structure between them) thinner in the same colour, a diamond on the question
+     and a square on the law; the shown trace drawn last (on top). The legend has one row per chosen trace (pathRows) */
+  var pathSeq = {}, pathNext = 0, pathRows = [], pathList = [];
+  /* a new choice (one question, an area's All 20, a deep link: fresh) takes the colours from the first in its order; adding
+     or removing a trace keeps the colours of the traces that stay */
+  function notePathSeq(list, fresh) {
+    var inter = list.some(function (t) { return pathSeq[t.k] != null; });
+    if (fresh || list.length <= 1 || !inter) { pathSeq = {}; pathNext = 0; }
+    var keep = {};
+    list.forEach(function (t) { keep[t.k] = 1; if (pathSeq[t.k] == null) pathSeq[t.k] = pathNext++; });
+    Object.keys(pathSeq).forEach(function (k) { if (!keep[k]) delete pathSeq[k]; });
   }
-  /* the chosen traces' traced paths, each segment once (text-verified wins over structural) */
+  function pathColor(t) { var C = TH.paths && TH.paths.length ? TH.paths : [P.ink]; return C[(pathSeq[t.k] || 0) % C.length]; }
+  function bySeq(x, y) { return (pathSeq[x.k] || 0) - (pathSeq[y.k] || 0); }
+  /* the main strand of a trace: shortest walks along its traced links from the question to its answer, to the quoted
+     provision and to the law (graph.js t[].co); its nodes in order and its links */
+  function strandOf(t) {
+    if (t.__strand) return t.__strand;
+    var adj = {}, e = t.e, j;
+    for (j = 0; j < e.length; j += 3) { (adj[e[j]] = adj[e[j]] || []).push(e[j + 1]); (adj[e[j + 1]] = adj[e[j + 1]] || []).push(e[j]); }
+    function walk(a, b) {
+      if (a === b) return [a];
+      var prev = {}, q = [a], h = 0;
+      prev[a] = a;
+      while (h < q.length && prev[b] == null) { var x = q[h++]; (adj[x] || []).forEach(function (y) { if (prev[y] == null) { prev[y] = x; q.push(y); } }); }
+      if (prev[b] == null) return null;
+      var out = [b];
+      while (out[0] !== a) out.unshift(prev[out[0]]);
+      return out;
+    }
+    var co = t.co, legs = [[co[0], co[1]], [co[1], co[2]], [co[2], co[3]]], nodes = [];
+    for (var k = 0; k < legs.length && nodes; k++) {
+      var w = walk(legs[k][0], legs[k][1]);
+      nodes = w ? (nodes.length ? nodes.concat(w.slice(1)) : w) : null;
+    }
+    var main = new Set();
+    if (nodes) for (var i = 0; i + 1 < nodes.length; i++) main.add(pairKey(nodes[i], nodes[i + 1]));
+    return (t.__strand = { nodes: nodes || [co[0], co[3]], main: main, ok: !!nodes });
+  }
+  function strandPts(nodes) {
+    var pts = [];
+    for (var i = 0; i + 1 < nodes.length; i++) {
+      var seg = NS.curvePts(ptOf(nodes[i]), ptOf(nodes[i + 1]), CURVES ? TRACE_SEG : 1);
+      pts = pts.concat(i ? seg.slice(1) : seg);
+    }
+    return pts;
+  }
+  function lawName(i) { var n = names(i); return VL.short(VL.figName({ vi: n[0], en: n[1] }), 44); }
+  /* a legend row of a chosen trace in the current mode (its names resolved when the legend is drawn) */
+  function rowOut(r) {
+    return { key: r.key, color: r.color, pts: r.pts, q: r.q, law: r.law,
+      first: VL.figName(VL.kpair('fig.question', { id: num(r.t.co[0]) })), last: lawName(r.t.co[3]) };
+  }
   function drawSelected() {
-    var ver = new Set(), seen = new Set(), v = [], s = [];
-    state.sel.forEach(function (t) { var e = t.e; for (var j = 0; j < e.length; j += 3) if (e[j + 2] === 1) ver.add(pairKey(e[j], e[j + 1])); });
-    state.sel.forEach(function (t) {
-      var e = t.e;
+    var list = [], marks = [], rows = [], F = VL.FIG_PATH, cur = current(), ver = 0, str = 0;
+    var order = state.sel.slice().sort(bySeq);
+    order.filter(function (t) { return t !== cur; }).concat(cur ? [cur] : []).forEach(function (t) {
+      var col = pathColor(t), sd = strandOf(t), e = t.e;
       for (var j = 0; j < e.length; j += 3) {
-        var kk = pairKey(e[j], e[j + 1]);
-        if (seen.has(kk)) continue;
-        seen.add(kk);
-        (ver.has(kk) ? v : s).push(NS.curvePts(ptOf(e[j]), ptOf(e[j + 1]), CURVES ? TRACE_SEG : 1));
+        if (e[j + 2] === 1) ver++; else str++;
+        if (sd.main.has(pairKey(e[j], e[j + 1]))) continue;
+        list.push({ pts: NS.curvePts(ptOf(e[j]), ptOf(e[j + 1]), CURVES ? TRACE_SEG : 1), color: col, width: F.other, trace: key(t) });
       }
+      if (sd.nodes.length > 1) list.push({ pts: strandPts(sd.nodes), color: col, width: F.main, trace: key(t), main: true });
+      var q = t.co[0], law = t.co[3];
+      marks.push({ p: ptOf(q), id: G.i[q], shape: 'diamond', fill: TH.bg, stroke: col, size: F.diamond, ring: F.ring + 0.5 });
+      marks.push({ p: ptOf(law), id: G.i[law], shape: 'square', fill: col, stroke: TH.bg, size: F.square, ring: F.ring });
     });
-    selPaths = v.concat(s);
-    boldV.setStyle(boldStyle(1));
-    boldS.setStyle(boldStyle(0.55));
-    boldS.setStyle({ opacity: P.dark ? 0.6 : 0.62 });
-    boldV.setPaths(v);
-    boldS.setPaths(s);
+    order.forEach(function (t) {
+      rows.push({ key: key(t), color: pathColor(t), t: t, pts: strandOf(t).nodes.length, q: G.i[t.co[0]], law: G.i[t.co[3]] });
+    });
+    if (figPaths) {
+      figPaths.setGround(TH.bg);
+      figPaths.setPaths(list);
+      figMarks.set(marks);
+    }
+    pathList = list;
+    selPaths = list.map(function (q2) { return q2.pts; });
+    pathRows = rows;
     drawFgNodes();
-    T.traceSegments = boldV.count() + boldS.count();
-    T.traceVerified = boldV.count();
-    T.traceStructural = boldS.count();
+    T.traceSegments = figPaths ? figPaths.count() : 0;
+    T.traceVerified = ver;
+    T.traceStructural = str;
+    T.paths = rows.map(function (r) { return { key: r.key, color: r.color, pts: r.pts, q: r.q, law: r.law }; });
+    T.figPaths = figPaths ? figPaths.info() : null;
+    T.markers = figMarks ? figMarks.list() : [];
+    if (legendEl && G) renderLegend();
     needsRender = true;
   }
   /* the chosen traces' points, drawn last over every stroke (renderOrder ORDER.chosen, no depth test): every node of the
      chosen traces (graph.js t[].n: the question, its answer, the other answers, the provisions, the terms, the area and
-     the laws), opaque in its colour (area or kind), no fog, at least as large as at load (x FG_SIZE, or its load size +
-     two rings) and at least FG_MIN_PX across, with two thin rings: the ink of the theme (apart from the ground) inside
-     a ring of the ground's colour (apart from the navy core or the gold halo under it). Far ones first */
+     the laws), opaque in its colour (type, area or kind), no fog, at least as large as at load (x FG_SIZE, or its load
+     size + two rings) and at least FG_MIN_PX across, with two thin rings: the colour of its trace's path (the shown trace
+     first, then in the order chosen) inside a ring of the ground's colour (apart from the path under it). Far ones first */
   var FG_MIN_PX = 9, FG_RING_PX = 1.25, fgNodes = [];
   var FG_VS = [
-    'attribute vec3 aColor; attribute float aSize;',
+    'attribute vec3 aColor; attribute vec3 aRing; attribute float aSize;',
     'uniform float uScale; uniform float uMinPx; uniform float uPad;',
-    'varying vec3 vColor; varying float vPx;',
+    'varying vec3 vColor; varying vec3 vRing; varying float vPx;',
     'void main() {',
-    '  vColor = aColor;',
+    '  vColor = aColor; vRing = aRing;',
     '  vec4 mv = modelViewMatrix * vec4(position, 1.0);',
     '  float s = clamp(aSize * uScale / max(1.0, -mv.z), 2.0, 56.0);',
     '  vPx = min(64.0, max(max(s * ' + FG_SIZE.toFixed(2) + ', s + uPad), uMinPx));',
@@ -821,13 +910,13 @@
     '  gl_Position = projectionMatrix * mv;',
     '}'].join('\n');
   var FG_FS = [
-    'uniform vec3 uBg; uniform vec3 uInk; uniform float uRing;',
-    'varying vec3 vColor; varying float vPx;',
+    'uniform vec3 uBg; uniform float uRing;',
+    'varying vec3 vColor; varying vec3 vRing; varying float vPx;',
     'void main() {',
     '  vec2 c = gl_PointCoord - vec2(0.5); float R = 0.5 * vPx, d = length(c) * vPx;',
     '  if (d > R) discard;',
     '  if (d > R - uRing) { gl_FragColor = vec4(uBg, 1.0); return; }',
-    '  if (d > R - 2.0 * uRing) { gl_FragColor = vec4(uInk, 1.0); return; }',
+    '  if (d > R - 2.0 * uRing) { gl_FragColor = vec4(vRing, 1.0); return; }',
     '  float r = d / max(1.0, R - 2.0 * uRing);',
     '  gl_FragColor = vec4(min(vec3(1.0), vColor * (0.92 + 0.1 * (1.0 - r * r))), 1.0);',
     '}'].join('\n');
@@ -836,7 +925,16 @@
     fgMat.uniforms.uMinPx.value = FG_MIN_PX * dpr;
     fgMat.uniforms.uRing.value = FG_RING_PX * dpr;
     fgMat.uniforms.uPad.value = 4 * FG_RING_PX * dpr + 0.5;
-    VL.rawColor(TH.ink, fgMat.uniforms.uInk.value);
+  }
+  /* the ring colour of each chosen node: its trace's path colour (the shown trace first, then in the order chosen) */
+  var fgRings = {};
+  function fgRingColors() {
+    var out = {}, cur = current();
+    (cur ? [cur] : []).concat(state.sel.filter(function (t) { return t !== cur; }).sort(bySeq)).forEach(function (t) {
+      var c = pathColor(t);
+      t.n.forEach(function (i) { if (out[i] == null) out[i] = c; });
+    });
+    return out;
   }
   function drawFgNodes() {
     if (fgObj) { scene.remove(fgObj); fgObj.geometry.dispose(); fgObj = null; }
@@ -847,21 +945,23 @@
       var dx = GPOS[3 * i] - cp.x, dy = GPOS[3 * i + 1] - cp.y, dz = GPOS[3 * i + 2] - cp.z; return dx * dx + dy * dy + dz * dz;
     };
     ids.sort(function (a, b) { return d2(b) - d2(a); });
-    var n = ids.length, pos = new Float32Array(3 * n), col = new Float32Array(3 * n), sz = new Float32Array(n);
+    var n = ids.length, pos = new Float32Array(3 * n), col = new Float32Array(3 * n), sz = new Float32Array(n), ring = new Float32Array(3 * n);
     fgNodes = ids.slice();
+    fgRings = fgRingColors();
     var na = netObj.geometry.attributes, ta = trObj.geometry.attributes;
     ids.forEach(function (i, j) {
-      var src = IS_WORK[i] ? na : ta, k = IS_WORK[i] ? WDOC[i] : TPT[i];
-      for (var c = 0; c < 3; c++) { pos[3 * j + c] = GPOS[3 * i + c]; col[3 * j + c] = src.aColor.array[3 * k + c]; }
+      var src = IS_WORK[i] ? na : ta, k = IS_WORK[i] ? WDOC[i] : TPT[i], rc = rgb(fgRings[i] || TH.ink);
+      for (var c = 0; c < 3; c++) { pos[3 * j + c] = GPOS[3 * i + c]; col[3 * j + c] = src.aColor.array[3 * k + c]; ring[3 * j + c] = rc[c]; }
       sz[j] = IS_WORK[i] ? Math.max(SIZE.work, src.aSize.array[k]) : src.aSize.array[k];
     });
     var g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
     g.setAttribute('aColor', new THREE.BufferAttribute(col, 3));
+    g.setAttribute('aRing', new THREE.BufferAttribute(ring, 3));
     g.setAttribute('aSize', new THREE.BufferAttribute(sz, 1));
     if (!fgMat) {
       fgMat = new THREE.ShaderMaterial({
-        uniforms: { uScale: ptMat.uniforms.uScale, uBg: ptMat.uniforms.uBg, uInk: { value: new THREE.Color() }, uMinPx: { value: FG_MIN_PX },
+        uniforms: { uScale: ptMat.uniforms.uScale, uBg: ptMat.uniforms.uBg, uMinPx: { value: FG_MIN_PX },
           uRing: { value: FG_RING_PX }, uPad: { value: 5 } },
         vertexShader: FG_VS, fragmentShader: FG_FS, transparent: true, depthTest: false, depthWrite: false
       });
@@ -891,11 +991,22 @@
      hop panel lies over its right part and a call-out whose node is under it is occluded), on phones above the hop sheet
      at its tallest and below the hint. The same before and after a choice, so a choice never needs the camera to move */
   function homeRect() {
-    var sz = stageSize(), r = { x0: 0, y0: 0, x1: sz.w, y1: sz.h - 8 }, h = boxIn(VL.$('#hint', stage));
+    var sz = stageSize(), r = { x0: 0, y0: 0, x1: sz.w, y1: sz.h - 8 }, h = boxIn(VL.$('#hint', stage)), ti = boxIn(VL.$('#fig-title', stage));
     if (mobile) r.y1 = sz.h * (1 - SHEET) - 6;
-    else { var tools = boxIn(VL.$('.stage-tools', stage)); if (tools) r.y0 = Math.max(r.y0, tools.y1 + 6); }
+    else {
+      var tools = boxIn(VL.$('.stage-tools', stage));
+      if (tools) r.y0 = Math.max(r.y0, tools.y1 + 6);
+      r.y1 = sz.h - 34;                                       // above the parameter and status lines (the figure look)
+      if (homeLegW) r.x1 = Math.max(sz.w * 0.4, sz.w - homeLegW - 28);    // left of the legend column, as with the panel closed
+    }
+    if (ti) r.y0 = Math.max(r.y0, ti.y1 + 4);
     if (h) r.y0 = Math.max(r.y0, h.y1 + 6);
-    if (r.y1 - r.y0 < sz.h * 0.3) r.y1 = Math.min(sz.h, r.y0 + sz.h * 0.3);
+    /* at least 30 % of the height; on phones never into the hop sheet (it opens with every choice): the frame grows up
+       under the first-visit hint instead (closed once), below the title line */
+    if (r.y1 - r.y0 < sz.h * 0.3) {
+      if (mobile) r.y0 = Math.max(ti ? ti.y1 + 4 : 0, r.y1 - sz.h * 0.3);
+      else r.y1 = Math.min(sz.h, r.y0 + sz.h * 0.3);
+    }
     return r;
   }
   /* the part of the canvas the overlays leave free (CSS px): left of the side panel (on phones above the bottom sheet),
@@ -911,8 +1022,10 @@
     }
     if (legendEl && !legendEl.classList.contains('hidden')) {
       var lr = legendEl.getBoundingClientRect();
-      if (lr.width > 0.45 * (r.x1 - r.x0) && lr.top - hr.top > sz.h * 0.4) r.y1 = Math.min(r.y1, Math.max(sz.h * 0.45, lr.top - hr.top - 6));
+      if (!mobile && figLay.shown && lr.width > 1) r.x1 = Math.min(r.x1, Math.max(sz.w * 0.3, lr.left - hr.left - 14));   // the legend column
+      else if (lr.width > 0.45 * (r.x1 - r.x0) && lr.top - hr.top > sz.h * 0.4) r.y1 = Math.min(r.y1, Math.max(sz.h * 0.45, lr.top - hr.top - 6));
     }
+    if (!mobile) { r.y0 = Math.max(r.y0, 40); r.y1 = Math.min(r.y1, sz.h - 34); }     // the title, parameter and status lines
     return r;
   }
   /* camera for the box (lo, hi) seen along dir: the closest distance at which the box fits the rectangle rect of the
@@ -1106,13 +1219,16 @@
     return VL.paperLines(VL.short(q.vi, LBL.qvi), VL.short(q.en || '', LBL.qen), P, { twoLines: true });
   }
   function areaLines(i) { var p = VL.kpair('tr3d.area'); return bi(i, [p.vi, p.en]); }
-  /* "Bậc 0 · Hiến pháp" over "Rank 0 · Constitution" (EN–VI), or one line in EN or VI, as on network-3d.html */
+  /* a layer's label as on network-3d.html (the paper's Fig. 1): the rank's number first (ink), then the layer's short name
+     in the second grey (EN–VI: the English name on a second line); the Q&A planes: their names in the second grey */
   function rankLabel(r) {
     var rk = (D.net.ranks || [])[r] || {}, k = 'net.rank.' + r;
-    var name = VL.i18n.has(k) ? VL.kpair(k) : VL.pair(rk.vi || rk.en || '', rk.en || '');
-    return VL.paperTL('net.rank.label', { r: r, name: name }, P, { twoLines: true });
+    var t = VL.TL(VL.i18n.has(k) ? VL.kpair(k) : VL.pair(rk.vi || rk.en || '', rk.en || ''));
+    var lines = [[{ text: String(r), color: P.ink, weight: '700' }, { text: '\u2002' + VL.nfc(t.primary), color: P.ink2 }]];
+    if (t.secondary) lines.push([{ text: '\u2002\u2002' + VL.nfc(t.secondary), color: P.ink2 }]);
+    return lines;
   }
-  function planeLines(k) { return VL.paperTL(k, null, P, { twoLines: true }); }
+  function planeLines(k) { return VL.paperTL(k, null, P, { twoLines: true, secondary: true }); }
   /* the call-outs: the layer names at their corners (always); the shown trace's question, provision, law (must; on
      phones the law where it fits), term and area, the other chosen questions where they fit; with nothing chosen the
      27 areas' names */
@@ -1156,7 +1272,7 @@
   }
   function obstacles() {
     var hr = host.getBoundingClientRect(), out = [];
-    ['#legend', '#hint', '.stage-tools', '#status', '#panel'].forEach(function (q) {
+    ['#legend', '#hint', '.stage-tools', '#status', '#panel', '.fig-title', '.fig-params'].forEach(function (q) {
       var e = VL.$(q, stage);
       if (!e || e.classList.contains('hidden') || e.hidden || e.offsetParent === null) return;
       var r = e.getBoundingClientRect();
@@ -1179,7 +1295,7 @@
         items: calloutItems, ink: calloutInk, ui: obstacles,
         leaderColor: function () { return P.leader; },
         discMaxPx: 30 / Math.min(window.devicePixelRatio || 1, 2), segCap: 16000,
-        segPad: Math.ceil(VL.TRACE_W.halo2 * BOLD / 2),   // half the bold outer halo
+        segPad: Math.ceil(VL.FIG_PATH.main / 2 + VL.FIG_PATH.casing),   // half a main path with its casing
         metrics: M, key: 'callouts',
         onDone: function (st) {
           T.calloutsShown = st.shown;
@@ -1226,7 +1342,7 @@
       '<button type="button" class="tr-all" data-area="' + a.id + '" aria-pressed="false" aria-label="' + esc(VL.U('tr3d.all.aria', { n: fmt(n), area: VL.U(areaPair(a)) })) + '"' +
       tipAttr('tr3d.all.aria', { n: fmt(n), area: VL.U(areaPair(a)) }) + '>' + VL.UH('tr3d.all', { n: fmt(n) }) + '</button></h3>';
   }
-  /* the area's colour before its heading (hidden while colouring by kind: .tr-color-kind) */
+  /* the area's colour before its heading (hidden unless colouring by area: .tr-color-kind) */
   function paintHeads() {
     if (!AREA_RANK) return;
     VL.$$('.tr-head-sw').forEach(function (e) { e.style.background = areaHex(+e.getAttribute('data-a')); });
@@ -1709,6 +1825,7 @@
      alphas and bold paths (once), the call-outs and the hop panel */
   function setSelection(list, cur, opts) {
     opts = opts || {};
+    notePathSeq(list.filter(Boolean), !!opts.fresh);
     list = canonical(list);
     state.sel = list;
     state.cur = list.length ? Math.max(0, list.indexOf(cur)) : -1;
@@ -1746,7 +1863,7 @@
       var rest = state.sel.filter(function (t) { return t.a !== ai; }), cur = current();
       return setSelection(rest, rest.indexOf(cur) >= 0 ? cur : rest[0] || null, opts);
     }
-    return setSelection(all, all[0], opts);
+    return setSelection(all, all[0], Object.assign({}, opts, { fresh: true }));
   }
   /* the stepper: the previous or next chosen trace is shown (the choice and the scene's alphas stay) */
   function step(d, opts) {
@@ -1768,6 +1885,7 @@
     if (!state.sel.length) return;
     state.sel = [];
     state.cur = -1;
+    pathSeq = {}; pathNext = 0;
     noteCurrent();
     T.panel = null;
     markList(false);
@@ -1812,101 +1930,155 @@
   }
 
   /* ------------------------------------------------------------------ legend, tools, theme */
-  /* the traced path as the scene draws it: the links' S-curve (vertical tangents, control points at 45 % of the rise),
-     navy core over the gold halo; ' s' = structural (fainter, thinner core); ' l' = the traces not chosen: thin threads
-     in their colours (by area those of the three largest areas, by kind the one neutral thread colour) */
-  function curveSwatch(mod) {
-    var d = 'M2 10 C2 6.4 20 5.6 20 2';
-    if (mod === ' l') {
-      var cols = state.colorBy === 'area' && AREA_RANK ? [0, 1, 2].map(function (r) { return threadMix(TH.areas[r]); }) : [threadMix(TH.link)];
-      var ds = cols.length > 1 ? ['M1 10 C1 6.4 16 5.6 16 2', 'M3.5 10 C3.5 6.4 18.5 5.6 18.5 2', 'M6 10 C6 6.4 21 5.6 21 2'] : [d];
-      return '<svg class="tr-sw l" viewBox="0 0 22 12" aria-hidden="true">' + cols.map(function (c, k) {
-        return '<path class="core" style="stroke:' + c + '" d="' + ds[k] + '"/>';
-      }).join('') + '</svg>';
-    }
-    return '<svg class="tr-sw' + mod + '" viewBox="0 0 22 12" aria-hidden="true"><path class="halo" d="' + d + '"/><path class="core" d="' + d + '"/></svg>';
-  }
-  /* the legend: a head row (its title, the colour switch), then colouring by area the 27 areas (in the side list's
-     order, in three columns) and one line for the kinds (told apart by layer and size), or colouring by
-     kind the paper's class colours; the links and the strokes; the note. "Tiếng Việt · English" entries in EN-VI, one
-     language in EN or VI */
+  /* the legend of the figure look: a head row (its title, the colour switch Type | Area | Kind), then the colour mode's
+     entries with the number of points drawn in each colour (n=...): by type the documents' seven groups and the trace
+     nodes' class colours, by area the 27 areas (in the side list's order, two columns) and the kinds' sizes, by kind the
+     paper's class colours; the network's links and the traces not chosen as hairlines with their counts; one row per
+     chosen trace ("Câu hỏi #... -> its law (n pts)", in its path's colour); the note. No frame: a translucent ground and a
+     halo of the ground's colour (css/site.css). "Tiếng Việt · English" entries in EN-VI, one language in EN or VI */
   function colorSwitch() {
     var SEP = { sep: '\u00a0· ' };
-    return '<div class="seg tr-colorby" role="group" aria-label="' + esc(VL.U('tr3d.colorBy.aria')) + '">' + ['area', 'kind'].map(function (m) {
+    return '<div class="seg tr-colorby" role="group" aria-label="' + esc(VL.U('tr3d.colorBy.aria')) + '">' + COLOR_MODES.map(function (m) {
       return '<button type="button" data-color="' + m + '" aria-pressed="' + (state.colorBy === m ? 'true' : 'false') + '">' + VL.TH('tr3d.colorBy.' + m, null, SEP) + '</button>';
     }).join('') + '</div>';
   }
   function areaLegendName(a) { return VL.TH(areaPair(a), null, { sep: '\u00a0· ' }); }
+  /* the legend's counts: the points drawn in each colour (the network's documents by type and by area, the trace nodes by
+     area; the trace graph's nodes by class) */
+  function legendCounts() {
+    var c = { type: {}, area: {}, cls: {}, none: 0, docs: NP || 0 }, i;
+    if (!G) return c;
+    for (i = 0; i < NG; i++) { var cn = cname(i); c.cls[cn] = (c.cls[cn] || 0) + 1; }
+    if (!D || !NP) return c;
+    for (var j = 0; j < NP; j++) {
+      var g = docGroup(j); c.type[g] = (c.type[g] || 0) + 1;
+      var a = docArea(j); if (a >= 0) c.area[a] = (c.area[a] || 0) + 1; else c.none++;
+    }
+    if (NAREA) TNODE.forEach(function (gi) { var a2 = NAREA[gi]; if (a2 >= 0) c.area[a2] = (c.area[a2] || 0) + 1; else c.none++; });
+    return c;
+  }
   function renderLegend() {
-    var SEP = { sep: '\u00a0· ' }, byArea = state.colorBy === 'area';
-    function li(color, pair, small) {
-      return '<li><span class="swatch' + (small ? ' small' : '') + '" style="background:' + color + '"></span>' + VL.TH(pair, null, SEP) + '</li>';
+    var SEP = { sep: '\u00a0· ' }, mode = state.colorBy, byArea = mode === 'area', C = legendCounts(), rowsM = [];
+    function n0(c) { return c != null ? ' <span class="fig-n">' + esc(VL.figCount(c)) + '</span>' : ''; }
+    function dot(color, html, n, k, small) {
+      rowsM.push({ key: k, n: n });
+      return '<li data-key="' + k + '"><span class="fig-sw fig-sw-dot' + (small ? ' small' : '') + '" style="background:' + color + '"></span><span class="fig-lb">' + html + n0(n) + '</span></li>';
     }
-    var strokes = '<li>' + curveSwatch('') + VL.TH('tr3d.lg.traced', null, SEP) + '</li>' +
-      '<li>' + curveSwatch(' s') + VL.TH('tr3d.lg.structural', null, SEP) + '</li>' +
-      '<li>' + curveSwatch(' l') + VL.TH('tr3d.lg.light', null, SEP) + '</li>';
-    var docLinks = '<li>' + curveSwatch(' n') + VL.TH('tr3d.lg.docLinks', null, SEP) + '</li>', body;
-    if (byArea) {
-      var none = T.areaColour ? T.areaColour.unassigned + T.areaColour.docsWithoutArea : 0;
+    var prov = ['chapter', 'section', 'article', 'clause', 'point', 'record'].reduce(function (s2, k) { return s2 + (C.cls[k] || 0); }, 0);
+    function classRows(withDocs) {
+      var out = withDocs ? dot('var(--cls-work)', VL.TH(VL.kpair('tr3d.cls.document'), null, SEP), D ? C.docs : null, 'cls:document') : '';
+      rowsM.push({ key: 'cls:provision', n: prov });
+      out += '<li data-key="cls:provision"><span class="tr-sw3" aria-hidden="true">' + ['chapter', 'article', 'point'].map(function (k) {
+        return '<span class="swatch" style="background:var(--cls-' + k + ')"></span>'; }).join('') + '</span><span class="fig-lb">' + VL.TH(VL.kpair('tr3d.lg.provisions'), null, SEP) + n0(prov) + '</span></li>';
+      VL.PAPER_CLASSES.forEach(function (c) { if (['term', 'question', 'answer', 'area'].indexOf(c.key) >= 0) out += dot(c.v, VL.TH(VL.pair(c.vi, c.en), null, SEP), C.cls[c.key] || 0, 'cls:' + c.key); });
+      return out + dot('var(--cls-question)', VL.TH(VL.kpair('tr3d.lg.other'), null, SEP), C.cls.other_question || 0, 'cls:other_question', true);
+    }
+    var body;
+    if (mode === 'type') {
+      body = '<ul class="fig-rows tr-types">' + VL.DOC_TYPES.map(function (t, g) {
+        if (D && !C.type[g]) return '';
+        rowsM.push({ key: 'type:' + t.key, n: D ? C.type[g] : null });
+        return VL.figDotRow(TH.docTypes[g], VL.TH(VL.pair(t.vi, t.en), null, SEP), D ? C.type[g] : null, ' data-key="type:' + t.key + '"');
+      }).join('') + (C.type[-1] ? dot(TH.docOther, VL.TH(VL.kpair('fig.type.other'), null, SEP), C.type[-1], 'type:other') : '') + '</ul>' +
+        '<ul class="fig-rows">' + classRows(false) + '</ul>';
+    } else if (byArea) {
       body = '<ul class="tr-areas">' + AREAS.map(function (a, ai) {
-        return '<li data-area="' + a.id + '"><span class="swatch" style="background:' + (AREA_RANK ? areaHex(ai) : 'transparent') + '"></span><span class="tr-an">' + areaLegendName(a) + '</span></li>';
-      }).join('') + '</ul><ul>' +
-        (none ? li(TH.areaNone, VL.kpair('net.lg.noArea')) : '') +
-        '<li><span class="tr-kinds" aria-hidden="true"><i style="width:10px;height:10px"></i><i style="width:7px;height:7px"></i><i style="width:4px;height:4px"></i></span>' +
-        VL.TH('tr3d.lg.kinds', null, SEP) + '</li>' + docLinks + strokes + '</ul>';
-    } else {
-      var items = [li('var(--cls-work)', VL.kpair('tr3d.cls.document')), docLinks,
-        /* the provision fan: three flat swatches (chapter, article, point), as the paper's legends use flat colours */
-        '<li><span class="tr-sw3" aria-hidden="true">' + ['chapter', 'article', 'point'].map(function (k) {
-          return '<span class="swatch" style="background:var(--cls-' + k + ')"></span>'; }).join('') + '</span>' + VL.TH(VL.kpair('tr3d.lg.provisions'), null, SEP) + '</li>'];
-      VL.PAPER_CLASSES.forEach(function (c) { if (['term', 'question', 'answer', 'area'].indexOf(c.key) >= 0) items.push(li(c.v, VL.pair(c.vi, c.en))); });
-      items.push(li('var(--cls-question)', VL.kpair('tr3d.lg.other'), true));
-      body = '<ul>' + items.join('') + strokes + '</ul>';
-    }
-    legendEl.innerHTML = '<div class="tr-lg-head"><h3>' + VL.TH('tr3d.lg.title') + '</h3>' + colorSwitch() + '</div>' + body +
+        rowsM.push({ key: 'area:' + a.id, n: D ? C.area[ai] || 0 : null });
+        return '<li data-area="' + a.id + '" data-key="area:' + a.id + '"><span class="swatch" style="background:' + (AREA_RANK ? areaHex(ai) : 'transparent') + '"></span><span class="tr-an">' +
+          areaLegendName(a) + (D ? n0(C.area[ai] || 0) : '') + '</span></li>';
+      }).join('') + '</ul><ul class="fig-rows">' + (C.none ? dot(TH.areaNone, VL.TH(VL.kpair('net.lg.noArea'), null, SEP), C.none, 'area:none') : '') +
+        '<li data-key="kinds"><span class="tr-kinds" aria-hidden="true"><i style="width:10px;height:10px"></i><i style="width:7px;height:7px"></i><i style="width:4px;height:4px"></i></span><span class="fig-lb">' +
+        VL.TH('tr3d.lg.kinds', null, SEP) + '</span></li></ul>';
+    } else body = '<ul class="fig-rows">' + classRows(true) + '</ul>';
+    var nLinks = Object.keys(netEdges).reduce(function (s2, k) { return s2 + netEdges[k].m; }, 0), nOther = G ? G.t.length - state.sel.length : null;
+    rowsM.push({ key: 'link:docs', n: D ? nLinks : null }, { key: 'link:threads', n: nOther });
+    var links = '<div class="legend-sub"><ul class="fig-rows">' + VL.figHairRow(TH.link, VL.TH('tr3d.lg.docLinks', null, SEP), D ? nLinks : null, ' data-key="link:docs"') +
+      VL.figHairRow(threadMix(TH.link), VL.TH('tr3d.lg.light', null, SEP), nOther, ' data-key="link:threads"') + '</ul></div>';
+    var paths = pathRows.length ? '<ul class="fig-rows fig-paths">' + pathRows.map(rowOut).map(function (r) { return VL.figPathRow(r.color, r.first, r.last, r.pts, ' data-trace="' + esc(r.key) + '"'); }).join('') + '</ul>' : '';
+    legendEl.innerHTML = '<div class="tr-lg-head"><h3>' + VL.TH('tr3d.lg.title') + '</h3>' + colorSwitch() + '</div>' + body + links + paths +
       '<p class="lg-note">' + enFirst('tr3d.lg.note') + '</p>';
     legendEl.classList.toggle('lg-area', byArea);
     legendEl.classList.toggle('hidden', !state.legendOpen);
     VL.$$('.tr-colorby button', legendEl).forEach(function (b) {
       b.addEventListener('click', function () { setColorBy(b.getAttribute('data-color'), { focus: true }); });
     });
-    VL.$('#btn-legend').setAttribute('aria-expanded', state.legendOpen ? 'true' : 'false');
     T.legendEntries = VL.$$('li', legendEl).length;
     T.legendAreas = byArea ? VL.$$('.tr-areas li', legendEl).length : 0;
-    fitLegendHeight();
+    T.legendRows = rowsM.concat(pathRows.map(rowOut).map(function (r) { return { key: 'path', trace: r.key, color: r.color, pts: r.pts, first: r.first, last: r.last }; }));
+    fitLegend();
   }
-  /* the legend never runs under the stage tools or the first-visit hint above it: taller than the room left, it gets a
-     max-height and scrolls */
-  function fitLegendHeight() {
+  /* the legend's place (js/paper3d.js VL.figLayout): on wide screens the column under the stage tools (#lgtop: its top at
+     that fraction of the canvas; it scrolls inside its height), collapsed behind its button where the stage is too
+     narrow; on phones bottom left as before, never under the stage tools or the hint above it (it scrolls) */
+  var figLay = { shown: false, collapsed: false, width: 0 }, figLayKey = '', homeLegW = 0;
+  function fitLegend() {
     if (!legendEl) return;
-    // the details panel (and a resized column, js/common.js VL.columns) brings the status line under the 400 px legend of
-    // the 27 areas: the legend then sits above it, as on the other 3D views (js/paper3d.js VL.fitLegend)
-    VL.fitLegend(stage, legendEl, statusEl);
     legendEl.style.maxHeight = '';
+    legendEl.style.top = '';
     T.legendMaxH = null;
-    if (legendEl.classList.contains('hidden')) return;
+    figLay = VL.figLayout(stage, { legend: legendEl, status: statusEl, open: state.legendOpen, force: state.legendForce });
+    /* the map is static: on wide screens the legend column left of the open hop panel lies over the map's right half, so
+       it steps back behind its button while it would cover a must-show node of a chosen trace (its question, provision
+       or law), unless the reader opened it with the button */
+    if (!mobile && figLay.shown && !state.legendForce && stage.classList.contains('panel-open') && state.sel.length && legendCoversChosen()) {
+      stage.classList.add('lg-collapsed');
+      stage.style.setProperty('--fig-lg-w', '0px');
+      figLay = { shown: false, collapsed: true, width: 0 };
+      T.legendYields = (T.legendYields || 0) + 1;
+    }
+    var btn = VL.$('#btn-legend');
+    if (btn) btn.setAttribute('aria-expanded', state.legendOpen && !figLay.collapsed ? 'true' : 'false');
+    if (!stage.classList.contains('panel-open')) homeLegW = figLay.shown && !mobile ? figLay.width : 0;
+    VL.fitLegend(stage, legendEl, statusEl);
+    var key2 = [figLay.shown, figLay.collapsed, figLay.width].join(':');
+    if (key2 !== figLayKey) { figLayKey = key2; scheduleCallouts(); }
+    T.figLayout = { shown: figLay.shown, collapsed: figLay.collapsed, width: figLay.width, homeLegW: homeLegW };
+    if (legendEl.classList.contains('hidden') || figLay.collapsed) return;
     var hr = host.getBoundingClientRect(), lr = legendEl.getBoundingClientRect();
     if (lr.width < 2 || lr.height < 2) return;
+    if (!mobile) {
+      if (LEGEND_TOP != null) {
+        var top0 = Math.round(hr.height * LEGEND_TOP), room0 = Math.max(80, Math.floor(hr.height - top0 - 44));
+        legendEl.style.top = top0 + 'px';
+        legendEl.style.maxHeight = room0 + 'px';
+        T.legendMaxH = room0;
+      }
+      return;
+    }
     var lx0 = lr.left - hr.left, lx1 = lr.right - hr.left, lb = lr.bottom - hr.top, top = 8;
-    // colouring by area on wide screens: the 27 areas' legend reaches no higher than LEGEND_TOP of the canvas (it scrolls
-    // inside), so the laws' call-outs left of the scene keep their room
-    if (state.colorBy === 'area' && !mobile) top = Math.max(top, Math.round(hr.height * LEGEND_TOP));
-    ['.stage-tools', '#hint'].forEach(function (q) {
+    ['.stage-tools', '#hint', '#fig-title'].forEach(function (q) {
       var b = boxIn(VL.$(q, stage));
       if (b && b.x0 < lx1 && b.x1 > lx0 && (b.y0 + b.y1) / 2 < lb - 40) top = Math.max(top, b.y1 + 8);
     });
     var room = Math.floor(lb - top);
     if (lr.height > room) { legendEl.style.maxHeight = Math.max(80, room) + 'px'; T.legendMaxH = Math.max(80, room); }
   }
+  /* does the legend column (CSS px, 10 px around it) lie over the question, provision or law of a chosen trace? */
+  function legendCoversChosen() {
+    if (!camera) return false;
+    var hr = host.getBoundingClientRect(), lr = legendEl.getBoundingClientRect();
+    if (lr.width < 2 || lr.height < 2) return false;
+    var x0 = lr.left - hr.left - 10, x1 = lr.right - hr.left + 10, y0 = lr.top - hr.top - 10, y1 = lr.bottom - hr.top + 10, v = new THREE.Vector3();
+    camera.updateMatrixWorld();
+    return state.sel.some(function (t) {
+      return [t.co[0], t.co[2], t.co[3]].some(function (i) {
+        if (i == null || i < 0) return false;
+        var q = ptOf(i);
+        v.set(q.x, q.y, q.z).project(camera);
+        var x = (v.x + 1) / 2 * host.clientWidth, y = (1 - v.y) / 2 * host.clientHeight;
+        return x >= x0 && x <= x1 && y >= y0 && y <= y1;
+      });
+    });
+  }
   /* colour by area or by kind (the legend's switch, VL.store, #color=): only the colours change - the choice, the alphas,
      the camera and the panel stay; the call-outs are placed again around the new legend */
   function setColorBy(mode, opts) {
-    if ((mode !== 'area' && mode !== 'kind') || mode === state.colorBy) return;
+    if (COLOR_MODES.indexOf(mode) < 0 || mode === state.colorBy) return;
     state.colorBy = mode;
     T.colorBy = M.colorBy = mode;
     T.colorSwitches = (T.colorSwitches || 0) + 1;
     VL.store.set(COLOR_KEY, mode);
-    app.classList.toggle('tr-color-kind', mode === 'kind');
+    app.classList.toggle('tr-color-kind', mode !== 'area');
     renderLegend();
     if (opts && opts.focus) { var b = VL.$('.tr-colorby [data-color="' + mode + '"]', legendEl); if (b) b.focus(); }
     if (renderer && netObj) { applyColors(); drawFgNodes(); }
@@ -1914,10 +2086,14 @@
     needsRender = true;
     scheduleCallouts();
   }
-  app.classList.toggle('tr-color-kind', state.colorBy === 'kind');
+  app.classList.toggle('tr-color-kind', state.colorBy !== 'area');
   VL.$('#btn-legend').innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>';
   VL.$('#btn-reset').innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg>';
-  VL.$('#btn-legend').addEventListener('click', function () { state.legendOpen = !state.legendOpen; renderLegend(); scheduleCallouts(); });
+  VL.$('#btn-legend').addEventListener('click', function () {
+    if (state.legendOpen && !figLay.collapsed) { state.legendOpen = false; state.legendForce = false; } else { state.legendOpen = true; state.legendForce = true; }
+    renderLegend();
+    scheduleCallouts();
+  });
   /* the scene never moves by itself (choosing, searching and the list only change the drawing): Reset view returns to
      the whole scene (the choice stays), Zoom to selection frames every chosen trace (nothing chosen: the whole scene) */
   function resetView() { if (camera && D) fitAll(800); }
@@ -1964,12 +2140,21 @@
     if (state.sel.length) { clearSelection(true); closePanel(); return; }
     if (!panel.classList.contains('hidden')) { seq++; closePanel(); }
   });
-  function showHint() { if (VL.store.get('hint-traces3d') !== 'off') { VL.$('#hint').classList.remove('hidden'); fitLegendHeight(); scheduleCallouts(); } }
-  function hideHint() { var h = VL.$('#hint'); if (h && !h.classList.contains('hidden')) { h.classList.add('hidden'); fitLegendHeight(); scheduleCallouts(); } }
+  function showHint() { if (VL.store.get('hint-traces3d') !== 'off') { VL.$('#hint').classList.remove('hidden'); fitLegend(); scheduleCallouts(); } }
+  function hideHint() { var h = VL.$('#hint'); if (h && !h.classList.contains('hidden')) { h.classList.add('hidden'); fitLegend(); scheduleCallouts(); } }
   VL.$('#hint-close').addEventListener('click', function () { hideHint(); VL.store.set('hint-traces3d', 'off'); });
+  /* the title line (top left; the number of traced answers) and the parameter line (bottom left; the network's layout as
+     its data records it: algorithm and seed, the trace graph's own placement) */
+  var ALGO = { drl: 'DrL', fr: 'Fruchterman-Reingold', kk: 'Kamada-Kawai' };
   function status() {
     if (!G) return;
     statusEl.textContent = VL.U('tr3d.status', { docs: fmt(D ? D.N : G.net.nodes), nodes: fmt(TNODE.length || NG), traces: fmt(G.t.length) }) + (T.fps ? ' · ' + fmt(T.fps) + ' fps' : '');
+    var lay = (D && D.net && D.net.layout) || {}, algo = ALGO[String(lay.algo || '').toLowerCase()] || lay.algo;
+    VL.figText(stage, { title: VL.TH('fig.title.traces') + ' <span class="fig-n">' + esc(VL.figCount(G.t.length)) + '</span>',
+      params: algo ? VL.U('fig.params.traces', { algo: algo, seed: lay.seed != null ? lay.seed : '?' }) : '' });
+    T.figTitle = (VL.$('#fig-title') || {}).textContent || '';
+    T.figParams = (VL.$('#fig-params') || {}).textContent || '';
+    fitLegend();
   }
   function applyTheme() {
     readTheme();
@@ -2053,7 +2238,7 @@
   }
   function route() {
     var r = parseHash();
-    if (r.list.length) return sameChoice(r.list, r.cur) ? Promise.resolve(null) : setSelection(r.list, r.cur, {});
+    if (r.list.length) return sameChoice(r.list, r.cur) ? Promise.resolve(null) : setSelection(r.list, r.cur, { fresh: true });
     if (state.sel.length) { clearSelection(false); closePanel(); }
     return r.scroll ? scrollToArea(r.scroll, { open: true }) : Promise.resolve(null);
   }
@@ -2123,9 +2308,8 @@
       var out = [one('documents', netObj), one('traceNodes', trObj), one('contextLinks', trEdges.obj)];
       Object.keys(netEdges).forEach(function (k) { out.push(one('networkLinks.' + k, netEdges[k].obj)); });
       out.push(one('strokes', threads.obj));
-      [['bold.structural', boldS], ['bold.verified', boldV]].forEach(function (b) {
-        b[1].object.children.forEach(function (m, i) { out.push(one(b[0] + '.' + ['halo2', 'halo', 'core'][i], m)); });
-      });
+      out.push(one('paths', figPaths.object));
+      out.push(one('marks', figMarks.object));
       if (layerGroup) {         // the layer and Q&A planes: their meshes' highest draw order
         var po = { name: 'planes', renderOrder: -1, meshes: 0 };
         layerGroup.traverse(function (o) { if (o.material) { po.meshes++; po.renderOrder = Math.max(po.renderOrder, o.renderOrder); } });
@@ -2162,7 +2346,7 @@
         solidNodes: solid, mismatched: bad, untracedDocsNotLight: docsOff, netLinks: nl,
         strokes: { opacity: r4(threads.mat.uniforms.uOpacity.value), base: THREAD_A, mix: THREAD_MIX, width: 1, segments: threads.pieces, traced: TRACED.length, kind: 'lines' },
         contextRest: CTX_REST,
-        bold: { verified: boldV.count(), structural: boldS.count() }, fg: T.fgDrawn, solid: T.solid, writes: T.selectionWrites };
+        paths: { traces: pathRows.length, segments: figPaths.count() }, fg: T.fgDrawn, solid: T.solid, writes: T.selectionWrites };
     },
     /* the traced laws: each one's network point, its position and the document's (they must be the same) */
     laws: function () {
@@ -2209,6 +2393,14 @@
     settle: function () { return T.sceneReady && !tween && !(callouts && callouts.last === null); },
     /* the camera (position, target) and the rectangles the views are framed in; Zoom to selection and Reset view */
     camera: function () { return camera ? { pos: camera.position.toArray(), target: controls.target.toArray() } : null; },
+    /* the near-parallel view (js/paper3d.js VL.figPlaneWidths): the six layers' and the Q&A planes' projected widths, the
+       top first, the questions' plane last */
+    figView: function () {
+      if (!camera || !D) return null;
+      var E = D.extent * 1.06, pls = [0, 1, 2, 3, 4, 5].map(function (r) { return { key: 'rank-' + r, y: NS.layerY(D, r) - 2, x0: -E, x1: E, z0: -E, z1: E }; });
+      pls.push({ key: 'answers', y: G.planes.z_answer * NS.ZS - 2, x0: -E, x1: E, z0: -E, z1: E }, { key: 'questions', y: G.planes.z_question * NS.ZS - 2, x0: -E, x1: E, z0: -E, z1: E });
+      return VL.figPlaneWidths(camera, host.clientWidth, host.clientHeight, pls);
+    },
     view: function () { return camera && D ? { home: homeRect(), free: freeRect(), homeView: (function (f) { return { pos: f.pos.toArray(), target: f.target.toArray() }; })(homeView()) } : null; },
     zoom: function () { zoomToSelection(); },
     reset: function () { resetView(); },
@@ -2226,14 +2418,10 @@
         var fa = fgObj.geometry.attributes;
         fg = { pos: Array.prototype.map.call(fa.position.array, function (v) { return Math.round(v * 10) / 10; }), size: Array.prototype.map.call(fa.aSize.array, function (v) { return Math.round(v * 10) / 10; }),
           color: Array.prototype.map.call(fa.aColor.array, function (v) { return Math.round(v * 255); }),
-          scale: FG_SIZE, minPx: FG_MIN_PX, ringPx: FG_RING_PX, ink: TH.ink, ring: TH.bg, order: ORDER.chosen, nodes: fgNodes.slice() };
+          scale: FG_SIZE, minPx: FG_MIN_PX, ringPx: FG_RING_PX, ink: TH.ink, ring: TH.bg, order: ORDER.chosen, nodes: fgNodes.slice(),
+          rings: fgNodes.map(function (i) { return fgRings[i] || TH.ink; }) };
       }
-      var bold = { v: [], s: [] }, ver = new Set(), seen = new Set();
-      state.sel.forEach(function (t) { var e = t.e; for (var j = 0; j < e.length; j += 3) if (e[j + 2] === 1) ver.add(pairKey(e[j], e[j + 1])); });
-      state.sel.forEach(function (t) {
-        var e = t.e;
-        for (var j = 0; j < e.length; j += 3) { var kk = pairKey(e[j], e[j + 1]); if (seen.has(kk)) continue; seen.add(kk); (ver.has(kk) ? bold.v : bold.s).push([e[j], e[j + 1]]); }
-      });
+      var paths = pathList.map(function (q) { return { color: q.color, width: q.width, main: !!q.main, trace: q.trace, pts: q.pts.map(function (v) { return [r3(v.x), r3(v.y), r3(v.z)]; }) }; });
       return {
         w: host.clientWidth, h: host.clientHeight, fov: camera.fov, near: camera.near, far: camera.far, dpr: renderer.getPixelRatio(),
         pos: camera.position.toArray().map(r3), target: controls.target.toArray().map(r3), up: camera.up.toArray(),
@@ -2247,7 +2435,7 @@
         traceNodes: { nodes: TNODE, alpha: Array.prototype.map.call(ta.aAlpha.array, r3), size: Array.prototype.slice.call(ta.aSize.array),
           color: Array.prototype.map.call(ta.aColor.array, function (v) { return Math.round(v * 255); }), blend: trObj.material.transparent && !trObj.material.depthWrite ? 'alpha' : 'opaque' },
         faint: FAINT, traceLinks: links, traceLinkSeg: trEdges.seg, traced: TRACED, strokes: threadTable(),
-        bold: bold, boldStyle: { v: boldStyle(1), s: boldStyle(0.55), sOpacity: P.dark ? 0.6 : 0.62, seg: TRACE_SEG }, fg: fg,
+        paths: paths, pathCasing: VL.FIG_PATH.casing, pathOrder: ORDER.paths, marks: figMarks.list(), markOrder: ORDER.marks, pathRows: pathRows.map(rowOut), fg: fg,
         curve: { curves: CURVES, bend: NS.BEND, gap: NS.LAYER_GAP, liftMax: NS.LIFT_MAX },
         rim: ptMat.uniforms.uRim.value, fog: [FOG.value.x, FOG.value.y, FOG.value.z],
         paper: { core: P.core, halo: P.halo, halo2: P.halo2, calloutBg: P.calloutBg, calloutLine: P.calloutLine, selBg: P.selBg,

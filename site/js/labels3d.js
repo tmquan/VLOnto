@@ -1,9 +1,9 @@
 /* VLOnto - text labels for the 3D views: THREE.Sprite with a canvas texture drawn here, sizeAttenuation off and an exact
    on-screen size in CSS pixels. (three-spritetext adds its padding to the sprite scale in absolute world units, which
    breaks constant-pixel labels, so it is not used for labels.)
-   Paper style (arXiv:2611.11426, Fig. 1): call-outs in Libertinus Sans, white box with a 1 px light-grey border and
-   square-ish corners, "Vietnamese · English" in two greys (one line, or Vietnamese over English), and a thin grey leader
-   line from the box to its node. The 3D views place their call-outs with VL.Callouts (js/paper3d.js): the sprite sits
+   Figure look (site v1.3, the paper's Figs. 1, 6 and 12): call-outs in Libertinus Sans without a box - the text with a
+   halo of the ground's colour (opts.halo, haloPx), "Vietnamese · English" in two greys (one line, or Vietnamese over
+   English), and a thin grey leader line from the text to its node (the box options bg / border stay for other callers). The 3D views place their call-outs with VL.Callouts (js/paper3d.js): the sprite sits
    at its node, setOffset() moves the box in screen pixels, and the leader is a separate VL.LeaderSprite. (The older
    mode, a leader drawn into the texture with side 'above' or 'below', is kept for other callers.)
    Load after vendor/three/three.iife.min.js and js/common.js. */
@@ -37,7 +37,8 @@
     var o = s.__opts, lines = linesOf(s);
     var cv = document.createElement('canvas'), ctx = cv.getContext('2d');
     var S = F * 1.68 / s.__drawPx;                       // canvas px per CSS px
-    var padX = Math.round(F * (o.padX != null ? o.padX : 0.45)), padY = Math.round(F * 0.2);
+    var haloW = o.halo ? (o.haloPx || 2.5) * S : 0;
+    var padX = Math.max(Math.round(F * (o.padX != null ? o.padX : 0.45)), Math.ceil(haloW + 1)), padY = Math.max(Math.round(F * 0.2), Math.ceil(haloW + 1));
     var lh = Math.round(F * 1.28), lh2 = Math.round(F * 1.14);
     var tw = 0;
     lines.forEach(function (ln) {
@@ -75,15 +76,25 @@
     }
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
-    lines.forEach(function (ln, i) {
-      var y = top + padY + (i === 0 ? lh / 2 : lh + (i - 1) * lh2 + lh2 / 2) + F * 0.05, x = 1 + padX;
-      ln.forEach(function (p) {
-        ctx.font = fontOf(o, p);
-        ctx.fillStyle = p.color;
-        ctx.fillText(p.text, x, y);
-        x += ctx.measureText(p.text).width;
+    /* the halo first (every part of every line), then the text over it */
+    for (var pass = o.halo ? 0 : 1; pass < 2; pass++) {
+      lines.forEach(function (ln, i) {
+        var y = top + padY + (i === 0 ? lh / 2 : lh + (i - 1) * lh2 + lh2 / 2) + F * 0.05, x = 1 + padX;
+        ln.forEach(function (p) {
+          ctx.font = fontOf(o, p);
+          if (pass === 0) {
+            ctx.lineJoin = 'round';
+            ctx.strokeStyle = o.halo;
+            ctx.lineWidth = 2 * haloW;
+            ctx.strokeText(p.text, x, y);
+          } else {
+            ctx.fillStyle = p.color;
+            ctx.fillText(p.text, x, y);
+          }
+          x += ctx.measureText(p.text).width;
+        });
       });
-    });
+    }
     var tex = new THREE.CanvasTexture(cv);
     tex.minFilter = THREE.LinearFilter;
     tex.magFilter = THREE.LinearFilter;
@@ -105,6 +116,7 @@
     if (s.__opts.leader) s.center.set(0.5, side === 'below' ? 1 : 0);
   }
   /* opts: px (height in CSS px of a one-line box), weight, color, bg, border, borderPx, radius (CSS px), font, padX,
+     halo (colour of a halo round the text, instead of a box) + haloPx (its width in CSS px),
      lines (parts as above, instead of text and color), leader (CSS px) + leaderColor + side ('above' | 'below'),
      cx, cy (sprite centre when there is no leader) */
   VL.TextSprite = function (text, opts) {
@@ -139,7 +151,7 @@
     s.textStyle = function () {
       var o = s.__opts;
       return { px: s.__drawPx, font: o.font || FONT, weight: o.weight || '600', bg: o.bg || null, border: o.border || null, borderPx: o.borderPx || null,
-        radius: o.radius != null ? o.radius : null, padX: o.padX != null ? o.padX : 0.45,
+        radius: o.radius != null ? o.radius : null, padX: o.padX != null ? o.padX : 0.45, halo: o.halo || null, haloPx: o.halo ? (o.haloPx || 2.5) : null,
         lines: linesOf(s).map(function (ln) { return ln.map(function (p) { return [p.text, p.color, p.weight || null, !!p.italic]; }); }) };
     };
     s.setPx = function (px) { s.__px = px; s.fit(s.__wpp); };

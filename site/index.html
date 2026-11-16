@@ -100,7 +100,7 @@
   </aside>
   <section class="scene-stage" id="stage" aria-label="3D ontology scene" data-i18n-aria="play.scene.aria">
     <div class="scene-canvas" id="canvas-host" tabindex="0" role="application" aria-roledescription="3D graph" aria-label="3D view of the VLOnto ontology. Drag or use the arrow keys to rotate, scroll or press plus and minus to zoom, click a class or link for details." data-i18n-aria="play.canvas.aria"></div>
-    <div class="legend" id="legend"></div>
+    <div class="legend fig-legend" id="legend"></div>
     <div class="hint hidden" id="hint" role="note">
       <p><strong data-i18n="o3d.hint.title">The ontology, level by level.</strong> <span class="desk-only" id="play-hint-desk" data-vl-text>Root classes on top, subclasses on the planes below, then concept schemes and external vocabularies. Drag to rotate, scroll to zoom; click a term or a link for details, press <kbd>/</kbd> to search.</span><span class="touch-only" data-i18n="o3d.hint.touch">Root classes on top, subclasses on the planes below, then concept schemes and external vocabularies. Drag to rotate, pinch to zoom; tap a term or a link for details.</span></p>
       <button class="btn btn-xs" type="button" id="hint-close" data-i18n="play.hint.ok">Got it</button>
@@ -110,6 +110,8 @@
       <button class="btn" type="button" id="btn-legend" title="Show or hide the legend" aria-label="Show or hide the legend" aria-expanded="true" aria-controls="legend" data-i18n-title="play.legend.toggle" data-i18n-aria="play.legend.toggle"></button>
     </div>
     <div class="stage-status" id="status" aria-live="polite"></div>
+    <p class="fig-title" id="fig-title"></p>
+    <p class="fig-params" id="fig-params"></p>
     <div class="tooltip3d hidden" id="tip" role="tooltip"></div>
     <div class="loading-veil" id="veil"><div><div class="spin"></div><span data-i18n="play.building">Building the 3D ontology…</span></div></div>
     <aside class="scene-panel hidden" id="panel" aria-label="Details" data-i18n-aria="play.details.aria" tabindex="-1"></aside>
