@@ -207,13 +207,14 @@ JS_COLS = """() => { const q = s => document.querySelector(s), A = window.VLApp 
     aria: { side: attrs(hs), panel: attrs(hp) }, widths: A ? A.widths() : null, limits: A ? { side: A.limits('side'), panel: A.limits('panel') } : null, stored,
     free: Math.round(((pb ? pb[0] : st[2]) - sb[2]) * 10) / 10, scrollW: document.documentElement.scrollWidth, innerW: innerWidth, selection: sel,
     vars: [q('#app').style.getPropertyValue('--side-w'), q('#app').style.getPropertyValue('--panel-w')], M: window.__VLONTO_METRICS.columns || null }; }"""
-# the stage's overlays (first-visit hint, stage tools, legend, status line) with a column resized: none meets another,
-# none lies under the side column or the open panel; the stage between the columns at least 360 px wide
+# the stage's overlays (first-visit hint, stage tools, legend, status line; the figure look's title and parameter lines)
+# with a column resized: none meets another, none lies under the side column or the open panel; the stage between the
+# columns at least 360 px wide
 JS_COLS_OVERLAYS = """() => { const q = s => document.querySelector(s);
   const vis = e => !!e && !e.hidden && !e.classList.contains('hidden') && getComputedStyle(e).display !== 'none' && getComputedStyle(e).visibility !== 'hidden' && e.getBoundingClientRect().width > 1;
   const box = e => { const b = e.getBoundingClientRect(); return [b.left, b.top, b.right, b.bottom].map(x => Math.round(x * 10) / 10); };
   const p = q('#panel'), pb = vis(p) ? box(p) : null, side = box(q('#side')), stage = box(q('#stage'));
-  const B = {}; [['hint', '#hint'], ['tools', '.stage-tools'], ['legend', '#legend'], ['status', '#status']].forEach(([k, s]) => { const e = q(s); if (vis(e)) B[k] = box(e); });
+  const B = {}; [['hint', '#hint'], ['tools', '.stage-tools'], ['legend', '#legend'], ['status', '#status'], ['title', '#fig-title'], ['params', '#fig-params']].forEach(([k, s]) => { const e = q(s); if (vis(e)) B[k] = box(e); });
   const meet = (a, b) => a[0] < b[2] - 0.5 && b[0] < a[2] - 0.5 && a[1] < b[3] - 0.5 && b[1] < a[3] - 0.5, ks = Object.keys(B), bad = [];
   for (let i = 0; i < ks.length; i++) for (let j = i + 1; j < ks.length; j++) if (meet(B[ks[i]], B[ks[j]])) bad.push(ks[i] + '/' + ks[j]);
   ks.forEach(k => { if (pb && B[k][2] > pb[0] + 0.5) bad.push(k + ' under the panel'); if (B[k][0] < side[2] - 0.5) bad.push(k + ' under the side'); });
@@ -1730,59 +1731,72 @@ def t_paper(c: Ctx):
 
 # Paper style of the 3D views (css/site.css "paper style", js/paper3d.js): expected tokens per theme, the colours of the
 # traced path, and the old palette of the pages outside the 3D views.
+# site v1.3 (the figure look of the paper's Figs. 1, 6 and 12): the first path colour (--path-0: the paper's ink on the
+# light ground, near-white on the dark one) and the halo of the stage's text (--fig-halo, the ground) replace the navy core
+# and the gold halo of the traces
 PAPER_EXPECT = {
-    "light": {"scene_bg": "#ffffff", "core": "#2c3a47", "halo": "#ecc890", "work": "#7dbe8e", "callout_line": "#d3d7dc"},
-    "dark": {"scene_bg": "#0f131a", "core": "#f6f1e6", "halo": "#ecc890", "work": "#7dbe8e", "callout_line": "#3a4350"},
+    "light": {"scene_bg": "#ffffff", "path0": "#1b1b1b", "fig_halo": "#ffffff", "work": "#7dbe8e", "callout_line": "#d3d7dc"},
+    "dark": {"scene_bg": "#0f131a", "path0": "#f2f4f7", "fig_halo": "#0f131a", "work": "#7dbe8e", "callout_line": "#3a4350"},
 }
 OTHER_PAGES_EXPECT = {"light": {"mod_documents": "#2563eb", "scene_bg": "#f3f6fb"}, "dark": {"mod_documents": "#4f8ef7", "scene_bg": "#0a0f1e"}}
 JS_PAPER = """(sel) => { const el = sel ? document.querySelector(sel) : document.documentElement, cs = getComputedStyle(el), M = window.__VLONTO_METRICS || {};
   const t = n => cs.getPropertyValue(n).trim().toLowerCase();
   const lib = [...document.fonts].filter(f => f.family.replace(/["']/g, '') === 'Libertinus Sans').map(f => f.weight + '/' + f.style + ':' + f.status);
   return { scope: el.getAttribute('data-style'), theme: document.documentElement.getAttribute('data-theme'), scene_bg: t('--scene-bg'),
-    core: t('--paper-trace-core'), halo: t('--paper-trace-halo'), work: t('--cls-work'), callout_line: t('--paper-callout-line'),
+    path0: t('--path-0'), fig_halo: t('--fig-halo'), work: t('--cls-work'), callout_line: t('--paper-callout-line'),
     font_paper: t('--vlo-font-paper'), libertinus: lib, paperStyle: !!M.paperStyle }; }"""
-# pixels of the traced path in a screenshot, decoded in the page (like JS_MODE): the raw counts of core- and halo-coloured
-# pixels (within a colour tolerance), and two counts that leave out the call-out boxes (the selected node's call-out uses
-# the core colour for its border on the light theme and the halo colour on the dark one): core pixels, and gold pixels
-# (R >= G >= B, R - B >= 40: the halo family, i.e. halo, outer halo and their blends with the ground or the core) within
-# `radius` device px of a core pixel, i.e. the halo band that flanks the core whatever the trace width, antialiasing or
-# the view behind it
-JS_TRACE_PX = """async (arg) => { const img = new Image(); img.src = arg.src; await img.decode();
+# pixels of the paths of the figure look in a screenshot, decoded in the page (like JS_MODE): for each colour asked (the
+# path colours --path-0 ..., read from the page's tokens), the pixels within a colour tolerance outside the call-out boxes
+# (call-out text is the ink, close to the first path colour on the light ground). The paths are drawn without depth test
+# over the scene, a thin casing of the ground's colour on each side, so their own colour shows in the middle of the line
+JS_PATH_PX = """async (arg) => { const img = new Image(); img.src = arg.src; await img.decode();
   const W = img.naturalWidth, H = img.naturalHeight, cv = document.createElement('canvas'); cv.width = W; cv.height = H;
   const cx = cv.getContext('2d', { willReadFrequently: true }); cx.drawImage(img, 0, 0);
-  const d = cx.getImageData(0, 0, W, H).data, n = W * H, skip = new Uint8Array(n), core = new Uint8Array(n), s = W / arg.cssW;
+  const d = cx.getImageData(0, 0, W, H).data, n = W * H, skip = new Uint8Array(n), s = W / arg.cssW;
   for (const b of arg.boxes) {
     const x0 = Math.max(0, Math.floor((b[0] + arg.ox - 3) * s)), y0 = Math.max(0, Math.floor((b[1] + arg.oy - 3) * s));
     const x1 = Math.min(W - 1, Math.ceil((b[2] + arg.ox + 3) * s)), y1 = Math.min(H - 1, Math.ceil((b[3] + arg.oy + 3) * s));
     for (let y = y0; y <= y1; y++) skip.fill(1, y * W + x0, y * W + x1 + 1); }
-  const [cr, cg, cb, ct] = arg.core, [hr, hg, hb, ht] = arg.halo;
-  let rawCore = 0, rawHalo = 0, coreOut = 0, near = 0;
-  for (let p = 0, i = 0; p < n; p++, i += 4) {
-    const r = d[i], g = d[i + 1], b = d[i + 2]; let dr = r - cr, dg = g - cg, db = b - cb;
-    if (dr * dr + dg * dg + db * db <= ct * ct) { rawCore++; if (!skip[p]) { core[p] = 1; coreOut++; } }
-    dr = r - hr; dg = g - hg; db = b - hb; if (dr * dr + dg * dg + db * db <= ht * ht) rawHalo++; }
-  const R = arg.radius, row = new Uint8Array(n), ps = new Int32Array(Math.max(W, H) + 1);
-  for (let y = 0; y < H; y++) { const o = y * W; for (let x = 0; x < W; x++) ps[x + 1] = ps[x] + core[o + x];
-    for (let x = 0; x < W; x++) row[o + x] = ps[Math.min(W, x + R + 1)] - ps[Math.max(0, x - R)] > 0 ? 1 : 0; }
-  for (let x = 0; x < W; x++) { for (let y = 0; y < H; y++) ps[y + 1] = ps[y] + row[y * W + x];
-    for (let y = 0; y < H; y++) { const p = y * W + x; if (skip[p] || core[p] || ps[Math.min(H, y + R + 1)] === ps[Math.max(0, y - R)]) continue;
-      const i = 4 * p, r = d[i], g = d[i + 1], b = d[i + 2];
-      if (r >= g && g >= b && r - b >= 40 && g - b >= 0.3 * (r - b)) near++; } }
-  return [rawCore, rawHalo, coreOut, near]; }"""
+  const C = arg.colours, out = C.map(() => 0);
+  for (let p = 0, i = 0; p < n; p++, i += 4) { if (skip[p]) continue;
+    const r = d[i], g = d[i + 1], b = d[i + 2];
+    for (let k = 0; k < C.length; k++) { const dr = r - C[k][0], dg = g - C[k][1], db = b - C[k][2];
+      if (dr * dr + dg * dg + db * db <= C[k][3] * C[k][3]) { out[k]++; break; } } }
+  return out; }"""
 JS_TRACE_PX_GEOM = """(sel) => { const el = document.querySelector(sel), co = (window.__VLONTO_METRICS || {}).callouts || {};
   return { cssW: el.getBoundingClientRect().width, ox: el.clientLeft, oy: el.clientTop, dpr: window.devicePixelRatio || 1,
     boxes: (co.placed || []).map(p => p.box) }; }"""
 
 
-# call-out placement of the 3D views (js/paper3d.js VL.Callouts -> window.__VLONTO_METRICS.callouts) and the cap of the
-# trace widths in CSS px (VL.TRACE_W)
+# call-out placement of the 3D views (js/paper3d.js VL.Callouts -> window.__VLONTO_METRICS.callouts)
 JS_CALLOUTS = "() => window.__VLONTO_METRICS.callouts || null"
-TRACE_CAP = {"core": 2.8, "halo": 6.4, "halo2": 9.2}
-# the overlays on the stage of a 3D view (legend, status line, hint, stage tools) do not meet: the paper legend can be
-# 720 px wide and the status line moves left when the details panel opens, so the legend moves up above it
-# (VL.fitLegend in js/paper3d.js); returns the pairs that meet
+# the paths' marks in CSS px (js/paper3d.js VL.FIG_PATH): the main strand, the other strands, the casing on each side, the
+# diamond (a path's first node), the square (its last), the beads, the marks' ring
+FIG_PATH_EXPECT = {"main": 4.4, "other": 2.2, "casing": 1.5, "diamond": 15, "square": 12, "bead": 8, "ring": 1.5}
+# the near-parallel view (js/paper3d.js VL.FIG_FOV): a field of view of at most FIG_FOV_MAX degrees, and on load the top and
+# the bottom plane of a view's stack project within PARALLEL_MIN of each other's width (VLApp.figView: about 0.97 with the
+# 8-degree view, about 0.86 with the former 45-degree one)
+FIG_FOV_MAX = 12
+PARALLEL_MIN = 0.95
+JS_FIG_VIEW = "(t) => t ? window.VLApp.traces.figView() : window.VLApp.figView()"
+# nothing on the stage is boxed (the figure look): the title line, the parameter line, the status line and the legend have
+# no border, outline or shadow (the legend lies on a translucent ground, the others on none); the call-outs have no box
+JS_UNBOXED = """() => { const out = [], P = window.VL.paperTheme(), co = window.VL.paperCallout(P, false), cs = window.VL.paperCallout(P, true);
+  [['title', '.scene-stage .fig-title'], ['params', '.scene-stage .fig-params'], ['status', '.scene-stage .stage-status'], ['legend', '.scene-stage .legend']].forEach(([k, q]) => {
+    const e = document.querySelector(q); if (!e) { out.push(k + ' missing'); return; }
+    const st = getComputedStyle(e); if (st.display === 'none') return;
+    ['Top', 'Right', 'Bottom', 'Left'].forEach(x => { if ((parseFloat(st['border' + x + 'Width']) || 0) > 0 && st['border' + x + 'Style'] !== 'none') out.push(k + ' border-' + x.toLowerCase()); });
+    if (st.outlineStyle !== 'none' && (parseFloat(st.outlineWidth) || 0) > 0) out.push(k + ' outline');
+    if (st.boxShadow && st.boxShadow !== 'none') out.push(k + ' shadow ' + st.boxShadow);
+    if (k !== 'legend' && !/^(transparent|rgba\\(0, 0, 0, 0\\))$/.test(st.backgroundColor)) out.push(k + ' background ' + st.backgroundColor); });
+  if (co.bg || co.border || cs.bg || cs.border) out.push('call-outs boxed ' + JSON.stringify([co.bg, co.border, cs.bg, cs.border]));
+  return out; }"""
+# the overlays on the stage of a 3D view (legend, status line, hint, stage tools, the title and parameter lines of the
+# figure look) do not meet: on wide screens the legend is a column under the stage tools, above the status line, left of
+# the details panel (VL.figLayout); on phones it moves up above the status line where the two would meet (VL.fitLegend in
+# js/paper3d.js); returns the pairs that meet
 JS_OVERLAYS = """() => { const R = {}, out = [];
-  [['legend', '#legend'], ['status', '#status'], ['hint', '#hint'], ['tools', '.stage-tools']].forEach(([k, s]) => {
+  [['legend', '#legend'], ['status', '#status'], ['hint', '#hint'], ['tools', '.stage-tools'], ['title', '#fig-title'], ['params', '#fig-params']].forEach(([k, s]) => {
     const e = document.querySelector(s);
     if (!e || e.offsetParent === null) return;
     const r = e.getBoundingClientRect();
@@ -1839,13 +1853,45 @@ def hex_rgb(h):
     return [int(h[i:i + 2], 16) for i in (0, 2, 4)]
 
 
-def trace_pixels(pg, sel, theme):
-    """navy (light) or off-white (dark) core pixels and gold halo pixels in the element's screenshot; the overlays (details
-    panel, hint, tooltip and the legend with its own trace swatch) are hidden while capturing, so only WebGL is counted.
-    core / halo: raw counts; core_out: core pixels outside the call-out boxes; halo_near_core: gold pixels next to those
-    (within the trace's half width at the cap, 3.2 CSS px, plus 2 device px), outside the call-out boxes (JS_TRACE_PX)"""
-    e = PAPER_EXPECT[theme]
-    hide = "#panel, #hint, #tip, .legend, .vl-footbar"
+# the playground's paths (js/ontology3d.js updateTrace): the drawn paths (colours, widths), the marks (id, shape, ring
+# colour), the legend's path rows (colour, points, first and last node), the nodes still wearing a halo (none: the gold
+# halo of v1.2 is gone)
+JS_ONTO_PATHS = """() => { const M = window.__VLONTO_METRICS, d = window.VLApp.sceneDump(8), cs = getComputedStyle(document.documentElement);
+  const tok = (n) => cs.getPropertyValue(n).trim().toLowerCase();
+  return { paths: M.figPaths || {}, marks: (M.figMarkers || []).map((m) => [m.id, m.shape, String(m.stroke).toLowerCase()]),
+    rows: (M.legendRows || []).filter((r) => r.key === 'path').map((r) => [String(r.color).toLowerCase(), r.pts, r.from, r.to]),
+    legendPathRows: document.querySelectorAll('#legend .fig-paths li').length, halos: d.nodes.filter((n) => n.halo).map((n) => n.id),
+    path0: tok('--path-0'), path1: tok('--path-1') }; }"""
+# the legal network by document type on load (js/network3d.js): the colour buttons Type | Validity | Area with Type
+# pressed; one legend row per type group with the number of shown documents of the group, counted here from the data
+# drawn (data/legal_network*.js: the type's code -> the 7 groups of the paper's figures), its dot in the group's token
+JS_NET_TYPES = """() => { const M = window.__VLONTO_METRICS, V = window.VLONTO, data = V[M.dataset === 'full' ? 'legal_network' : 'legal_network_lite'], F = {};
+  data.fields.forEach((f, k) => { F[f] = k; });
+  const G = { HP: 'constitution', BL: 'code', L: 'law', PL: 'ordinance', NQ: 'ordinance', NQLT: 'ordinance', 'N\u0110': 'decree', 'Q\u0110': 'decision', TT: 'circular', TTLT: 'circular' };
+  const want = {}; data.nodes.forEach((x) => { const t = data.types[x[F.type]] || {}; const g = G[String(t.code || '').normalize('NFC')] || 'other'; want[g] = (want[g] || 0) + 1; });
+  const cs = getComputedStyle(document.documentElement), tok = (n) => cs.getPropertyValue(n).trim().toLowerCase();
+  const rgb = (h) => { const m = /rgba?\\((\\d+),\\s*(\\d+),\\s*(\\d+)/.exec(h || ''); if (m) return [+m[1], +m[2], +m[3]]; const x = parseInt(String(h).slice(1), 16); return [x >> 16, (x >> 8) & 255, x & 255]; };
+  const rows = Array.from(document.querySelectorAll('#legend li[data-key^="type:"]')).map((li) => { const dot = li.querySelector('.fig-sw-dot');
+    return [li.getAttribute('data-key').slice(5), +(((/\\(n=([^)]*)\\)/.exec(li.textContent) || [0, '0'])[1]).replace(/[^0-9]/g, '')), dot ? getComputedStyle(dot).backgroundColor : null]; });
+  const bad = rows.filter((r) => r[1] !== (want[r[0]] || 0) || !r[2] || rgb(r[2]).some((v, k) => Math.abs(v - rgb(tok('--doctype-' + r[0]))[k]) > 1));
+  return { colorBy: M.colorBy, dataset: M.dataset, rows, want, bad, btns: Array.from(document.querySelectorAll('[data-color]')).map((b) => [b.getAttribute('data-color'), b.getAttribute('aria-pressed')]) }; }"""
+# the legal network's paths (js/network3d.js drawPaths): the drawn paths, the marks (a diamond on the chain's first
+# document, a square on its last, beads between), the legend's path rows (their number of points), the link hairlines
+# of the legend and the curve swatches of the link toggles
+JS_NET_PATHS = """() => { const M = window.__VLONTO_METRICS, cs = getComputedStyle(document.documentElement), tok = (n) => cs.getPropertyValue(n).trim().toLowerCase();
+  return { paths: M.figPaths || {}, marks: (M.figMarkers || []).map((m) => [m.id, m.shape, String(m.stroke).toLowerCase()]), chainDocs: M.chainTraceDocs,
+    rows: Array.from(document.querySelectorAll('#legend .fig-paths li')).map((li) => +li.getAttribute('data-pts')),
+    hair: document.querySelectorAll('#legend svg.fig-sw-hair').length, toggles: document.querySelectorAll('#edge-toggles svg.swatch-curve').length,
+    path0: tok('--path-0'), path1: tok('--path-1') }; }"""
+
+
+def path_pixels(pg, sel, names=("--path-0",), scope=None, tol=14):
+    """pixels of the paths' colours (the tokens `names`, read in the page; scope: the element whose tokens apply) in the
+    element's screenshot, outside the call-out boxes; the overlays (details panel, hint, tooltip, legend, the title,
+    parameter and status lines) are hidden while capturing, so only WebGL is counted (JS_PATH_PX)"""
+    cols = pg.evaluate("""(a) => { const el = a.scope ? document.querySelector(a.scope) : document.documentElement, cs = getComputedStyle(el);
+        return a.names.map(n => cs.getPropertyValue(n).trim().toLowerCase()); }""", {"scope": scope, "names": list(names)})
+    hide = "#panel, #hint, #tip, .legend, .vl-footbar, .fig-title, .fig-params, .stage-status"
     pg.evaluate("(q) => document.querySelectorAll(q).forEach(e => { e.dataset.ccVis = e.style.visibility; e.style.visibility = 'hidden'; })", hide)
     pg.wait_for_timeout(120)
     try:
@@ -1853,22 +1899,44 @@ def trace_pixels(pg, sel, theme):
         geo = pg.evaluate(JS_TRACE_PX_GEOM, sel)
     finally:
         pg.evaluate("(q) => document.querySelectorAll(q).forEach(e => { e.style.visibility = e.dataset.ccVis || ''; delete e.dataset.ccVis; })", hide)
-    radius = math.ceil(TRACE_CAP["halo2"] / 2 * geo["dpr"] - TRACE_CAP["core"] / 2 * geo["dpr"]) + 2
-    core, halo, core_out, near = pg.evaluate(JS_TRACE_PX, {
-        "src": "data:image/png;base64," + base64.b64encode(png).decode(), "cssW": geo["cssW"], "ox": geo["ox"], "oy": geo["oy"],
-        "boxes": geo["boxes"], "radius": radius, "core": hex_rgb(e["core"]) + [12], "halo": hex_rgb(e["halo"]) + [16]})
-    return {"core": core, "halo": halo, "core_out": core_out, "halo_near_core": near, "callout_boxes": len(geo["boxes"])}
+    counts = pg.evaluate(JS_PATH_PX, {"src": "data:image/png;base64," + base64.b64encode(png).decode(), "cssW": geo["cssW"], "ox": geo["ox"],
+                                      "oy": geo["oy"], "boxes": geo["boxes"], "colours": [hex_rgb(h) + [tol] for h in cols]})
+    return {"counts": dict(zip(names, counts)), "colours": dict(zip(names, cols)), "callout_boxes": len(geo["boxes"])}
+
+
+def parallel_view(pg, traces=False):
+    """the near-parallel view on load (js/paper3d.js VL.FIG_FOV, VLApp.figView): a field of view of at most FIG_FOV_MAX
+    degrees and the top and the bottom plane of the stack projected within PARALLEL_MIN of each other's width; fails if
+    the view returns to a wide perspective (the former 45-degree view gives about 0.86)"""
+    v = pg.evaluate(JS_FIG_VIEW, traces)
+    if not v or v.get("fov", 99) > FIG_FOV_MAX or v.get("ratio") is None or v["ratio"] < PARALLEL_MIN:
+        raise RuntimeError(f"the view is not near-parallel (field of view <= {FIG_FOV_MAX}, plane widths within {PARALLEL_MIN}): {v}")
+    return {"fov": v["fov"], "ratio": v["ratio"], "near": v["near"], "far": v["far"], "planes": [[p["key"], p["w"]] for p in v["planes"]]}
+
+
+def unboxed(pg, where):
+    """nothing on the stage boxed (JS_UNBOXED): title, parameter and status lines and legend without border, outline or
+    shadow; the call-outs without a box"""
+    bad = pg.evaluate(JS_UNBOXED)
+    if bad:
+        raise RuntimeError(f"{where}: boxed stage text: {bad}")
+    return "unboxed"
 
 
 def t_paper_style(c: Ctx):
-    """The 3D views follow the paper's figures (arXiv:2611.11426, Fig. 1 / Fig. 6): per theme the scene ground, class
-    colours, call-out border and trace colours come from the paper-style tokens and Libertinus Sans is loaded; selecting a
-    class in the playground and 45/2019/QH14 in the legal network draws the traced path (core and halo pixels appear);
-    a selection with many links traces only its chain (the network: the replacement chain) and a hovered link, its other
-    links are thin coloured lines; a CONSTRUCT result on the SPARQL page is traced when small and traces the hovered
-    node's links when large, with the paper's legend row. In every view and state the call-outs never intersect, never
-    cover a node centre, and the selected / traced ones stay (window.__VLONTO_METRICS.callouts, js/paper3d.js
-    VL.Callouts). Pages outside the 3D views keep their palette. Screenshots of each view in both themes."""
+    """The 3D views follow the paper's figures (arXiv:2611.11426, Figs. 1, 6 and 12; site v1.3 "figure look"): per theme
+    the scene ground, class colours, call-out leader, the first path colour and the text halo come from the paper-style
+    tokens and Libertinus Sans is loaded; on load each view is near-parallel (field of view <= 12 degrees, top and bottom
+    plane within 5 % of each other's projected width) and nothing on the stage is boxed (title, parameter and status
+    lines, legend, call-outs). Selecting a class in the playground and 45/2019/QH14 in the legal network draws its path
+    (pixels of the first path colour appear) with a diamond on its first node, a square on its last and one legend row
+    with its number of points; a selection with many links draws only its chain (the network: the replacement chain) and
+    a hovered link, in the next path colour; its other links are thin coloured lines. The legal network colours its
+    documents by type on load (Type | Validity | Area, legend counts = the data's). A CONSTRUCT result on the SPARQL page
+    is drawn as a path when small and draws the hovered node's links when large, with the paper's legend row. In every
+    view and state the call-outs never intersect, never cover a node centre, and the selected / traced ones stay
+    (window.__VLONTO_METRICS.callouts, js/paper3d.js VL.Callouts). Pages outside the 3D views keep their palette.
+    Screenshots of each view in both themes."""
     res = {"test": "paper style (3D views)", "checks": []}
     logs = {"console_errors": [], "page_errors": [], "failed_requests": [], "external_requests": []}
 
@@ -1910,17 +1978,21 @@ def t_paper_style(c: Ctx):
                 pg.wait_for_timeout(1500)
                 got = pg.evaluate(JS_PAPER, None)
                 tokens_ok(got, theme, "index.html")
+                # the legend of the figure look: module rows with their counts "(n=...)", one hairline row per link kind
                 legend = pg.evaluate("document.getElementById('legend').textContent") if not c.mobile else ""
-                if not c.mobile and not all(x in legend for x in ("Văn bản · Documents", "Điều khoản · Provisions", "Đường truy vết")):
-                    raise RuntimeError(f"legend row: {legend[:200]}")
-                cap = pg.evaluate("() => window.VL.TRACE_W")
-                if cap != TRACE_CAP:
-                    raise RuntimeError(f"trace width cap {cap} != {TRACE_CAP}")
+                rows0 = pg.evaluate("() => (window.__VLONTO_METRICS.legendRows || []).map(r => r.key)")
+                if not c.mobile and not (all(x in legend for x in ("Văn bản · Documents", "Điều khoản · Provisions", "(n=")) and any(k.startswith("link:") for k in rows0)):
+                    raise RuntimeError(f"legend (module rows with counts, link rows): {legend[:200]}; rows {rows0[:8]}")
+                fp = pg.evaluate("() => [window.VL.FIG_PATH, window.VL.FIG_FOV]")
+                if fp[0] != FIG_PATH_EXPECT or fp[1] > FIG_FOV_MAX:
+                    raise RuntimeError(f"the paths' marks {fp[0]} (want {FIG_PATH_EXPECT}), field of view {fp[1]} (at most {FIG_FOV_MAX})")
+                view = parallel_view(pg)
+                unboxed(pg, "index.html")
                 co0 = wait_callouts(pg)
                 faults = callout_faults(co0)
                 if faults:
                     raise RuntimeError("default view: " + "; ".join(faults))
-                before = trace_pixels(pg, "#canvas-host", theme)
+                before = path_pixels(pg, "#canvas-host")
                 runs = co0["runs"]
                 pg.evaluate("() => window.VLApp.select('vlo:Article')")
                 pg.wait_for_function("window.__VLONTO_METRICS.selected === 'vlo:Article' && window.__VLONTO_METRICS.traceSegments > 0", timeout=T_(15000))
@@ -1929,18 +2001,25 @@ def t_paper_style(c: Ctx):
                 faults = callout_faults(co1)
                 if faults:
                     raise RuntimeError("Article selected: " + "; ".join(faults))
-                after = trace_pixels(pg, "#canvas-host", theme)
+                after = path_pixels(pg, "#canvas-host")
                 m = pg.evaluate("window.__VLONTO_METRICS")
                 if m.get("highlightChain", 0) < 1:
                     raise RuntimeError(f"no superclass chain in the highlight: {m.get('highlightChain')}")
-                # the trace's own pixels: its core outside the call-out boxes, and the gold halo band flanking that core
-                # (a raw count of gold pixels also follows pastel nodes that leave the view when the camera flies in)
-                d_core = after["core_out"] - before["core_out"]
-                d_halo = after["halo_near_core"] - before["halo_near_core"]
-                need_halo = max(60, d_core // 2)
-                if d_core < 30 or d_halo < need_halo:
-                    raise RuntimeError(f"traced path not drawn: core pixels +{d_core} (need 30), halo pixels next to the core "
-                                       f"+{d_halo} (need {need_halo}); {before} -> {after}")
+                # the path of the selection: the first path colour along its chain up the hierarchy at the main width, a
+                # diamond on the class, a square on the chain's last class, one legend row with its number of points (2 up
+                # to the chain's length); no node wears the gold halo of v1.2. Its pixels: the first path colour outside
+                # the call-out boxes (the stage's own text hidden)
+                pa = pg.evaluate(JS_ONTO_PATHS)
+                d0 = after["counts"]["--path-0"] - before["counts"]["--path-0"]
+                rows = pa["rows"]
+                dia = [k[0] for k in pa["marks"] if k[1] == "diamond"]
+                sq = [k[0] for k in pa["marks"] if k[1] == "square"]
+                if (d0 < 30 or not pa["paths"].get("paths") or str(pa["paths"]["colors"][0]).lower() != pa["path0"]
+                        or pa["paths"]["widths"][0] != FIG_PATH_EXPECT["main"] or len(rows) != 1 or rows[0][2] != "vlo:Article"
+                        or dia != ["vlo:Article"] or sq != [rows[0][3]] or not (2 <= rows[0][1] <= m.get("highlightChain", 0) + 1)
+                        or pa["legendPathRows"] != 1 or pa["halos"]):
+                    raise RuntimeError(f"the path of vlo:Article: first-colour pixels +{d0} (need 30; {before['counts']} -> {after['counts']}), "
+                                       f"paths {pa['paths']}, marks {pa['marks']}, rows {rows}, legend rows {pa['legendPathRows']}, halos {pa['halos'][:4]}")
                 shot_article = shot(pg, "playground_article", theme)
                 # a class with more than 6 links (NormativeLegalDocument: 11): only its chain up the hierarchy is traced, the
                 # other links are thin coloured lines; hovering a neighbour traces its link and keeps its call-out
@@ -1979,22 +2058,30 @@ def t_paper_style(c: Ctx):
                     raise RuntimeError(f"the hovered link was not added to the trace: {m2.get('traceLinks')} -> {hover['trace_links']}")
                 if pg.evaluate("window.__VLONTO_METRICS.hoverTrace"):
                     raise RuntimeError("the hover trace stayed after the hover ended")
-                return {"tokens": {k: got[k] for k in ("scene_bg", "core", "halo", "work")}, "libertinus": got["libertinus"], "trace_links": m.get("traceLinks"),
-                        "trace_segments": m.get("traceSegments"), "chain": m.get("highlightChain"), "pixels_before": before, "pixels_after": after,
+                return {"tokens": {k: got[k] for k in ("scene_bg", "path0", "fig_halo", "work")}, "libertinus": got["libertinus"], "view": view,
+                        "trace_links": m.get("traceLinks"), "trace_segments": m.get("traceSegments"), "chain": m.get("highlightChain"),
+                        "path": {"rows": rows, "marks": pa["marks"], "widths": pa["paths"].get("widths")}, "pixels_before": before["counts"], "pixels_after": after["counts"],
                         "many_links": {"trace_links": m2.get("traceLinks"), "emphasised_links": m2.get("emphLinks"), "hover": hover},
                         "callouts_default": callout_summary(co0), "callouts_article": callout_summary(co1), "callouts_many": callout_summary(co2),
                         "legend_entries": m.get("legendEntries"), "shot": shot_article}
             finally:
                 merge(log)
                 ctx.close()
-        check(f"playground ({theme}): tokens, Libertinus, legend row; call-outs clear of ink and of each other; selecting Article traces its chain, a hover traces a link", playground)
+        check(f"playground ({theme}): tokens, Libertinus, legend rows with counts; near-parallel view, nothing boxed; call-outs clear of ink and of each other; "
+              "selecting Article draws its chain as a path (diamond, square, one legend row, no halo), a hover draws a link", playground)
 
         def network(theme=theme):
             ctx, pg, log = c.open("network-3d.html", scheme=theme, ready_timeout=T_(240000))
             try:
                 got = pg.evaluate(JS_PAPER, None)
                 tokens_ok(got, theme, "network-3d.html")
-                before = trace_pixels(pg, "#canvas-host", theme)
+                view = parallel_view(pg)
+                unboxed(pg, "network-3d.html")
+                ty = pg.evaluate(JS_NET_TYPES)
+                if (ty["colorBy"] != "type" or ty["btns"] != [["type", "true"], ["validity", "false"], ["area", "false"]] or ty["bad"]
+                        or sorted(r[0] for r in ty["rows"]) != sorted(ty["want"])):
+                    raise RuntimeError(f"documents by type on load: colour {ty['colorBy']}, buttons {ty['btns']}, rows {ty['rows']}, data {ty['want']}, wrong {ty['bad']}")
+                before = path_pixels(pg, "#canvas-host", ("--path-0", "--path-1"))
                 runs = (pg.evaluate(JS_CALLOUTS) or {}).get("runs", 0)
                 pg.evaluate("() => window.VLApp.selectById('333670')")
                 pg.wait_for_function("window.__VLONTO_METRICS.panelLoaded === '333670' && window.__VLONTO_METRICS.chainTraceDocs >= 2", timeout=T_(120000))
@@ -2003,15 +2090,24 @@ def t_paper_style(c: Ctx):
                 faults = callout_faults(co1)
                 if faults:
                     raise RuntimeError("45/2019/QH14 selected: " + "; ".join(faults))
-                after = trace_pixels(pg, "#canvas-host", theme)
+                after = path_pixels(pg, "#canvas-host", ("--path-0", "--path-1"))
                 m = pg.evaluate("window.__VLONTO_METRICS")
                 # the hub's own links are thin lines in their link-type colours; only the replacement chain is traced
                 if m.get("traceSegments"):
                     raise RuntimeError(f"{m.get('traceSegments')} links of the selection traced without a hover (only the chain may be)")
                 if not m.get("egoLines"):
                     raise RuntimeError("the selection's links are not drawn as thin coloured lines")
-                if after["core"] - before["core"] < 30 or after["halo"] - before["halo"] < 60:
-                    raise RuntimeError(f"replacement chain not traced: core/halo pixels {before} -> {after}")
+                # the replacement chain: one path in the first path colour along the links of the chain, a diamond on its
+                # first document, a square on its last, beads between (45/2019/QH14 among them); one legend row with the
+                # chain's number of documents
+                pn = pg.evaluate(JS_NET_PATHS)
+                d0 = after["counts"]["--path-0"] - before["counts"]["--path-0"]
+                shapes = sorted(k[1] for k in pn["marks"])
+                ids = [k[0] for k in pn["marks"]]
+                if (d0 < 30 or pn["paths"].get("paths") != 1 or str(pn["paths"]["colors"][0]).lower() != pn["path0"] or pn["rows"] != [pn["chainDocs"]]
+                        or shapes.count("diamond") != 1 or shapes.count("square") != 1 or len(ids) != pn["chainDocs"] or "doc-333670" not in ids):
+                    raise RuntimeError(f"replacement chain: first-colour pixels +{d0} (need 30; {before['counts']} -> {after['counts']}), paths {pn['paths']}, "
+                                       f"marks {pn['marks']}, legend rows {pn['rows']}, chain {pn['chainDocs']}")
                 # hovering the other document of the chain (10/2012/QH13, replaced by 45/2019/QH14) traces their link
                 r0 = pg.evaluate("window.__VLONTO_METRICS.callouts.runs")
                 hovered = pg.evaluate("() => window.VLApp.hoverDoc('142187')")
@@ -2021,28 +2117,28 @@ def t_paper_style(c: Ctx):
                 faults = callout_faults(co2)
                 if faults:
                     raise RuntimeError("10/2012/QH13 hovered: " + "; ".join(faults))
+                ph = pg.evaluate(JS_NET_PATHS)
+                if ph["paths"].get("paths", 0) < 2 or str(ph["paths"]["colors"][1]).lower() != ph["path1"] or len(ph["rows"]) < 2:
+                    raise RuntimeError(f"the hovered link is not a second path in the next path colour: paths {ph['paths']}, legend rows {ph['rows']}")
                 pg.evaluate("() => window.VLApp.hoverDoc(null)")
                 if pg.evaluate("window.__VLONTO_METRICS.traceSegments"):
                     raise RuntimeError("the hover trace stayed after the hover ended")
-                legend = pg.evaluate("document.getElementById('legend').textContent") if not c.mobile else ""
-                if not c.mobile and "Đường truy vết" not in legend:
-                    raise RuntimeError(f"legend: {legend[:200]}")
-                # links are curves drawn on the GPU (several segments per link), and the swatches of the legend and of the
-                # link toggles are curves too; the trace swatch keeps its navy core over the gold halo
+                # links are curves drawn on the GPU (several segments per link); the legend has one hairline row per link
+                # kind (the figure look) and one row per path; the link toggles keep their curve swatches
                 cost = pg.evaluate("window.__VLONTO_METRICS.edgeCost") or {}
-                sw = pg.evaluate("""() => ({ legend: document.querySelectorAll('#legend svg.swatch-curve').length,
-                    trace: document.querySelectorAll('#legend svg.swatch-curve.trace path').length,
-                    toggles: document.querySelectorAll('#edge-toggles svg.swatch-curve').length })""")
-                if not cost.get("curves") or cost.get("vertices", 0) < 3 * cost.get("links", 1) or not sw["toggles"] \
-                        or (not c.mobile and (sw["legend"] < 2 or sw["trace"] != 2)):
-                    raise RuntimeError(f"curved links: cost {cost}, swatches {sw}")
-                return {"chain_docs": m.get("chainTraceDocs"), "ego_edges": m.get("egoEdges"), "ego_lines": m.get("egoLines"), "hover_trace_segments": hovered,
-                        "pixels_before": before, "pixels_after": after, "callouts_selected": callout_summary(co1), "callouts_hover": callout_summary(co2),
-                        "edge_cost": cost, "curve_swatches": sw, "shot": shot(pg, "network_45_2019", theme)}
+                pe = pg.evaluate(JS_NET_PATHS)
+                if (not cost.get("curves") or cost.get("vertices", 0) < 3 * cost.get("links", 1) or not pe["toggles"] or pe["hair"] < 2
+                        or pe["rows"] != [pe["chainDocs"]]):
+                    raise RuntimeError(f"curved links and legend: cost {cost}, toggles {pe['toggles']}, hairlines {pe['hair']}, path rows {pe['rows']}")
+                return {"view": view, "types": {"rows": ty["rows"], "dataset": ty["dataset"]}, "chain_docs": m.get("chainTraceDocs"), "ego_edges": m.get("egoEdges"),
+                        "ego_lines": m.get("egoLines"), "hover_trace_segments": hovered, "marks": pn["marks"], "pixels_before": before["counts"],
+                        "pixels_after": after["counts"], "callouts_selected": callout_summary(co1), "callouts_hover": callout_summary(co2),
+                        "edge_cost": cost, "legend": {"hairlines": pe["hair"], "path_rows": pe["rows"]}, "shot": shot(pg, "network_45_2019", theme)}
             finally:
                 merge(log)
                 ctx.close()
-        check(f"legal network ({theme}): tokens; 45/2019/QH14: only the replacement chain traced, a hovered link traced, call-outs clear", network)
+        check(f"legal network ({theme}): tokens; near-parallel view, nothing boxed, documents by type (legend counts = data); 45/2019/QH14: only the "
+              "replacement chain drawn as a path (diamond, square, beads, one legend row), a hovered link in the next path colour, call-outs clear", network)
 
         def construct(theme=theme):
             ctx, pg, log = c.open("sparql.html", scheme=theme)
@@ -2070,9 +2166,9 @@ def t_paper_style(c: Ctx):
                         raise RuntimeError(f"hovering {leaf} traced no link")
                     must = leaf
                     pg.wait_for_timeout(800)
-                px = trace_pixels(pg, "#graph-view", theme)
-                if px["core"] < 30 or px["halo"] < 60:
-                    raise RuntimeError(f"CONSTRUCT result (or the hovered node's links) not drawn as a trace: {px}")
+                px = path_pixels(pg, "#graph-view", ("--path-0",), scope="#graph-wrap")
+                if px["counts"]["--path-0"] < 30:
+                    raise RuntimeError(f"CONSTRUCT result (or the hovered node's links) not drawn as a path in the first path colour: {px}")
                 co = wait_callouts(pg, runs if must else runs - 1, must)
                 faults = callout_faults(co)
                 if faults:
@@ -2284,12 +2380,13 @@ JS_ALPHA = """(keys) => { const A = window.VLApp.traces, st = A.alphaState(), g 
     netMats.length > 0 && netMats.every(n => see(n) && /vAlpha/.test(M[n].alpha));
   if (!window.__vlTraceSizes) window.__vlTraceSizes = JSON.stringify(mats.sizes);
   const sizeOk = JSON.stringify(mats.sizes) === window.__vlTraceSizes;
-  const fgM = M.foreground, below = mats.list.filter(m => m.name !== 'foreground' && m.renderOrder != null);
+  const fgM = M.foreground, below = mats.list.filter(m => m.name !== 'foreground' && m.name !== 'marks' && m.renderOrder != null);
   const fgOk = any ? !!fgM && fgM.count === want.size && st.fg === want.size && fgM.transparent && !fgM.depthWrite && !fgM.depthTest &&
     fgM.alphas.length > 0 && fgM.alphas.every(a => a === '1.0') && fgM.renderOrder === 20 && below.every(m => m.renderOrder < 20) && !fgM.uniforms.fog : !fgM && st.fg === 0;
   const ro = n => (M[n] ? M[n].renderOrder : null), net1 = netMats.filter(n => /\\.(basis|citation)$/.test(n)), net2 = netMats.filter(n => !/\\.(basis|citation)$/.test(n));
   const orderOk = (!M.planes || M.planes.renderOrder <= 0) && net1.every(n => ro(n) === 1) && net2.every(n => ro(n) === 2) && ro('contextLinks') === 3 && ro('traceNodes') === 4 &&
-    ro('strokes') === 5 && ['halo2', 'halo', 'core'].every((k, i) => ro('bold.structural.' + k) === 8 + i && ro('bold.verified.' + k) === 11 + i);
+    ro('strokes') === 5 && ro('paths') === 8 && ro('marks') === 22 && !!M.paths && M.paths.depthTest === false && M.paths.transparent && !M.paths.depthWrite &&
+    !!M.marks && M.marks.depthTest === false;
   const TA = st.strokes.base, p99 = ({ '0.024': 26, '0.018': 35 })[String(TA)], wantS = Math.round(TA * (any ? F / L : 1) * 1e4) / 1e4;
   const threadOk = st.strokes.kind === 'lines' && st.strokes.width === 1 && p99 != null && 1 - Math.pow(1 - TA, p99) <= 0.5 &&
     st.strokes.opacity === wantS && st.contextRest === 0;
@@ -2297,20 +2394,27 @@ JS_ALPHA = """(keys) => { const A = window.VLApp.traces, st = A.alphaState(), g 
     only(st.docs, ['1', lk]) && only(st.traceNodes, ['1', rk]) && only(st.traceLinks, ['1', '0']) && (st.traceNodes[rk] || 0) > 0 &&
     n1(st.docs) === works && n1(st.traceNodes) === want.size - works && n1(st.traceLinks) === ctxSolid && netOk &&
     st.rest === r3(R) && threadOk && st.strokes.traced === C.traced && matOk && sizeOk && fgOk && orderOk &&
-    (keys.length ? st.bold.verified + st.bold.structural > 0 && st.fg > 0 : st.bold.verified + st.bold.structural === 0 && st.fg === 0);
+    (keys.length ? st.paths.traces === keys.length && st.paths.segments > 0 && st.fg > 0 : st.paths.traces === 0 && st.paths.segments === 0 && st.fg === 0);
   return { pass, light: L, faint: F, rest: st.rest, want: want.size, works, ctxSolid, docs: st.docs, traceNodes: st.traceNodes, traceLinks: st.traceLinks,
-    mismatched: st.mismatched, untracedDocsNotLight: st.untracedDocsNotLight, netLinks: net, strokes: st.strokes, bold: st.bold, fg: st.fg, writes: st.writes,
+    mismatched: st.mismatched, untracedDocsNotLight: st.untracedDocsNotLight, netLinks: net, strokes: st.strokes, paths: st.paths, fg: st.fg, writes: st.writes,
     matOk, sizeOk, fgOk, orderOk, threadOk, threadWant: wantS, foreground: fgM || null, sizes: mats.sizes,
     materials: mats.list.map(m => [m.name, m.renderOrder, m.transparent, m.depthWrite, m.depthTest, (m.alphas || [m.alpha]).join('|')]) }; }"""
-# v1.4 colours (js/traces3d.js), computed here from the data and the CSS tokens and compared with the colour buffers the
+# the colours (js/traces3d.js), computed here from the data and the CSS tokens and compared with the colour buffers the
 # shaders get (VLApp.traces.snapshot(): the trace nodes, the documents, the chosen points), the legend and the side list's
-# heading swatches. By area the 27 areas ranked by their documents in the whole network (graph.js areas[].docs, ties in list
-# order) take --area-0..26; a document its own area's (the network file's 'area'; a traced law the lite network lacks:
-# graph.js wa), a law its document's (wa), a provision its law's (up the 'contains' links), any other trace node the area of
-# the first trace in list order holding it; by kind the class tokens (--cls-*: other answers as questions, documents as
-# laws). The threads (v1.4, every traced segment once): by area the area of the first trace in list order holding the
-# segment, by kind the links' grey (--tr-link), either mixed halfway to the theme's ink (--paper-ink) in sRGB. The legend by area: the switch (Area pressed), the 27 areas in the side list's order with their colours and 5 more
-# rows; by kind the 11 rows of v1.3 and the switch (Kind pressed); the heading swatches hidden by kind
+# heading swatches. By type (v1.3 figure look, the default) a document takes its type group's token (--doctype-*: the
+# network file's type code -> constitution, code, law, ordinance (PL, NQ, NQLT), decree, decision, circular (TT, TTLT); a
+# traced law the lite network lacks: the code in its number, else its name's first words; --doctype-other outside the
+# seven), a chosen law point its document's; the trace nodes as by kind. By area the 27 areas ranked by their documents in
+# the whole network (graph.js areas[].docs, ties in list order) take --area-0..26; a document its own area's (the network
+# file's 'area'; a traced law the lite network lacks: graph.js wa), a law its document's (wa), a provision its law's (up
+# the 'contains' links), any other trace node the area of the first trace in list order holding it; by kind the class
+# tokens (--cls-*: other answers as questions, documents as laws). The threads (every traced segment once): by area the
+# area of the first trace in list order holding the segment, by kind and by type the links' grey (--tr-link), either mixed
+# halfway to the theme's ink (--paper-ink) in sRGB. The legend: the switch (Type | Area | Kind, the mode pressed); by
+# type one row per type group drawn with its number of points (= the data's) and 6 class rows; by area the 27 areas in the
+# side list's order with their colours, the kinds row (and the no-area row); by kind 7 class rows; then the 2 link rows
+# with their counts (the network's links, the traces not chosen) and one row per chosen trace (its main strand's points);
+# the heading swatches shown by area only
 JS_COLOURS = """(mode) => { const A = window.VLApp.traces, s = A.snapshot(), g = window.VLONTO.traces_graph, ids = A.areas(), NG = g.i.length;
   if (!s) return null;
   const cs = getComputedStyle(document.documentElement), tok = n => cs.getPropertyValue(n).trim().toLowerCase();
@@ -2332,6 +2436,20 @@ JS_COLOURS = """(mode) => { const A = window.VLApp.traces, s = A.snapshot(), g =
   const tokens = []; for (let r = 0; r < 27; r++) tokens.push(tok('--area-' + r));
   const aHex = a => (a >= 0 && rank[a] >= 0 ? tokens[rank[a]] : tok('--area-none'));
   const kHex = i => { const c = g.classes[g.c[i]]; return tok('--cls-' + (c === 'other_question' ? 'question' : c)); };
+  const GROUP_OF = { HP: 'constitution', BL: 'code', L: 'law', PL: 'ordinance', NQ: 'ordinance', NQLT: 'ordinance', 'N\u0110': 'decree', 'Q\u0110': 'decision', TT: 'circular', TTLT: 'circular' };
+  const NAME_CODE = [['hi\u1ebfn ph\u00e1p', 'HP'], ['b\u1ed9 lu\u1eadt', 'BL'], ['ph\u00e1p l\u1ec7nh', 'PL'], ['ngh\u1ecb quy\u1ebft li\u00ean t\u1ecbch', 'NQLT'], ['ngh\u1ecb quy\u1ebft', 'NQ'],
+    ['ngh\u1ecb \u0111\u1ecbnh', 'N\u0110'], ['quy\u1ebft \u0111\u1ecbnh', 'Q\u0110'], ['th\u00f4ng t\u01b0 li\u00ean t\u1ecbch', 'TTLT'], ['th\u00f4ng t\u01b0', 'TT'], ['lu\u1eadt', 'L']];
+  const lawCode = gi => { const num = String(g.i[gi]).split(':').pop(), m = /^[^/]+\\/\\d{4}\\/([^-/\\s]+)-/.exec(num);
+    if (m && GROUP_OF[m[1].normalize('NFC')]) return m[1].normalize('NFC');
+    const name = String(g.vi[gi] || '').normalize('NFC').toLowerCase(), hit = NAME_CODE.find(x => name.indexOf(x[0]) === 0); return hit ? hit[1] : (m ? m[1] : null); };
+  const groupHex = code => tok('--doctype-' + (GROUP_OF[String(code || '').normalize('NFC')] || 'other'));
+  let DT = null;
+  if (mode === 'type') { const nt = window.VLONTO[s.dataset === 'full' ? 'legal_network' : 'legal_network_lite'], FT = {}, hex = [], counts = {};
+    nt.fields.forEach((f, k) => { FT[f] = k; });
+    for (let j = 0; j < s.docs; j++) { const t = nt.types[nt.nodes[j][FT.type]] || {}; hex.push(groupHex(t.code)); }
+    for (let k = 0; k < s.extra.length; k++) hex.push(groupHex(lawCode(s.extra[k])));
+    hex.forEach(h => { counts[h] = (counts[h] || 0) + 1; }); DT = { hex, counts }; }
+  const lawPoint = {}; if (mode === 'type') A.laws().forEach(l => { lawPoint[l.node] = l.point; });
   let tBad = 0, dBad = 0, fBad = 0; const ex = [];
   const tn = s.traceNodes.nodes, tc = s.traceNodes.color;
   for (let k = 0; k < tn.length; k++) { const i = tn[k], w = rgb(mode === 'area' ? aHex(area[i]) : kHex(i));
@@ -2341,9 +2459,9 @@ JS_COLOURS = """(mode) => { const A = window.VLApp.traces, s = A.snapshot(), g =
   const netA = net.areas.map(a => { const id = Array.isArray(a) ? a[0] : a.id; return aix[id] != null ? aix[id] : -1; });
   const dc = s.docColors, docHex = tok('--cls-work');
   for (let j = 0; j < dc.idx.length; j++) { let w;
-    if (mode !== 'area') w = docHex; else if (j < s.docs) { const a = net.nodes[j][F.area]; w = aHex(a == null || a < 0 ? -1 : netA[a]); } else w = aHex(area[s.extra[j - s.docs]]);
+    if (mode === 'type') w = DT.hex[j]; else if (mode !== 'area') w = docHex; else if (j < s.docs) { const a = net.nodes[j][F.area]; w = aHex(a == null || a < 0 ? -1 : netA[a]); } else w = aHex(area[s.extra[j - s.docs]]);
     if (!near(rgb(dc.palette[dc.idx[j]]), rgb(w))) { dBad++; if (ex.length < 8) ex.push(['doc', j]); } }
-  if (s.fg) for (let k = 0; k < s.fg.nodes.length; k++) { const i = s.fg.nodes[k], w = rgb(mode === 'area' ? aHex(area[i]) : g.c[i] === work ? docHex : kHex(i));
+  if (s.fg) for (let k = 0; k < s.fg.nodes.length; k++) { const i = s.fg.nodes[k], w = rgb(mode === 'area' ? aHex(area[i]) : g.c[i] === work ? (mode === 'type' ? DT.hex[lawPoint[g.i[i]]] : docHex) : kHex(i));
     if (!near(w, [s.fg.color[3 * k], s.fg.color[3 * k + 1], s.fg.color[3 * k + 2]])) { fBad++; if (ex.length < 12) ex.push(['fg', g.i[i]]); } }
   const ink = rgb(tok('--paper-ink')), lkHex = tok('--tr-link'), S = s.strokes, seen = new Set(), sArea = [];
   g.t.forEach(t => { for (let j = 0; j < t.e.length; j += 3) { const a = t.e[j], b = t.e[j + 1], q = a < b ? a * NG + b : b * NG + a; if (!seen.has(q)) { seen.add(q); sArea.push(t.a); } } });
@@ -2352,18 +2470,60 @@ JS_COLOURS = """(mode) => { const A = window.VLApp.traces, s = A.snapshot(), g =
     if (!near(w, rgb(S.palette[S.colorIdx[i]]))) { sBad++; if (ex.length < 14) ex.push(['thread', i]); } }
   const lg = document.getElementById('legend'), btns = Array.from(lg.querySelectorAll('.tr-colorby button'));
   const pressed = btns.filter(b => b.getAttribute('aria-pressed') === 'true').map(b => b.getAttribute('data-color')).join();
-  const lis = Array.from(lg.querySelectorAll('.tr-areas li')), rest = Array.from(lg.querySelectorAll('li')).filter(li => !li.closest('.tr-areas'));
-  const lgOk = btns.length === 2 && pressed === mode && lg.classList.contains('lg-area') === (mode === 'area') && (mode === 'area'
-    ? lis.length === 27 && lis.map(li => li.getAttribute('data-area')).join() === ids.join() && lis.every(li => near(rgb(getComputedStyle(li.querySelector('.swatch')).backgroundColor), rgb(aHex(aix[li.getAttribute('data-area')])))) && rest.length === 5
-    : lis.length === 0 && rest.length === 11);
+  const lis = Array.from(lg.querySelectorAll('.tr-areas li')), rest = Array.from(lg.querySelectorAll('li')).filter(li => !li.closest('.tr-areas') && !li.classList.contains('fig-path-row'));
+  const nOf = li => { const m = /\\(n=([^)]*)\\)/.exec(li ? li.textContent : ''); return m ? +m[1].replace(/[^0-9]/g, '') : null; }, keyed = k => lg.querySelector('li[data-key="' + k + '"]');
+  const typeRows = rest.filter(li => /^type:/.test(li.getAttribute('data-key') || ''));
+  const typeOk = mode !== 'type' || (typeRows.length >= 1 && typeRows.every(li => nOf(li) === (DT.counts[tok('--doctype-' + li.getAttribute('data-key').slice(5))] || 0)) &&
+    typeRows.reduce((t, li) => t + (nOf(li) || 0), 0) === DT.hex.length);
+  const sel = window.__VLONTO_METRICS.traces.selected || [], linkOk = nOf(keyed('link:docs')) === s.netLinks.reduce((t, x) => t + x.m, 0) && nOf(keyed('link:threads')) === g.t.length - sel.length;
+  const pathLis = Array.from(lg.querySelectorAll('li.fig-path-row')), rowsOk = pathLis.length === sel.length;
+  const restWant = mode === 'type' ? typeRows.length + 6 + 2 : mode === 'area' ? 1 + (keyed('area:none') ? 1 : 0) + 2 : 7 + 2;
+  const lgOk = btns.length === 3 && btns.map(b => b.getAttribute('data-color')).join() === 'type,area,kind' && pressed === mode && lg.classList.contains('lg-area') === (mode === 'area') &&
+    rest.length === restWant && typeOk && linkOk && rowsOk && (mode === 'area'
+    ? lis.length === 27 && lis.map(li => li.getAttribute('data-area')).join() === ids.join() && lis.every(li => near(rgb(getComputedStyle(li.querySelector('.swatch')).backgroundColor), rgb(aHex(aix[li.getAttribute('data-area')]))))
+    : lis.length === 0);
   const heads = Array.from(document.querySelectorAll('#tr-list .tr-head .tr-head-sw')), hidden = document.getElementById('app').classList.contains('tr-color-kind');
-  const headOk = heads.length === 27 && hidden === (mode === 'kind') && heads.every(e => near(rgb(getComputedStyle(e).backgroundColor), rgb(aHex(+e.getAttribute('data-a'))))) &&
+  const headOk = heads.length === 27 && hidden === (mode !== 'area') && heads.every(e => near(rgb(getComputedStyle(e).backgroundColor), rgb(aHex(+e.getAttribute('data-a'))))) &&
     heads.every(e => (getComputedStyle(e).display === 'none') === hidden);
   const st = A.colorState();
   const pass = s.colorBy === mode && A.colorBy() === mode && tBad + dBad + fBad === 0 && sBad === 0 && tokens.every(t => /^#[0-9a-f]{6}$/.test(t)) && lgOk && headOk &&
+    ['constitution', 'code', 'law', 'ordinance', 'decree', 'decision', 'circular', 'other'].every(k => /^#[0-9a-f]{6}$/.test(tok('--doctype-' + k))) &&
     st.ranked.join() === order.map(o => ids[o.a]).join() && st.rule.shared === shared && st.rule.unassigned === 0 && st.rule.docsWithoutArea === 0;
   return { pass, mode: s.colorBy, traceNodes: tn.length, tBad, docs: dc.idx.length, dBad, docColours: dc.palette.length, fg: s.fg ? s.fg.nodes.length : 0, fBad,
-    threads: sArea.length, sBad, threadColours: S ? S.palette.length : 0, shared, sharedBy: st.rule.sharedByClass, legend: { pressed, areas: lis.length, rest: rest.length, ok: lgOk }, heads: { n: heads.length, hidden, ok: headOk }, ex }; }"""
+    threads: sArea.length, sBad, threadColours: S ? S.palette.length : 0, shared, sharedBy: st.rule.sharedByClass,
+    legend: { pressed, areas: lis.length, rest: rest.length, restWant, typeRows: typeRows.length, typeOk, linkOk, pathRows: pathLis.length, ok: lgOk }, heads: { n: heads.length, hidden, ok: headOk }, ex }; }"""
+# the paths of the figure look for the chosen traces (a.order: their keys in the order they were chosen; a.idx: the path
+# colour each takes, --path-<idx % 12>; a.shown: the shown trace): one row per trace in that order, its colour; its main
+# strand (question -> answer -> provision -> law) one path at the main width, its other links thinner, all in its colour; a
+# diamond (the ground inside, its colour around) on its question, a square in its colour on its law; the row's points =
+# the main strand's nodes; the chosen points' rings in the shown trace's colour; paths drawn at order 8 (no depth test),
+# the chosen points at 20, the marks at 22 (VLApp.traces.snapshot())
+JS_PATHS = """(a) => { const A = window.VLApp.traces, s = A.snapshot(), g = window.VLONTO.traces_graph, ids = A.areas(), cs = getComputedStyle(document.documentElement);
+  const tok = n => cs.getPropertyValue(n).trim().toLowerCase(), lc = x => String(x || '').toLowerCase(), bg = lc(s.bg), bad = [];
+  const trOf = key => { const [ar, r] = key.split(':'), ai = ids.indexOf(ar); return g.t.find(t => t.a === ai && t.r === +r); };
+  const strandLen = tr => { const adj = {}, e = tr.e; for (let j = 0; j < e.length; j += 3) { (adj[e[j]] = adj[e[j]] || []).push(e[j + 1]); (adj[e[j + 1]] = adj[e[j + 1]] || []).push(e[j]); }
+    const walk = (x, y) => { if (x === y) return [x]; const prev = new Map([[x, x]]), q = [x]; for (let h = 0; h < q.length && !prev.has(y); h++) (adj[q[h]] || []).forEach(z => { if (!prev.has(z)) { prev.set(z, q[h]); q.push(z); } });
+      if (!prev.has(y)) return null; const out = [y]; while (out[0] !== x) out.unshift(prev.get(out[0])); return out; };
+    let n = []; const co = tr.co; for (const [x, y] of [[co[0], co[1]], [co[1], co[2]], [co[2], co[3]]]) { const p = walk(x, y); if (!p) return 2; n = n.length ? n.concat(p.slice(1)) : p; } return n.length; };
+  const rows = s.pathRows.map(r => r.key);
+  if (rows.join() !== a.order.join()) bad.push(['order', rows, a.order]);
+  a.order.forEach((key, k) => { const tr = trOf(key), row = s.pathRows[k] || {}, col = lc(row.color), want = tok('--path-' + ((a.idx ? a.idx[k] : k) % 12));
+    if (col !== want) bad.push(['colour', key, col, want]);
+    const ps = s.paths.filter(p => p.trace === key), main = ps.filter(p => p.main);
+    if (main.length !== 1 || ps.some(p => lc(p.color) !== col)) bad.push(['paths', key, ps.length, main.length]);
+    if (tr && row.pts !== strandLen(tr)) bad.push(['pts', key, row.pts, strandLen(tr)]);
+    const dm = tr && s.marks.find(m => m.shape === 'diamond' && m.id === g.i[tr.co[0]] && lc(m.stroke) === col), sq = tr && s.marks.find(m => m.shape === 'square' && m.id === g.i[tr.co[3]] && lc(m.fill) === col);
+    if (!dm || lc(dm.fill) !== bg) bad.push(['diamond', key]);
+    if (!sq) bad.push(['square', key]); });
+  const mainW = s.paths.filter(p => p.main).map(p => p.width), otherW = s.paths.filter(p => !p.main).map(p => p.width);
+  const widthsOk = mainW.length > 0 && mainW.every(x => x === mainW[0]) && otherW.every(x => x < mainW[0]);
+  let ringBad = 0;
+  if (a.shown && s.fg) { const tr = trOf(a.shown), col = lc((s.pathRows[a.order.indexOf(a.shown)] || {}).color), nodes = new Set(tr ? tr.n : []);
+    s.fg.nodes.forEach((i, k) => { if (nodes.has(i) && lc(s.fg.rings[k]) !== col) ringBad++; }); }
+  const lis = Array.from(document.querySelectorAll('#legend li.fig-path-row')), lisOk = lis.length === a.order.length && lis.every((li, k) => li.getAttribute('data-trace') === a.order[k] &&
+    +li.getAttribute('data-pts') === (s.pathRows[k] || {}).pts && li.textContent.indexOf('\\u2192') > 0);
+  const pass = !bad.length && widthsOk && ringBad === 0 && lisOk && s.marks.length === 2 * a.order.length && s.pathOrder === 8 && s.markOrder === 22 && (s.fg ? s.fg.order === 20 : !a.order.length);
+  return { pass, bad: bad.slice(0, 6), widthsOk, mainW: mainW[0], ringBad, lisOk, marks: s.marks.length, paths: s.paths.length, rows: s.pathRows.map(r => [r.key, r.color, r.pts]).slice(0, 4) }; }"""
 TRACE_LIGHT = 0.3       # js/traces3d.js LIGHT: everything with nothing chosen, the network always (the v1.2 report's model renders)
 TRACE_FAINT = 0.12      # js/traces3d.js FAINT: the traces not chosen while some are chosen (the v1.3 report's model renders)
 # the choice is `keys` (any order) with `cur` shown in the hop panel (its area file loaded) and the scene settled
@@ -2486,18 +2646,17 @@ JS_HINT_CLASH = """() => {
   const w = Math.min(a.right, b.right) - Math.max(a.left, b.left), v = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
   return (w > 0 && v > 0) ? {hint: [a.left, a.top, a.right, a.bottom].map(Math.round), tools: [b.left, b.top, b.right, b.bottom].map(Math.round)} : false;
 }"""
-# the trace's own pixels (trace_pixels): its navy (light) / off-white (dark) core outside the call-out boxes and the gold
-# band next to that core; after a choice from the list as the difference to the same view with nothing chosen, for a deep
-# link as they are. v1.4: expected counts from the calibrated model (tools_lang3d/render14.py, three.js's draw order: the
-# opaque documents, then the transparent objects by renderOrder, which reproduces the CI screenshots of 98c1d56; px12.py
-# on jsdom snapshots of the CI views). With nothing chosen the threads (1 px lines in the areas' colours) leave no
-# core-coloured pixel outside the call-outs (1440 and 390: 0 core, 0 gold) - in v1.2 the stacked navy strokes did, which
-# made the deltas of 98c1d56 small or negative (+49 / -106) - so each of the three picks adds its whole trace: 1,219-1,608
-# core and 2,233-3,261 gold pixels at 1440 x 900 (full network, light), 931-1,623 / 2,432-3,165 on a 390 x 844 phone (lite,
-# 2 device px per CSS px); the deep link counts 1,477-3,492 core and 3,085-6,156 gold pixels (both themes, 1440 and 390).
-# The minimums stay below a third of the smallest expected count (core 250 of 931, gold 500 of 2,233) for rendering
-# differences (antialiasing, SwiftShader's line rasteriser, call-outs over the trace)
-TRACE_PX_MIN = {"core": 250, "halo": 500}
+# the path's own pixels (path_pixels): the first path colour (--path-0: ink on the light ground, near-white on the dark
+# one) outside the call-out boxes, with the stage's text hidden; after a choice from the list as the difference to the
+# same view with nothing chosen, for a deep link as they are. Expected counts from the calibrated model (tools_lang3d/
+# calib15.py: render14.py in three.js's draw order on jsdom snapshots, the figure look's paths without depth test): the
+# three picks add 901-1,189 pixels at 1440 x 900 (full network, light) and 1,296-1,562 on a 390 px phone (lite network,
+# 2 device px per CSS px); the deep link counts 998 / 1,005 at 1440 and 2,827 / 2,833 at 390 (light / dark); on load 0.
+# PATH_PX_MIN stays below a third of the smallest (901) for rendering differences (antialiasing, SwiftShader, call-outs
+# over the path); LOAD_PATH_PX_MAX: with nothing chosen nothing is drawn in a path colour (the threads are 1 device px
+# lines at 0.024 in a neutral grey) - no mass of path-coloured pixels on load (the v1.2 failure of CI run 43601668337)
+PATH_PX_MIN = 250
+LOAD_PATH_PX_MAX = 60
 
 
 def t_traces(c: Ctx):
@@ -2510,11 +2669,15 @@ def t_traces(c: Ctx):
     links, its six layers and the answers' and questions' planes, no area cells; every traced law is its network document
     at the network's coordinates (all of them, a sample shown). One side list of the 540 questions under 27 area headings
     with a search (VI / EN, diacritic-insensitive; 'n of 540') and arrow keys, a round button per row, the heading's
-    All 20, Clear. Load: nothing chosen, everything at the light alpha (the threads at theirs); the trace layer's materials see-through (no depth
-    write, the per-vertex alpha). Three questions chosen from the list: exactly each one's trace opaque, the other traces
-    faint, the point sizes as at load, its pixels lit, call-outs clean (the must-show ones on the free canvas; under the open hop
-    panel occluded), the hop panel's five boxes. Several: the round button, Space and Ctrl/Cmd-click add and remove, the
-    heading's All 20 chooses exactly its 20, the stepper walks them ('3 of 20') without writing the alphas again; Zoom to
+    All 20, Clear. Load (v1.3 figure look): nothing chosen, everything at the light alpha (the threads at theirs), no path
+    drawn; documents coloured by type (the legend's switch Type | Area | Kind; #color= and the stored choice win); a
+    near-parallel view; nothing on the stage boxed; the trace layer's materials see-through (no depth write, the per-vertex
+    alpha). Three questions chosen from the list: exactly each one's trace opaque, the other traces faint, the point sizes
+    as at load, its path drawn (first path colour, a diamond on the question, a square on the law, one legend row with the
+    main strand's points), call-outs clean (the must-show ones on the free canvas; under the open hop panel occluded), the
+    hop panel's five boxes. Several: the round button, Space and Ctrl/Cmd-click add and remove (one path colour per trace in
+    choice order), the heading's All 20 chooses exactly its 20 (20 paths, --path-0 .. cycling), the stepper walks them
+    ('3 of 20') without writing the alphas again; Zoom to
     selection frames every chosen trace, Reset view returns home and keeps the choice; Clear. A click on a question node
     chooses it (hover: its question), Ctrl-click adds one, a click on another node opens its details; Escape clears;
     deep links (#q=a:r, #q=a:r1,r2;b:r3, #area=a&all=1[&q=r], v1's #area=a&q=r per theme with the theme switch, #area=a
@@ -2570,7 +2733,7 @@ def t_traces(c: Ctx):
         a = pg.evaluate(JS_ALPHA, list(keys))
         if not a or not a["pass"] or abs(a["light"] - TRACE_LIGHT) > 1e-9 or abs(a["faint"] - TRACE_FAINT) > 1e-9:
             raise RuntimeError(f"{where}: alphas {json.dumps(a)[:1200]}")
-        return {k: a[k] for k in ("light", "faint", "rest", "want", "works", "ctxSolid", "docs", "traceNodes", "traceLinks", "netLinks", "bold", "fg",
+        return {k: a[k] for k in ("light", "faint", "rest", "want", "works", "ctxSolid", "docs", "traceNodes", "traceLinks", "netLinks", "paths", "fg",
                                   "fgOk", "orderOk", "foreground", "sizes", "materials")}
 
     def colours(pg, mode, where):
@@ -2606,13 +2769,19 @@ def t_traces(c: Ctx):
                 "placed": [p["id"] for p in co["placed"]], "occluded_by_panel": occluded, "panel": geo["panel"]}
 
     def pixels_lit(before, after, where):
-        """the trace's own pixels: its core outside the call-out boxes and the gold band next to that core, against the
-        same view with nothing chosen (a raw gold count also follows the pale answer nodes)"""
-        d_core = after["core_out"] - before["core_out"]
-        d_halo = after["halo_near_core"] - before["halo_near_core"]
-        if d_core < TRACE_PX_MIN["core"] or d_halo < max(TRACE_PX_MIN["halo"], d_core // 2):
-            raise RuntimeError(f"{where}: trace pixels {before} -> {after} (core +{d_core}, halo +{d_halo}; minimum {TRACE_PX_MIN})")
-        return {"core": d_core, "halo": d_halo}
+        """the path's own pixels: the first path colour outside the call-out boxes, against the same view with nothing
+        chosen"""
+        d = after["counts"]["--path-0"] - before["counts"]["--path-0"]
+        if d < PATH_PX_MIN:
+            raise RuntimeError(f"{where}: path pixels {before['counts']} -> {after['counts']} (+{d}; minimum {PATH_PX_MIN})")
+        return {"path0": d}
+
+    def paths(pg, order, shown, where, idx=None):
+        """the paths, marks and legend rows of the chosen traces (JS_PATHS)"""
+        p = pg.evaluate(JS_PATHS, {"order": list(order), "shown": shown, "idx": list(idx) if idx is not None else None})
+        if not p or not p["pass"]:
+            raise RuntimeError(f"{where}: paths {json.dumps(p, ensure_ascii=False)[:1200]}")
+        return {k: p[k] for k in ("marks", "paths", "mainW", "rows")}
 
     ctx, pg, log = c.open("traces.html", ready_timeout=T_(240000))
     try:
@@ -2677,13 +2846,18 @@ def t_traces(c: Ctx):
                   and not s["selected"] and not s["cur"] and not s["panelOpen"] and s["labels"] == 27 + 8 and cam == home)
             if not ok:
                 raise RuntimeError(f"state {json.dumps({k: v for k, v in s.items() if k not in ('network',)}, ensure_ascii=False)[:900]}; camera {cam}, home {home}")
+            view = parallel_view(pg, traces=True)
+            unboxed(pg, "traces.html")
+            px0 = path_pixels(pg, "#canvas-host", ("--path-0",))
+            if px0["counts"]["--path-0"] > LOAD_PATH_PX_MAX:
+                raise RuntimeError(f"on load {px0['counts']['--path-0']} pixels in the first path colour (at most {LOAD_PATH_PX_MAX}: no path drawn)")
             return {"list": s["listItems"], "groups": s["groups"], "count": s["count"], "graph": s["graph"], "fps": s["fps"],
-                    "edge_cost": s["edgeCost"], "callouts": s["labels"], "alpha": a0, "camera": cam}
+                    "edge_cost": s["edgeCost"], "callouts": s["labels"], "alpha": a0, "camera": cam, "view": view, "path_pixels": px0["counts"]}
         check("load: one list of the 540 questions under 27 area headings (a round button per row, All 20 per heading, no tabs, "
               "'540 of 540'); nothing chosen; every document and trace node at the light alpha, the threads at 0.024 (phones "
               "0.018), the context links not drawn (the trace layer "
               "drawn see-through: transparent, no depth write, the per-vertex alpha); the 27 areas, "
-              "six layers and two planes named; the camera at the home view", one_place, pg)
+              "six layers and two planes named; the camera at the home view, near-parallel; nothing boxed on the stage; no path drawn", one_place, pg)
 
         def side_scroll():
             side(pg, True)
@@ -2745,26 +2919,27 @@ def t_traces(c: Ctx):
                   flat: Array.from(l.querySelectorAll('.swatch:not(.trace)')).every(s => getComputedStyle(s).backgroundImage === 'none'),
                   inside: r.top >= 0 && r.bottom <= innerHeight + 1, clearOfTools: clear(t), clearOfHint: clear(hr), scrolls: l.scrollHeight > l.clientHeight + 1,
                   box: [r.left, r.top, r.right, r.bottom].map(Math.round), maxH: window.__VLONTO_METRICS.traces.legendMaxH }; }""")
-            k = colours(pg, "area", "legend")
+            k = colours(pg, "type", "legend")
             if c.mobile:
                 pg.locator("#btn-legend").click()
-            need = ("Lĩnh vực", "Area", "Liên kết", "Links", "Đường truy vết", "Traced answer", "Structure only", "Not chosen (light)", "Kinds: by layer and size")
-            if (not L or not L["visible"] or L["areas"] != 27 or L["entries"] != 32 or not L["flat"] or any(n not in L["text"] for n in need)
+            need = ("Chú giải", "Legend", "Loại văn bản", "Type", "Luật", "Law", "Nghị định", "Decree", "Liên kết", "Links", "Chưa chọn (nhạt)",
+                    "Not chosen (light)", "(n=")
+            if (not L or not L["visible"] or L["areas"] != 0 or L["entries"] != k["legend"]["rest"] or not L["flat"] or any(n not in L["text"] for n in need)
                     or not L["clearOfTools"] or not L["clearOfHint"]):
-                raise RuntimeError(f"legend {L}")
+                raise RuntimeError(f"legend {L}; colours' legend {k['legend']}")
             return {"entries": L["entries"], "areas": L["areas"], "flat_swatches": L["flat"], "box": L["box"], "scrolls": L["scrolls"], "maxH": L["maxH"], "legend": k["legend"]}
-        check("legend, colour by area (the default): the switch (Area | Kind, Area pressed), the 27 areas in the side list's order "
-              "in their colours, the kinds row, the links, the traced and structural path, the light rest, the note; clear of the "
-              "stage tools and the hint", legend, pg)
+        check("legend, colour by type (the default, figure look): the switch (Type | Area | Kind, Type pressed), the document "
+              "types with their number of points (= the data's), the classes, the links with their counts, the light rest, the "
+              "note; unframed; clear of the stage tools and the hint", legend, pg)
 
         def colour_load():
-            k = colours(pg, "area", "load")
+            k = colours(pg, "type", "load")
             stored = pg.evaluate("() => window.localStorage.getItem('vlonto.traces3d-color')")
             if stored is not None:
                 raise RuntimeError(f"the load wrote the colour choice: {stored}")
             return k
-        check("colour by legal area at load: every trace node and document (the colour buffers) in its area's colour "
-              "(--area-0..26, ranked by documents in the whole network), the side list's 27 heading swatches; the load "
+        check("colour by document type at load (figure look): every document (the colour buffers) in its type group's colour "
+              "(--doctype-*), the trace nodes by kind, the threads in the neutral grey, the heading swatches hidden; the load "
               "stores nothing", colour_load, pg)
 
         def search():
@@ -2794,7 +2969,7 @@ def t_traces(c: Ctx):
             out = []
             for area, rank in TRACE_PICKS:
                 clear(pg)
-                before = trace_pixels(pg, "#canvas-host", "light")
+                before = path_pixels(pg, "#canvas-host")
                 s, co = select(pg, area, rank)
                 d = judge(s, co, f"{area} #{rank}", pg)
                 if not c.mobile:
@@ -2805,9 +2980,10 @@ def t_traces(c: Ctx):
                         raise RuntimeError(f"{area} #{rank}: overlays meet with the panel open: " + "; ".join(pg.evaluate(JS_OVERLAYS)))
                     d["overlays"] = "apart"
                 d["alpha"] = alpha(pg, [f"{area}:{rank}"], f"{area} #{rank}")
-                after = trace_pixels(pg, "#canvas-host", "light")
+                d["paths"] = paths(pg, [f"{area}:{rank}"], f"{area}:{rank}", f"{area} #{rank}")
+                after = path_pixels(pg, "#canvas-host")
                 d["pixels"] = pixels_lit(before, after, f"{area} #{rank}")
-                d.update({"area": area, "rank": rank, "raw_pixels": [before, after]})
+                d.update({"area": area, "rank": rank, "raw_pixels": [before["counts"], after["counts"]]})
                 if area == TRACE_PICKS[0][0]:
                     d["shot"] = c.shot(pg, "traces_selected")
                 out.append(d)
@@ -2815,11 +2991,13 @@ def t_traces(c: Ctx):
         check("three questions from the one list (three areas), one at a time: exactly its trace opaque (its nodes and the links "
               "among them at 1), the other traces' nodes at the faint alpha and their threads at 0.4 x theirs, the network's documents and "
               "links at the light one (each link kind at its network-3d.html opacity times it), point sizes as at load; its "
-              "trace pixels lit; call-outs clean; five hops", three, pg)
+              "path drawn (first path colour, diamond on the question, square on the law, one legend row with its points); "
+              "call-outs clean; five hops", three, pg)
 
         def colour_switch():
-            """the legend's switch (v1.4): by kind, then by area again; only the colours change (wide screens with Labour
-            #3 chosen; phones with nothing chosen: the hop sheet would lie over the legend)"""
+            """the legend's switch: by area, then by type again (the default; by kind: the stored-colour load and the switch
+            with storage blocked); only the colours change (wide screens with Labour #3 chosen; phones with nothing chosen:
+            the hop sheet would lie over the legend)"""
             keys = []
             if c.mobile:
                 clear(pg)
@@ -2831,7 +3009,7 @@ def t_traces(c: Ctx):
             c0, m0 = pg.evaluate(CAM), pg.evaluate(MOVES)
             sel0 = pg.evaluate("() => JSON.stringify(window.__VLONTO_METRICS.traces.selected)")
             out = {}
-            for mode in ("kind", "area"):
+            for mode in ("area", "type"):
                 r0 = runs(pg)
                 pg.locator(f'#legend .tr-colorby [data-color="{mode}"]').click()
                 pg.wait_for_function("(a) => window.__VLONTO_METRICS.traces.colorBy === a.m && ((window.__VLONTO_METRICS.callouts || {}).runs || 0) > a.r && "
@@ -2849,9 +3027,9 @@ def t_traces(c: Ctx):
             # leave the choice as `three` left it (its last pick chosen and current): the checks after this one start there
             select(pg, *TRACE_PICKS[-1])
             return out
-        check("the legend's switch: colour by kind, then by area again - every point's colour follows (the buffers against the "
-              "tokens), the legend and the heading swatches follow; the choice, its alphas, the panel and the camera stay; the "
-              "choice is stored (VL.store 'traces3d-color'), focus stays on the switch", colour_switch, pg)
+        check("the legend's switch: colour by area, then by type again - every point's colour follows (the buffers against "
+              "the tokens), the legend and the heading swatches follow; the choice, its alphas, its path, the panel and the "
+              "camera stay; the choice is stored (VL.store 'traces3d-color'), focus stays on the switch", colour_switch, pg)
 
         def node_click():
             S = pg.evaluate("window.__VLONTO_METRICS.traces.current")
@@ -2974,6 +3152,7 @@ def t_traces(c: Ctx):
             choice(pg, k2, "bao-hiem:8")
             s2 = pg.evaluate(JS_TRACES)
             a2 = alpha(pg, k2, "the round button adds")
+            p2 = paths(pg, k2, "bao-hiem:8", "the round button adds", idx=[0, 1])
             i2 = s2["selected"].index("bao-hiem:8") + 1
             if (s2["step"] != f"{i2} of 2" or s2["hash"] != "#q=bao-hiem:8;lao-dong-tien-luong:3" or sorted(s2["pressed"]) != sorted(k2)
                     or s2["count"] != "540 of 540 questions · 2 chosen"):
@@ -2998,9 +3177,10 @@ def t_traces(c: Ctx):
             c1, m1 = pg.evaluate(CAM), pg.evaluate(MOVES)
             if act != "tr-item-thue-phi-le-phi-5" or sorted(s4["pressed"]) != sorted(k4) or sorted(s4["chosenRows"]) != sorted(k4) or c0 != c1 or m0 != m1:
                 raise RuntimeError(f"focus {act}; buttons {s4['pressed']}, rows {s4['chosenRows']}; camera {c0} -> {c1}, moves {m0} -> {m1}")
-            return {"two": {"step": s2["step"], "hash": s2["hash"], "alpha": a2}, "space_focus": act, "after": {"chosen": s4["selected"], "alpha": a4}}
+            return {"two": {"step": s2["step"], "hash": s2["hash"], "alpha": a2, "paths": p2}, "space_focus": act, "after": {"chosen": s4["selected"], "alpha": a4}}
         check("several questions: the round button, Space on a row and Ctrl-click add one (it is shown, 'i of n'), Cmd-click and "
-              "the round button remove; exactly the chosen traces opaque after every change; the camera stays", several, pg)
+              "the round button remove; exactly the chosen traces opaque after every change, one path colour per trace in choice "
+              "order (the first --path-0); the camera stays", several, pg)
 
         def area_all():
             side(pg, True)
@@ -3016,6 +3196,7 @@ def t_traces(c: Ctx):
                 raise RuntimeError(f"All 20: chosen {len(s['selected'])}, heading {s['allPressed']}, hash {s['hash']}, stepper {s['step']}, "
                                    f"rows {len(s['chosenRows'])}, count {s['count']!r}")
             d1 = judge(s, co, "All 20 (#1 shown)", pg)
+            p20 = paths(pg, k20, "lao-dong-tien-luong:1", "All 20", idx=list(range(20)))
             shot = c.shot(pg, "traces_area_all")
             # the stepper: next twice -> '3 of 20' (#3 shown, its call-outs), back -> '2 of 20'; no alpha written again
             w0 = s["writes"]
@@ -3033,9 +3214,10 @@ def t_traces(c: Ctx):
             if (s3["step"] != "3 of 20" or s3["hash"] != "#area=lao-dong-tien-luong&all=1&q=3" or s2["step"] != "2 of 20"
                     or len(s2["selected"]) != 20 or s2["writes"] != w0):
                 raise RuntimeError(f"stepper: {s3['step']} (hash {s3['hash']}), back {s2['step']}; chosen {len(s2['selected'])}; alpha writes {w0} -> {s2['writes']}")
-            return {"alpha": a, "first": d1["callouts"], "third": {"placed": d3["placed"], "occluded": d3["occluded_by_panel"]}, "writes": w0, "shot": shot}
+            return {"alpha": a, "paths": p20, "first": d1["callouts"], "third": {"placed": d3["placed"], "occluded": d3["occluded_by_panel"]}, "writes": w0, "shot": shot}
         check("an area heading's All 20 chooses exactly its 20 traces (all opaque, the other traces faint, the network light; heading pressed, #area=<id>&all=1, "
-              "'1 of 20'); the stepper shows #3 ('3 of 20', its must-show call-outs) and back, without writing the alphas again", area_all, pg)
+              "'1 of 20'; 20 paths in --path-0 .. --path-11 cycling, one legend row each); the stepper shows #3 ('3 of 20', its must-show call-outs) and back, "
+              "without writing the alphas again", area_all, pg)
 
         def static_map():
             """one static map: searching and further list use change the drawing only (the camera stays, and the page makes no
@@ -3135,9 +3317,9 @@ def t_traces(c: Ctx):
                     raise RuntimeError(f"deep link ({theme}): the first-visit hint overlaps the stage tools while the panel is open: {clash}")
                 d1 = judge(pg.evaluate(JS_TRACES), pg.evaluate(JS_CALLOUTS), f"deep link ({theme})", pg)
                 a1 = alpha(pg, [f"{area}:{rank}"], f"deep link ({theme})")
-                px1 = trace_pixels(pg, "#canvas-host", theme)
-                if px1["core_out"] < TRACE_PX_MIN["core"] or px1["halo_near_core"] < TRACE_PX_MIN["halo"]:
-                    raise RuntimeError(f"deep link ({theme}): trace pixels {px1} (minimum {TRACE_PX_MIN})")
+                px1 = path_pixels(pg, "#canvas-host")
+                if px1["counts"]["--path-0"] < PATH_PX_MIN:
+                    raise RuntimeError(f"deep link ({theme}): path pixels {px1} (minimum {PATH_PX_MIN})")
                 shot1 = c.shot(pg, f"traces_deep__{theme}")
                 other = "dark" if theme == "light" else "light"
                 r0, n0 = runs(pg), pg.evaluate("window.__VLONTO_METRICS.themeRenders || 0")
@@ -3146,9 +3328,9 @@ def t_traces(c: Ctx):
                 pg.wait_for_function(JS_TRACE_DONE, arg={"area": area, "rank": rank, "runs": r0}, timeout=T_(60000))
                 d2 = judge(pg.evaluate(JS_TRACES), pg.evaluate(JS_CALLOUTS), f"after switching to {other}", pg)
                 a2 = alpha(pg, [f"{area}:{rank}"], f"after switching to {other}")
-                px2 = trace_pixels(pg, "#canvas-host", other)
-                if px2["core_out"] < TRACE_PX_MIN["core"] or px2["halo_near_core"] < TRACE_PX_MIN["halo"]:
-                    raise RuntimeError(f"after switching to {other}: trace pixels {px2} (minimum {TRACE_PX_MIN})")
+                px2 = path_pixels(pg, "#canvas-host")
+                if px2["counts"]["--path-0"] < PATH_PX_MIN or px2["colours"]["--path-0"] == px1["colours"]["--path-0"]:
+                    raise RuntimeError(f"after switching to {other}: path pixels {px2} (minimum {PATH_PX_MIN}; the first path colour of {other})")
                 shot2 = c.shot(pg, f"traces_deep__{theme}_to_{other}")
                 return {"theme": [d1["callouts"], px1, shot1, a1["netLinks"]], "switched": [d2["callouts"], px2, shot2, a2["netLinks"]],
                         "hint_checked": clash is not None, "page_width": no_hscroll(c, pg, "traces deep link")}
@@ -3158,13 +3340,13 @@ def t_traces(c: Ctx):
         check(f"deep link #area=lao-dong-tien-luong&q=3 (v1) lights exactly the trace ({theme}); the theme switch keeps it and its "
               f"alphas (the other traces faint; the links at the other theme's opacities times the light alpha)", deep)
 
-    # the colour mode at load (v1.4): the stored choice (VL.store 'traces3d-color'), #color= over it; the load never writes
-    # the store; with storage blocked the page loads by area and the switch still works (the lite network, #ds=lite)
+    # the colour mode at load: the stored choice (VL.store 'traces3d-color'), #color= over it; the load never writes the
+    # store; with storage blocked the page loads by type (the default) and the switch still works (the lite network, #ds=lite)
     def colour_store():
         out = {}
         for name, page, seed, want in (("stored kind", f"traces.html#{LITE}", "kind", "kind"),
-                                       ("#color=area over a stored kind", f"traces.html#color=area&{LITE}", "kind", "area"),
-                                       ("#color=kind, nothing stored", f"traces.html#color=kind&{LITE}", None, "kind")):
+                                       ("#color=type over a stored kind", f"traces.html#color=type&{LITE}", "kind", "type"),
+                                       ("#color=area, nothing stored", f"traces.html#color=area&{LITE}", None, "area")):
             # the first load also stores the columns' widths: applied at load on wide screens, ignored on phones (v1.4)
             cols = ("window.localStorage.setItem('vlonto.cols.side', '400'); window.localStorage.setItem('vlonto.cols.panel', '520'); "
                     if name == "stored kind" else "")
@@ -3190,19 +3372,19 @@ def t_traces(c: Ctx):
         ctx, pg, log = c.open(f"traces.html#{LITE}", init_script=blocked, ready_timeout=T_(240000))
         try:
             pg.wait_for_function("() => window.__VLONTO_METRICS.traces.sceneReady && window.VLApp.traces.settle()", timeout=T_(120000))
-            colours(pg, "area", "storage blocked")
+            colours(pg, "type", "storage blocked")
             if c.mobile:
                 pg.locator("#btn-legend").click()
             pg.locator('#legend .tr-colorby [data-color="kind"]').click()
             pg.wait_for_function("() => window.__VLONTO_METRICS.traces.colorBy === 'kind' && window.VLApp.traces.settle()", timeout=T_(30000))
             colours(pg, "kind", "storage blocked, switched")
-            out["storage blocked"] = {"load": "area", "switch": "kind"}
+            out["storage blocked"] = {"load": "type", "switch": "kind"}
         finally:
             merge(log)
             ctx.close()
         return out
-    check("the colour mode at load: a stored 'kind' loads by kind, #color=area over it by area, #color=kind by kind; the load "
-          "never writes the store; storage blocked: by area, and the switch works", colour_store)
+    check("the colour mode at load: a stored 'kind' loads by kind, #color=type over it by type, #color=area by area; the "
+          "load never writes the store; storage blocked: by type (the default), and the switch to kind works", colour_store)
 
     # the page in EN and in VI (?lang=): one language in the headings, search, count line, Clear, list, hop panel, legend and
     # call-outs; the header switch back to EN–VI renders them as v1 (title over gloss, paired headings and hop headings)
@@ -3230,9 +3412,11 @@ def t_traces(c: Ctx):
                     bad.append(f"hop headings: {hops[:200]}")
                 if mode == "vi" and (not hops.startswith("1 Câu hỏi") or re.search(r"\b(Question|Answer|Provision)\b", hops)):
                     bad.append(f"hop headings: {hops[:200]}")
-                if not c.mobile and not (("Traced answer" in s["legend"] and "Đường truy vết" not in s["legend"]) if mode == "en"
-                                         else ("Đường truy vết" in s["legend"] and "Traced answer" not in s["legend"])):
-                    bad.append(f"legend: {s['legend'][:160]}")
+                lg = s["legend"]
+                if not c.mobile and not ((all(x in lg for x in ("Legend", "Not chosen (light)", "Question #")) and not any(x in lg for x in ("Chú giải", "Chưa chọn", "Câu hỏi")))
+                                         if mode == "en" else
+                                         (all(x in lg for x in ("Chú giải", "Chưa chọn (nhạt)", "Câu hỏi #")) and not any(x in lg for x in ("Legend", "Not chosen", "Question")))):
+                    bad.append(f"legend: {lg[:200]}")
                 if bad:
                     raise RuntimeError(f"{mode}: " + "; ".join(bad))
                 shot = c.shot(pg, f"traces_lang_{mode}")
