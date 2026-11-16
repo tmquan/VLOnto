@@ -57,12 +57,14 @@ config nothing is added, so the checks are exactly the node's. Page-specific beh
 `interaction_tests.py`: `traces.html` is in the header navigation, so the about test expects 9 internal navigation links
 (`len(internal) == 9`), and the Traces page has its own test (`traces`: the whole 3D legal network with all traces in
 one WebGL scene, every traced law at its network document, the two alpha levels read from the page (light with nothing
-chosen; while some are chosen the other traces faint, the network light) and the trace layer's see-through materials; v1.4: the colours by legal area
-(the default) and by kind against the colour buffers, the legend's switch and the stored choice, the traces not chosen as 1-px threads whose
-alpha keeps the densest overlap of the load view near 0.5, and the chosen traces' points opaque on top in an explicit draw order; one list with search
-and keyboard, lazy loading, a question chosen in three areas with its trace pixels, call-outs and hop panel, several at
-once (round button, Space, Ctrl/Cmd-click, an area's All 20, the stepper, Clear), node details, deep links and the theme
-switch), which `check.sh` and `ci_check.sh` run by default; it is also one of the WebGL `SCENES` of the theme, gallery
+chosen; while some are chosen the other traces faint, the network light) and the trace layer's see-through materials; the colours by
+document type (the default since site v1.3), by legal area and by kind against the colour buffers, the legend's switch (Type | Area |
+Kind) with its counts and the stored choice, the traces not chosen as 1-px threads whose alpha keeps the densest overlap of the load
+view near 0.5, and the chosen traces' points opaque on top in an explicit draw order; the near-parallel view and nothing boxed on the
+stage on load, no path drawn then; one list with search and keyboard, lazy loading, a question chosen in three areas with its path
+(pixels in the first path colour, a diamond on the question, a square on the law, one legend row with the main strand's points),
+call-outs and hop panel, several at once (round button, Space, Ctrl/Cmd-click, an area's All 20 with 20 paths in the 12 path
+colours, the stepper, Clear), node details, deep links and the theme switch), which `check.sh` and `ci_check.sh` run by default; it is also one of the WebGL `SCENES` of the theme, gallery
 and contrast checks. The traces test's per-theme and per-language loads open it with the lite network (`#ds=lite`, what
 phones load) and the theme group's page loops (`theme`, `paper`, `lang`) with the lite network and straight links
 (`#ds=lite&curves=0`); the traces test's main load, the gallery, site_check and the contrast check draw the full network
@@ -74,12 +76,22 @@ page they already have open: the side column's handle (role `separator` with its
 mouse (the canvas area 80 px narrower, the renderer's canvas following it, the camera unchanged, no text selected, the
 width stored), dragged past both limits (220 px; at most 560 px, the 3D view at least 360 px), ArrowRight (+16 px),
 Shift+ArrowRight (+64 px), End and Home, and a double-click back to the default; then the details panel's handle after a
-selection (300–720 px, ArrowLeft +16 px), with the stage overlays (legend, tools, status line, hint) checked against
+selection (300–720 px, ArrowLeft +16 px), with the stage overlays (legend, tools, status line, hint, title and parameter lines) checked against
 each other and the columns at the panel's minimum and maximum width; last, a stored width applied at load: after one
 reload of `index.html`, and through the same code path on a window resize on the network and traces pages (no page
 loaded again). At 390x844 `columns_absent` checks that no handle is shown and no width is set. The traces test's
 stored-colour load also stores the widths 400 px and 520 px (applied on desktop, ignored on phones). Nothing is added to
 the theme group. Each page's result records its `seconds`.
+
+Site v1.3 draws the three 3D pages like the paper's 3D figures (the "figure look"). The paper test (`paper`, theme group)
+checks it per theme on the playground, the legal network and the SPARQL CONSTRUCT view: on load each view is near-parallel
+(`VLApp.figView()`: a field of view of at most 12 degrees and the stack's top and bottom plane within 5 % of each other's
+projected width; the former 45-degree view gives about 0.86 and fails), and the title, parameter and status lines, the
+legend and the call-outs have no border, outline, shadow or box; the legal network colours its documents by type on load
+(legend counts equal to the data's); a selection draws its chain as a path in the first path colour (`--path-0`), with a
+diamond on its first node, a square on its last and one legend row with its number of points, and a hovered link as a
+second path in the next colour. The traces test's path-pixel minimum (`PATH_PX_MIN`) and its bound on load
+(`LOAD_PATH_PX_MAX`) replace the former core and halo minimums of the navy and gold trace.
 
 ## Runtime
 
