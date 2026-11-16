@@ -335,7 +335,9 @@
      canvas and clear of the overlays, of the boxes and leaders already placed, of every node disc and every link. A
      call-out without such a position is hidden (lowest priority first). Selected and traced call-outs ("must", at most
      mustMax of them, by priority) are placed first and, failing that, take the position clear of other call-outs,
-     overlays and node centres that covers the least ink; the selected node's own call-out ("sel") may, as a last
+     overlays and node centres that covers the least ink, and failing that again the cheapest such position anywhere
+     on the canvas (every 4 px, more on a large canvas, on a straight leader no longer than the longest must leader: a
+     near-parallel view can leave clear gaps between the rays); the selected node's own call-out ("sel") may, as a last
      resort, cover the fewest node centres. A must call-out that still has no position is hidden and counted
      (mustHidden): call-outs never overlap. schedule() throttles runs while the camera moves or the layout ticks and adds
      one when they stop.
@@ -474,7 +476,7 @@
         gx /= discs.length; gy /= discs.length;
       }
       var col = cfg.leaderColor ? cfg.leaderColor() : '#a2a8af';
-      var items = [], shown = 0, hidden = 0, mustHidden = 0, mustOff = 0, forced = 0, selOnCentres = 0, placed = [];
+      var items = [], shown = 0, hidden = 0, mustHidden = 0, mustOff = 0, forced = 0, selOnCentres = 0, scanned = 0, placed = [];
       (cfg.items() || []).forEach(function (it) {
         var s = it.sprite;
         if (!s) return;
@@ -541,6 +543,37 @@
         });
       }
       function boxAt(cx, cy, I) { return { x0: cx - I.w / 2, y0: cy - I.h / 2, x1: cx + I.w / 2, y1: cy + I.h / 2, cx: cx, cy: cy }; }
+      /* a must call-out with no position on its rays: every position of the canvas (steps of 4 px, more on a large
+         canvas) on a straight leader from its node to the box's edge, no longer than the longest must leader; the
+         cheapest clear position (short leader, its previous position), else the cheapest over ink; never over a node
+         centre, an overlay, a call-out or a leader */
+      function scan(I) {
+        var step = Math.max(4, Math.round(Math.sqrt(W * H / 20000))), hw = I.w / 2, hh = I.h / 2, st = I.r + 1.5;
+        var lmax = LENS_MUST[LENS_MUST.length - 1], pk = prev[I.it.id], po = null;
+        var clear = null, clearCost = Infinity, inked = null, inkCost = Infinity;
+        if (pk && pk.indexOf('scan:') === 0) po = pk.slice(5).split(',').map(Number);
+        for (var cy = 4 + hh; cy <= H - 4 - hh; cy += step) {
+          for (var cx = 4 + hw; cx <= W - 4 - hw; cx += step) {
+            var ax = cx - I.x, ay = cy - I.y;
+            var s = Math.min(Math.abs(ax) > 1e-6 ? hw / Math.abs(ax) : Infinity, Math.abs(ay) > 1e-6 ? hh / Math.abs(ay) : Infinity);
+            if (!(s < 1)) continue;                        // the node under its own box
+            var dl = Math.sqrt(ax * ax + ay * ay), len = dl * (1 - s) - st;
+            if (len < 4 || len > lmax) continue;
+            var cost = len + (po && Math.abs(ax - po[0]) <= step && Math.abs(ay - po[1]) <= step ? -40 : 0);
+            if (cost >= clearCost) continue;
+            var box = boxAt(cx, cy, I), lead = { x0: I.x + ax / dl * st, y0: I.y + ay / dl * st, x1: cx - ax * s, y1: cy - ay * s };
+            var v = check(box, lead), key = 'scan:' + Math.round(ax) + ',' + Math.round(ay);
+            if (v === 0) {
+              cost += leaderCost(lead, I);
+              if (cost < clearCost) { clearCost = cost; clear = { box: box, lead: lead, key: key }; }
+            } else if (v === 1 && !clear) {
+              cost += 30 * inkUnder(box) + leaderCost(lead, I);
+              if (cost < inkCost) { inkCost = cost; inked = { box: box, lead: lead, key: key }; }
+            }
+          }
+        }
+        return clear || inked;
+      }
       function put(I, c) {
         var s = I.s, it = I.it;
         s.setOffset(c.box.cx - I.x, c.box.cy - I.y);
@@ -603,6 +636,7 @@
         }
         if (best) { put(I, best); return; }
         if (relaxed) { put(I, relaxed); return; }
+        if (I.must) { var sc = scan(I); if (sc) { put(I, sc); scanned++; return; } }
         if (onCentres) { put(I, onCentres); selOnCentres += onCentres.centres; return; }
         if (I.sel) {
           /* the selected node's call-out and no free position at all: keep it, outward on a short leader */
@@ -619,7 +653,7 @@
       });
       self.runs++;
       var out = { runs: self.runs, ms: r1(performance.now() - t0), W: Math.round(W), H: Math.round(H), shown: shown, hidden: hidden,
-        mustHidden: mustHidden, mustOffscreen: mustOff, forced: forced, selOnCentres: selOnCentres, links: nseg, placed: placed, centre: [r1(gx), r1(gy)],
+        mustHidden: mustHidden, mustOffscreen: mustOff, forced: forced, selOnCentres: selOnCentres, scanned: scanned, links: nseg, placed: placed, centre: [r1(gx), r1(gy)],
         nodes: discs.slice(0, 5000).map(function (d) { return [d.id, r1(d.x), r1(d.y)]; }) };
       self.last = out;
       if (cfg.metrics) cfg.metrics[cfg.key || 'callouts'] = out;
