@@ -86,7 +86,7 @@ the theme group. Each page's result records its `seconds`.
 Site v1.3 draws the three 3D pages like the paper's 3D figures (the "figure look"). The paper test (`paper`, theme group)
 checks it per theme on the playground, the legal network and the SPARQL CONSTRUCT view: on load each view is near-parallel
 (`VLApp.figView()`: a field of view of at most 12 degrees and the stack's top and bottom plane within 5 % of each other's
-projected width; the former 45-degree view gives about 0.86 and fails), and the title, parameter and status lines, the
+projected width; the former 45-degree view gives 0.82-0.84 and fails), and the title, parameter and status lines, the
 legend and the call-outs have no border, outline, shadow or box; the legal network colours its documents by type on load
 (legend counts equal to the data's); a selection draws its chain as a path in the first path colour (`--path-0`), with a
 diamond on its first node, a square on its last and one legend row with its number of points, and a hovered link as a

@@ -1775,7 +1775,7 @@ JS_CALLOUTS = "() => window.__VLONTO_METRICS.callouts || null"
 FIG_PATH_EXPECT = {"main": 4.4, "other": 2.2, "casing": 1.5, "diamond": 15, "square": 12, "bead": 8, "ring": 1.5}
 # the near-parallel view (js/paper3d.js VL.FIG_FOV): a field of view of at most FIG_FOV_MAX degrees, and on load the top and
 # the bottom plane of a view's stack project within PARALLEL_MIN of each other's width (VLApp.figView: about 0.97 with the
-# 8-degree view, about 0.86 with the former 45-degree one)
+# 8-degree view; 0.82-0.84 with the former 45-degree one: playground 0.84, legal network 0.82, traces 0.83)
 FIG_FOV_MAX = 12
 PARALLEL_MIN = 0.95
 JS_FIG_VIEW = "(t) => t ? window.VLApp.traces.figView() : window.VLApp.figView()"
@@ -1907,7 +1907,7 @@ def path_pixels(pg, sel, names=("--path-0",), scope=None, tol=14):
 def parallel_view(pg, traces=False):
     """the near-parallel view on load (js/paper3d.js VL.FIG_FOV, VLApp.figView): a field of view of at most FIG_FOV_MAX
     degrees and the top and the bottom plane of the stack projected within PARALLEL_MIN of each other's width; fails if
-    the view returns to a wide perspective (the former 45-degree view gives about 0.86)"""
+    the view returns to a wide perspective (the former 45-degree view gives 0.82-0.84)"""
     v = pg.evaluate(JS_FIG_VIEW, traces)
     if not v or v.get("fov", 99) > FIG_FOV_MAX or v.get("ratio") is None or v["ratio"] < PARALLEL_MIN:
         raise RuntimeError(f"the view is not near-parallel (field of view <= {FIG_FOV_MAX}, plane widths within {PARALLEL_MIN}): {v}")

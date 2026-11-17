@@ -920,7 +920,7 @@
   VL.FIG_DIST = Math.tan(22.5 * Math.PI / 180) / Math.tan(VL.FIG_FOV / 2 * Math.PI / 180);
   /* the projected widths (CSS px on the canvas) of a stack of horizontal planes (each { key, y, x0, x1, z0, z1 }, the top
      plane first, the bottom one last) as the camera sees them, and the ratio of the narrower to the wider of the top and
-     the bottom plane: 1 in a parallel projection, about 0.97 in the view of VL.FIG_FOV on load, about 0.86 in the former
+     the bottom plane: 1 in a parallel projection, about 0.97 in the view of VL.FIG_FOV on load, 0.82-0.84 in the former
      45-degree view (VLApp.figView(), tests: the view stays near-parallel) */
   VL.figPlaneWidths = function (camera, W, H, planes) {
     var v = new THREE.Vector3(), out = [];
