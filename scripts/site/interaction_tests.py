@@ -1300,7 +1300,7 @@ def lum(rgb):
 def region_mode(pg, sel, w=480, h=300):
     """Dominant colour of the top-left part of an element as rendered (WebGL canvases included). The element is
     scrolled to the middle of the viewport first and the sample stays clear of the sticky header and the fixed footbar
-    (both navy in either theme), so only the element itself is measured."""
+    (both follow the theme), so only the element itself is measured."""
     loc = pg.locator(sel).first
     loc.evaluate("e => e.scrollIntoView({ block: 'center', inline: 'nearest' })")
     pg.wait_for_timeout(300)
