@@ -13,32 +13,45 @@
   --header-h: 56px;
   --footbar-h: 30px;
   --page-w: 1180px;
-  /* site chrome (header, footer, compact scene footer) is dark navy in both themes */
-  --chrome-bg: #0b1122;
-  --chrome-line: #1e2947;
-  --chrome-fg: #e8edf8;
-  --chrome-fg-2: #c9d2ea;
-  --chrome-muted: #9aa7c7;
-  --chrome-hover: #1a2546;
-  --chrome-current: #23305a;
-  --chrome-current-line: #82a6ff;
-  --chrome-btn-bg: #1a2546;
-  --chrome-btn-line: #2c3a66;
-  --chrome-menu-bg: #0e1530;
-  --chrome-menu-line: #263257;
+  /* The header with its menu (--chrome-*) and the compact scene footer (--footbar-*) follow the theme: light in the
+     light theme, navy in the dark one; their values are in the two theme blocks below. The page footer of the
+     document pages stays navy in both themes. */
+  --foot-bg: #0b1122;
   --foot-fg: #b8c3df;
   --foot-link: #a9c0ff;
   --foot-strong: #ffd59a;
   --foot-meta: #8995b5;
+  --foot-pair: #9aa7c7;
   --foot-line: #1f2a49;
-  --footbar-bg: #080c19;
-  --footbar-line: #1c2645;
-  --footbar-fg: #8f9bbd;
+  --foot-focus: #ffb547;
 }
 
 /* ------------------------------------------------------------------ light theme (default) */
 :root, :root[data-theme="light"] {
   color-scheme: light;
+  /* header and menu: white bar, dark text (11.3:1), current page on a pale blue pill with a blue underline */
+  --chrome-bg: #ffffff;
+  --chrome-line: #d9e0ee;
+  --chrome-fg: #111a30;
+  --chrome-fg-2: #2f3a56;
+  --chrome-muted: #5a6684;
+  --chrome-strong: #0b1122;
+  --chrome-hover: #eef2f9;
+  --chrome-current: #e6ecfc;
+  --chrome-current-line: #2b55d0;
+  --chrome-on-accent: #ffffff;     /* text of the chosen language segment: 6.3:1 on the blue, 5.6:1 between segments */
+  --chrome-btn-bg: #eef2f9;
+  --chrome-btn-line: #c6cfe2;
+  --chrome-menu-bg: #ffffff;
+  --chrome-menu-line: #d9e0ee;
+  --chrome-focus: #b45309;         /* 5.0:1 on the bar, 4.3:1 on the current-page pill */
+  --footbar-bg: #ffffff;
+  --footbar-line: #d9e0ee;
+  --footbar-fg: #5a6684;
+  --footbar-strong: #9a4b00;
+  --footbar-link: #2b55d0;
+  --footbar-pair: #5a6684;
+  --chrome-menu-shadow: 0 14px 30px rgba(17, 26, 48, .18);   /* the open menu sheet over a white page */
   --bg: #f4f6fb;
   --surface: #ffffff;
   --surface-2: #eef2f9;
@@ -248,6 +261,29 @@
 
 /* ------------------------------------------------------------------ dark theme */
 :root[data-theme="dark"] {
+  /* header and menu: navy bar, light text */
+  --chrome-bg: #0b1122;
+  --chrome-line: #1e2947;
+  --chrome-fg: #e8edf8;
+  --chrome-fg-2: #c9d2ea;
+  --chrome-muted: #9aa7c7;
+  --chrome-strong: #ffffff;
+  --chrome-hover: #1a2546;
+  --chrome-current: #23305a;
+  --chrome-current-line: #82a6ff;
+  --chrome-on-accent: #0b1122;     /* 7.6:1 text, 6.3:1 vs. the other segments */
+  --chrome-btn-bg: #1a2546;
+  --chrome-btn-line: #2c3a66;
+  --chrome-menu-bg: #0e1530;
+  --chrome-menu-line: #263257;
+  --chrome-focus: #ffb547;
+  --footbar-bg: #080c19;
+  --footbar-line: #1c2645;
+  --footbar-fg: #8f9bbd;
+  --footbar-strong: #ffd59a;
+  --footbar-link: #a9c0ff;
+  --footbar-pair: #9aa7c7;
+  --chrome-menu-shadow: none;
   color-scheme: dark;
   --bg: #0c1120;
   --surface: #131b2f;
@@ -574,7 +610,8 @@ code { font-size: .88em; background: var(--surface-2); border: 1px solid var(--l
 kbd { font-size: 12px; border: 1px solid var(--line-2); border-bottom-width: 2px; border-radius: 5px; padding: 0 5px; background: var(--surface); }
 .hint kbd, .scene-app kbd, .scene-panel kbd { background: var(--scene-kbd-bg); border-color: var(--scene-kbd-line); color: var(--scene-kbd-fg); }
 :focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
-.vl-header :focus-visible, .vl-footer :focus-visible, .vl-footbar :focus-visible, .hero :focus-visible { outline-color: #ffb547; }
+.vl-header :focus-visible, .vl-footbar :focus-visible { outline-color: var(--chrome-focus); }
+.vl-footer :focus-visible, .hero :focus-visible { outline-color: var(--foot-focus); }
 .vl-header :focus-visible { outline-offset: 1px; }                       /* ring and its surround stay inside the 52-56 px bar */
 /* flex items paint atomically, so a neighbour's background (e.g. the current-page pill, 2-4 px away) would cover part of
    the ring: the focused item is lifted above its siblings */
@@ -602,8 +639,8 @@ kbd { font-size: 12px; border: 1px solid var(--line-2); border-bottom-width: 2px
   border-bottom: 1px solid var(--chrome-line);
   color: var(--chrome-fg);
 }
-.vl-brand { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; flex: 0 0 auto; }
-.vl-brand:hover { color: #fff; }
+.vl-brand { display: flex; align-items: center; gap: 10px; color: var(--chrome-strong); text-decoration: none; flex: 0 0 auto; }
+.vl-brand:hover { color: var(--chrome-strong); }
 .vl-brand svg { width: 30px; height: 30px; }
 .vl-brand > span { line-height: 1.15; }   /* two lines in ~40 px, so the focus ring fits inside the header */
 .vl-brand .name { font-size: 19px; font-weight: 700; letter-spacing: .01em; line-height: 1.15; }
@@ -613,8 +650,8 @@ kbd { font-size: 12px; border: 1px solid var(--line-2); border-bottom-width: 2px
   color: var(--chrome-fg-2); text-decoration: none; font-size: 14px; font-weight: 500; white-space: nowrap;
   padding: 7px 10px; border-radius: 7px; line-height: 1.3;
 }
-.vl-nav a:hover { color: #fff; background: var(--chrome-hover); }
-.vl-nav a[aria-current="page"] { color: #fff; background: var(--chrome-current); box-shadow: inset 0 -2px 0 var(--chrome-current-line); }
+.vl-nav a:hover { color: var(--chrome-strong); background: var(--chrome-hover); }
+.vl-nav a[aria-current="page"] { color: var(--chrome-strong); background: var(--chrome-current); box-shadow: inset 0 -2px 0 var(--chrome-current-line); }
 .vl-nav a.ext { display: inline-flex; align-items: center; gap: 5px; }
 .vl-nav a.ext svg { width: 13px; height: 13px; flex: 0 0 auto; }
 .vl-tools { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; margin-left: 6px; }
@@ -622,7 +659,7 @@ kbd { font-size: 12px; border: 1px solid var(--line-2); border-bottom-width: 2px
   display: inline-grid; place-items: center; width: 36px; height: 36px; padding: 0; flex: 0 0 auto;
   background: var(--chrome-btn-bg); color: var(--chrome-fg); border: 1px solid var(--chrome-btn-line); border-radius: 8px; cursor: pointer;
 }
-.vl-theme-btn:hover { background: var(--chrome-current); color: #fff; }
+.vl-theme-btn:hover { background: var(--chrome-current); color: var(--chrome-strong); }
 .vl-theme-btn svg { width: 18px; height: 18px; }
 .vl-theme-btn .i-moon { display: none; }
 :root[data-theme="dark"] .vl-theme-btn .i-sun { display: none; }
@@ -647,8 +684,8 @@ kbd { font-size: 12px; border: 1px solid var(--line-2); border-bottom-width: 2px
 .vl-lang button + button { border-left: 1px solid var(--chrome-btn-line); }
 .vl-lang button:first-child { border-radius: 7px 0 0 7px; }
 .vl-lang button:last-child { border-radius: 0 7px 7px 0; }
-.vl-lang button:hover { color: #fff; background: var(--chrome-current); }
-.vl-lang button[aria-checked="true"] { color: #0b1122; background: var(--chrome-current-line); }   /* 7.6:1 text, 6.3:1 vs. the other segments */
+.vl-lang button:hover { color: var(--chrome-strong); background: var(--chrome-current); }
+.vl-lang button[aria-checked="true"] { color: var(--chrome-on-accent); background: var(--chrome-current-line); }
 .vl-lang button:focus-visible {
   position: relative; z-index: 1; outline: 3px solid var(--focus-2); outline-offset: 1px; box-shadow: 0 0 0 6px var(--focus-halo);
 }
@@ -667,7 +704,7 @@ kbd { font-size: 12px; border: 1px solid var(--line-2); border-bottom-width: 2px
   .vl-nav {
     display: none; position: absolute; top: var(--header-h); right: 0; left: 0;
     flex-direction: column; align-items: stretch; gap: 0;
-    background: var(--chrome-menu-bg); border-bottom: 1px solid var(--chrome-menu-line); padding: 6px 12px 12px;
+    background: var(--chrome-menu-bg); border-bottom: 1px solid var(--chrome-menu-line); padding: 6px 12px 12px; box-shadow: var(--chrome-menu-shadow);
     box-shadow: 0 16px 30px rgba(0, 0, 0, .35);
   }
   .vl-header.open .vl-nav { display: flex; }
@@ -679,7 +716,7 @@ kbd { font-size: 12px; border: 1px solid var(--line-2); border-bottom-width: 2px
   :root[data-lang="vi"] .vl-nav {
     display: none; position: absolute; top: var(--header-h); right: 0; left: 0;
     flex-direction: column; align-items: stretch; gap: 0;
-    background: var(--chrome-menu-bg); border-bottom: 1px solid var(--chrome-menu-line); padding: 6px 12px 12px;
+    background: var(--chrome-menu-bg); border-bottom: 1px solid var(--chrome-menu-line); padding: 6px 12px 12px; box-shadow: var(--chrome-menu-shadow);
     box-shadow: 0 16px 30px rgba(0, 0, 0, .35);
   }
   :root[data-lang="vi"] .vl-header.open .vl-nav { display: flex; }
@@ -698,7 +735,7 @@ kbd { font-size: 12px; border: 1px solid var(--line-2); border-bottom-width: 2px
 }
 
 /* ------------------------------------------------------------------ footer */
-.vl-footer { margin-top: 48px; background: var(--chrome-bg); color: var(--foot-fg); font-size: 13.5px; line-height: 1.6; }
+.vl-footer { margin-top: 48px; background: var(--foot-bg); color: var(--foot-fg); font-size: 13.5px; line-height: 1.6; }
 .vl-footer .inner { max-width: var(--page-w); margin: 0 auto; padding: 26px 24px 28px; display: grid; grid-template-columns: 1.4fr 1fr; gap: 22px 40px; }
 .vl-footer h2 { font-size: 14px; color: #fff; margin: 0 0 6px; font-weight: 600; }
 .vl-footer p { margin: 0 0 8px; }
@@ -712,8 +749,8 @@ kbd { font-size: 12px; border: 1px solid var(--line-2); border-bottom-width: 2px
   height: var(--footbar-h); display: flex; align-items: center; gap: 14px; padding: 0 14px;
   background: var(--footbar-bg); border-top: 1px solid var(--footbar-line); color: var(--footbar-fg); font-size: 12px; line-height: 1.3; white-space: nowrap;
 }
-.vl-footbar strong { color: var(--foot-strong); font-weight: 600; }
-.vl-footbar a { color: var(--foot-link); }
+.vl-footbar strong { color: var(--footbar-strong); font-weight: 600; }
+.vl-footbar a { color: var(--footbar-link); }
 .vl-footbar .grow { flex: 1 1 auto; }
 @media (max-width: 1500px) { .vl-footbar .fb-xl { display: none; } }
 @media (max-width: 1180px) {
@@ -735,7 +772,9 @@ kbd { font-size: 12px; border: 1px solid var(--line-2); border-bottom-width: 2px
    (html.vl-i18n-boot), elements with data-i18n stay hidden until js/i18n.js has put in the text of the mode, so no
    wrong language flashes; at DOMContentLoaded everything shows. The switch itself is in the header section. */
 :root { --pair-en: var(--muted); }
-.vl-header, .vl-footer, .vl-footbar { --pair-en: var(--chrome-muted); }
+.vl-header { --pair-en: var(--chrome-muted); }
+.vl-footer { --pair-en: var(--foot-pair); }
+.vl-footbar { --pair-en: var(--footbar-pair); }
 .scene-app, .query-drawer, .construct-view { --pair-en: var(--scene-muted); }
 :where(span.en[lang="en"]) { color: var(--pair-en); }
 :root.vl-i18n-boot [data-i18n]:not([data-i18n-ok]) { visibility: hidden; }
