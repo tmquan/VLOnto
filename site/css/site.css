@@ -1762,6 +1762,13 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
   }
   [data-style="paper"] .scene-stage.panel-open .legend.fig-legend { right: calc(var(--panel-w) + 14px); max-width: min(380px, calc(100% - var(--panel-w) - 28px)); }
   [data-style="paper"] .scene-stage.lg-collapsed .legend.fig-legend { display: none; }
+  /* traces.html: collapsed (a narrow stage) or giving way to a chosen trace (.lg-yield, js/traces3d.js fitLegend), the
+     legend keeps its heading and its colour switch (Type | Area | Kind), so the switch stays at hand; only its rows
+     wait behind the legend button */
+  [data-style="paper"] .page-traces .scene-stage.lg-collapsed .legend.fig-legend,
+  [data-style="paper"] .page-traces .scene-stage.lg-yield .legend.fig-legend { display: block; }
+  [data-style="paper"] .page-traces .scene-stage.lg-collapsed .legend.fig-legend > :not(.tr-lg-head),
+  [data-style="paper"] .page-traces .scene-stage.lg-yield .legend.fig-legend > :not(.tr-lg-head) { display: none; }
   [data-style="paper"] .scene-stage.legend-lift .legend.fig-legend { bottom: auto; }
   [data-style="paper"] .scene-stage .hint, [data-style="paper"] .scene-stage.panel-open .hint {
     top: max(42px, calc(var(--fig-title-b, 0px) + 8px)); left: 14px; right: auto; margin: 0; max-width: min(520px, calc(100% - var(--fig-lg-w, 0px) - 42px));

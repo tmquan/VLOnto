@@ -2016,15 +2016,23 @@
     legendEl.style.maxHeight = '';
     legendEl.style.top = '';
     T.legendMaxH = null;
+    stage.classList.remove('lg-yield');
     figLay = VL.figLayout(stage, { legend: legendEl, status: statusEl, open: state.legendOpen, force: state.legendForce });
     /* the map is static: on wide screens the legend column left of the open hop panel lies over the map's right half, so
-       it steps back behind its button while it would cover a must-show node of a chosen trace (its question, provision
-       or law), unless the reader opened it with the button */
+       its rows step back behind its button while they would cover a must-show node of a chosen trace (its question,
+       provision or law), unless the reader opened it with the button; its heading and colour switch stay (.lg-yield,
+       css/site.css) */
     if (!mobile && figLay.shown && !state.legendForce && stage.classList.contains('panel-open') && state.sel.length && legendCoversChosen()) {
-      stage.classList.add('lg-collapsed');
+      stage.classList.add('lg-yield');
       stage.style.setProperty('--fig-lg-w', '0px');
-      figLay = { shown: false, collapsed: true, width: 0 };
+      figLay = { shown: false, collapsed: true, yielded: true, width: 0 };
       T.legendYields = (T.legendYields || 0) + 1;
+    }
+    /* collapsed or giving way, the legend keeps its heading and colour switch on the stage (css/site.css): the hint keeps
+       left of them (--fig-lg-w: the heading's width and its gap) */
+    if (!mobile && figLay.collapsed && state.legendOpen && !legendEl.classList.contains('hidden')) {
+      var hw = legendEl.getBoundingClientRect().width;
+      stage.style.setProperty('--fig-lg-w', (hw > 1 ? Math.ceil(hw) + 14 : 0) + 'px');
     }
     var btn = VL.$('#btn-legend');
     if (btn) btn.setAttribute('aria-expanded', state.legendOpen && !figLay.collapsed ? 'true' : 'false');
@@ -2032,7 +2040,7 @@
     VL.fitLegend(stage, legendEl, statusEl);
     var key2 = [figLay.shown, figLay.collapsed, figLay.width].join(':');
     if (key2 !== figLayKey) { figLayKey = key2; scheduleCallouts(); }
-    T.figLayout = { shown: figLay.shown, collapsed: figLay.collapsed, width: figLay.width, homeLegW: homeLegW };
+    T.figLayout = { shown: figLay.shown, collapsed: figLay.collapsed, yielded: !!figLay.yielded, width: figLay.width, homeLegW: homeLegW };
     if (legendEl.classList.contains('hidden') || figLay.collapsed) return;
     var hr = host.getBoundingClientRect(), lr = legendEl.getBoundingClientRect();
     if (lr.width < 2 || lr.height < 2) return;
