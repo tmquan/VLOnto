@@ -59,7 +59,8 @@ config nothing is added, so the checks are exactly the node's. Page-specific beh
 one WebGL scene, every traced law at its network document, the two alpha levels read from the page (light with nothing
 chosen; while some are chosen the other traces faint, the network light) and the trace layer's see-through materials; the colours by
 document type (the default since site v1.3), by legal area and by kind against the colour buffers, the legend's switch (Type | Area |
-Kind) with its counts and the stored choice, the traces not chosen as 1-px threads whose alpha keeps the densest overlap of the load
+Kind) with its counts and the stored choice (the switch stays on the stage when the legend's rows step aside for a chosen trace with
+the details panel open), the traces not chosen as 1-px threads whose alpha keeps the densest overlap of the load
 view near 0.5, and the chosen traces' points opaque on top in an explicit draw order; the near-parallel view and nothing boxed on the
 stage on load, no path drawn then; one list with search and keyboard, lazy loading, a question chosen in three areas with its path
 (pixels in the first path colour, a diamond on the question, a square on the law, one legend row with the main strand's points),
@@ -90,7 +91,10 @@ projected width; the former 45-degree view gives 0.82-0.84 and fails), and the t
 legend and the call-outs have no border, outline, shadow or box; the legal network colours its documents by type on load
 (legend counts equal to the data's); a selection draws its chain as a path in the first path colour (`--path-0`), with a
 diamond on its first node, a square on its last and one legend row with its number of points, and a hovered link as a
-second path in the next colour. The traces test's path-pixel minimum (`PATH_PX_MIN`) and its bound on load
+second path in the next colour. On phones the 3D views' legend starts closed (as since v1.2): the test opens it with its
+legend button to read the rows and closes it again. The title and parameter lines wrap instead of clipping (site_check
+reports clipped text); where the parameter line and the status line do not fit side by side, the parameter line stands
+above the status line. The traces test's path-pixel minimum (`PATH_PX_MIN`) and its bound on load
 (`LOAD_PATH_PX_MAX`) replace the former core and halo minimums of the navy and gold trace.
 
 ## Runtime

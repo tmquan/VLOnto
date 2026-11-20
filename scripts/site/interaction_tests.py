@@ -1963,6 +1963,22 @@ def t_paper_style(c: Ctx):
         if bad:
             raise RuntimeError(f"{where}: " + "; ".join(bad))
 
+    def legend_rows(pg, read):
+        """the legend's rows as `read` (a JS snippet) sees them. Phones: the 3D views' legend starts closed (state.legendOpen
+        = !VL.isMobile(), as in v1.2) and opens from its button, so it is opened here with that button (a click on the
+        element, no pointer move over the scene) and closed again after the read; wide screens: as it is"""
+        shut = "() => document.getElementById('legend').classList.contains('hidden')"
+        if not c.mobile or not pg.evaluate(shut):
+            return pg.evaluate(read)
+        pg.evaluate("() => document.getElementById('btn-legend').click()")
+        pg.wait_for_function("() => { const l = document.getElementById('legend'); return !l.classList.contains('hidden') && l.querySelectorAll('li').length > 0; }",
+                             timeout=T_(30000))
+        try:
+            return pg.evaluate(read)
+        finally:
+            pg.evaluate("() => document.getElementById('btn-legend').click()")
+            pg.wait_for_function(shut, timeout=T_(30000))
+
     def shot(pg, name, theme):
         if c.mode != "http":
             return None
@@ -2009,7 +2025,7 @@ def t_paper_style(c: Ctx):
                 # diamond on the class, a square on the chain's last class, one legend row with its number of points (2 up
                 # to the chain's length); no node wears the gold halo of v1.2. Its pixels: the first path colour outside
                 # the call-out boxes (the stage's own text hidden)
-                pa = pg.evaluate(JS_ONTO_PATHS)
+                pa = legend_rows(pg, JS_ONTO_PATHS)
                 d0 = after["counts"]["--path-0"] - before["counts"]["--path-0"]
                 rows = pa["rows"]
                 dia = [k[0] for k in pa["marks"] if k[1] == "diamond"]
@@ -2077,7 +2093,7 @@ def t_paper_style(c: Ctx):
                 tokens_ok(got, theme, "network-3d.html")
                 view = parallel_view(pg)
                 unboxed(pg, "network-3d.html")
-                ty = pg.evaluate(JS_NET_TYPES)
+                ty = legend_rows(pg, JS_NET_TYPES)
                 if (ty["colorBy"] != "type" or ty["btns"] != [["type", "true"], ["validity", "false"], ["area", "false"]] or ty["bad"]
                         or sorted(r[0] for r in ty["rows"]) != sorted(ty["want"])):
                     raise RuntimeError(f"documents by type on load: colour {ty['colorBy']}, buttons {ty['btns']}, rows {ty['rows']}, data {ty['want']}, wrong {ty['bad']}")
@@ -2100,7 +2116,7 @@ def t_paper_style(c: Ctx):
                 # the replacement chain: one path in the first path colour along the links of the chain, a diamond on its
                 # first document, a square on its last, beads between (45/2019/QH14 among them); one legend row with the
                 # chain's number of documents
-                pn = pg.evaluate(JS_NET_PATHS)
+                pn = legend_rows(pg, JS_NET_PATHS)
                 d0 = after["counts"]["--path-0"] - before["counts"]["--path-0"]
                 shapes = sorted(k[1] for k in pn["marks"])
                 ids = [k[0] for k in pn["marks"]]
@@ -2117,7 +2133,7 @@ def t_paper_style(c: Ctx):
                 faults = callout_faults(co2)
                 if faults:
                     raise RuntimeError("10/2012/QH13 hovered: " + "; ".join(faults))
-                ph = pg.evaluate(JS_NET_PATHS)
+                ph = legend_rows(pg, JS_NET_PATHS)
                 if ph["paths"].get("paths", 0) < 2 or str(ph["paths"]["colors"][1]).lower() != ph["path1"] or len(ph["rows"]) < 2:
                     raise RuntimeError(f"the hovered link is not a second path in the next path colour: paths {ph['paths']}, legend rows {ph['rows']}")
                 pg.evaluate("() => window.VLApp.hoverDoc(null)")
@@ -2126,7 +2142,7 @@ def t_paper_style(c: Ctx):
                 # links are curves drawn on the GPU (several segments per link); the legend has one hairline row per link
                 # kind (the figure look) and one row per path; the link toggles keep their curve swatches
                 cost = pg.evaluate("window.__VLONTO_METRICS.edgeCost") or {}
-                pe = pg.evaluate(JS_NET_PATHS)
+                pe = legend_rows(pg, JS_NET_PATHS)
                 if (not cost.get("curves") or cost.get("vertices", 0) < 3 * cost.get("links", 1) or not pe["toggles"] or pe["hair"] < 2
                         or pe["rows"] != [pe["chainDocs"]]):
                     raise RuntimeError(f"curved links and legend: cost {cost}, toggles {pe['toggles']}, hairlines {pe['hair']}, path rows {pe['rows']}")
