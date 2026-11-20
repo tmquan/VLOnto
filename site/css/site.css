@@ -1714,8 +1714,11 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
    the right side of the stage under the stage tools (left of the details panel when it is open); where the stage is too
    narrow for the scene and the legend it collapses behind its button (.lg-collapsed, js/paper3d.js VL.figLayout). The
    first-visit hint, the stage tools, the side column and the details panel are controls and keep their styling; the hint
-   moves under the title line, left of the legend column. Phones: the legend opens from its button as before, the title
-   is smaller, the parameter line is hidden. The CONSTRUCT view of sparql.html shares the legend's unframed look. */
+   moves under the title line, left of the legend column. The title and the parameter line wrap instead of clipping: the
+   hint and the legend column stay below the title's bottom (--fig-title-b), and the parameter line stands above the
+   status line where the two do not fit side by side (js/paper3d.js VL.figFit). Phones: the legend opens from its
+   button as before, the title is smaller, the parameter line is hidden. The CONSTRUCT view of sparql.html shares the
+   legend's unframed look. */
 .fig-title, .fig-params { display: none; }
 [data-style="paper"] .scene-stage .fig-title, [data-style="paper"] .scene-stage .fig-params,
 [data-style="paper"] .scene-stage .stage-status, [data-style="paper"] .scene-stage .legend, [data-style="paper"] .construct-view .legend {
@@ -1723,15 +1726,15 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
 }
 [data-style="paper"] .scene-stage .fig-title {
   display: block; position: absolute; left: 14px; top: 11px; z-index: 5; margin: 0; padding: 0; border: 0; outline: 0; box-shadow: none;
-  background: none; font: 400 15px/1.35 var(--vlo-font-paper); color: var(--paper-ink); white-space: nowrap; overflow: hidden;
-  text-overflow: ellipsis; max-width: calc(100% - 200px); pointer-events: none;
+  background: none; font: 400 15px/1.35 var(--vlo-font-paper); color: var(--paper-ink); white-space: normal; overflow: visible;
+  max-width: calc(100% - 200px); pointer-events: none;
 }
 [data-style="paper"] .scene-stage .fig-title span.en[lang="en"] { color: inherit; }
 [data-style="paper"] .scene-stage.panel-open .fig-title { max-width: calc(100% - var(--panel-w) - 200px); }
 [data-style="paper"] .scene-stage .fig-params {
   display: block; position: absolute; left: 14px; bottom: 15px; z-index: 5; margin: 0; padding: 0; border: 0; outline: 0; box-shadow: none;
-  background: none; font: 400 12px/1.3 var(--vlo-font-mono); color: var(--paper-ink-2); white-space: nowrap; overflow: hidden;
-  text-overflow: ellipsis; pointer-events: none;
+  background: none; font: 400 12px/1.3 var(--vlo-font-mono); color: var(--paper-ink-2); white-space: normal; overflow: visible;
+  overflow-wrap: anywhere; pointer-events: none;
 }
 [data-style="paper"] .scene-stage .stage-status {
   background: none; border: 0; border-radius: 0; box-shadow: none; outline: 0; padding: 0; color: var(--paper-ink-2); font-size: 12px;
@@ -1753,21 +1756,26 @@ a.term-chip:hover { border-color: var(--accent-line); color: var(--accent); }
 [data-style="paper"] .legend.fig-legend .lg-note { color: var(--paper-ink-2); }
 @media (min-width: 761px) {
   [data-style="paper"] .scene-stage .legend.fig-legend {
-    left: auto; right: 14px; top: 58px; bottom: auto; width: max-content; max-width: min(380px, calc(100% - 28px));
-    max-height: calc(100% - 58px - 44px); overflow-y: auto; overscroll-behavior: contain;
+    left: auto; right: 14px; top: max(58px, calc(var(--fig-title-b, 0px) + 8px)); bottom: auto; width: max-content;
+    max-width: min(380px, calc(100% - 28px)); max-height: calc(100% - max(58px, calc(var(--fig-title-b, 0px) + 8px)) - 44px);
+    overflow-y: auto; overscroll-behavior: contain;
   }
   [data-style="paper"] .scene-stage.panel-open .legend.fig-legend { right: calc(var(--panel-w) + 14px); max-width: min(380px, calc(100% - var(--panel-w) - 28px)); }
   [data-style="paper"] .scene-stage.lg-collapsed .legend.fig-legend { display: none; }
   [data-style="paper"] .scene-stage.legend-lift .legend.fig-legend { bottom: auto; }
   [data-style="paper"] .scene-stage .hint, [data-style="paper"] .scene-stage.panel-open .hint {
-    top: 42px; left: 14px; right: auto; margin: 0; max-width: min(520px, calc(100% - var(--fig-lg-w, 0px) - 42px));
+    top: max(42px, calc(var(--fig-title-b, 0px) + 8px)); left: 14px; right: auto; margin: 0; max-width: min(520px, calc(100% - var(--fig-lg-w, 0px) - 42px));
   }
   [data-style="paper"] .scene-stage.panel-open .hint { max-width: min(520px, calc(100% - var(--panel-w) - var(--fig-lg-w, 0px) - 56px)); }
 }
 @media (max-width: 760px) {
   [data-style="paper"] .scene-stage .fig-title { left: 8px; top: 6px; font-size: 13px; max-width: calc(100% - 16px); }
   [data-style="paper"] .scene-stage .fig-params { display: none; }
-  [data-style="paper"] .scene-stage .hint { top: 30px; }
+  [data-style="paper"] .scene-stage .hint { top: max(30px, calc(var(--fig-title-b, 0px) + 6px)); }
+  /* phones: the details panel is a bottom sheet, so the title keeps the stage's width (the wide screens' rule would leave
+     it no width at all); traces.html moves the stage tools into a row at the top right while the sheet is open */
+  [data-style="paper"] .scene-stage.panel-open .fig-title { max-width: calc(100% - 16px); }
+  [data-style="paper"] .page-traces .scene-stage.panel-open .fig-title { max-width: calc(100% - 16px - 126px); }
 }
 
 /* ================================================================== end of 3D TRACK */

@@ -947,7 +947,58 @@
     var t = stage.querySelector('.fig-title'), p = stage.querySelector('.fig-params');
     if (t && o && o.title != null && t.__html !== o.title) { t.innerHTML = o.title; t.__html = o.title; }
     if (p && o && o.params != null && p.textContent !== o.params) p.textContent = o.params;
+    VL.figWatch(stage);
+    VL.figFit(stage);
     return { title: t, params: p };
+  };
+  /* the title and the parameter line never clip (site_check: no clipped text): both wrap inside their room. The
+     title's bottom (CSS px from the stage's top) is published as --fig-title-b, and the hint and the legend column
+     stay below it (css/site.css). The parameter line keeps the bottom left beside the status line where it fits there
+     in at most two lines; else it stands on its own above the status line, across the stage left of the details
+     panel. Called by VL.figText and VL.figLayout and, through VL.figWatch, whenever the stage, the title, the parameter
+     line or the status line changes size (a details panel dragged wider, a longer status line) */
+  VL.figFit = function (stage) {
+    if (!stage) return null;
+    var t = stage.querySelector('.fig-title'), p = stage.querySelector('.fig-params'), st = stage.querySelector('.stage-status');
+    var sb = stage.getBoundingClientRect(), out = { titleB: 0, params: 'none' };
+    if (t && t.offsetParent !== null) {
+      out.titleB = Math.round(t.getBoundingClientRect().bottom - sb.top);
+      if (stage.style.getPropertyValue('--fig-title-b') !== out.titleB + 'px') stage.style.setProperty('--fig-title-b', out.titleB + 'px');
+    }
+    if (!p || p.offsetParent === null || !p.textContent) { stage.__figFit = out; return out; }
+    var wide = !VL.isMobile();
+    var panelW = wide && stage.classList.contains('panel-open') ? (parseFloat(getComputedStyle(stage).getPropertyValue('--panel-w')) || 380) : 0;
+    var full = Math.max(80, Math.floor(stage.clientWidth - panelW - 28));
+    var stb = st && st.offsetParent !== null && !st.classList.contains('hidden') ? st.getBoundingClientRect() : null;
+    if (stb && (stb.width < 2 || stb.height < 2)) stb = null;
+    var beside = stb ? Math.floor(stb.left - sb.left - 14 - 16) : full;
+    var s = p.style;
+    s.maxWidth = 'none'; s.whiteSpace = 'nowrap';
+    var nat = Math.ceil(p.getBoundingClientRect().width);
+    s.whiteSpace = '';
+    var mode = nat <= beside ? 'beside' : (beside >= Math.max(240, Math.ceil(nat / 2) + 8) ? 'wrap' : 'stacked');
+    if (mode === 'stacked' && stb) { s.bottom = Math.round(sb.bottom - stb.top + 6) + 'px'; s.maxWidth = full + 'px'; }
+    else { s.bottom = ''; s.maxWidth = Math.max(80, Math.min(beside, full)) + 'px'; }
+    p.classList.toggle('fig-params-stacked', mode === 'stacked' && !!stb);
+    out.params = mode; out.natural = nat; out.beside = beside;
+    stage.__figFit = out;
+    return out;
+  };
+  /* VL.figFit again on the next frame whenever the stage, its title, its parameter line or its status line changes size
+     (once per stage; the frame's delay keeps the observer out of a loop: a second fit changes nothing), and at once
+     when the stage's classes change (the details panel opened or closed moves the status line without resizing it) */
+  VL.figWatch = function (stage) {
+    if (!stage || stage.__figWatch || typeof ResizeObserver === 'undefined') return;
+    if (typeof MutationObserver !== 'undefined') new MutationObserver(function () { VL.figFit(stage); }).observe(stage, { attributes: true, attributeFilter: ['class'] });
+    var pending = false;
+    var ro = new ResizeObserver(function () {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(function () { pending = false; VL.figFit(stage); });
+    });
+    ro.observe(stage);
+    ['.fig-title', '.fig-params', '.stage-status'].forEach(function (q) { var e = stage.querySelector(q); if (e) ro.observe(e); });
+    stage.__figWatch = ro;
   };
   /* the title's count: (n=40,816) with the numbers of the language mode */
   VL.figCount = function (n) { return '(n=' + VL.fmt(n) + ')'; };
@@ -1003,13 +1054,8 @@
       } else out.shown = true;
     }
     stage.style.setProperty('--fig-lg-w', (wide && out.shown ? out.width + 14 : 0) + 'px');
-    var params = stage.querySelector('.fig-params');
-    if (params) {
-      var st = o.status, sb = st && st.offsetParent !== null ? st.getBoundingClientRect() : null, pb = stage.getBoundingClientRect();
-      if (sb && sb.width < 2) sb = null;
-      var right = sb ? sb.left - pb.left : stage.clientWidth - panelW;
-      params.style.maxWidth = Math.max(0, Math.round(right - 14 - 16)) + 'px';
-    }
+    VL.figWatch(stage);
+    VL.figFit(stage);
     return out;
   };
   /* the part of the canvas the scene is framed in (CSS px from the canvas's top left): the canvas without the title
@@ -1024,6 +1070,11 @@
     }
     var r = { left: wide ? 14 : 8, top: wide ? 40 : 34, right: W - panelW - (wide ? 14 : 8), bottom: H - (wide ? 34 : 8), W: W, H: H };
     if (wide && lay && lay.shown) r.right = r.right - lay.width - 14;
+    if (stage && el && el.getBoundingClientRect) {
+      var hb = el.getBoundingClientRect(), tl = stage.querySelector('.fig-title'), pl = stage.querySelector('.fig-params');
+      if (tl && tl.offsetParent !== null) r.top = Math.max(r.top, Math.round(tl.getBoundingClientRect().bottom - hb.top + 6));
+      if (pl && pl.offsetParent !== null && pl.textContent) r.bottom = Math.min(r.bottom, Math.round(pl.getBoundingClientRect().top - hb.top - 3));
+    }
     r.right = Math.max(r.left + 120, Math.min(W, r.right));
     r.bottom = Math.max(r.top + 80, Math.min(H, r.bottom));
     return r;

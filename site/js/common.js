@@ -371,6 +371,8 @@
         stat.custom = custom;
         stage.classList.toggle('cols-custom', custom);
         stage.classList.toggle('cols-tight', stat.tight);
+        // the figure look's title and parameter lines follow the new widths at once (js/paper3d.js VL.figFit)
+        if (VL.figFit) VL.figFit(stage);
       }
       if (o.onChange) o.onChange(stat);
     }
