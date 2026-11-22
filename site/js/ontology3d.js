@@ -41,7 +41,7 @@
   var state = {
     modules: {}, showExternal: true, showSchemes: true, planes: true, colorBy: 'module',
     links: { subClassOf: true, property: true, alignment: true, inScheme: true },
-    particles: true, selected: null, selectedLink: null, view: 'ontology', cm: 'overlay', legendOpen: !VL.isMobile()
+    particles: true, selected: null, selectedLink: null, view: 'ontology', cm: 'overlay', legendOpen: !VL.isMobile(), legendForce: false
   };
   VL.MODULES.forEach(function (m) { if (!SCOPE.laterModules[m.id]) state.modules[m.id] = true; });
   M.colorBy = state.colorBy;
@@ -473,9 +473,9 @@
 
   /* ------------------------------------------------------------------ highlight state */
   /* hl.nodes / hl.links: the selection's neighbourhood and chain, or the CONSTRUCT result (everything else fades).
-     hl.trace: the links drawn as the traced path (navy core over the gold halo) - all of them when there are few
-     (hl.max), else only the chain up the hierarchy and the links to a hovered node, as in the paper, where only the
-     traced path is dark; the other highlighted links stay thin lines in their own colours. */
+     hl.trace: the links drawn as paths of the figure look (updateTrace): the chain up the hierarchy, a selected link and
+     the links to a hovered node, as in the paper's figures, where only the paths are thick; the other highlighted links
+     stay thin lines in their own colours. hl.max: the most links of a hovered node traced in a CONSTRUCT result. */
   var TRACE_ALL_MAX = 6, RESULT_TRACE_MAX = 12;
   var hl = { nodes: null, links: null, chain: null, max: TRACE_ALL_MAX, trace: null, traceNodes: null, hoverNode: null, hoverLinks: null };
   function hlActive() { return !!hl.nodes; }
@@ -492,16 +492,16 @@
     computeTrace();
     applyHighlight();
   }
+  /* the paths of the figure look: the chain from the selection up the hierarchy (hl.chain), a selected link and the links
+     of a hovered node; the other links of the highlight stay thin lines in their colours */
   function computeTrace() {
     hl.trace = null;
     hl.traceNodes = new Set();
     if (!hl.links) return;
-    if (hl.links.size <= hl.max) hl.trace = hl.links;
-    else {
-      hl.trace = new Set();
-      if (hl.chain) hl.chain.forEach(function (l) { if (hl.links.has(l)) hl.trace.add(l); });
-      if (hl.hoverLinks) hl.hoverLinks.forEach(function (l) { hl.trace.add(l); });
-    }
+    hl.trace = new Set();
+    if (hl.chain) hl.chain.forEach(function (l) { if (hl.links.has(l)) hl.trace.add(l); });
+    if (state.selectedLink && hl.links.has(state.selectedLink)) hl.trace.add(state.selectedLink);
+    if (hl.hoverLinks) hl.hoverLinks.forEach(function (l) { hl.trace.add(l); });
     hl.trace.forEach(function (l) { hl.traceNodes.add(nodeOf(l.source)); hl.traceNodes.add(nodeOf(l.target)); });
     M.emphLinks = hl.links.size - hl.trace.size;
   }
@@ -550,7 +550,7 @@
       n.__rim.scale.setScalar(s * 1.07);
     }
     if (n.__halo) {
-      n.__halo.visible = sel;
+      n.__halo.visible = false;          // the figure look: no halo; the selection is the first mark of its path
       n.__halo.material.color.set(P.halo);
       n.__halo.scale.setScalar(s * 1.34);
     }
@@ -566,21 +566,72 @@
     scheduleCull();
     needsRender = true;
   }
-  /* the traced path (hl.trace) as a navy core over a pale-gold halo, at constant pixel width and following the curves;
-     thinner for large small-result traces, never wider than VL.TRACE_W */
-  var trace = null, emph = null;
+  /* the paths of the figure look (js/paper3d.js VL.FigPaths, VL.FigMarkers), above the scene: the main chain from the
+     selection to the top of the hierarchy (first parent at each step, the parent nearest the top first) in the first path
+     colour at full width, the chain's other upward links thinner in the same colour, a selected link, and the links of
+     a hovered node in the next colours; a diamond on a path's first node and a square on its last (filled with the node's
+     colour: the playground's nodes are spheres), no beads (the chain's spheres show its nodes); one legend row per path */
+  var figPaths = null, figMarks = null, emph = null, figPathList = [], pathRows = [];
+  function nodeName(n) { return n.inst ? instShort(n) : VL.figName(namePair(n)); }
+  function linkPts(l, from) {
+    var pts = curvePts(l, l.__loop ? 18 : 16);
+    if (!pts) return null;
+    pts = pts.map(function (q) { return { x: q.x, y: q.y, z: q.z }; });
+    return from && nodeOf(l.source) !== from ? pts.reverse() : pts;
+  }
+  function mainChain(n) {
+    var up = {}, seq = [n], ls = [], cur = n, seen = new Set([n]);
+    hl.chain.forEach(function (l) { if (linkVisible(l)) { var s0 = nodeOf(l.source); if (s0) (up[s0.id] = up[s0.id] || []).push(l); } });
+    for (var step = 0; step < 64; step++) {
+      var c = (up[cur.id] || []).filter(function (l) { var t = nodeOf(l.target); return t && !seen.has(t) && nodeVisible(t); });
+      if (!c.length) break;
+      c.sort(function (x, y) { return (nodeOf(x.target).__depth || 0) - (nodeOf(y.target).__depth || 0); });
+      ls.push(c[0]); cur = nodeOf(c[0].target); seen.add(cur); seq.push(cur);
+    }
+    return { nodes: seq, links: ls };
+  }
   function updateTrace() {
-    if (!scene) return;
-    var paths = [];
-    if (hl.trace) hl.trace.forEach(function (l) {
-      if (!linkVisible(l)) return;
-      var pts = VL.linkPoints(l, l.__loop ? 18 : 16);
-      if (pts) paths.push(pts);
-    });
-    trace.setStyle(VL.traceStyle(P, paths.length > 150 ? 0.62 : (paths.length > 60 ? 0.8 : 1)));
-    trace.setPaths(paths);
-    M.traceLinks = paths.length;
-    M.traceSegments = trace.count();
+    if (!scene || !figPaths) return;
+    var list = [], marks = [], rows = [], C = TH.paths && TH.paths.length ? TH.paths : [P.ink, P.ink2], F = VL.FIG_PATH, used = new Set();
+    function addPath(seqNodes, seqLinks, color, width, ends) {
+      var pts = [];
+      seqLinks.forEach(function (l, k) { var q = linkPts(l, seqNodes[k]); if (q) pts = pts.concat(k && pts.length ? q.slice(1) : q); used.add(l); });
+      if (pts.length < 2) return;
+      list.push({ pts: pts, color: color, width: width });
+      if (!ends) return;
+      var first = seqNodes[0], last = seqNodes[seqNodes.length - 1];
+      marks.push({ p: { x: first.x, y: first.y, z: first.z }, id: first.id, shape: 'diamond', fill: nodeColor(first), stroke: color, size: F.diamond + 4, ring: F.ring + 0.5 });
+      marks.push({ p: { x: last.x, y: last.y, z: last.z }, id: last.id, shape: 'square', fill: nodeColor(last), stroke: color, size: F.square + 4, ring: F.ring + 0.5 });
+      rows.push({ color: color, a: first, b: last, pts: seqNodes.length });   // names when the legend is drawn (mode)
+    }
+    if (hl.trace && hl.trace.size) {
+      var sel = state.selected;
+      if (sel && hl.chain && hl.chain.size) {
+        var mc = mainChain(sel);
+        if (mc.links.length) addPath(mc.nodes, mc.links, C[0], F.main, true);
+        hl.chain.forEach(function (l) {
+          if (used.has(l) || !linkVisible(l) || !hl.trace.has(l)) return;
+          addPath([nodeOf(l.source), nodeOf(l.target)], [l], C[0], F.other, false);
+        });
+      }
+      var sl = state.selectedLink;
+      if (sl && linkVisible(sl) && hl.trace.has(sl) && !used.has(sl)) addPath([nodeOf(sl.source), nodeOf(sl.target)], [sl], C[list.length ? 1 : 0], F.main, true);
+      if (hl.hoverLinks) hl.hoverLinks.forEach(function (l) {
+        if (used.has(l) || !linkVisible(l)) return;
+        var from = sel || hl.hoverNode, to = nodeOf(l.source) === from ? nodeOf(l.target) : nodeOf(l.source);
+        addPath(from ? [from, to] : [nodeOf(l.source), nodeOf(l.target)], [l], C[(rows.length || (list.length ? 1 : 0)) % C.length], F.main, true);
+      });
+    }
+    figPaths.setGround(TH.bg);
+    figPaths.setPaths(list);
+    figMarks.set(marks);
+    figPathList = list;
+    pathRows = rows;
+    M.traceLinks = used.size;
+    M.traceSegments = figPaths.count();
+    M.figPaths = figPaths.info();
+    M.figMarkers = figMarks.list();
+    renderLegend();
     needsRender = true;
   }
 
@@ -612,6 +663,7 @@
     };
     Object.keys(LT_TOKEN).forEach(function (k) { TH.link[k] = VL.tok(LT_TOKEN[k]) || LT_FALLBACK[k]; });
     KINDS.forEach(function (k) { TH.kind[k] = VL.tok('--o3d-kind-' + k) || '#9aa3ad'; });
+    TH.paths = P.paths;
     M.sceneBg = TH.bg;
     M.traceCore = P.core;
   }
@@ -671,10 +723,17 @@
      front-left corner like the rank names of the legal network (the planes reach a label apron beyond the terms on that
      side), or at its back-left corner where an overlay (legend, hint, panel) covers the front one */
   var planeLabels = [];
+  /* as the legal network's layers (the paper's Fig. 1): the level's number first (ink), then the plane's short name in the
+     second grey ("0  Lớp gốc" / "0  Root classes"; EN–VI: the English name on a second line); the planes of concept
+     schemes and of external terms have no number: their name in the second grey */
   function planeLines(pl) {
-    if (pl.kind === 'depth') return VL.paperTL(pl.depth === 0 ? 'o3d.plane.root' : 'o3d.plane.sub', { d: pl.depth }, P, { twoLines: true });
-    if (pl.kind === 'scheme') return VL.paperTL('o3d.plane.schemes', null, P, { twoLines: true });
-    return VL.paperTL('o3d.plane.external', null, P, { twoLines: true });
+    if (pl.kind === 'depth') {
+      var t = VL.TL(pl.depth === 0 ? 'o3d.plane.rootName' : 'o3d.plane.subName');
+      var lines = [[{ text: String(pl.depth), color: P.ink, weight: '700' }, { text: '\u2002' + VL.nfc(t.primary), color: P.ink2 }]];
+      if (t.secondary) lines.push([{ text: '\u2002\u2002' + VL.nfc(t.secondary), color: P.ink2 }]);
+      return lines;
+    }
+    return VL.paperTL(pl.kind === 'scheme' ? 'o3d.plane.schemes' : 'o3d.plane.external', null, P, { twoLines: true, secondary: true });
   }
   /* screen-space declutter shared with the legal network and the CONSTRUCT view (js/paper3d.js VL.Callouts): call-outs
      sit in clear space on thin leaders, never over a node or a link and never over each other; the selected node and
@@ -797,7 +856,7 @@
   function cullLabels() { if (camera) { scheduleCull(); callouts.run(); } }
   function obstacles() {
     var hr = host.getBoundingClientRect(), out = [];
-    ['#legend', '#hint', '.stage-tools', '#status', '#panel'].forEach(function (sel) {
+    ['#legend', '#hint', '.stage-tools', '#status', '#panel', '.fig-title', '.fig-params'].forEach(function (sel) {
       var e = VL.$(sel, stage);
       if (!e || e.classList.contains('hidden') || e.offsetParent === null) return;
       var r = e.getBoundingClientRect();
@@ -884,15 +943,15 @@
     renderer.setClearColor(TH.bg, 1);
     host.appendChild(renderer.domElement);
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(45, sz.w / sz.h, 5, 80000);
+    camera = new THREE.PerspectiveCamera(VL.FIG_FOV, sz.w / sz.h, 5 * VL.FIG_DIST, 80000 * VL.FIG_DIST);
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.09;
     controls.screenSpacePanning = true;
     controls.rotateSpeed = 0.55;
     controls.zoomSpeed = 0.9;
-    controls.minDistance = 30;
-    controls.maxDistance = 12000;
+    controls.minDistance = 30 * VL.FIG_DIST;
+    controls.maxDistance = 12000 * VL.FIG_DIST;
     controls.addEventListener('change', function () { needsRender = true; scheduleCull(); });
     controls.addEventListener('start', function () { hideHint(); if (tween) { tween = null; M.flying = false; } });   // a drag ends a flight
     /* the paper's light (upper left of the screen) and depth fade to the ground colour */
@@ -906,11 +965,15 @@
     scene.add(planeGroup);
     scene.add(nodeGroup);
     scene.add(labelGroup);
-    /* the highlighted links that are not traced (thin lines in their colours) and the traced path */
+    /* the highlighted links that are not traced (thin lines in their colours) and the paths of the figure look, above
+       the scene (js/paper3d.js VL.FigPaths, VL.FigMarkers) */
     emph = VL.ColorLines({ depthTest: true, renderOrder: 6, width: 1.5, opacity: 0.95 });
-    trace = VL.TraceLines({ depthTest: true, renderOrder: 8 });
+    figPaths = VL.FigPaths({ renderOrder: 18, casing: VL.FIG_PATH.casing });
+    figPaths.setGround(TH.bg);
+    figMarks = VL.FigMarkers({ renderOrder: 22 });
     scene.add(emph.object);
-    scene.add(trace.object);
+    scene.add(figPaths.object);
+    scene.add(figMarks.object);
     try {
       var gl = renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info');
       M.webglRenderer = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
@@ -1244,32 +1307,13 @@
      a leader, projects inside 90 % of the frame (80 % on a narrow stage, where call-outs need the sides) */
   var VIEW_DIR = [0.18, 0.5, 1];
   /* the camera looking along dir at the middle of the points' extents across the view, from the distance at which each
-     point, with its radius, projects inside the margin m of the frame */
+     point, with its radius, projects inside the margin m of the scene's frame: the canvas without the title, parameter
+     and status lines and the legend column (js/paper3d.js VL.figFrame, VL.figCamera) */
+  function sceneFrame() { return VL.figFrame(stage, figLay, host); }
   function framePoints(pts, dirV, m, ms, minD, centre) {
-    var sz = stageSize(), tv = Math.tan(camera.fov * Math.PI / 360), th = tv * sz.w / sz.h;
-    var dir = dirV.clone().normalize(), right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), dir).normalize();
-    var up = new THREE.Vector3().crossVectors(dir, right), c = new THREE.Vector3(), v = new THREE.Vector3();
-    if (centre) c.set(centre.x, centre.y, centre.z);             // a fixed centre (the selection stays in the middle)
-    else {
-      pts.forEach(function (p) { c.x += p.x; c.y += p.y; c.z += p.z; });
-      c.multiplyScalar(1 / pts.length);
-      var x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
-      pts.forEach(function (p) {
-        v.set(p.x - c.x, p.y - c.y, p.z - c.z);
-        var x = v.dot(right), y = v.dot(up);
-        x0 = Math.min(x0, x - p.r); x1 = Math.max(x1, x + p.r); y0 = Math.min(y0, y - p.r); y1 = Math.max(y1, y + p.r);
-      });
-      c.addScaledVector(right, (x0 + x1) / 2).addScaledVector(up, (y0 + y1) / 2);
-    }
-    var d = minD || 10, R = 10;
-    pts.forEach(function (p) {
-      v.set(p.x - c.x, p.y - c.y, p.z - c.z);
-      var x = v.dot(right), y = v.dot(up), z = v.dot(dir);
-      d = Math.max(d, z + (Math.abs(x) + p.r) / (m * th), z + (Math.abs(y) + p.r) / (m * tv));
-      R = Math.max(R, v.length() + p.r);
-    });
-    moveCamera(new THREE.Vector3(c.x + dir.x * d, c.y + dir.y * d, c.z + dir.z * d), c.clone(), ms || 0);
-    return { d: d, R: R, c: c };
+    var f = VL.figCamera(camera, { pts: pts, dir: dirV, frame: sceneFrame(), margin: m, minD: minD, centre: centre });
+    moveCamera(f.pos, f.target, ms || 0);
+    return { d: f.d, R: f.R, c: f.c };
   }
   /* the default view: every visible node (or the subset) and the hierarchy planes, from the network's oblique angle,
      inside 90 % of the frame (80 % on a narrow stage, where call-outs need the sides) */
@@ -1348,10 +1392,25 @@
     var vn = current.nodes.filter(nodeVisible).length, vl = current.links.filter(linkVisible).length;
     statusEl.textContent = VL.U('o3d.status', { terms: VL.fmt(vn), links: VL.fmt(vl) }) + (M.fps ? ' · ' + VL.fmt(M.fps) + ' fps' : '');
     M.statusCounts = { terms: vn, links: vl };
+    /* the title line (top left; the number of shown terms) and the parameter line (bottom left: the layout, which has
+       no random part) */
+    VL.figText(stage, { title: VL.TH('fig.title.onto') + ' <span class="fig-n">' + VL.esc(VL.figCount(vn)) + '</span>', params: VL.U('fig.params.onto') });
+    M.figTitle = (VL.$('#fig-title') || {}).textContent || '';
+    M.figParams = (VL.$('#fig-params') || {}).textContent || '';
     fitLegend();
   }
-  /* legend above the status line where the two would meet (js/paper3d.js); the call-outs avoid the legend */
-  function fitLegend() { if (VL.fitLegend(stage, legendEl, statusEl)) scheduleCull(); }
+  /* the legend column of the figure look (js/paper3d.js VL.figLayout); on phones above the status line where the two
+     would meet (VL.fitLegend); the call-outs avoid the legend */
+  var figLay = { shown: false, collapsed: false, width: 0 }, figLayKey = '';
+  function fitLegend() {
+    figLay = VL.figLayout(stage, { legend: legendEl, status: statusEl, open: state.legendOpen, force: state.legendForce });
+    var btn = VL.$('#btn-legend');
+    if (btn) btn.setAttribute('aria-expanded', state.legendOpen && !figLay.collapsed ? 'true' : 'false');
+    var ch = VL.fitLegend(stage, legendEl, statusEl), key = [figLay.shown, figLay.collapsed, figLay.width].join(':');
+    if (key !== figLayKey) { figLayKey = key; ch = true; }
+    M.figLayout = { shown: figLay.shown, collapsed: figLay.collapsed, width: figLay.width };
+    if (ch) scheduleCull();
+  }
 
   /* ------------------------------------------------------------------ picking (screen space) + hover tooltip */
   var _p = null;
@@ -1802,6 +1861,13 @@
     return [cam.position.x, cam.position.y, cam.position.z, target.x, target.y, target.z].map(function (v) { return Math.round(v * 1000) / 1000; });
   }
   window.VLApp.camera = function () { return camera ? camState(camera, controls.target) : null; };
+  /* the near-parallel view (js/paper3d.js VL.figPlaneWidths): the shown hierarchy planes' projected widths, the top first */
+  window.VLApp.figView = function () {
+    if (!camera) return null;
+    var R = planeRect(), pls = PLANES.filter(planeShown).map(function (pl) { return { key: pl.key, y: pl.y - 2, x0: R.x0, x1: R.x1, z0: R.z0, z1: R.z1 }; })
+      .sort(function (a, b) { return b.y - a.y; });
+    return VL.figPlaneWidths(camera, host.clientWidth, host.clientHeight, pls);
+  };
   window.VLApp.state = function () {
     return { selected: state.selected && state.selected.id, view: view.mode, nodes: current.nodes.length, links: current.links.length,
       panelOpen: !panel.classList.contains('hidden'), panelText: panel.textContent.slice(0, 400), colorBy: state.colorBy };
@@ -1857,6 +1923,9 @@
       if (p) out.emph.push({ color: emphColor(l), pts: p.map(P3) });
     });
     out.traceStyle = { core: P.core, halo: P.halo, halo2: P.halo2, w: VL.TRACE_W };
+    out.figPaths = figPathList.map(function (q) { return { color: q.color, width: q.width, pts: q.pts.map(P3) }; });
+    out.figMarkers = figMarks ? figMarks.list() : [];
+    out.figCasing = VL.FIG_PATH.casing;
     out.particles = particles ? 2 * particles.active : 0;
     return out;
   };
@@ -1871,7 +1940,11 @@
   VL.$('#btn-reset2').innerHTML = VL.ICON.reset;
   VL.$('#btn-reset2').addEventListener('click', resetView);
   VL.$('#btn-legend').innerHTML = VL.ICON.layers;
-  VL.$('#btn-legend').addEventListener('click', function () { state.legendOpen = !state.legendOpen; renderLegend(); scheduleCull(); });
+  VL.$('#btn-legend').addEventListener('click', function () {
+    if (figLay.shown) { state.legendOpen = false; state.legendForce = false; } else { state.legendOpen = true; state.legendForce = true; }
+    renderLegend();
+    scheduleCull();
+  });
   VL.$('#btn-png').addEventListener('click', exportPng);
   VL.$('#btn-query').addEventListener('click', function () { setDrawer(!state.drawerOpen); });
   VL.$('#btn-query-m').addEventListener('click', function () { setSide(false); setDrawer(!state.drawerOpen); });
@@ -1935,32 +2008,39 @@
      Then the kinds of link in view as curve swatches, and the traced path. */
   function bi(vi, en) { return VL.TH(VL.pair(VL.cap(vi || ''), VL.cap(en || ''))); }
   function biKey(k) { var e = VL.i18n.get(k) || { vi: '', en: k }; return bi(e.vi, e.en); }
+  /* the legend of the figure look: no frame; the colour mode's entries with the number of shown terms of each (n=...),
+     the link kinds as hairlines with the number of shown links, one row per drawn path ("first -> last (n pts)") */
   function renderLegend() {
-    var btn = VL.$('#btn-legend');
-    btn.setAttribute('aria-expanded', state.legendOpen ? 'true' : 'false');
     legendEl.classList.toggle('hidden', !state.legendOpen);
     if (!state.legendOpen) { fitLegend(); return; }
     var mods = {}, kinds = {}, types = {};
-    current.nodes.forEach(function (n) { if (!nodeVisible(n)) return; mods[modOf(n)] = true; kinds[kindOf(n)] = true; });
-    current.links.forEach(function (l) { if (linkVisible(l)) types[l.type] = true; });
-    var h;
+    current.nodes.forEach(function (n) { if (!nodeVisible(n)) return; var m = modOf(n), k = kindOf(n); mods[m] = (mods[m] || 0) + 1; kinds[k] = (kinds[k] || 0) + 1; });
+    current.links.forEach(function (l) { if (linkVisible(l)) types[l.type] = (types[l.type] || 0) + 1; });
+    function n0(c) { return ' <span class="fig-n">' + VL.esc(VL.figCount(c)) + '</span>'; }
+    var h, rowsM = [];
     if (state.colorBy === 'kind') {
-      h = '<h3>' + biKey('o3d.lg.kinds') + '</h3><ul class="lg-kinds">' + KINDS.filter(function (k) { return kinds[k]; }).map(function (k) {
-        return '<li><span class="lg-shape" style="color:var(--o3d-kind-' + k + ')">' + SHAPES[k] + '</span>' + biKey(KIND_LG[k]) + '</li>';
+      h = '<h3>' + biKey('o3d.lg.kinds') + '</h3><ul class="fig-rows lg-kinds">' + KINDS.filter(function (k) { return kinds[k]; }).map(function (k) {
+        rowsM.push({ key: 'kind:' + k, n: kinds[k] });
+        return '<li data-key="kind:' + k + '"><span class="lg-shape" style="color:var(--o3d-kind-' + k + ')">' + SHAPES[k] + '</span><span class="fig-lb">' + biKey(KIND_LG[k]) + n0(kinds[k]) + '</span></li>';
       }).join('') + '</ul>';
     } else {
-      h = '<h3>' + biKey('o3d.lg.modules') + '</h3><ul class="lg-modules">' + VL.MODULES.filter(function (m) { return mods[m.id]; }).map(function (m) {
-        return '<li><span class="swatch" style="background:' + m.v + '"></span>' + (m.id === 'external' ? biKey('o3d.lg.externalTerms') : bi(m.vi, m.en)) + '</li>';
+      h = '<h3>' + biKey('o3d.lg.modules') + '</h3><ul class="fig-rows lg-modules">' + VL.MODULES.filter(function (m) { return mods[m.id]; }).map(function (m) {
+        rowsM.push({ key: 'module:' + m.id, n: mods[m.id] });
+        return VL.figDotRow(m.v, m.id === 'external' ? biKey('o3d.lg.externalTerms') : bi(m.vi, m.en), mods[m.id], ' data-key="module:' + m.id + '"');
       }).join('') + '</ul>';
-      h += '<div class="legend-sub"><ul class="lg-marks">' + ['class', 'scheme', 'external'].filter(function (k) { return kinds[k]; }).map(function (k) {
-        return '<li>' + SHAPES[k] + biKey(KIND_LG[k]) + '</li>';
+      h += '<div class="legend-sub"><ul class="fig-rows lg-marks">' + ['class', 'scheme', 'external'].filter(function (k) { return kinds[k]; }).map(function (k) {
+        return '<li data-key="kind:' + k + '">' + SHAPES[k] + '<span class="fig-lb">' + biKey(KIND_LG[k]) + n0(kinds[k]) + '</span></li>';
       }).join('') + '</ul></div>';
     }
-    h += '<div class="legend-sub"><ul class="lg-links">' + LINK_TYPES.concat(['instance', 'result']).filter(function (t) { return types[t]; }).map(function (t) {
-      return '<li>' + curveSwatch(ltVar(t)) + biKey(LT_KEY[t]) + '</li>';
-    }).join('') + '<li>' + curveSwatch(null) + biKey(view.mode !== 'ontology' ? 'o3d.lg.tracedResult' : 'o3d.lg.tracedPath') + '</li></ul></div>';
+    var lt = LINK_TYPES.concat(['instance', 'result']).filter(function (t) { return types[t]; });
+    h += '<div class="legend-sub"><ul class="fig-rows lg-links">' + lt.map(function (t) {
+      return VL.figHairRow(ltVar(t), biKey(LT_KEY[t]), types[t], ' data-key="link:' + t + '"');
+    }).join('') + '</ul></div>';
+    if (pathRows.length) h += '<ul class="fig-rows fig-paths">' + pathRows.map(function (r) { return VL.figPathRow(r.color, nodeName(r.a), nodeName(r.b), r.pts); }).join('') + '</ul>';
     legendEl.innerHTML = h;
     M.legendEntries = VL.$$('li', legendEl).length;
+    M.legendRows = rowsM.concat(lt.map(function (t) { return { key: 'link:' + t, n: types[t] }; }))
+      .concat(pathRows.map(function (r) { return { key: 'path', color: r.color, pts: r.pts, first: nodeName(r.a), last: nodeName(r.b), from: r.a.id, to: r.b.id }; }));
     fitLegend();
   }
   function showHint() {
@@ -2010,7 +2090,7 @@
       if (lastW && (lastW >= 700) !== (sz.w >= 700)) buildPlanes();             // the label apron follows the stage width
       lastW = sz.w;
       resizeLabels();
-      VL.fitLegend(stage, legendEl, statusEl);
+      fitLegend();
       needsRender = true;
       scheduleCull();
     });

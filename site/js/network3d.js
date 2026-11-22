@@ -29,7 +29,8 @@
       plane: VL.tok('--net-plane') || '#c9ced6', planeOpacity: VL.tokNum('--net-plane-opacity', 0.14),
       planeLine: VL.tok('--net-plane-line') || '#d3d7dc', planeLineOpacity: VL.tokNum('--net-plane-line-opacity', 1),
       areas: VL.areaColors(), areaNone: VL.tok('--area-none') || '#dcdee2', areaOther: VL.tok('--area-other') || '#92959a',
-      typeOther: VL.hue('slate')
+      typeOther: VL.hue('slate'),
+      docTypes: VL.docTypeColors(), docOther: VL.docTypeOther(), paths: P.paths
     };
     M.sceneBg = TH.bg;
     M.traceCore = P.core;
@@ -42,13 +43,14 @@
   /* the labels follow the global language mode (VL.lang()); there is no per-view label language */
   var state = {
     ds: params.ds === 'full' || params.ds === 'lite' ? params.ds : (VL.isMobile() ? 'lite' : 'full'),
-    colorBy: 'validity', hops: 1, layers: true, sel: -1, legendOpen: !VL.isMobile(),
+    colorBy: 'type', hops: 1, layers: true, sel: -1, legendOpen: !VL.isMobile(), legendForce: false,
     edges: { replaced: true, amended: true, repealed: true, partially_repealed: true, partially_expired: true, basis: true, citation: null },
     y0: null, y1: null, yUnknown: true
   };
 
   var renderer, scene, camera, controls, pointsObj = null, pointsMat = null, edgeObjs = {}, hlObj = null, layerGroup = null, labelGroup = null;
-  var trace = null, chainTrace = null, egoLines = null, egoInc = [], chainIdx = [], hoverIdx = -1, hoverLabel = null;
+  var figPaths = null, figMarks = null, egoLines = null, egoInc = [], chainIdx = [], hoverIdx = -1, hoverLabel = null, pathRows = [];
+  var figPathList = [], egoPathList = [], egoColList = [], egoWidth = 1.6;     // what is drawn, for VLApp.snapshot()
   var D = null, DL = null, shards = {}, frames = 0, needsRender = true, tween = null;
 
   /* ------------------------------------------------------------------ three setup */
@@ -94,28 +96,31 @@
     renderer.setClearColor(TH.bg, 1);
     host.appendChild(renderer.domElement);
     scene = new THREE.Scene();
-    camera = new THREE.PerspectiveCamera(45, sz.w / sz.h, 5, 80000);
+    camera = new THREE.PerspectiveCamera(VL.FIG_FOV, sz.w / sz.h, 5 * VL.FIG_DIST, 80000 * VL.FIG_DIST);
     controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.09;
     controls.screenSpacePanning = true;
     controls.rotateSpeed = 0.55;
     controls.zoomSpeed = 0.9;
-    controls.minDistance = 40;
-    controls.maxDistance = 30000;
+    controls.minDistance = 40 * VL.FIG_DIST;
+    controls.maxDistance = 30000 * VL.FIG_DIST;
     controls.autoRotateSpeed = 1.6;
     controls.addEventListener('change', function () { needsRender = true; scheduleCull(); });
     controls.addEventListener('start', hideHint);
     labelGroup = new THREE.Group();
     scene.add(labelGroup);
-    /* the selection's links: thin lines in their link-type colours (egoLines); the traced path, on top of the point cloud
-       like the paper's trace, only along the replacement chain (chainTrace) and to a hovered neighbour (trace) */
+    /* the selection's links: thin lines in their link-type colours (egoLines); the paths of the figure look, above the
+       point cloud and the links (js/paper3d.js VL.FigPaths, VL.FigMarkers): the replacement chain and the link to a
+       hovered neighbour, each in its own colour with a thin casing of the ground's colour, a diamond on its first
+       document, a square on its last and beads between */
     egoLines = VL.ColorLines({ depthTest: false, renderOrder: 5, width: 1.6, opacity: 0.95 });
-    trace = VL.TraceLines({ depthTest: false, renderOrder: 7 });
-    chainTrace = VL.TraceLines({ depthTest: false, renderOrder: 10 });
+    figPaths = VL.FigPaths({ renderOrder: 10, casing: VL.FIG_PATH.casing });
+    figPaths.setGround(TH.bg);
+    figMarks = VL.FigMarkers({ renderOrder: 12 });
     scene.add(egoLines.object);
-    scene.add(trace.object);
-    scene.add(chainTrace.object);
+    scene.add(figPaths.object);
+    scene.add(figMarks.object);
     try {
       var gl = renderer.getContext(), ext = gl.getExtension('WEBGL_debug_renderer_info');
       M.webglRenderer = ext ? gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
@@ -138,7 +143,16 @@
     scheduleCull();
   }
   /* legend above the status line where the two would meet (js/paper3d.js); the call-outs avoid the legend */
-  function fitLegend() { if (VL.fitLegend(stage, legendEl, statusEl)) scheduleCull(); }
+  var figLay = { shown: false, collapsed: false, width: 0 }, figLayKey = '';
+  function fitLegend() {
+    figLay = VL.figLayout(stage, { legend: legendEl, status: statusEl, open: state.legendOpen, force: state.legendForce });
+    var btn = VL.$('#btn-legend');
+    if (btn) btn.setAttribute('aria-expanded', state.legendOpen && !figLay.collapsed ? 'true' : 'false');
+    var ch = VL.fitLegend(stage, legendEl, statusEl), key = [figLay.shown, figLay.collapsed, figLay.width].join(':');
+    if (key !== figLayKey) { figLayKey = key; ch = true; }
+    M.figLayout = { shown: figLay.shown, collapsed: figLay.collapsed, width: figLay.width };
+    if (ch) scheduleCull();
+  }
   function updatePointScale() {
     if (!pointsMat) return;
     pointsMat.uniforms.uScale.value = renderer.domElement.height / (2 * Math.tan(camera.fov * Math.PI / 360));
@@ -183,8 +197,14 @@
     var r = areaRank[a];
     return r != null && r < TH.areas.length ? TH.areas[r] : TH.areaOther;
   }
+  /* documents by type: the paper's seven groups of type codes (js/paper3d.js VL.DOC_TYPES, tokens --doctype-*) */
+  var typeGroup = null;
+  function groupOfType(ti) {
+    if (!typeGroup) typeGroup = D.net.types.map(function (t) { return VL.docTypeIndex(t.code); });
+    return ti >= 0 && ti < typeGroup.length ? typeGroup[ti] : -1;
+  }
   function nodeColor(i) {
-    if (state.colorBy === 'type') { var t = D.net.types[D.type[i]]; return (t && VL.TYPE_COLORS[t.code]) || TH.typeOther; }
+    if (state.colorBy === 'type') { var g = groupOfType(D.type[i]); return g >= 0 ? TH.docTypes[g] : TH.docOther; }
     if (state.colorBy === 'area') return areaColor(D.area[i]);
     var v = D.net.validity[D.validity[i]];
     return (VL.VALIDITY[v] || VL.VALIDITY.unknown).color;
@@ -213,6 +233,7 @@
   function buildScene() {
     disposeScene();
     areaRank = null;
+    typeGroup = null;
     var N = D.N, g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(D.pos, 3));
     g.setAttribute('aColor', new THREE.BufferAttribute(new Float32Array(N * 3), 3));
@@ -301,12 +322,15 @@
     });
   }
   function updateLabelSizes() { var w = worldPerPx(); labels.forEach(function (s) { s.fit(w); }); }
-  /* "Bậc 0 · Hiến pháp" over "Rank 0 · Constitution" (EN–VI), or one line in EN or VI; short names of the layers
+  /* a layer's label as in the paper's Fig. 1: the rank's number first (ink), then the layer's short name in the second
+     grey ("0  Hiến pháp" / "0  Constitution"; EN–VI: the English name on a second line); short names of the layers
      (net.rank.N), the data's own names where the dictionary has none */
   function rankLabel(r) {
     var rk = (D.net.ranks || [])[r] || {}, k = 'net.rank.' + r;
-    var name = VL.i18n.has(k) ? VL.kpair(k) : VL.pair(rk.vi || rk.en || '', rk.en || '');
-    return VL.paperTL('net.rank.label', { r: r, name: name }, P, { twoLines: true });
+    var t = VL.TL(VL.i18n.has(k) ? VL.kpair(k) : VL.pair(rk.vi || rk.en || '', rk.en || ''));
+    var lines = [[{ text: String(r), color: P.ink, weight: '700' }, { text: '\u2002' + VL.nfc(t.primary), color: P.ink2 }]];
+    if (t.secondary) lines.push([{ text: '\u2002\u2002' + VL.nfc(t.secondary), color: P.ink2 }]);
+    return lines;
   }
   function buildLayerLabels() {
     clearLabels(false);
@@ -366,7 +390,7 @@
   }
   function obstacles() {
     var hr = host.getBoundingClientRect(), out = [];
-    ['#legend', '#hint', '.stage-tools', '#status', '#panel'].forEach(function (sel) {
+    ['#legend', '#hint', '.stage-tools', '#status', '#panel', '.fig-title', '.fig-params'].forEach(function (sel) {
       var e = VL.$(sel, stage);
       if (!e || e.classList.contains('hidden') || e.offsetParent === null) return;
       var r = e.getBoundingClientRect();
@@ -451,11 +475,14 @@
     });
     /* the selection's links on their curves, with fewer segments when there are many */
     var n = egoInc.length, segs = n > 2000 ? 4 : (n > 400 ? 8 : 12);
-    egoLines.setStyle({ width: n > 400 ? 1.1 : (n > 120 ? 1.3 : 1.6) });
-    egoLines.setPaths(egoInc.map(function (e) { return curvePts(ptOf(e[0]), ptOf(e[1]), segs); }), pcol);
+    egoWidth = n > 400 ? 1.1 : (n > 120 ? 1.3 : 1.6);
+    egoLines.setStyle({ width: egoWidth });
+    egoPathList = egoInc.map(function (e) { return curvePts(ptOf(e[0]), ptOf(e[1]), segs); });
+    egoColList = pcol;
+    egoLines.setPaths(egoPathList, pcol);
     hoverIdx = -1;
-    trace.setPaths([]);
     M.hoverDoc = null;
+    if (figPaths) drawPaths();
     if (hlObj) { scene.remove(hlObj); hlObj.geometry.dispose(); hlObj.material.dispose(); hlObj = null; }
     if (A2.length) {
       var al = new Float32Array(A2.length / 3);
@@ -469,7 +496,6 @@
     for (var i = 0; i < D.N; i++) if (ego[i] === 1) cnt[1]++; else if (ego[i] === 2) cnt[2]++;
     M.egoHop1 = cnt[1]; M.egoHop2 = cnt[2]; M.egoEdges = n + A2.length / 3;
     M.egoLines = egoLines.count();
-    M.traceSegments = trace.count();
     applyAlpha();
     egoLabels();
     needsRender = true;
@@ -494,9 +520,8 @@
       if (i != null) { pts.push(ptOf(i)); chainIdx.push(i); }
     });
     if (pts.length < 2) chainIdx = [];
-    chainTrace.setStyle(VL.traceStyle(P, 1));
-    chainTrace.setPaths(pts.length > 1 ? [chainCurve(chainIdx, 24)] : []);
     M.chainTraceDocs = pts.length > 1 ? pts.length : 0;
+    drawPaths();
     if (state.sel >= 0) egoLabels();
     needsRender = true;
   }
@@ -509,17 +534,51 @@
     }
     return out;
   }
-  /* hovering a neighbour of the selection traces the link(s) between them and keeps the neighbour's call-out */
+  /* the paths of the figure look: the replacement chain (older -> newer) in the first path colour and the link from the
+     selection to a hovered neighbour in the next one, each along its links' curves (the network draws its links as
+     curves; a path follows them), a diamond on its first document, a filled square on its last, beads between
+     (js/paper3d.js VL.FigPaths, VL.FigMarkers); the legend gets one row per path (pathRows) */
+  function docName(j) { return D.num[j] || VL.short(D.title[j], 30); }
+  function drawPaths() {
+    var list = [], marks = [], rows = [], C = TH.paths && TH.paths.length ? TH.paths : [P.ink, P.ink2], hov = 0, F = VL.FIG_PATH;
+    function addPath(idx, pts, color) {
+      list.push({ pts: pts, color: color, width: F.main });
+      idx.forEach(function (j, k) {
+        var first = k === 0, last = k === idx.length - 1;
+        marks.push({ p: ptOf(j), id: 'doc-' + D.ids[j], shape: first ? 'diamond' : last ? 'square' : 'bead', fill: first ? TH.bg : color,
+          stroke: first ? color : TH.bg, size: first ? F.diamond : last ? F.square : F.bead, ring: first ? F.ring + 0.5 : F.ring });
+      });
+      rows.push({ color: color, first: docName(idx[0]), last: docName(idx[idx.length - 1]), pts: idx.length });
+    }
+    if (D && chainIdx.length > 1) addPath(chainIdx, chainCurve(chainIdx, 24), C[0]);
+    if (D && hoverIdx >= 0 && state.sel >= 0) {
+      var e = egoInc.filter(function (x) { return (x[0] === hoverIdx && x[1] === state.sel) || (x[1] === hoverIdx && x[0] === state.sel); })[0];
+      if (e) {
+        var c = curvePts(ptOf(e[0]), ptOf(e[1]), 24);
+        if (e[0] !== state.sel) c = c.slice().reverse();
+        addPath([state.sel, hoverIdx], c, C[list.length % C.length]);
+        hov = c.length - 1;
+      }
+    }
+    if (!figPaths) return;
+    figPaths.setGround(TH.bg);
+    figPaths.setPaths(list);
+    figPathList = list;
+    figMarks.set(marks);
+    pathRows = rows;
+    M.traceSegments = hov;
+    M.figPaths = figPaths.info();
+    M.figMarkers = figMarks.list();
+    renderLegend();
+    needsRender = true;
+  }
+  /* hovering a neighbour of the selection traces the link between them and keeps the neighbour's call-out */
   function setHover(i) {
     if (!D || state.sel < 0 || i === state.sel || (i >= 0 && D.ego[i] !== 1)) i = -1;
     if (i === hoverIdx) return;
     hoverIdx = i;
-    var paths = [];
-    if (i >= 0) egoInc.forEach(function (e) { if ((e[0] === i && e[1] === state.sel) || (e[1] === i && e[0] === state.sel)) paths.push(curvePts(ptOf(e[0]), ptOf(e[1]), 24)); });
-    trace.setStyle(VL.traceStyle(P, 0.85));
-    trace.setPaths(paths);
-    M.traceSegments = trace.count();
     M.hoverDoc = i >= 0 ? D.ids[i] : null;
+    drawPaths();
     labels.forEach(function (s) { if (s.__hoverMust) { s.__must = false; s.__hoverMust = false; } });
     if (hoverLabel) {
       labels = labels.filter(function (x) { return x !== hoverLabel; });
@@ -566,23 +625,24 @@
   }
 
   /* ------------------------------------------------------------------ camera */
+  /* the scene's frame: the canvas without the title, parameter and status lines and the legend column (VL.figFrame);
+     the camera keeps the scene in its middle (VL.figCamera) */
+  function sceneFrame() { return VL.figFrame(stage, figLay, host); }
   function fitAll(ms) {
     var E = D.extent, Ymax = 750 * ZS, cy = Ymax / 2;
     var R = Math.sqrt(2 * E * E + cy * cy) * 0.86;
-    var sz = stageSize(), vf = camera.fov * Math.PI / 180, aspect = sz.w / sz.h, hf = 2 * Math.atan(Math.tan(vf / 2) * aspect);
-    var d = R / Math.sin(Math.min(vf, hf) / 2);
-    var dir = new THREE.Vector3(0.18, 0.5, 1).normalize();
-    moveCamera(new THREE.Vector3(dir.x * d, cy + dir.y * d, dir.z * d), new THREE.Vector3(0, cy, 0), ms);
+    var f = VL.figCamera(camera, { sphere: { c: { x: 0, y: cy, z: 0 }, R: R }, dir: new THREE.Vector3(0.18, 0.5, 1), frame: sceneFrame(), margin: 1 });
+    M.fit = { d: Math.round(f.d), R: Math.round(R), frame: sceneFrame() };
+    moveCamera(f.pos, f.target, ms);
   }
   function flyTo(i, radius) {
-    var p = new THREE.Vector3(D.pos[3 * i], D.pos[3 * i + 1], D.pos[3 * i + 2]);
-    var sz = stageSize(), vf = camera.fov * Math.PI / 180, aspect = sz.w / sz.h, hf = 2 * Math.atan(Math.tan(vf / 2) * aspect);
-    var d = Math.max(260, Math.min(2600, radius || 600)) / Math.sin(Math.min(vf, hf) / 2);
+    var p = { x: D.pos[3 * i], y: D.pos[3 * i + 1], z: D.pos[3 * i + 2] };
     var dir = new THREE.Vector3().subVectors(camera.position, controls.target);
     if (dir.lengthSq() < 1) dir.set(0.2, 0.5, 1);
     dir.normalize();
     if (dir.y < 0.25) { dir.y = 0.25; dir.normalize(); }
-    moveCamera(p.clone().add(dir.multiplyScalar(d)), p, 900);
+    var f = VL.figCamera(camera, { sphere: { c: p, R: Math.max(260, Math.min(2600, radius || 600)) }, dir: dir, frame: sceneFrame(), margin: 1 });
+    moveCamera(f.pos, f.target, 900);
   }
   function moveCamera(pos, target, ms) {
     if (!ms) {
@@ -840,7 +900,7 @@
     if (i < 0 || !D) return;
     state.sel = i;
     chainIdx = [];
-    if (chainTrace) { chainTrace.setPaths([]); M.chainTraceDocs = 0; }
+    M.chainTraceDocs = 0;
     computeEgo();
     var r = 0, n = 0;
     for (var j = 0; j < D.N; j++) if (D.ego[j] === 1) {
@@ -867,12 +927,13 @@
     state.sel = -1;
     if (D) { D.ego.fill(0); applyAlpha(); }
     if (hlObj) { scene.remove(hlObj); hlObj.geometry.dispose(); hlObj.material.dispose(); hlObj = null; }
-    if (trace) { trace.setPaths([]); chainTrace.setPaths([]); egoLines.setPaths([]); M.traceSegments = 0; M.chainTraceDocs = 0; M.egoLines = 0; }
+    if (egoLines) { egoLines.setPaths([]); egoPathList = []; egoColList = []; M.traceSegments = 0; M.chainTraceDocs = 0; M.egoLines = 0; }
     chainIdx = [];
     egoInc = [];
     hoverIdx = -1;
     hoverLabel = null;
     M.hoverDoc = null;
+    if (figPaths) drawPaths();
     panelArgs = null;
     clearLabels(true);
     closePanel();
@@ -921,6 +982,49 @@
     return [cam.position.x, cam.position.y, cam.position.z, target.x, target.y, target.z].map(function (v) { return Math.round(v * 1000) / 1000; });
   }
   window.VLApp.camera = function () { return camera && controls ? camState(camera, controls.target) : null; };
+  /* the near-parallel view (js/paper3d.js VL.figPlaneWidths): the six layers' projected widths, the top first */
+  window.VLApp.figView = function () {
+    if (!camera || !D) return null;
+    var E = D.extent * 1.06, pls = [0, 1, 2, 3, 4, 5].map(function (r) { return { key: 'rank-' + r, y: NS.layerY(D, r) - 2, x0: -E, x1: E, z0: -E, z1: E }; });
+    return VL.figPlaneWidths(camera, host.clientWidth, host.clientHeight, pls);
+  };
+  /* tests and offline model renders (tools_lang3d/render14.py): what the scene draws, in the snapshot form of
+     VLApp.traces.snapshot() (no trace layer here) */
+  window.VLApp.snapshot = function () {
+    if (!camera || !pointsObj || !D) return null;
+    var r3 = function (v) { return Math.round(v * 1000) / 1000; }, ga = pointsObj.geometry.attributes, i, k;
+    var hex3 = function (a, o) { return '#' + [0, 1, 2].map(function (c) { return ('0' + Math.round(Math.max(0, Math.min(1, a[o + c])) * 255).toString(16)).slice(-2); }).join(''); };
+    var pal = [], key = {}, idx = new Array(D.N), solid = [];
+    for (i = 0; i < D.N; i++) {
+      var h = hex3(ga.aColor.array, 3 * i);
+      if (key[h] == null) { key[h] = pal.length; pal.push(h); }
+      idx[i] = key[h];
+      if (ga.aAlpha.array[i] !== 1) solid.push([i, r3(ga.aAlpha.array[i])]);
+    }
+    var cHex = function (c) { return '#' + c.getHexString(); }, P3 = function (v) { return [r3(v.x), r3(v.y), r3(v.z)]; };
+    var ego = egoPathList.map(function (pts, j) { return { color: egoColList[j], width: egoWidth, pts: pts.map(P3) }; });
+    return {
+      w: host.clientWidth, h: host.clientHeight, fov: camera.fov, near: camera.near, far: camera.far, dpr: renderer.getPixelRatio(),
+      pos: camera.position.toArray().map(r3), target: controls.target.toArray().map(r3), up: camera.up.toArray(),
+      dataset: state.ds, docs: D.N, extra: [], light: 1, bg: TH.bg, dark: !!TH.dark, docColor: '#7dbe8e', linkColor: '#c4cad1', colorBy: state.colorBy,
+      docColors: { palette: pal, idx: idx }, zs: ZS, extent: D.extent, layers: [0, 1, 2, 3, 4, 5].map(function (r) { return NS.layerY(D, r); }), qaPlanes: [],
+      layersShown: !!state.layers,
+      plane: { color: TH.plane, opacity: TH.planeOpacity, line: TH.planeLine, lineOpacity: TH.planeLineOpacity },
+      netLinks: EDGE_KEYS.filter(function (k2) { return edgeObjs[k2] && edgeObjs[k2].obj.visible; }).map(function (k2) {
+        var u = edgeObjs[k2].obj.material.uniforms;
+        return { kind: k2, m: edgeObjs[k2].m, seg: edgeObjs[k2].seg, opacity: r3(u.uOpacity.value), colA: cHex(u.uColA.value), colB: cHex(u.uColB.value), order: edgeObjs[k2].obj.renderOrder };
+      }),
+      docSize: Array.prototype.map.call(ga.aSize.array, function (v) { return Math.round(v * 10) / 10; }), docSolid: solid,
+      gpos: [], traceNodes: { nodes: [], alpha: [], size: [], color: [], blend: 'opaque' }, faint: 1, traceLinks: [], traceLinkSeg: 1, traced: [],
+      strokes: { kind: 'lines', palette: [], colorIdx: [], opacity: 0, seg: 1, mix: 0 },
+      ego: ego, paths: figPathList.map(function (q) { return { color: q.color, width: q.width, main: true, pts: q.pts.map(P3) }; }), pathCasing: VL.FIG_PATH.casing,
+      marks: figMarks ? figMarks.list() : [], fg: null,
+      curve: { curves: CURVES, bend: BEND, gap: LAYER_GAP, liftMax: LIFT_MAX }, rim: pointsMat.uniforms.uRim.value, fog: [FOG.value.x, FOG.value.y, FOG.value.z],
+      paper: { core: P.core, halo: P.halo, halo2: P.halo2, calloutBg: null, calloutLine: null, selBg: null, selLine: null, ink: P.ink, ink2: P.ink2, leader: P.leader },
+      labels: labels.map(function (s2) { return { id: s2.__id, sel: !!s2.__sel, must: !!s2.__must, layer: !!s2.__layer, px: s2.__opts.px, lines: s2.__opts.lines }; }),
+      callouts: M.callouts || null, selected: state.sel >= 0 ? D.ids[state.sel] : null
+    };
+  };
   window.VLApp.state = function () {
     return { dataset: D && D.name, nodes: D && D.N, selected: state.sel >= 0 ? D.ids[state.sel] : null, panelOpen: !panel.classList.contains('hidden'),
       panelText: panel.textContent, egoHop1: M.egoHop1, labelsShown: M.labelsShown };
@@ -1037,7 +1141,11 @@
   VL.$('#btn-reset2').innerHTML = VL.ICON.reset;
   VL.$('#btn-reset2').addEventListener('click', resetView);
   VL.$('#btn-legend').innerHTML = VL.ICON.layers;
-  VL.$('#btn-legend').addEventListener('click', function () { state.legendOpen = !state.legendOpen; renderLegend(); scheduleCull(); });
+  VL.$('#btn-legend').addEventListener('click', function () {
+    if (figLay.shown) { state.legendOpen = false; state.legendForce = false; } else { state.legendOpen = true; state.legendForce = true; }
+    renderLegend();
+    scheduleCull();
+  });
   VL.$('#btn-png').addEventListener('click', function () {
     renderer.render(scene, camera);
     renderer.domElement.toBlob(function (b) { VL.downloadBlob(b, 'vlonto-legal-network-3d.png'); VL.toast(VL.U('net.toast.png')); }, 'image/png');
@@ -1061,43 +1169,49 @@
   });
 
   /* ------------------------------------------------------------------ legend, hint, status */
+  /* the legend of the figure look (js/paper3d.js VL.figDotRow ...): no frame; dots of the colour mode with the number of
+     shown documents of each (n=...), the shown link kinds as hairlines with the number of shown links, one row per
+     drawn path ("first -> last (n pts)"); a column under the stage tools on wide screens (VL.figLayout) */
   function renderLegend() {
-    VL.$('#btn-legend').setAttribute('aria-expanded', state.legendOpen ? 'true' : 'false');
     legendEl.classList.toggle('hidden', !state.legendOpen);
     if (!state.legendOpen || !D) { fitLegend(); return; }
     /* entries as in the paper's legend: "Tiếng Việt · English" in EN–VI, one language in EN or VI, each part shortened */
     function bi(vi, en) { return VL.TH(VL.pair(VL.cap(VL.short(vi || '', 26)), VL.cap(VL.short(en || '', 24)))); }
     function biKey(k) { var e = VL.i18n.get(k) || { vi: '', en: k }; return bi(e.vi, e.en); }
-    var items = [], cnt = {};
+    var items = [], cnt = {}, vis = D.vis;
     if (state.colorBy === 'validity') {
-      for (var i = 0; i < D.N; i++) cnt[D.validity[i]] = (cnt[D.validity[i]] || 0) + 1;
+      for (var i = 0; i < D.N; i++) if (vis[i]) cnt[D.validity[i]] = (cnt[D.validity[i]] || 0) + 1;
       VL.VALIDITY_ORDER.forEach(function (v) {
         var ix = D.net.validity.indexOf(v);
-        if (cnt[ix]) items.push([VL.VALIDITY[v].color, VL.VALIDITY[v].vi, VL.VALIDITY[v].en, cnt[ix]]);
+        if (cnt[ix]) items.push([VL.VALIDITY[v].color, VL.VALIDITY[v].vi, VL.VALIDITY[v].en, cnt[ix], 'validity:' + v]);
       });
     } else if (state.colorBy === 'type') {
-      for (var j = 0; j < D.N; j++) cnt[D.type[j]] = (cnt[D.type[j]] || 0) + 1;
-      D.net.types.forEach(function (t, ix) { if (cnt[ix]) items.push([VL.TYPE_COLORS[t.code] || TH.typeOther, t.vi, t.en, cnt[ix]]); });
+      for (var j = 0; j < D.N; j++) if (vis[j]) { var g = groupOfType(D.type[j]); cnt[g] = (cnt[g] || 0) + 1; }
+      VL.DOC_TYPES.forEach(function (t, gi) { if (cnt[gi]) items.push([TH.docTypes[gi], t.vi, t.en, cnt[gi], 'type:' + t.key]); });
+      if (cnt[-1]) { var ot = VL.i18n.get('fig.type.other') || { vi: 'Khác', en: 'Other' }; items.push([TH.docOther, ot.vi, ot.en, cnt[-1], 'type:other']); }
     } else {
-      for (var a = 0; a < D.N; a++) cnt[D.area[a]] = (cnt[D.area[a]] || 0) + 1;
+      for (var a = 0; a < D.N; a++) if (vis[a]) cnt[D.area[a]] = (cnt[D.area[a]] || 0) + 1;
       var order = Object.keys(cnt).filter(function (x) { return +x >= 0; }).sort(function (x, y) { return cnt[y] - cnt[x]; });
       var nA = TH.areas.length;
-      order.slice(0, nA).forEach(function (x) { var ar = D.net.areas[+x]; items.push([areaColor(+x), ar ? ar[1] : x, ar ? ar[2] : x, cnt[x]]); });
-      var rest = order.slice(nA).reduce(function (s, x) { return s + cnt[x]; }, 0);
+      order.slice(0, nA).forEach(function (x) { var ar = D.net.areas[+x]; items.push([areaColor(+x), ar ? ar[1] : x, ar ? ar[2] : x, cnt[x], 'area:' + x]); });
+      var rest = order.slice(nA).reduce(function (s2, x) { return s2 + cnt[x]; }, 0);
       var oa = VL.i18n.get('net.lg.otherAreas') || {}, na = VL.i18n.get('net.lg.noArea') || {};
-      if (rest) items.push([TH.areaOther, oa.vi, oa.en, rest]);
-      if (cnt[-1]) items.push([TH.areaNone, na.vi, na.en, cnt[-1]]);
+      if (rest) items.push([TH.areaOther, oa.vi, oa.en, rest, 'area:other']);
+      if (cnt[-1]) items.push([TH.areaNone, na.vi, na.en, cnt[-1], 'area:none']);
     }
-    var h = '<h3>' + biKey({ validity: 'net.lg.validity', type: 'net.lg.type', area: 'net.lg.area' }[state.colorBy]) + '</h3><ul>' + items.map(function (it) {
-      return '<li><span class="swatch" style="background:' + it[0] + '"></span>' + bi(it[1], it[2]) + '</li>';
-    }).join('') + '</ul>';
-    var ek = enabledKinds();
-    h += '<div class="legend-sub"><ul>' + ek.map(function (k) {
-      var lab = k === 'basis' ? VL.EDGE.basis : k === 'citation' ? VL.EDGE.citation : VL.CHANGE[k];
-      return '<li>' + curveSwatch(edgeColor(k)) + bi(lab.vi, lab.en) + '</li>';
-    }).join('') + '<li>' + curveSwatch(null) + biKey('net.lg.trace') + '</li></ul></div>';
+    var h = '<h3>' + biKey({ validity: 'net.lg.validity', type: 'net.lg.type', area: 'net.lg.area' }[state.colorBy]) + '</h3><ul class="fig-rows">' +
+      items.map(function (it) { return VL.figDotRow(it[0], bi(it[1], it[2]), it[3], ' data-key="' + VL.esc(it[4]) + '"'); }).join('') + '</ul>';
+    var ek = enabledKinds(), links = ek.map(function (k) {
+      var lab = k === 'basis' ? VL.EDGE.basis : k === 'citation' ? VL.EDGE.citation : VL.CHANGE[k], eo = edgeObjs[k];
+      return { k: k, color: edgeColor(k), html: bi(lab.vi, lab.en), n: eo ? (eo.shown || 0) : 0 };
+    });
+    h += '<div class="legend-sub"><ul class="fig-rows">' + links.map(function (l) { return VL.figHairRow(l.color, l.html, l.n, ' data-key="link:' + l.k + '"'); }).join('') + '</ul></div>';
+    if (pathRows.length) h += '<ul class="fig-rows fig-paths">' + pathRows.map(function (r) { return VL.figPathRow(r.color, r.first, r.last, r.pts); }).join('') + '</ul>';
     legendEl.innerHTML = h;
     M.legendEntries = VL.$$('li', legendEl).length;
+    M.legendRows = items.map(function (it) { return { key: it[4], color: it[0], n: it[3] }; })
+      .concat(links.map(function (l) { return { key: 'link:' + l.k, color: l.color, n: l.n }; }))
+      .concat(pathRows.map(function (r) { return { key: 'path', color: r.color, pts: r.pts, first: r.first, last: r.last }; }));
     fitLegend();
   }
   /* ------------------------------------------------------------------ theme switch (light / dark): clear colour, point
@@ -1111,7 +1225,6 @@
     if (D && pointsObj) {
       VL.rawColor(TH.bg, pointsMat.uniforms.uBg.value);
       pointsMat.uniforms.uRim.value = TH.dark ? 0.7 : 0.84;
-      chainTrace.setStyle(VL.traceStyle(P, 1));
       Object.keys(edgeObjs).forEach(function (k) { var o = edgeObjs[k].obj; scene.remove(o); o.geometry.dispose(); o.material.dispose(); });
       edgeObjs = {};
       EDGE_KEYS.forEach(buildEdges);
@@ -1119,17 +1232,31 @@
       buildLayers();          // layer planes + layer labels (clears the node labels)
       applyColors();          // node colours + legend
       applyFilters();         // edge visibility, toggles, neighbourhood edges and labels of the selection
+      drawPaths();            // the paths in the theme's colours, the casing in its ground
       if (state.sel >= 0 && !panel.classList.contains('hidden')) M.panelThemed = true;
     }
     M.themeRenders = (M.themeRenders || 0) + 1;
     needsRender = true;
   }
   window.addEventListener('vlonto-theme', applyTheme);
+  M.colorBy = state.colorBy;
   function showHint() { if (VL.store.get('hint-net3d') !== 'off') { VL.$('#hint').classList.remove('hidden'); scheduleCull(); } }
   function hideHint() { var h = VL.$('#hint'); if (h && !h.classList.contains('hidden')) { h.classList.add('hidden'); scheduleCull(); } }
   VL.$('#hint-close').addEventListener('click', function () { hideHint(); VL.store.set('hint-net3d', 'off'); });
+  /* the title line (top left; the number of shown documents) and the parameter line (bottom left; from the layout
+     recorded in the data: its algorithm and seed) */
+  var ALGO = { drl: 'DrL', fr: 'Fruchterman-Reingold', kk: 'Kamada-Kawai' };
+  function figUpdate() {
+    if (!D) return;
+    var lay = D.net.layout || {}, algo = ALGO[String(lay.algo || '').toLowerCase()] || lay.algo || '?';
+    VL.figText(stage, { title: VL.TH('fig.title.network') + ' <span class="fig-n">' + VL.esc(VL.figCount(D.visibleCount)) + '</span>',
+      params: VL.U('fig.params.network', { algo: algo, seed: lay.seed != null ? lay.seed : '?' }) });
+    M.figTitle = (VL.$('#fig-title') || {}).textContent || '';
+    M.figParams = (VL.$('#fig-params') || {}).textContent || '';
+  }
   function status() {
     if (!D) return;
+    figUpdate();
     var e = EDGE_KEYS.reduce(function (s, k) { return s + (state.edges[k] && edgeObjs[k] ? (edgeObjs[k].shown || 0) : 0); }, 0);
     statusEl.textContent = VL.U('net.status', { docs: VL.fmt(D.visibleCount), links: VL.fmt(e) }) + (M.fps ? ' · ' + VL.fmt(M.fps) + ' fps' : '');
     fitLegend();

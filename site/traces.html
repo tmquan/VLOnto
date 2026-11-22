@@ -72,7 +72,7 @@
     </aside>
     <section class="scene-stage" id="stage" aria-label="3D legal network with the question traces" data-i18n-aria="traces.stage.aria">
       <div class="scene-canvas" id="canvas-host" tabindex="0" role="application" aria-roledescription="3D graph" aria-label="3D legal network with all traced questions. Drag or use the arrow keys to rotate, scroll or press plus and minus to zoom, click a node for details; choose questions in the list to draw their traces solid." data-i18n-aria="traces.canvas.aria"></div>
-      <div class="legend" id="legend" data-legend></div>
+      <div class="legend fig-legend" id="legend" data-legend></div>
       <div class="hint hidden" id="hint" role="note">
         <p><strong data-i18n="traces.hint.title">All traced answers in the 3D legal network.</strong> <span data-i18n="traces.hint.body">Choose a question in the list (search by words, law or area) or click one in the scene: its trace is drawn solid, the rest stays light; the round button next to a question adds it.</span> <span class="desk-only" data-i18n="traces.hint.desk">Drag to rotate, scroll to zoom.</span><span class="touch-only" data-i18n="traces.hint.touch">Drag to rotate, pinch to zoom.</span></p>
         <button class="btn btn-xs" type="button" id="hint-close" data-i18n="traces.hint.ok">Got it</button>
@@ -83,6 +83,8 @@
         <button class="btn" type="button" id="btn-legend" title="Show or hide the legend" aria-label="Show or hide the legend" aria-expanded="true" aria-controls="legend" data-i18n-title="traces.legend.toggle" data-i18n-aria="traces.legend.toggle"></button>
       </div>
       <div class="stage-status" id="status" aria-live="polite"></div>
+      <p class="fig-title" id="fig-title"></p>
+      <p class="fig-params" id="fig-params"></p>
       <div class="tooltip3d hidden" id="tip" role="tooltip"></div>
       <div class="tr-fallback hidden" id="tr-fallback"></div>
       <div class="loading-veil" id="veil"><div><div class="spin"></div><span id="veil-text"><span data-i18n="traces.loadingTraces">Loading the traces</span></span></div></div>
